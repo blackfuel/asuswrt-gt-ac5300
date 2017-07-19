@@ -154,6 +154,9 @@ int wlcscan_main(void)
 	CLIENT *clnt;
 	char host[18];
 #endif
+#if defined(RTCONFIG_BCM_7114) || defined(HND_ROUTER)
+	char tmp[100], prefix[]="wlXXXXXXX_";
+#endif
 
 	signal(SIGTERM, wlcscan_safeleave);
 
@@ -193,10 +196,12 @@ int wlcscan_main(void)
 #endif
 	{	
 #if defined(RTCONFIG_BCM_7114) || defined(HND_ROUTER)
-		wlcscan_core_escan(APSCAN_INFO, word);
-#else
-		wlcscan_core(APSCAN_INFO, word);
+		snprintf(prefix, sizeof(prefix), "wl%d_", i);
+		if (!nvram_match(strcat_r(prefix, "mode", tmp), "wds"))
+			wlcscan_core_escan(APSCAN_INFO, word);
+		else
 #endif
+			wlcscan_core(APSCAN_INFO, word);
 		// suppose only two or less interface handled
 		nvram_set_int("wlc_scan_state", WLCSCAN_STATE_2G+i);
 		i++;
@@ -282,7 +287,11 @@ _dprintf("Ready to disconnect...%d.\n", wlc_count);
 					else
 #endif
 #endif
+#if defined(RPAC51)
+					usleep(500);
+#else
 					sleep(5);
+#endif
 #endif
 					continue;
 				}

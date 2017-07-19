@@ -28,7 +28,7 @@ body {
 	margin: 0 auto \9;
 	width: 50px \9;
 	height: 50px \9;
-	background-color: #798D94 \9;
+	background-color: #680516 \9;
 	-webkit-border-radius: 10px \9;
 	-moz-border-radius: 10px \9;
 	border-radius: 10px \9;
@@ -42,7 +42,7 @@ body {
 	margin: 0 auto;
 	width: 50px;
 	height: 50px;
-	background-color: #798D94;
+	background-color: #680516;
 	-webkit-border-radius: 10px;
 	-moz-border-radius: 10px;
 	border-radius: 10px;
@@ -53,15 +53,15 @@ body {
 	background-size: 900%;
 }
 .clientIcon:hover{
-	background-color: #FFFFFF;
+	background-color: #cf0a2c;
 }
 .clientIcon.clicked {
-	background-color: #FFFFFF;
+	background-color: #cf0a2c;
 }
 .clientIcon_no_hover{
 	width: 50px;
 	height: 50px;
-	background-color: #798D94;
+	background-color: #680516;
 	-webkit-border-radius: 10px;
 	-moz-border-radius: 10px;
 	border-radius: 10px;
@@ -75,7 +75,7 @@ body {
 	margin: 0 auto;
 	width: 50px;
 	height: 50px;
-	background-color: #FFFFFF;
+	background-color: #cf0a2c;
 	-webkit-border-radius: 10px;
 	-moz-border-radius: 10px;
 	border-radius: 10px;
@@ -436,7 +436,7 @@ Desktop			34
 	-moz-border-radius: 5px;
 	border-radius: 5px;
 	z-index: 200;
-	background-color:#2B373B;
+	background-color:#000000;
 	margin-left: 80px;
 	margin-top: -320px;
 	width:495px;
@@ -474,11 +474,11 @@ Desktop			34
 	width:60px;
 	cursor:pointer;
 	background-size: 900%;
-	background-color: #788D94;
+	background-color: #680516;
 	border-radius: 10px;
 }
 .client_icon_list div:hover{
-	background-color: #FFFFFF;
+	background-color: #cf0a2c;
 }
 .client_icon_list td{
 	border: 1px solid #1A1C1D;
@@ -487,13 +487,13 @@ Desktop			34
 .client_upload_div{
 	cursor: pointer;
 	background-image:none !important;
-	background-color: #2B373B !important;
-	border: 2px dashed #A1A99F !important;
+	background-color: #000000 !important;
+	border: 2px dashed #c9c9c9 !important;
 	width: 56px !important;
 	height: 56px !important;
 	text-align: center;
 	line-height: 56px;
-	color: #A1A99F;
+	color: #c9c9c9;
 	font-size: 50px;
 }
 .client_upload_div:hover{
@@ -511,7 +511,7 @@ Desktop			34
 	margin-left: -2px;
 }
 .client_input_text_disabled {
-	background:#475a5f;
+	background:#000000;
 	width:275px;
 	height:15px;
 	padding:5px 0px 5px 5px;
@@ -519,7 +519,7 @@ Desktop			34
 	border-radius:5px;
 }
 .client_preview_icon{
-	background-color: #172327;
+	background-color: #3e030d;
 	-webkit-border-radius: 10px;
 	-moz-border-radius: 10px;
 	border-radius: 10px;
@@ -534,7 +534,7 @@ Desktop			34
 	-moz-border-radius: 5px;
 	border-radius: 5px;
 	z-index: 200;
-	background-color:#444f53;
+	background-color:#000;
 	margin-left: 140px;
 	margin-top: -920px;
 	width:950px;
@@ -642,7 +642,7 @@ Desktop			34
 	border:0;
 }
 .card_table td{
-	background-color: #2B373B;
+	background-color: #000000;
 	text-align: left;
 }
 .card_table td span{
@@ -796,3 +796,36 @@ Desktop			34
 	text-align: right !important;
 	padding: 0 3px !important;
 }
+.nav {
+	display:none;
+	float: left;
+	width: 107%;
+	margin-bottom: 30px;
+	margin-top: -7px;
+}
+.nav ul{
+	margin: 0;
+	padding: 0;
+	border-top:solid 2px #666;
+}
+.nav li{
+	font-family:Arial;
+	position: relative;
+	float: left;
+	color: #FFF;
+	list-style: none;
+	background: rgb(104,5,22);
+	cursor:pointer;
+	width: 100%;
+}
+.nav li:hover{
+	background-color: rgb(207,10,44);
+}
+.nav li a {
+	display: block;
+	padding: 6px;
+	color: #FFF;
+	border-bottom:solid 1px #666;
+	text-decoration: none;
+	cursor:pointer;
+} 

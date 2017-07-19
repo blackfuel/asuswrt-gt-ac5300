@@ -30,7 +30,6 @@
 #     passing them to opt_no_flags:= in your Makefile.
 #
 
-$(info "Raymond: $(CC)")
 ifeq ($(CC),cc)
 CC := gcc
 endif

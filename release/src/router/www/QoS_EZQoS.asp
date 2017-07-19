@@ -405,7 +405,7 @@ function initial(){
 	}
 
 	/* MODELDEP */
-	if(based_modelid == "RT-AC85U" || based_modelid == "RT-AC65U"){		
+	if(based_modelid == "BLUECAVE"){		
 		if(document.form.qos_type_orig.value == "1"){
 			document.getElementById('bandwidth_setting_tr').style.display = "none";
 			document.form.qos_type_radio[1].checked = true;
@@ -650,8 +650,9 @@ function submitQoS(){
 }
 
 function change_qos_type(value){
+	console.log(value);
 	/* MODELDEP */
-	if(value=="1" && (based_modelid == "RT-AC85U" || based_modelid == "RT-AC65U")){	//Force change to 0 
+	if(value=="1" && based_modelid == "BLUECAVE"){	//Force change to 0 
 		value = 0;
 	}
 	if(value == 0){		//Traditional QoS
@@ -1265,10 +1266,34 @@ function check_field(){
 function show_tm_eula(){
 	if(document.form.preferred_lang.value == "JP"){
 		$.get("JP_tm_eula.htm", function(data){
-			document.getElementById('agreement_panel').innerHTML= data;	
-			adjust_TM_eula_height("agreement_panel");	
-		});		
+			document.getElementById('agreement_panel').innerHTML= data;
+			adjust_TM_eula_height("agreement_panel");
+		});
 	}
+	else if(document.form.preferred_lang.value == "TW"){
+		$.get("tm_eula_TC.htm", function(data){
+			document.getElementById('agreement_panel').innerHTML= data;
+			adjust_TM_eula_height("agreement_panel");
+		});
+	}
+	else if(document.form.preferred_lang.value == "CN"){
+		$.get("tm_eula_SC.htm", function(data){
+			document.getElementById('agreement_panel').innerHTML= data;
+			adjust_TM_eula_height("agreement_panel");
+		});
+	}
+	else if(document.form.preferred_lang.value == "FR"){
+		$.get("tm_eula_FR.htm", function(data){
+			document.getElementById('agreement_panel').innerHTML= data;
+			adjust_TM_eula_height("agreement_panel");
+		});
+	}
+	else if(document.form.preferred_lang.value == "RU"){
+		$.get("tm_eula_RU.htm", function(data){
+			document.getElementById('agreement_panel').innerHTML= data;
+			adjust_TM_eula_height("agreement_panel");
+		});
+	}																			
 	else{
 		$.get("tm_eula.htm", function(data){
 			document.getElementById('agreement_panel').innerHTML= data;
@@ -1346,7 +1371,7 @@ function setGroup(name){
 					<input type="hidden" name="firmver" value="<% nvram_get("firmver"); %>">
 					<input type="hidden" name="bwdpi_app_rulelist_edit" value="<% nvram_get("bwdpi_app_rulelist"); %>">
 					<tr>
-						<div class="description_down"><#Adaptive_QoS#> - <#Adaptive_QoS#></div>
+						<div class="description_down"><#Adaptive_QoS#></div>
 					</tr>
 					<tr>
 						<div style="margin-left:30px; margin-top:10px;">
@@ -1522,9 +1547,9 @@ function setGroup(name){
 										<tr id="qos_type_tr" style="display:none">
 											<th><#QoS_Type#></th>
 											<td colspan="2">
-												<input id="int_type" name="qos_type_radio" value="1" onClick="change_qos_type(this.value);" style="display:none;" type="radio" <% nvram_match("qos_type", "1","checked"); %>><a id="int_type_link" class="hintstyle" style="display:none;" href="javascript:void(0);" onClick="openHint(20, 6);"><label for="int_type"><#Adaptive_QoS#></label></a>
-												<input id="trad_type" name="qos_type_radio" value="0" onClick="change_qos_type(this.value);" type="radio" <% nvram_match("qos_type", "0","checked"); %>><a class="hintstyle" href="javascript:void(0);" onClick="openHint(20, 7);"><label for="trad_type"><#EzQoS_type_traditional#></label></a>
-												<input id="bw_limit_type" name="qos_type_radio" value="2" onClick="change_qos_type(this.value);" type="radio" <% nvram_match("qos_type", "2","checked"); %>><a class="hintstyle" href="javascript:void(0);" onClick="openHint(20, 8)"><label for="bw_limit_type"><#Bandwidth_Limiter#></label></a>
+												<input id="int_type" name="qos_type_radio" value="1" onClick="change_qos_type(this.value);" style="display:none;" type="radio" <% nvram_match("qos_type", "1","checked"); %>><a id="int_type_link" class="hintstyle" style="display:none;" href="javascript:void(0);" onClick="openHint(20, 5);"><label for="int_type"><#Adaptive_QoS#></label></a>
+												<input id="trad_type" name="qos_type_radio" value="0" onClick="change_qos_type(this.value);" type="radio" <% nvram_match("qos_type", "0","checked"); %>><a class="hintstyle" href="javascript:void(0);" onClick="openHint(20, 6);"><label for="trad_type"><#EzQoS_type_traditional#></label></a>
+												<input id="bw_limit_type" name="qos_type_radio" value="2" onClick="change_qos_type(this.value);" type="radio" <% nvram_match("qos_type", "2","checked"); %>><a class="hintstyle" href="javascript:void(0);" onClick="openHint(20, 7)"><label for="bw_limit_type"><#Bandwidth_Limiter#></label></a>
 											</td>
 										</tr>
 										<tr id="bandwidth_setting_tr" style="display:none">

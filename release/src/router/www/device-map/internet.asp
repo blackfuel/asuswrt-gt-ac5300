@@ -82,6 +82,8 @@ if(yadns_support){
 	var yadns_servers = [ <% yadns_servers(); %> ];
 }
 
+var wan_enable_orig = (parent.document.form.dual_wan_flag.value == 0)? '<% nvram_get("wan0_enable"); %>':'<% nvram_get("wan1_enable"); %>';
+
 function add_lanport_number(if_name)
 {
 	if(based_modelid == "GT-AC5300"){
@@ -151,7 +153,6 @@ function initial(){
 			document.getElementById("dualwan_row_main").style.display = "";	
 			// DSLTODO, need ajax to update failover status
 			document.getElementById('dualwan_mode_ctrl').style.display = "";
-			document.getElementById('wan_enable_button').style.display = "none";
 			
 			if(wans_mode == "lb"){
 				//document.getElementById("wansMode").value = 1;
@@ -213,29 +214,36 @@ function initial(){
 		if(sw_mode == 3)
 			document.getElementById('RemoteAPtd').style.display = "none";
 		
-		if((sw_mode == 2 || sw_mode == 3 || sw_mode == 4) && decodeURIComponent("<% nvram_char_to_ascii("WLANConfig11b", "wlc_ssid"); %>").length >= 28){
-			showtext(document.getElementById("RemoteAP"), decodeURIComponent("<% nvram_char_to_ascii("WLANConfig11b", "wlc_ssid"); %>").substring(0, 26)+"...");
-			document.getElementById("RemoteAPtd").title = decodeURIComponent("<% nvram_char_to_ascii("WLANConfig11b", "wlc_ssid"); %>");
-		}else				
-			showtext(document.getElementById("RemoteAP"), decodeURIComponent("<% nvram_char_to_ascii("WLANConfig11b", "wlc_ssid"); %>"));
+		var wlc_ssid = decodeURIComponent("<% nvram_char_to_ascii("WLANConfig11b", "wlc_ssid"); %>");
+		var _wlc_ssid = wlc_ssid.replace(/\</g, "&lt;").replace(/\>/g, "&gt;");   //replace < to &lt and > to &gt
+		if((sw_mode == 2 || sw_mode == 3 || sw_mode == 4) && wlc_ssid.length >= 28){
+			showtext(document.getElementById("RemoteAP"), _wlc_ssid.substring(0, 26)+"...");
+			document.getElementById("RemoteAPtd").title = wlc_ssid;
+		}else{			
+			showtext(document.getElementById("RemoteAP"), _wlc_ssid);
+		}
 
 		if(parent.concurrent_pap){
 			if(parent.pap_click_flag == 0){
-				if(decodeURIComponent("<% nvram_char_to_ascii("WLANConfig11b", "wlc0_ssid"); %>").length >= 28){
-					showtext(document.getElementById("RemoteAP"), decodeURIComponent("<% nvram_char_to_ascii("WLANConfig11b", "wlc0_ssid"); %>").substring(0, 26)+"...");
-					document.getElementById("RemoteAPtd").title = decodeURIComponent("<% nvram_char_to_ascii("WLANConfig11b", "wlc0_ssid"); %>");
+				var wlc0_ssid = decodeURIComponent("<% nvram_char_to_ascii("WLANConfig11b", "wlc0_ssid"); %>");
+				var _wlc0_ssid = wlc0_ssid.replace(/\</g, "&lt;").replace(/\>/g, "&gt;");   //replace < to &lt and > to &gt
+				if(wlc0_ssid.length >= 28){
+					showtext(document.getElementById("RemoteAP"), _wlc0_ssid.substring(0, 26)+"...");
+					document.getElementById("RemoteAPtd").title = wlc0_ssid;
 				}
 				else{
-					showtext(document.getElementById("RemoteAP"), decodeURIComponent("<% nvram_char_to_ascii("WLANConfig11b", "wlc0_ssid"); %>"));
+					showtext(document.getElementById("RemoteAP"), _wlc0_ssid);
 				}		
 			}
 			else{
-				if(decodeURIComponent("<% nvram_char_to_ascii("WLANConfig11b", "wlc1_ssid"); %>").length >= 28){
-					showtext(document.getElementById("RemoteAP"), decodeURIComponent("<% nvram_char_to_ascii("WLANConfig11b", "wlc1_ssid"); %>").substring(0, 26)+"...");
-					document.getElementById("RemoteAPtd").title = decodeURIComponent("<% nvram_char_to_ascii("WLANConfig11b", "wlc1_ssid"); %>");
+				var wlc1_ssid = decodeURIComponent("<% nvram_char_to_ascii("WLANConfig11b", "wlc1_ssid"); %>");
+				var _wlc1_ssid = wlc1_ssid.replace(/\</g, "&lt;").replace(/\>/g, "&gt;");   //replace < to &lt and > to &gt
+				if(wlc1_ssid.length >= 28){
+					showtext(document.getElementById("RemoteAP"), _wlc1_ssid.substring(0, 26)+"...");
+					document.getElementById("RemoteAPtd").title = wlc1_ssid;
 				}
 				else{
-					showtext(document.getElementById("RemoteAP"), decodeURIComponent("<% nvram_char_to_ascii("WLANConfig11b", "wlc1_ssid"); %>"));
+					showtext(document.getElementById("RemoteAP"), _wlc1_ssid);
 				}						
 			}		
 		}
@@ -728,7 +736,7 @@ function manualSetup(){
     		<div class="left" style="width:94px; float:right;" id="radio_wan_enable"></div>
 				<div class="clear"></div>
 				<script type="text/javascript">
-						$('#radio_wan_enable').iphoneSwitch('<% nvram_get("wan_enable"); %>', 
+						$('#radio_wan_enable').iphoneSwitch(wan_enable_orig,
 							 function() {
 								document.internetForm.wan_enable.value = "1";
 								if (dsl_support && wans_dualwan.split(" ")[wan_unit] == "dsl") {
@@ -736,7 +744,10 @@ function manualSetup(){
 									document.internetForm.dslx_link_enable.disabled = false;
 									document.internetForm.action_script.value = "start_dslwan_if 0";
 								}
-								document.internetForm.submit();	
+								else if(parent.wans_flag){
+									document.internetForm.wan_unit.value = parent.document.form.dual_wan_flag.value;
+								}
+								document.internetForm.submit();
 								return true;
 							 },
 							 function() {
@@ -746,7 +757,10 @@ function manualSetup(){
 									document.internetForm.dslx_link_enable.disabled = false;
 									document.internetForm.action_script.value = "stop_dslwan_if 0";
 								}
-								document.internetForm.submit();	
+								else if(parent.wans_flag){
+									document.internetForm.wan_unit.value = parent.document.form.dual_wan_flag.value;
+								}
+								document.internetForm.submit();
 								return true;
 							 }
 						);

@@ -267,6 +267,7 @@ extern char *generate_token(void);
 extern int match( const char* pattern, const char* string );
 extern int match_one( const char* pattern, int patternlen, const char* string );
 extern void send_page( int status, char* title, char* extra_header, char* text , int fromapp);
+extern char *get_referrer(char *referer);
 
 /* web.c */
 extern int ej_lan_leases(int eid, webs_t wp, int argc, char_t **argv);
@@ -297,6 +298,8 @@ extern int ej_wps_info_2g(int eid, webs_t wp, int argc, char_t **argv);
 extern int ej_wps_info(int eid, webs_t wp, int argc, char_t **argv);
 
 /* web.c/web-*.c */
+extern char referer_host[64];
+extern char host_name[64];
 extern char user_agent[1024];
 extern int check_user_agent(char* user_agent);
 #ifdef RTCONFIG_IFTTT
@@ -318,5 +321,10 @@ extern char* gen_IFTTT_inviteCode(char* inviteCode);
 extern int check_ifttt_token(char* asus_token);
 extern void ifttt_log(char* url, char* file);
 #endif
+
+extern char* ipisdomain(char* hostname, char* str);
+extern int referer_check(char* referer, int fromapp_flag);
+extern int check_noauth_referrer(char* referer, int fromapp_flag);
+extern char current_page_name[128];
 
 #endif /* _httpd_h_ */

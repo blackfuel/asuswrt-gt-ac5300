@@ -9,3 +9,4 @@ extern void stop_ovpn_client(int unit);
 extern void stop_ovpn_server(int unit);
 extern void write_ovpn_dnsmasq_config(FILE* f);
 extern int write_ovpn_resolv(FILE* f);
+extern void update_ovpn_profie_remote();

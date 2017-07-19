@@ -387,8 +387,17 @@ function applyRule(){
 			document.form.next_page.value = "Advanced_Modem_Content.asp";
 	} 
 
+	wans_dualwan_array = document.form.wans_dualwan.value.split(" "); //update wans_dualwan_array
 	if(wans_dualwan_array[1] == "none")
 		document.form.wan_unit.value = 0;
+
+	if(wans_dualwan_array.indexOf("usb") == 0 && document.form.wan0_enable.value == "0"){
+		document.form.wan0_enable.value = "1";
+	}
+
+	if(wans_dualwan_array.indexOf("usb") == 1 && document.form.wan1_enable.value == "0"){
+		document.form.wan1_enable.value = "1";
+	}
 
 	if(document.form.wandog_enable_radio[0].checked == true){
 		if(document.form.wandog_target.value == ""){
@@ -426,7 +435,8 @@ function addWANOption(obj, wanscapItem){
 		}
 	}
 
-	if(wans_dualwan_array[1] == "none" && obj.name == "wans_primary" && curState == "0"){
+	if( wanscapItem.indexOf("wan") >= 0 && wanscapItem.indexOf("wan2") == -1 &&
+		wans_dualwan_array[1] == "none" && obj.name == "wans_primary" && curState == "0" ){
 		for(i=0; i<wanscapItem.length; i++){
 			if(wanscapItem[i] == "lan"){
 				wanscapItem.splice(i,1);
@@ -960,7 +970,7 @@ function remain_origins(){
 <input type="hidden" name="current_page" value="Advanced_WANPort_Content.asp">
 <input type="hidden" name="next_page" value="Advanced_WANPort_Content.asp">
 <input type="hidden" name="modified" value="0">
-<input type="hidden" name="action_mode" value="apply">
+<input type="hidden" name="action_mode" value="apply_new">
 <input type="hidden" name="action_wait" value="<% get_default_reboot_time(); %>">
 <input type="hidden" name="action_script" value="reboot">
 <input type="hidden" name="preferred_lang" id="preferred_lang" value="<% nvram_get("preferred_lang"); %>">
@@ -1051,7 +1061,7 @@ function remain_origins(){
 															form_show(wans_flag);
 														 },
 														 function() {
-															if(wans_dualwan_array[0] == "lan"){
+															if(wans_caps_primary.indexOf("wan") >= 0 && wans_dualwan_array[0] == "lan"){
 																var cur_parimary_wan = wans_dualwan_array[0].toUpperCase() + " Port " + wans_lanport_orig;
 																var confirm_str = "The current primary wan is \"" + cur_parimary_wan + "\". Disable dual wan will change primary wan to \"Ethernet WAN\", are you sure to do it?"; //untranslated
 																if(!confirm(confirm_str)){
@@ -1060,14 +1070,13 @@ function remain_origins(){
 																	return false;
 																}
 																else{
-																	document.form.wans_dualwan.value = 'wan none';
 																	wans_dualwan_array[0] = "wan";
 																}
 															}
 															curState = "0";
 															wans_flag = 0;
 															wans_dualwan_array[1] = "none"
-															document.form.wans_dualwan.value = wans_dualwan_array[0]+ " none";
+															document.form.wans_dualwan.value = wans_dualwan_array.join(" ");
 															document.form.wans_mode.value = "fo";
 															addWANOption(document.form.wans_primary, wans_caps_primary.split(" "));
 															form_show(wans_flag);

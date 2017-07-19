@@ -127,48 +127,16 @@ function initial(){
 		document.getElementById("voip_port3").innerHTML = "LAN port 2"; //P2
 		document.getElementById("iptv_port4").innerHTML = "LAN port 1"; //P3
 	}
-	if( based_modelid != "RT-AC5300" &&
-		based_modelid != "GT-AC5300" &&
-		based_modelid != "RT-AC3200" &&
-		based_modelid != "RT-AC3100" &&
-		based_modelid != "RT-AC1200G+" &&
-		based_modelid != "RT-AC88U" &&
-		based_modelid != "RT-AC86U" &&
-		based_modelid != "AC2900" &&
-		based_modelid != "RT-AC87U" && 
-		based_modelid != "RT-AC68U" &&
-		based_modelid != "RT-AC68A" &&
-		based_modelid != "4G-AC68U" &&
-		based_modelid != "RT-AC66U" &&
-		based_modelid != "RT-AC56U" &&
-		based_modelid != "RT-AC51U" &&
-		based_modelid != "RT-N66U" &&
-		based_modelid != "RT-N18U"
-	){
+	if( !meoVoda_support ){
 		document.getElementById('meoOption').outerHTML = "";
 		document.getElementById('vodafoneOption').outerHTML = "";
 	}
 	
-	if( based_modelid != "RT-AC5300" &&
-		based_modelid != "RT-AC3200" &&
-		based_modelid != "RT-AC3100" &&
-		based_modelid != "RT-AC1200G+" &&
-		based_modelid != "RT-AC88U" &&
-		based_modelid != "RT-AC87U" &&
-		based_modelid != "RT-AC68U" &&
-		based_modelid != "RT-AC68A" &&
-		based_modelid != "4G-AC68U" &&
-		based_modelid != "RT-AC66U" &&
-		based_modelid != "RT-AC56U" &&
-		based_modelid != "RT-AC56S" &&
-		based_modelid != "RT-AC51U" &&
-		based_modelid != "RT-N66U" &&
-		based_modelid != "RT-N18U"
-        ){
+	if( !movistarTriple_support ){
 		document.getElementById('movistarOption').outerHTML = "";
 	}
-        if(!nz_isp_support)
-                document.getElementById('sfOption').outerHTML = "";
+	if(!nz_isp_support)
+		document.getElementById('sfOption').outerHTML = "";
 }
 
 function load_ISP_profile(){

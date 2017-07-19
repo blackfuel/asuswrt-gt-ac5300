@@ -739,11 +739,11 @@ static int updateWscConf(char *in, char *out, int genpin, char *wlanif_name,int 
     {
         //Ethernet(0x2)+Label(0x4)+PushButton(0x80) Bitwise OR
         if (intVal == 1) //Pin+Ethernet
-            intVal = (CONFIG_METHOD_ETH | CONFIG_METHOD_PIN);
+            intVal = (CONFIG_METHOD_KEYPAD | CONFIG_METHOD_VIRTUAL_PIN);
         else if (intVal == 2) //PBC+Ethernet
-            intVal = (CONFIG_METHOD_ETH | CONFIG_METHOD_PBC);
+            intVal = (CONFIG_METHOD_KEYPAD | CONFIG_METHOD_PHYSICAL_PBC | CONFIG_METHOD_VIRTUAL_PBC);
         if (intVal == 3) //Pin+PBC+Ethernet
-            intVal = (CONFIG_METHOD_ETH | CONFIG_METHOD_PIN | CONFIG_METHOD_PBC);
+            intVal = (CONFIG_METHOD_KEYPAD | CONFIG_METHOD_VIRTUAL_PIN | CONFIG_METHOD_PHYSICAL_PBC | CONFIG_METHOD_VIRTUAL_PBC);
     }
 	WRITE_WSC_PARAM(ptr, tmpbuf, "config_method = %d\n", intVal);
 
@@ -2277,31 +2277,22 @@ int gen_realtek_config(int band, int val)
 		pmib->dot11OperationEntry.hiddenAP = 0;	
 	}
 
-	//ShortSlot
-	NVRAM_GET(str, "plcphdr"){
-		int shortgi = strcmp(str, "short")==0 ? 1 : 0;
+	//ShortGI
+	NVRAM_GET(str, "HT_GI"){
+		int shortgi = atoi(str);
 		pmib->dot11nConfigEntry.dot11nShortGIfor20M = shortgi;
 		pmib->dot11nConfigEntry.dot11nShortGIfor40M = shortgi;
-#if defined(RPAC53) || defined(RPAC55)
+#ifndef RPAC68U
 		pmib->dot11nConfigEntry.dot11nShortGIfor80M = shortgi;
 #endif
 	}else{
-		rtk_printf("NVRAM: %s%s not set!!\n", prefix, suf);
-		if (strstr(prefix, "wlc")) { // client interface force enable shortGI for 20M/40M/80M.
-			pmib->dot11nConfigEntry.dot11nShortGIfor20M = 1;
-			pmib->dot11nConfigEntry.dot11nShortGIfor40M = 1;
-#if defined(RPAC53) || defined(RPAC55)
-			pmib->dot11nConfigEntry.dot11nShortGIfor80M = 1;
-#endif
-		}
-		else {
-			pmib->dot11nConfigEntry.dot11nShortGIfor20M = 0;
-			pmib->dot11nConfigEntry.dot11nShortGIfor40M = 0;
-#if defined(RPAC53) || defined(RPAC55)
-			pmib->dot11nConfigEntry.dot11nShortGIfor80M = 0;
-#endif
-		}
+		pmib->dot11nConfigEntry.dot11nShortGIfor20M = 1;
+		pmib->dot11nConfigEntry.dot11nShortGIfor40M = 1;
+#ifndef RPAC68U
+		pmib->dot11nConfigEntry.dot11nShortGIfor80M = 1;
+#endif		
 	}
+
 if(is_root)
 {
 #ifdef CONFIG_RTL_DOT11K_SUPPORT

@@ -65,6 +65,10 @@
 #define ACCESS_TELNET 0x04
 #define ACCESS_ALL    0x07
 
+
+#define STOP_TIME  0
+#define START_TIME 1
+
 #ifdef RTCONFIG_IPV6
 char wan6face[IFNAMSIZ + 1];
 // RFC-4890, sec. 4.3.1
@@ -84,9 +88,9 @@ void redirect_setting();
 #endif
 
 struct datetime{
-	char start[6];		// start time
-	char stop[6];		// stop time
-	char tmpstop[6];	// cross-night stop time
+	char start[7];		// start time
+	char stop[7];		// stop time
+	char tmpstop[7];	// cross-night stop time
 } __attribute__((packed));
 
 char *g_buf;
@@ -691,21 +695,15 @@ no_match:
 
 /*
  * transfer string to time string
- * ex. 1100 -> 11:00, 1359 -> 13:59
+ * ex. 110000 -> 11:00:00, 135959 -> 13:59:59
  *
  */
 
-char *str2time(char *str, char *buf){
-	int i;
-
-	i=0;
-	strncpy(buf, str, 2);
-	i+=2;
-	buf[i++] = ':';
-	strncpy(buf+i, str+2, 2);
-	i+=2;
-	buf[i]=0;
-
+char *str2time(char *str, char *buf, int buf_size, int flag){
+	if(START_TIME == flag)
+		snprintf(buf, buf_size, "%c%c:%c%c:00", *(str), *(str+1), *(str+2), *(str+3));
+	else if(STOP_TIME == flag)
+		snprintf(buf, buf_size, "%c%c:%c%c:59", *(str), *(str+1), *(str+2), *(str+3));
 	return (buf);
 }
 
@@ -714,7 +712,7 @@ char *str2time(char *str, char *buf){
  * ret : 1 : valid format
  */
 
-int timematch_conv2(char *mstr, char *nv_date, char *nv_time, char *nv_time2)
+int timematch_conv2(char *mstr, int mstr_size, char *nv_date, char *nv_time, char *nv_time2)
 {
 	char *datestr[] = { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
 	char timestart[6], timestop[6], timestart2[6], timestop2[6];
@@ -743,12 +741,19 @@ int timematch_conv2(char *mstr, char *nv_date, char *nv_time, char *nv_time2)
 
 	if (strncmp(date, "1111111", 7)==0 &&
 	    strncmp(time, "00002359", 8)==0 &&
-	    strncmp(time2, "00002359", 8)==0) goto no_match;
-
+	    strncmp(time2, "00002359", 8)==0)
+	{
+		goto no_match;
+	}
 	// schedule day of week
 	for(i=0;i<=6;i++){
 		dow += (date[i]-'0') << (6-i);
 	}
+	memset(timestart, 0, sizeof(timestart));
+	memset(timestop, 0, sizeof(timestop));
+	memset(timestart2, 0, sizeof(timestart2));
+	memset(timestop2, 0, sizeof(timestop2));
+
 	// weekdays time
 	strncpy(timestart, time, 4);
 	strncpy(timestop, time+4, 4);
@@ -761,47 +766,58 @@ int timematch_conv2(char *mstr, char *nv_date, char *nv_time, char *nv_time2)
 	//cprintf("%s: dow=%d, timestart=%d, timestop=%d, timestart2=%d, timestop2=%d, sizeof(datetime)=%d\n", __FUNCTION__, dow, atoi(timestart), atoi(timestop), atoi(timestart2), atoi(timestop2), sizeof(datetime)); //tmp test
 
 	// Sunday
-	if((dow & 0x40) != 0){
-		if(atoi(timestart2) < atoi(timestop2)){
-			strncpy(datetime[0].start, timestart2, 4);
-			strncpy(datetime[0].stop, timestop2, 4);
+	if((dow & 0x40) != 0)
+	{
+		if(atoi(timestart2) < atoi(timestop2))
+		{
+			snprintf(datetime[0].start, sizeof(datetime[0].start), "%s00", timestart2);
+			snprintf(datetime[0].stop, sizeof(datetime[0].stop), "%s59", timestop2);
 		}
-		else{
-			strncpy(datetime[0].start, timestart2, 4);
-			strncpy(datetime[0].stop, "2359", 4);
-			strncpy(datetime[1].tmpstop, timestop2, 4);
+		else
+		{
+			snprintf(datetime[0].start, sizeof(datetime[0].start), "%s00", timestart2);
+			strncpy(datetime[0].stop, "235959", 6);
+			snprintf(datetime[1].tmpstop, sizeof(datetime[1].tmpstop), "%s59", timestop2);
 		}
 	}
 
 	// Monday to Friday
-	for(i=1;i<6;i++){
-		if((dow & 1<<(6-i)) != 0){
-			if(atoi(timestart) < atoi(timestop)){
-				strncpy(datetime[i].start, timestart, 4);
-				strncpy(datetime[i].stop, timestop, 4);
+	for(i=1;i<6;i++)
+	{
+		if((dow & 1<<(6-i)) != 0)
+		{
+			if(atoi(timestart) < atoi(timestop))
+			{
+				snprintf(datetime[i].start, sizeof(datetime[i].start), "%s00", timestart);
+				snprintf(datetime[i].stop, sizeof(datetime[i].stop), "%s59", timestop);
 			}
-			else{
-				strncpy(datetime[i].start, timestart, 4);
-				strncpy(datetime[i].stop, "2359", 4);
-				strncpy(datetime[i+1].tmpstop, timestop, 4);
+			else
+			{
+				snprintf(datetime[i].start, sizeof(datetime[i].start), "%s00", timestart);
+				strncpy(datetime[i].stop, "235959", 6);
+				snprintf(datetime[i+1].tmpstop, sizeof(datetime[i+1].tmpstop), "%s59", timestop);
 			}
 		}
 	}
 
 	// Saturday
-	if((dow & 0x01) != 0){
-		if(atoi(timestart2) < atoi(timestop2)){
-			strncpy(datetime[6].start, timestart2, 4);
-			strncpy(datetime[6].stop, timestop2, 4);
+	if((dow & 0x01) != 0)
+	{
+		if(atoi(timestart2) < atoi(timestop2))
+		{
+			snprintf(datetime[6].start, sizeof(datetime[6].start), "%s00", timestart2);
+			snprintf(datetime[6].stop, sizeof(datetime[6].stop), "%s59", timestop2);
 		}
-		else{
-			strncpy(datetime[6].start, timestart2, 4);
-			strncpy(datetime[6].stop, "2359", 4);
-			strncpy(datetime[0].tmpstop, timestop2, 4);
-		}
+		else
+		{
+			snprintf(datetime[6].start, sizeof(datetime[6].start), "%s00", timestart2);
+			strncpy(datetime[6].stop, "235959", 6);
+			snprintf(datetime[0].tmpstop, sizeof(datetime[0].tmpstop), "%s59", timestop2);
+		}		
 	}
 
-	for(i=0;i<7;i++){
+	for(i=0;i<7;i++)
+	{
 		//cprintf("%s: i=%d, start=%s, stop=%s, tmpstop=%s\n", __FUNCTION__, i, datetime[i].start, datetime[i].stop, datetime[i].tmpstop); //tmp test
 
 		// cascade cross-night time
@@ -811,27 +827,29 @@ int timematch_conv2(char *mstr, char *nv_date, char *nv_time, char *nv_time2)
 			if((atoi(datetime[i].tmpstop) >= atoi(datetime[i].start))
 				&& (atoi(datetime[i].tmpstop) <= atoi(datetime[i].stop)))
 			{
-				strncpy(datetime[i].start, "0000", 4);
-				strncpy(datetime[i].tmpstop, "", 4);
+				strncpy(datetime[i].start, "000000", 6);
+				strncpy(datetime[i].tmpstop, "", 6);
 			}
 			else if (atoi(datetime[i].tmpstop) > atoi(datetime[i].stop))
 			{
-				strncpy(datetime[i].start, "0000", 4);
-				strncpy(datetime[i].stop, datetime[i].tmpstop, 4);
-				strncpy(datetime[i].tmpstop, "", 4);
+				strncpy(datetime[i].start, "000000", 6);
+				strncpy(datetime[i].stop, datetime[i].tmpstop, 6);
+				strncpy(datetime[i].tmpstop, "", 6);
 			}
 		}
 
 		//cprintf("%s: i=%d, start=%s, stop=%s, tmpstop=%s\n", __FUNCTION__, i, datetime[i].start, datetime[i].stop, datetime[i].tmpstop); //tmp test
 
-		char tmp1[6], tmp2[6];
+		char tmp1[9], tmp2[9];
 		memset(tmp1, 0, sizeof(tmp1));
 		memset(tmp2, 0, sizeof(tmp2));
 		memset(buf, 0, sizeof(buf));
 
 		// cross-night period
 		if(strcmp(datetime[i].tmpstop, "")!=0){
-			sprintf(buf2, "%s-m time --timestop %s" DAYS_PARAM "%s", buf, str2time(datetime[i].tmpstop, tmp2), datestr[i]);
+			snprintf(buf2, sizeof(buf2), "%s-m time --timestop %s" DAYS_PARAM "%s"
+			, buf, str2time(datetime[i].tmpstop, tmp2, sizeof(tmp2), STOP_TIME), datestr[i]);
+
 			strlcpy(buf, buf2, sizeof(buf));
 		}
 
@@ -839,33 +857,42 @@ int timematch_conv2(char *mstr, char *nv_date, char *nv_time, char *nv_time2)
 		if((strcmp(datetime[i].start, "")!=0) && (strcmp(datetime[i].stop, "")!=0)){
 
 			if(strcmp(buf, "")!=0) {
-				sprintf(buf2, "%s>", buf); // add ">"
+				snprintf(buf2, sizeof(buf2), "%s>", buf); // add ">"
 				strlcpy(buf, buf2, sizeof(buf));
 			}
+			if((strcmp(datetime[i].start, "000000")==0) && (strcmp(datetime[i].stop, "235959")==0))// whole day
+			{
+				snprintf(buf2, sizeof(buf2), "%s-m time" DAYS_PARAM "%s", buf, datestr[i]);
+				strlcpy(buf, buf2, sizeof(buf));
+			}
+			else if((strcmp(datetime[i].start, "000000")!=0) && (strcmp(datetime[i].stop, "235959")==0))// start ~ 2359
+			{
+				snprintf(buf2, sizeof(buf2), "%s-m time --timestart %s" DAYS_PARAM "%s"
+				, buf, str2time(datetime[i].start, tmp1, sizeof(tmp1), START_TIME), datestr[i]);
 
-			if((strcmp(datetime[i].start, "0000")==0) && (strcmp(datetime[i].stop, "2359")==0)){// whole day
-				sprintf(buf2, "%s-m time" DAYS_PARAM "%s", buf, datestr[i]);
 				strlcpy(buf, buf2, sizeof(buf));
 			}
-			else if((strcmp(datetime[i].start, "0000")!=0) && (strcmp(datetime[i].stop, "2359")==0)){// start ~ 2359
-				sprintf(buf2, "%s-m time --timestart %s" DAYS_PARAM "%s", buf, str2time(datetime[i].start, tmp1), datestr[i]);
+			else if((strcmp(datetime[i].start, "000000")==0) && (strcmp(datetime[i].stop, "235959")!=0))// 0 ~ stop
+			{
+				snprintf(buf2, sizeof(buf2), "%s-m time --timestop %s" DAYS_PARAM "%s"
+				, buf, str2time(datetime[i].stop, tmp2, sizeof(tmp2), STOP_TIME), datestr[i]);
+
 				strlcpy(buf, buf2, sizeof(buf));
 			}
-			else if((strcmp(datetime[i].start, "0000")==0) && (strcmp(datetime[i].stop, "2359")!=0)){// 0 ~ stop
-				sprintf(buf2, "%s-m time --timestop %s" DAYS_PARAM "%s", buf, str2time(datetime[i].stop, tmp2), datestr[i]);
-				strlcpy(buf, buf2, sizeof(buf));
-			}
-			else if((strcmp(datetime[i].start, "0000")!=0) && (strcmp(datetime[i].stop, "2359")!=0)){// start ~ stop
-				sprintf(buf2, "%s-m time --timestart %s --timestop %s" DAYS_PARAM "%s", buf,  str2time(datetime[i].start, tmp1), str2time(datetime[i].stop, tmp2), datestr[i]);
+			else if((strcmp(datetime[i].start, "000000")!=0) && (strcmp(datetime[i].stop, "235959")!=0))// start ~ stop
+			{
+				snprintf(buf2, sizeof(buf2), "%s-m time --timestart %s --timestop %s" DAYS_PARAM "%s"
+				, buf,  str2time(datetime[i].start, tmp1, sizeof(tmp1), START_TIME)
+				, str2time(datetime[i].stop, tmp2, sizeof(tmp2), STOP_TIME), datestr[i]);
 				strlcpy(buf, buf2, sizeof(buf));
 			}
 		}
 
 		if(strcmp(buf, "")!=0){
 			if(strcmp(mstr, "")==0)
-				sprintf(mstr, "%s", buf);
+				snprintf(mstr, mstr_size, "%s", buf);
 			else {
-				sprintf(mstr2, "%s>%s", mstr, buf); // add ">"
+				snprintf(mstr2, sizeof(mstr2), "%s>%s", mstr, buf); // add ">"
 				strlcpy(mstr, mstr2, sizeof(mstr2));
 			}
 		}
@@ -2020,8 +2047,8 @@ start_default_filter(int lanunit)
 		":logaccept - [0:0]\n"
 		":logdrop - [0:0]\n");
 #ifdef RTCONFIG_PROTECTION_SERVER
-	fprintf(fp, ":%s_WAN - [0:0]\n", PROTECT_SRV_RULE_CHAIN);
-	fprintf(fp, ":%s_LAN - [0:0]\n", PROTECT_SRV_RULE_CHAIN);
+	fprintf(fp, ":%sWAN - [0:0]\n", PROTECT_SRV_RULE_CHAIN);
+	fprintf(fp, ":%sLAN - [0:0]\n", PROTECT_SRV_RULE_CHAIN);
 #endif
 
 #ifdef RTCONFIG_RESTRICT_GUI
@@ -2061,8 +2088,8 @@ start_default_filter(int lanunit)
 	    || nvram_get_int("sshd_enable") != 0
 #endif
 	) {
-		fprintf(fp, "-A INPUT ! -i %s -j %s_WAN\n", lan_if, PROTECT_SRV_RULE_CHAIN);
-		fprintf(fp, "-A INPUT -i %s -j %s_LAN\n", lan_if, PROTECT_SRV_RULE_CHAIN);
+		fprintf(fp, "-A INPUT ! -i %s -j %sWAN\n", lan_if, PROTECT_SRV_RULE_CHAIN);
+		fprintf(fp, "-A INPUT -i %s -j %sLAN\n", lan_if, PROTECT_SRV_RULE_CHAIN);
 	}
 #endif
 	fprintf(fp, "-A INPUT -i %s -m state --state NEW -j ACCEPT\n", lan_if);
@@ -2124,7 +2151,7 @@ start_default_filter(int lanunit)
 #endif
 }
 
-#if defined(MAPAC1300) || defined(MAPAC2200)
+#if defined(MAPAC1300) || defined(MAPAC2200) || defined(VRZAC1300)
 void reset_filter(void)
 {
 	const char *filter_rules = "/tmp/hive_filter.default";
@@ -2148,269 +2175,30 @@ void reset_filter(void)
 
 
 #ifdef WEBSTRFILTER
-/* url filter corss midnight patch start */
-int makeTimestr(char *tf)
+/* url filter scheduler */
+int makeTimestr(char *tf, int size)
 {
-	char *url_time = nvram_get("url_time_x");
-	char *url_date = nvram_get("url_date_x");
-	static const char *days[7] = { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" };
-	int i, comma = 0;
+	if (!nvram_match("url_enable_x", "1")) return 0;
 
-	if (!nvram_match("url_enable_x", "1"))
-		return -1;
-
-	if ((!url_date) || strlen(url_date) != 7 || !strcmp(url_date, "0000000"))
-	{
-		printf("url filter get time fail\n");
-		return -1;
-	}
-
-	sprintf(tf, "-m time --timestart %c%c:%c%c --timestop %c%c:%c%c " DAYS_PARAM, url_time[0], url_time[1], url_time[2], url_time[3], url_time[4], url_time[5], url_time[6], url_time[7]);
-//	sprintf(tf, " -m time --timestart %c%c:%c%c --timestop %c%c:%c%c " DAYS_PARAM, url_time[0], url_time[1], url_time[2], url_time[3], url_time[4], url_time[5], url_time[6], url_time[7]);
-
-	for (i=0; i<7; ++i)
-	{
-		if (url_date[i] == '1')
-		{
-			if (comma == 1)
-				strncat(tf, ",", 1);
-
-			strncat(tf, days[i], 3);
-			comma = 1;
-		}
-	}
-
-	_dprintf("# url filter time module str is [%s]\n", tf);	// tmp test
-	return 0;
-}
-
-int makeTimestr2(char *tf)
-{
-	char *url_time = nvram_get("url_time_x_1");
-	char *url_date = nvram_get("url_date_x");
-	static const char *days[7] = { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" };
-	int i, comma = 0;
-
-	if (!nvram_match("url_enable_x_1", "1"))
-		return -1;
-
-	if ((!url_date) || strlen(url_date) != 7 || !strcmp(url_date, "0000000"))
-	{
-		printf("url filter get time fail\n");
-		return -1;
-	}
-
-	sprintf(tf, "-m time --timestart %c%c:%c%c --timestop %c%c:%c%c " DAYS_PARAM, url_time[0], url_time[1], url_time[2], url_time[3], url_time[4], url_time[5], url_time[6], url_time[7]);
-
-	for (i=0; i<7; ++i)
-	{
-		if (url_date[i] == '1')
-		{
-			if (comma == 1)
-				strncat(tf, ",", 1);
-
-			strncat(tf, days[i], 3);
-			comma = 1;
-		}
-	}
-
-	_dprintf("# url filter time module str is [%s]\n", tf);	// tmp test
-	return 0;
-}
-
-int
-valid_url_filter_time()
-{
-	char *url_time1 = nvram_get("url_time_x");
-	char *url_time2 = nvram_get("url_time_x_1");
-	char starttime1[5], endtime1[5];
-	char starttime2[5], endtime2[5];
-
-	memset(starttime1, 0, 5);
-	memset(endtime1, 0, 5);
-	memset(starttime2, 0, 5);
-	memset(endtime2, 0, 5);
-
-	if (!nvram_match("url_enable_x", "1") && !nvram_match("url_enable_x_1", "1"))
-		return 0;
-
-	if (nvram_match("url_enable_x", "1"))
-	{
-		if ((!url_time1) || strlen(url_time1) != 8)
-			goto err;
-
-		strncpy(starttime1, url_time1, 4);
-		strncpy(endtime1, url_time1 + 4, 4);
-		_dprintf("starttime1: %s\n", starttime1);
-		_dprintf("endtime1: %s\n", endtime1);
-
-		if (atoi(starttime1) > atoi(endtime1))
-			goto err;
-	}
-
-	if (nvram_match("url_enable_x_1", "1"))
-	{
-		if ((!url_time2) || strlen(url_time2) != 8)
-			goto err;
-
-		strncpy(starttime2, url_time2, 4);
-		strncpy(endtime2, url_time2 + 4, 4);
-		_dprintf("starttime2: %s\n", starttime2);
-		_dprintf("endtime2: %s\n", endtime2);
-
-		if (atoi(starttime2) > atoi(endtime2))
-			goto err;
-	}
-
-	if (nvram_match("url_enable_x", "1") && nvram_match("url_enable_x_1", "1"))
-	{
-		if ((atoi(starttime1) > atoi(starttime2)) &&
-			((atoi(starttime2) > atoi(endtime1)) || (atoi(endtime2) > atoi(endtime1))))
-			goto err;
-
-		if ((atoi(starttime2) > atoi(starttime1)) &&
-			((atoi(starttime1) > atoi(endtime2)) || (atoi(endtime1) > atoi(endtime2))))
-			goto err;
-	}
+	// TODO : add new logic with url filter scheduler
+	/* time condition nvram use "url_sched" */
+	memset(tf, 0, size);
 
 	return 1;
-
-err:
-	_dprintf("invalid url filter time setting!\n");
-	return 0;
 }
-/* url filter corss midnight patch end */
 #endif
 
 #ifdef CONTENTFILTER
-int makeTimestr_content(char *tf)
+/* keyword filter scheduler */
+int makeTimestr_content(char *tf, int size)
 {
-	char *keyword_time = nvram_get("keyword_time_x");
-	char *keyword_date = nvram_get("keyword_date_x");
-	static const char *days[7] = { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" };
-	int i, comma = 0;
+	if (!nvram_match("keyword_enable_x", "1")) return 0;
 
-	if (!nvram_match("keyword_enable_x", "1"))
-		return -1;
-
-	if ((!keyword_date) || strlen(keyword_date) != 7 || !strcmp(keyword_date, "0000000"))
-	{
-		printf("content filter get time fail\n");
-		return -1;
-	}
-
-	sprintf(tf, "-m time --timestart %c%c:%c%c --timestop %c%c:%c%c " DAYS_PARAM, keyword_time[0], keyword_time[1], keyword_time[2], keyword_time[3], keyword_time[4], keyword_time[5], keyword_time[6], keyword_time[7]);
-
-	for (i=0; i<7; ++i)
-	{
-		if (keyword_date[i] == '1')
-		{
-			if (comma == 1)
-				strncat(tf, ",", 1);
-
-			strncat(tf, days[i], 3);
-			comma = 1;
-		}
-	}
-
-	printf("# content filter time module str is [%s]\n", tf);	// tmp test
-	return 0;
-}
-
-int makeTimestr2_content(char *tf)
-{
-	char *keyword_time = nvram_get("keyword_time_x_1");
-	char *keyword_date = nvram_get("keyword_date_x");
-	static const char *days[7] = { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" };
-	int i, comma = 0;
-
-	if (!nvram_match("keyword_enable_x_1", "1"))
-		return -1;
-
-	if ((!keyword_date) || strlen(keyword_date) != 7 || !strcmp(keyword_date, "0000000"))
-	{
-		printf("content filter get time fail\n");
-		return -1;
-	}
-
-	sprintf(tf, "-m time --timestart %c%c:%c%c --timestop %c%c:%c%c " DAYS_PARAM, keyword_time[0], keyword_time[1], keyword_time[2], keyword_time[3], keyword_time[4], keyword_time[5], keyword_time[6], keyword_time[7]);
-
-	for (i=0; i<7; ++i)
-	{
-		if (keyword_date[i] == '1')
-		{
-			if (comma == 1)
-				strncat(tf, ",", 1);
-
-			strncat(tf, days[i], 3);
-			comma = 1;
-		}
-	}
-
-	printf("# content filter time module str is [%s]\n", tf);	// tmp test
-	return 0;
-}
-
-int
-valid_keyword_filter_time()
-{
-	char *keyword_time1 = nvram_get("keyword_time_x");
-	char *keyword_time2 = nvram_get("keyword_time_x_1");
-	char starttime1[5], endtime1[5];
-	char starttime2[5], endtime2[5];
-
-	memset(starttime1, 0, 5);
-	memset(endtime1, 0, 5);
-	memset(starttime2, 0, 5);
-	memset(endtime2, 0, 5);
-
-	if (!nvram_match("keyword_enable_x", "1") && !nvram_match("keyword_enable_x_1", "1"))
-		return 0;
-
-	if (nvram_match("keyword_enable_x", "1"))
-	{
-		if ((!keyword_time1) || strlen(keyword_time1) != 8)
-			goto err;
-
-		strncpy(starttime1, keyword_time1, 4);
-		strncpy(endtime1, keyword_time1 + 4, 4);
-		printf("starttime1: %s\n", starttime1);
-		printf("endtime1: %s\n", endtime1);
-
-		if (atoi(starttime1) > atoi(endtime1))
-			goto err;
-	}
-
-	if (nvram_match("keyword_enable_x_1", "1"))
-	{
-		if ((!keyword_time2) || strlen(keyword_time2) != 8)
-			goto err;
-
-		strncpy(starttime2, keyword_time2, 4);
-		strncpy(endtime2, keyword_time2 + 4, 4);
-		printf("starttime2: %s\n", starttime2);
-		printf("endtime2: %s\n", endtime2);
-
-		if (atoi(starttime2) > atoi(endtime2))
-			goto err;
-	}
-
-	if (nvram_match("keyword_enable_x", "1") && nvram_match("keyword_enable_x_1", "1"))
-	{
-		if ((atoi(starttime1) > atoi(starttime2)) &&
-			((atoi(starttime2) > atoi(endtime1)) || (atoi(endtime2) > atoi(endtime1))))
-			goto err;
-
-		if ((atoi(starttime2) > atoi(starttime1)) &&
-			((atoi(starttime1) > atoi(endtime2)) || (atoi(endtime1) > atoi(endtime2))))
-			goto err;
-	}
+	// TODO : add new logic with keyword filter scheduler
+	/* time condition nvram use "keyword_sched" */
+	memset(tf, 0, size);
 
 	return 1;
-
-err:
-	printf("invalid content filter time setting!\n");
-	return 0;
 }
 #endif
 
@@ -2449,7 +2237,6 @@ int ruleHasFTPport(void)
 	return 0;
 }
 #ifdef WEBSTRFILTER
-/* url filter corss midnight patch start */
 #ifdef RTCONFIG_IPV6
 static void write_UrlFilter(char *chain, char *lan_if, char *lan_ip, char *logdrop, FILE *fp, FILE *fp_ipv6)
 #else
@@ -2460,7 +2247,7 @@ static void write_UrlFilter(char *chain, char *lan_if, char *lan_ip, char *logdr
 	char *enable, *addr, *url;
 	char srcips[64];
 	char config_rule[20];
-	char timef[256], timef2[256];
+	char timef[256];
 
 	snprintf(config_rule, sizeof(config_rule), "-d %s", lan_ip);
 #ifdef RTCONFIG_IPV6
@@ -2472,126 +2259,70 @@ static void write_UrlFilter(char *chain, char *lan_if, char *lan_ip, char *logdr
 		strcpy(config_rulev6, "");
 
 #endif
-	if (valid_url_filter_time()) {
-		if (!makeTimestr(timef)) {
-			nv = nvp = strdup(nvram_safe_get("url_rulelist"));
-			while (nvp) {
-				if ((b = strsep(&nvp, "<")) == NULL) break;
-				if ((vstrsep(b, ">", &enable, &addr, &url)) != 3) continue;
-				if (!strcmp(enable, "0")) 
-					continue;
+	if (makeTimestr(timef, sizeof(timef))) {
+		nv = nvp = strdup(nvram_safe_get("url_rulelist"));
+		while(nvp)
+		{
+			if ((b = strsep(&nvp, "<")) == NULL) break;
+			if ((vstrsep(b, ">", &enable, &addr, &url)) != 3) continue;
+			if (!strcmp(enable, "0")) 
+				continue;
 
-				// Handle source type format
-				srcips[0] = '\0';
-				if (addr && *addr) {
-					char srcAddr[32];
-					int src_type = addr_type_parse(addr, srcAddr, sizeof(srcAddr));
-					if (src_type == TYPE_IP)
-						snprintf(srcips, sizeof(srcips), "-s %s", srcAddr);
-					else if (src_type == TYPE_MAC)
-						snprintf(srcips, sizeof(srcips), "-m mac --mac-source %s", srcAddr);
-					else if (src_type == TYPE_IPRANGE)
-						snprintf(srcips, sizeof(srcips), "-m iprange --src-range %s", srcAddr);
-				}
+			// Handle source type format
+			srcips[0] = '\0';
+			if(addr && *addr)
+			{
+				char srcAddr[32];
+				int src_type = addr_type_parse(addr, srcAddr, sizeof(srcAddr));
+				if (src_type == TYPE_IP)
+					snprintf(srcips, sizeof(srcips), "-s %s", srcAddr);
+				else if (src_type == TYPE_MAC)
+					snprintf(srcips, sizeof(srcips), "-m mac --mac-source %s", srcAddr);
+				else if (src_type == TYPE_IPRANGE)
+					snprintf(srcips, sizeof(srcips), "-m iprange --src-range %s", srcAddr);
+			}
 
-				if(!strcmp(chain, "FORWARD") && nvram_match("url_mode_x", "0")) {
+			if(!strcmp(chain, "FORWARD") && nvram_match("url_mode_x", "0"))
+			{
 #ifndef HND_ROUTER
-					fprintf(fp, "-I FORWARD %s -p tcp %s -m webstr --url \"%s\" -j REJECT --reject-with tcp-reset\n",
+				fprintf(fp, "-I FORWARD %s -p tcp %s -m webstr --url \"%s\" -j REJECT --reject-with tcp-reset\n", srcips, timef, url);
 #else
-					fprintf(fp, "-I FORWARD %s -p tcp %s -m webstr --url %s -j REJECT --reject-with tcp-reset\n",
-#endif
-						srcips, timef, url);
-				}
-#ifndef HND_ROUTER
-				fprintf(fp, "%s %s -i %s %s %s -p udp --dport 53 %s -m string --string \"%s\" --algo bm -j %s\n",
-#else
-				fprintf(fp, "%s %s -i %s %s %s -p udp --dport 53 %s -m string --string %s --algo bm -j %s\n",
-#endif
-					(strcmp(chain, "INPUT") == 0) ? "-A" : "-I", chain, lan_if, srcips,
-					(strcmp(chain, "INPUT") == 0 && nvram_match("url_mode_x", "0")) ? config_rule : "", timef, url,
-					(nvram_get_int("url_mode_x") == 0) ? logdrop : "ACCEPT");
-#ifdef RTCONFIG_IPV6
-				if (ipv6_enabled()) {
-					if(!strcmp(chain, "FORWARD") && nvram_match("url_mode_x", "0")) {
-						fprintf(fp_ipv6, "-I FORWARD -p tcp %s -m webstr --url \"%s\" -j REJECT --reject-with tcp-reset\n",
-							timef, url);
-					}
-#ifndef HND_ROUTER
-					fprintf(fp_ipv6, "%s %s -i %s %s -p udp --dport 53 %s -m string --string \"%s\" --algo bm -j %s\n",
-#else
-					fprintf(fp_ipv6, "%s %s -i %s %s -p udp --dport 53 %s -m string --string %s --algo bm -j %s\n",
-#endif
-						(strcmp(chain, "INPUT") == 0) ? "-A" : "-I", chain, lan_if,
-						(strcmp(chain, "INPUT") == 0 && nvram_match("url_mode_x", "0")) ? config_rulev6 : "", timef, url,
-						(nvram_get_int("url_mode_x") == 0) ? logdrop : "ACCEPT");
-				}
+				fprintf(fp, "-I FORWARD %s -p tcp %s -m webstr --url %s -j REJECT --reject-with tcp-reset\n", srcips, timef, url);
 #endif
 			}
-			free(nv);
-		}
-
-		if (!makeTimestr2(timef2)) {
-			nv = nvp = strdup(nvram_safe_get("url_rulelist"));
-			while (nvp) {
-				if ((b = strsep(&nvp, "<")) == NULL) break;
-				if ((vstrsep(b, ">", &enable, &addr, &url)) != 3) continue;
-				if (!strcmp(enable, "0"))
-					continue;
-
-				// Handle source type format
-				srcips[0] = '\0';
-				if (addr && *addr) {
-					char srcAddr[32];
-					int src_type = addr_type_parse(addr, srcAddr, sizeof(srcAddr));
-					if (src_type == TYPE_IP)
-						snprintf(srcips, sizeof(srcips), "-s %s", srcAddr);
-					else if (src_type == TYPE_MAC)
-						snprintf(srcips, sizeof(srcips), "-m mac --mac-source %s", srcAddr);
-					else if (src_type == TYPE_IPRANGE)
-						snprintf(srcips, sizeof(srcips), "-m iprange --src-range %s", srcAddr);
-				}
-
-				if(!strcmp(chain, "FORWARD") && nvram_match("url_mode_x", "0")) {
 #ifndef HND_ROUTER
-					fprintf(fp, "-I FORWARD %s -p tcp %s -m webstr --url \"%s\" -j REJECT --reject-with tcp-reset\n",
+			fprintf(fp, "%s %s -i %s %s %s -p udp --dport 53 %s -m string --string \"%s\" --algo bm -j %s\n",
 #else
-					fprintf(fp, "-I FORWARD %s -p tcp %s -m webstr --url %s -j REJECT --reject-with tcp-reset\n",
+			fprintf(fp, "%s %s -i %s %s %s -p udp --dport 53 %s -m string --string %s --algo bm -j %s\n",
 #endif
-						srcips, timef2, url);
-				}
-#ifndef HND_ROUTER
-				fprintf(fp, "%s %s -i %s %s %s -p udp --dport 53 %s -m string --string \"%s\" --algo bm -j %s\n",
-#else
-				fprintf(fp, "%s %s -i %s %s %s -p udp --dport 53 %s -m string --string %s --algo bm -j %s\n",
-#endif
-					(strcmp(chain, "INPUT") == 0) ? "-A" : "-I", chain, lan_if, srcips,
-					(strcmp(chain, "INPUT") == 0 && nvram_match("url_mode_x", "0")) ? config_rule : "", timef2, url,
-					(nvram_get_int("url_mode_x") == 0) ? logdrop : "ACCEPT");
+			(strcmp(chain, "INPUT") == 0) ? "-A" : "-I", chain, lan_if, srcips,
+			(strcmp(chain, "INPUT") == 0 && nvram_match("url_mode_x", "0")) ? config_rule : "", timef, url,
+			(nvram_get_int("url_mode_x") == 0) ? logdrop : "ACCEPT");
 #ifdef RTCONFIG_IPV6
-				if (ipv6_enabled()) {
-					if(!strcmp(chain, "FORWARD") && nvram_match("url_mode_x", "0")) {
-						fprintf(fp_ipv6, "-I FORWARD -p tcp %s -m webstr --url \"%s\" -j REJECT --reject-with tcp-reset\n",
-							timef2, url);
-					}
-#ifndef HND_ROUTER
-					fprintf(fp_ipv6, "%s %s -i %s %s -p udp --dport 53 %s -m string --string \"%s\" --algo bm -j %s\n",
-#else
-					fprintf(fp_ipv6, "%s %s -i %s %s -p udp --dport 53 %s -m string --string %s --algo bm -j %s\n",
-#endif
-						(strcmp(chain, "INPUT") == 0) ? "-A" : "-I", chain, lan_if,
-						(strcmp(chain, "INPUT") == 0 && nvram_match("url_mode_x", "0")) ? config_rulev6 : "", timef2, url,
-						(nvram_get_int("url_mode_x") == 0) ? logdrop : "ACCEPT");
+			if(ipv6_enabled())
+			{
+				if(!strcmp(chain, "FORWARD") && nvram_match("url_mode_x", "0"))
+				{
+					fprintf(fp_ipv6, "-I FORWARD -p tcp %s -m webstr --url \"%s\" -j REJECT --reject-with tcp-reset\n", timef, url);
 				}
+#ifndef HND_ROUTER
+				fprintf(fp_ipv6, "%s %s -i %s %s -p udp --dport 53 %s -m string --string \"%s\" --algo bm -j %s\n",
+#else
+				fprintf(fp_ipv6, "%s %s -i %s %s -p udp --dport 53 %s -m string --string %s --algo bm -j %s\n",
 #endif
+					(strcmp(chain, "INPUT") == 0) ? "-A" : "-I", chain, lan_if,
+					(strcmp(chain, "INPUT") == 0 && nvram_match("url_mode_x", "0")) ? config_rulev6 : "", timef, url,
+					(nvram_get_int("url_mode_x") == 0) ? logdrop : "ACCEPT");
 			}
-			free(nv);
+#endif
 		}
-		if (nvram_match("url_mode_x", "1")) {
-			fprintf(fp, "-A %s -i br0 -p udp --dport 53 -j DROP\n", chain);
-		}
+		if(nv) free(nv);
+	}
+
+	if (nvram_match("url_mode_x", "1")) {
+		fprintf(fp, "-A %s -i br0 -p udp --dport 53 -j DROP\n", chain);
 	}
 }
-/* url filter corss midnight patch end */
 #endif
 
 void
@@ -2613,7 +2344,7 @@ filter_setting(char *wan_if, char *wan_ip, char *lan_if, char *lan_ip, char *log
 
 //2008.09 magic{
 #ifdef WEBSTRFILTER
-	char timef[256], timef2[256], *filterstr;
+	char timef[256], *filterstr;
 #endif
 //2008.09 magic}
 	char *wanx_if, *wanx_ip;
@@ -2653,8 +2384,8 @@ filter_setting(char *wan_if, char *wan_ip, char *lan_if, char *lan_ip, char *log
 	    ":logdrop - [0:0]\n");
 
 #ifdef RTCONFIG_PROTECTION_SERVER
-	fprintf(fp, ":%s_WAN - [0:0]\n", PROTECT_SRV_RULE_CHAIN);
-	fprintf(fp, ":%s_LAN - [0:0]\n", PROTECT_SRV_RULE_CHAIN);
+	fprintf(fp, ":%sWAN - [0:0]\n", PROTECT_SRV_RULE_CHAIN);
+	fprintf(fp, ":%sLAN - [0:0]\n", PROTECT_SRV_RULE_CHAIN);
 #endif
 
 #ifdef RTCONFIG_IPV6
@@ -2760,8 +2491,8 @@ TRACE_PT("writing Parental Control\n");
     		    || nvram_get_int("sshd_enable") != 0
 #endif
    		) {
-			fprintf(fp, "-A INPUT ! -i %s -j %s_WAN\n", lan_if, PROTECT_SRV_RULE_CHAIN);
-			fprintf(fp, "-A INPUT -i %s -j %s_LAN\n", lan_if, PROTECT_SRV_RULE_CHAIN);
+			fprintf(fp, "-A INPUT ! -i %s -j %sWAN\n", lan_if, PROTECT_SRV_RULE_CHAIN);
+			fprintf(fp, "-A INPUT -i %s -j %sLAN\n", lan_if, PROTECT_SRV_RULE_CHAIN);
 		}
 #endif
 		fprintf(fp, "-A INPUT -i %s -m state --state NEW -j %s\n", lan_if, "ACCEPT");
@@ -3141,6 +2872,9 @@ TRACE_PT("writing Parental Control\n");
 #endif
 	strcpy(chain, "FORWARD");
 
+	/*
+	network service filter
+	*/
 	if (nvram_match("fw_lw_enable_x", "1"))
 	{
 		char lanwan_timematch[2048];
@@ -3154,13 +2888,12 @@ TRACE_PT("writing Parental Control\n");
 
 		memset(lanwan_timematch, 0, sizeof(lanwan_timematch));
 		memset(lanwan_buf, 0, sizeof(lanwan_buf));
-		apply = timematch_conv2(lanwan_timematch, "filter_lw_date_x", "filter_lw_time_x", "filter_lw_time2_x");
+		apply = timematch_conv2(lanwan_timematch, sizeof(lanwan_timematch), "filter_lw_date_x", "filter_lw_time_x", "filter_lw_time2_x");
 
 		if (nvram_match("filter_lw_default_x", "DROP"))
 		{
 			dtype = logdrop;
 			ftype = logaccept;
-
 		}
 		else
 		{
@@ -3200,7 +2933,7 @@ TRACE_PT("writing Parental Control\n");
 						}
 					}
 				}
-				free(nv);
+				if(nv) free(nv);
 			}
 		}
 		// ICMP
@@ -3306,7 +3039,7 @@ TRACE_PT("writing Parental Control\n");
 					fprintf(fp_ipv6, "-A FORWARD %s -i %s -o %s %s -j %s\n", wanlan_timematch, wan6face, lan_if, setting, ftype);
 #endif
 				}
-				free(nv);
+				if(nv) free(nv);
 			}
 		}
 
@@ -3406,65 +3139,36 @@ TRACE_PT("write wl filter\n");
 #endif
 
 #ifdef CONTENTFILTER
-	if (valid_keyword_filter_time())
-	{
-		if (!makeTimestr_content(timef)) {
-			nv = nvp = strdup(nvram_safe_get("keyword_rulelist"));
-			while (nvp && (b = strsep(&nvp, "<")) != NULL) {
-				if (vstrsep(b, ">", &filterstr) != 1)
-					continue;
-				if (*filterstr) {
+	if (makeTimestr_content(timef, sizeof(timef))) {
+		nv = nvp = strdup(nvram_safe_get("keyword_rulelist"));
+		while(nvp && (b = strsep(&nvp, "<")) != NULL)
+		{
+			if(vstrsep(b, ">", &filterstr) != 1)
+				continue;
+			if(*filterstr)
+			{
 #ifndef HND_ROUTER
-					fprintf(fp, "-I FORWARD -p tcp --sport 80 %s -m string --string \"%s\" --algo bm -j REJECT --reject-with tcp-reset\n",
+				fprintf(fp, "-I FORWARD -p tcp --sport 80 %s -m string --string \"%s\" --algo bm -j REJECT --reject-with tcp-reset\n", timef, filterstr);
 #else
-					fprintf(fp, "-I FORWARD -p tcp --sport 80 %s -m string --string %s --algo bm -j REJECT --reject-with tcp-reset\n",
+				fprintf(fp, "-I FORWARD -p tcp --sport 80 %s -m string --string %s --algo bm -j REJECT --reject-with tcp-reset\n",timef, filterstr);
 #endif
-						timef, filterstr);
 
 #ifdef RTCONFIG_IPV6
-					if (ipv6_enabled())
+				if (ipv6_enabled())
 #ifndef HND_ROUTER
-					fprintf(fp_ipv6, "-I FORWARD -p tcp --sport 80 %s -m string --string \"%s\" --algo bm -j REJECT --reject-with tcp-reset\n",
+					fprintf(fp_ipv6, "-I FORWARD -p tcp --sport 80 %s -m string --string \"%s\" --algo bm -j REJECT --reject-with tcp-reset\n", timef, filterstr);
 #else
-					fprintf(fp_ipv6, "-I FORWARD -p tcp --sport 80 %s -m string --string %s --algo bm -j REJECT --reject-with tcp-reset\n",
+					fprintf(fp_ipv6, "-I FORWARD -p tcp --sport 80 %s -m string --string %s --algo bm -j REJECT --reject-with tcp-reset\n", timef, filterstr);
 #endif
-						timef, filterstr);
 #endif
-				}
 			}
-			free(nv);
 		}
-		if (!makeTimestr2_content(timef2)) {
-			nv = nvp = strdup(nvram_safe_get("keyword_rulelist"));
-			while (nvp && (b = strsep(&nvp, "<")) != NULL) {
-				if (vstrsep(b, ">", &filterstr) != 1)
-					continue;
-				if (*filterstr) {
-#ifndef HND_ROUTER
-					fprintf(fp, "-I FORWARD -p tcp --sport 80 %s -m string --string \"%s\" --algo bm -j REJECT --reject-with tcp-reset\n",
-#else
-					fprintf(fp, "-I FORWARD -p tcp --sport 80 %s -m string --string %s --algo bm -j REJECT --reject-with tcp-reset\n",
-#endif
-						timef, filterstr);
-
-#ifdef RTCONFIG_IPV6
-					if (ipv6_enabled())
-#ifndef HND_ROUTER
-					fprintf(fp_ipv6, "-I FORWARD -p tcp --sport 80 %s -m string --string \"%s\" --algo bm -j REJECT --reject-with tcp-reset\n",
-#else
-					fprintf(fp_ipv6, "-I FORWARD -p tcp --sport 80 %s -m string --string %s --algo bm -j REJECT --reject-with tcp-reset\n",
-#endif
-						timef, filterstr);
-#endif
-				}
-			}
-			free(nv);
-		}
+		if(nv) free(nv);
 	}
 #endif
 
 	fprintf(fp, "COMMIT\n\n");
-	fclose(fp);
+	if(fp) fclose(fp);
 
 	//system("iptables -F");
 	eval("iptables-restore", "/tmp/filter_rules");
@@ -3504,7 +3208,7 @@ filter_setting2(char *lan_if, char *lan_ip, char *logaccept, char *logdrop)
 	int i;
 //2008.09 magic{
 #ifdef WEBSTRFILTER
-	char timef[256], timef2[256], *filterstr;
+	char timef[256], *filterstr;
 #endif
 //2008.09 magic}
 	char *wan_if, *wan_ip;
@@ -3547,8 +3251,8 @@ filter_setting2(char *lan_if, char *lan_ip, char *logaccept, char *logdrop)
 	    ":logdrop - [0:0]\n");
 
 #ifdef RTCONFIG_PROTECTION_SERVER
-	fprintf(fp, ":%s_WAN - [0:0]\n", PROTECT_SRV_RULE_CHAIN);
-	fprintf(fp, ":%s_LAN - [0:0]\n", PROTECT_SRV_RULE_CHAIN);
+	fprintf(fp, ":%sWAN - [0:0]\n", PROTECT_SRV_RULE_CHAIN);
+	fprintf(fp, ":%sLAN - [0:0]\n", PROTECT_SRV_RULE_CHAIN);
 #endif
 
 #ifdef RTCONFIG_IPV6
@@ -3662,8 +3366,8 @@ TRACE_PT("writing Parental Control\n");
     		    || nvram_get_int("sshd_enable") != 0
 #endif
    		) {
-			fprintf(fp, "-A INPUT ! -i %s -j %s_WAN\n", lan_if, PROTECT_SRV_RULE_CHAIN);
-			fprintf(fp, "-A INPUT -i %s -j %s_LAN\n", lan_if, PROTECT_SRV_RULE_CHAIN);
+			fprintf(fp, "-A INPUT ! -i %s -j %sWAN\n", lan_if, PROTECT_SRV_RULE_CHAIN);
+			fprintf(fp, "-A INPUT -i %s -j %sLAN\n", lan_if, PROTECT_SRV_RULE_CHAIN);
 		}
 #endif
 		fprintf(fp, "-A INPUT -i %s -m state --state NEW -j %s\n", lan_if, "ACCEPT");
@@ -4061,6 +3765,9 @@ TRACE_PT("writing Parental Control\n");
 #endif
 	strcpy(chain, "FORWARD");
 
+	/*
+	network service filter
+	*/
 	if (nvram_match("fw_lw_enable_x", "1"))
 	{
 		char lanwan_timematch[2048];
@@ -4074,7 +3781,7 @@ TRACE_PT("writing Parental Control\n");
 
 		memset(lanwan_timematch, 0, sizeof(lanwan_timematch));
 		memset(lanwan_buf, 0, sizeof(lanwan_buf));
-		apply = timematch_conv2(lanwan_timematch, "filter_lw_date_x", "filter_lw_time_x", "filter_lw_time2_x");
+		apply = timematch_conv2(lanwan_timematch, sizeof(lanwan_timematch), "filter_lw_date_x", "filter_lw_time_x", "filter_lw_time2_x");
 
 		if (nvram_match("filter_lw_default_x", "DROP"))
 		{
@@ -4135,7 +3842,7 @@ TRACE_PT("writing Parental Control\n");
 					}
 #endif
 				}
-				free(nv);
+				if(nv) free(nv);
 			}
 		}
 
@@ -4403,65 +4110,35 @@ TRACE_PT("write wl filter\n");
 #endif
 
 #ifdef CONTENTFILTER
-	if (valid_keyword_filter_time())
-	{
-		if (!makeTimestr_content(timef)) {
-			nv = nvp = strdup(nvram_safe_get("keyword_rulelist"));
-			while (nvp && (b = strsep(&nvp, "<")) != NULL) {
-				if (vstrsep(b, ">", &filterstr) != 1)
-					continue;
-				if (*filterstr) {
+	if (makeTimestr_content(timef, sizeof(timef))) {
+		nv = nvp = strdup(nvram_safe_get("keyword_rulelist"));
+		while(nvp && (b = strsep(&nvp, "<")) != NULL)
+		{
+			if(vstrsep(b, ">", &filterstr) != 1)
+				continue;
+			if(*filterstr)
+			{
 #ifndef HND_ROUTER
-					fprintf(fp, "-I FORWARD -p tcp --sport 80 %s -m string --string \"%s\" --algo bm -j REJECT --reject-with tcp-reset\n",
+				fprintf(fp, "-I FORWARD -p tcp --sport 80 %s -m string --string \"%s\" --algo bm -j REJECT --reject-with tcp-reset\n", timef, filterstr);
 #else
-					fprintf(fp, "-I FORWARD -p tcp --sport 80 %s -m string --string %s --algo bm -j REJECT --reject-with tcp-reset\n",
+				fprintf(fp, "-I FORWARD -p tcp --sport 80 %s -m string --string %s --algo bm -j REJECT --reject-with tcp-reset\n", timef, filterstr);
 #endif
-						timef, filterstr);
-
 #ifdef RTCONFIG_IPV6
-					if (ipv6_enabled())
+				if (ipv6_enabled())
 #ifndef HND_ROUTER
-					fprintf(fp_ipv6, "-I FORWARD -p tcp --sport 80 %s -m string --string \"%s\" --algo bm -j REJECT --reject-with tcp-reset\n",
+					fprintf(fp_ipv6, "-I FORWARD -p tcp --sport 80 %s -m string --string \"%s\" --algo bm -j REJECT --reject-with tcp-reset\n", timef, filterstr);
 #else
-					fprintf(fp_ipv6, "-I FORWARD -p tcp --sport 80 %s -m string --string %s --algo bm -j REJECT --reject-with tcp-reset\n",
+					fprintf(fp_ipv6, "-I FORWARD -p tcp --sport 80 %s -m string --string %s --algo bm -j REJECT --reject-with tcp-reset\n", timef, filterstr);
 #endif
-						timef, filterstr);
 #endif
-				}
 			}
-			free(nv);
 		}
-		if (!makeTimestr2_content(timef2)) {
-			nv = nvp = strdup(nvram_safe_get("keyword_rulelist"));
-			while (nvp && (b = strsep(&nvp, "<")) != NULL) {
-				if (vstrsep(b, ">", &filterstr) != 1)
-					continue;
-				if (*filterstr) {
-#ifndef HND_ROUTER
-					fprintf(fp, "-I FORWARD -p tcp --sport 80 %s -m string --string \"%s\" --algo bm -j REJECT --reject-with tcp-reset\n",
-#else
-					fprintf(fp, "-I FORWARD -p tcp --sport 80 %s -m string --string %s --algo bm -j REJECT --reject-with tcp-reset\n",
-#endif
-						timef, filterstr);
-
-#ifdef RTCONFIG_IPV6
-					if (ipv6_enabled())
-#ifndef HND_ROUTER
-					fprintf(fp_ipv6, "-I FORWARD -p tcp --sport 80 %s -m string --string \"%s\" --algo bm -j REJECT --reject-with tcp-reset\n",
-#else
-					fprintf(fp_ipv6, "-I FORWARD -p tcp --sport 80 %s -m string --string %s --algo bm -j REJECT --reject-with tcp-reset\n",
-#endif
-						timef, filterstr);
-#endif
-				}
-			}
-			free(nv);
-		}
+		if(nv) free(nv);
 	}
 #endif
 
 	fprintf(fp, "COMMIT\n\n");
-	fclose(fp);
+	if(fp) fclose(fp);
 
 	//system("iptables -F");
 	eval("iptables-restore", "/tmp/filter_rules");

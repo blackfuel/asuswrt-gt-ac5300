@@ -1270,6 +1270,30 @@ function cancel(){
 																					adjust_TM_eula_height("agreement_panel");
 																				});
 																			}
+																			else if(document.form.preferred_lang.value == "TW"){
+																				$.get("tm_eula_TC.htm", function(data){
+																					document.getElementById('agreement_panel').innerHTML= data;
+																					adjust_TM_eula_height("agreement_panel");
+																				});
+																			}
+																			else if(document.form.preferred_lang.value == "CN"){
+																				$.get("tm_eula_SC.htm", function(data){
+																					document.getElementById('agreement_panel').innerHTML= data;
+																					adjust_TM_eula_height("agreement_panel");
+																				});
+																			}
+																			else if(document.form.preferred_lang.value == "FR"){
+																				$.get("tm_eula_FR.htm", function(data){
+																					document.getElementById('agreement_panel').innerHTML= data;
+																					adjust_TM_eula_height("agreement_panel");
+																				});
+																			}
+																			else if(document.form.preferred_lang.value == "RU"){
+																				$.get("tm_eula_RU.htm", function(data){
+																					document.getElementById('agreement_panel').innerHTML= data;
+																					adjust_TM_eula_height("agreement_panel");
+																				});
+																			}																			
 																			else{
 																				$.get("tm_eula.htm", function(data){
 																					document.getElementById('agreement_panel').innerHTML= data;

@@ -8,7 +8,7 @@
 <meta HTTP-EQUIV="Expires" CONTENT="-1">
 <link rel="shortcut icon" href="images/favicon.png">
 <link rel="icon" href="images/favicon.png">
-<title><#Web_Title#> - Captive Portal<!--untranslated--></title>
+<title><#Web_Title#> - <#Captive_Portal#></title>
 <link rel="stylesheet" type="text/css" href="index_style.css"> 
 <link rel="stylesheet" type="text/css" href="form_style.css">
 <link rel="stylesheet" type="text/css" href="other.css">
@@ -270,7 +270,7 @@ function edit_cancel(_flag) {
 	}
 }
 function preview(event) {
-	window.open('Captive_Portal_Advanced_Preview.asp', 'Splash Page', 'toolbar=no,scrollbars=no,resizable=yes,location=no,menubar=no,width=476,height=714');
+	window.open('Captive_Portal_Advanced_Preview.asp', '<#FreeWiFi_title#>', 'toolbar=no,scrollbars=no,resizable=yes,location=no,menubar=no,width=476,height=714');
 	stop_propagation(event);
 }
 function help_close() {
@@ -331,55 +331,55 @@ function toolbar_unit_help(event) {
 	code += "</div>";
 	code += "</div>";
 	code += "<div class='help_desc step1'>";
-	code += "<div class='help_desc_title'>1. Select a tempalte</div>";/*untranslated*/
-	code += "<div class='help_desc_text'>You can select the pre-configured templates, or select Custom to edit by yourself.</div>";/*untranslated*/
+	code += "<div class='help_desc_title'>1. <#FreeWiFi_Temp_Select#></div>";
+	code += "<div class='help_desc_text'><#FreeWiFi_Temp_Select_desc#></div>";
 	code += "</div>";
 	code += "</div>";
 	code += "<div id='help_step_2' class='help_step' style='display:none;'>";
 	code += "<div class='help_frame step2'>";
-	code += "<div class='help_desc_title'>2. Web layout zone</div>";/*untranslated*/
-	code += "<div class='help_desc_text'>After the template is chose, you can re-locate and resize the web elements at the web layout zone.</div>";/*untranslated*/
+	code += "<div class='help_desc_title'>2. <#FreeWiFi_Temp_WebLayout#></div>";
+	code += "<div class='help_desc_text'><#FreeWiFi_Temp_WebLayout_desc#></div>";
 	code += "</div>";
 	code += "</div>";
 
 	code += "<div id='help_step_3' class='help_step' style='display:none;'>";
 	code += "<div class='help_frame step3'>";
-	code += "<div id='toolbar_unit_image' title='<#CTL_add#> Image' class='splash_page_toolbar_unit_bg_left splash_page_toolbar_unit_image' style='cursor:default;'></div>";/*untranslated*/
-	code += "<div id='toolbar_unit_text' title='<#CTL_add#> Text' class='splash_page_toolbar_unit_bg_left splash_page_toolbar_unit_text' style='cursor:default;'></div>";/*untranslated*/
+	code += "<div id='toolbar_unit_image' title='<#CTL_add#> Image' class='splash_page_toolbar_unit_bg_left splash_page_toolbar_unit_image' style='cursor:default;'></div>";
+	code += "<div id='toolbar_unit_text' title='<#CTL_add#> Text' class='splash_page_toolbar_unit_bg_left splash_page_toolbar_unit_text' style='cursor:default;'></div>";
 	code += "<div id='toolbar_unit_account' title='<#CTL_add#> <#PPPConnection_Authentication_itemname#>' class='splash_page_toolbar_unit_bg_left splash_page_toolbar_unit_account' style='cursor:default;'></div>";
-	code += "<div id='toolbar_unit_eula' title='<#CTL_add#> Eula' class='splash_page_toolbar_unit_bg_left splash_page_toolbar_unit_eula' style='cursor:default;'></div>";/*untranslated*/
+	code += "<div id='toolbar_unit_eula' title='<#CTL_add#> Eula' class='splash_page_toolbar_unit_bg_left splash_page_toolbar_unit_eula' style='cursor:default;'></div>";
 	code += "</div>";
 	code += "<div class='help_desc step3'>";
-	code += "<div class='help_desc_title'>3. Add new web element</div>";/*untranslated*/
-	code += "<div class='help_desc_text'>Above web layout zone, there are 4 web elements allows you to add image, text, authentication blank and terms of services.</div>";/*untranslated*/
-	code += "<div class='help_desc_text'>For the authentication blank and terms of services is unique element, only allow to add once per splash page.</div>";/*untranslated*/
+	code += "<div class='help_desc_title'>3. <#FreeWiFi_Temp_Add#></div>";
+	code += "<div class='help_desc_text'><#FreeWiFi_Temp_Add_desc1#></div>";
+	code += "<div class='help_desc_text'><#FreeWiFi_Temp_Add_desc2#></div>";
 	code += "</div>";
 	code += "</div>";
 
 	code += "<div id='help_step_4' class='help_step' style='display:none;'>";
 	code += "<div class='help_frame step4'>";
-	code += "<div id='toolbar_background'  title='Background' class='splash_page_toolbar_unit_bg_right splash_page_toolbar_unit_background' style='cursor:default;'>";
-	code += "<div class='splash_page_toolbar_unit_title'>Background</div>";/*untranslated*/
+	code += "<div id='toolbar_background'  title='<#btn_Background#>' class='splash_page_toolbar_unit_bg_right splash_page_toolbar_unit_background' style='cursor:default;'>";
+	code += "<div class='splash_page_toolbar_unit_title'><#btn_Background#></div>";
 	code += "</div>";
 	code += "<div id='toolbar_editor' title='Editor' class='splash_page_toolbar_unit_bg_right splash_page_toolbar_unit_editor' style='cursor:default;'>";
 	code += "<div class='splash_page_toolbar_unit_title'>Editor</div>";/*untranslated*/
 	code += "</div>";
 	code += "</div>";
 	code += "<div class='help_desc step4'>";
-	code += "<div class='help_desc_title'>4. Element editing zone</div>";/*untranslated*/
-	code += "<div class='help_desc_text'>The editing zone allows you to edit the content of each web element.</div>";/*untranslated*/
-	code += "<div class='help_desc_text'>Click the element on the web layout zone , and staring costume your splash page.</div>";/*untranslated*/
+	code += "<div class='help_desc_title'>4. <#FreeWiFi_Temp_Edit#></div>";
+	code += "<div class='help_desc_text'><#FreeWiFi_Temp_Edit_desc1#></div>";
+	code += "<div class='help_desc_text'><#FreeWiFi_Temp_Edit_desc2#></div>";
 	code += "</div>";
 	code += "</div>";
 
 	code += "<div id='help_step_5' class='help_step' style='display:none;'>";
 	code += "<div class='help_frame step5'>";
-	code += "<div title='Preview' class='splash_page_toolbar_unit_preview' style='cursor:default;'></div>";/*untranslated*/
+	code += "<div title='<#btn_Preview#>' class='splash_page_toolbar_unit_preview' style='cursor:default;'></div>";
 	code += "</div>";
 	code += "<div class='help_desc step5'>";
-	code += "<div class='help_desc_title'>5. Preview your masterpiece</div>";/*untranslated*/
-	code += "<div class='help_desc_text'>To make sure each editing is correct to display, you can click Preview button to check the result.</div>";/*untranslated*/
-	code += "<div class='help_desc_text'>After confirm your masterpiece, click Next button to finish the account authentication setting.</div>";/*untranslated*/
+	code += "<div class='help_desc_title'>5. <#FreeWiFi_Temp_Preview#></div>";
+	code += "<div class='help_desc_text'><#FreeWiFi_Temp_Preview_desc1#></div>";
+	code += "<div class='help_desc_text'><#FreeWiFi_Temp_Preview_desc2#></div>";
 	code += "</div>";
 	code += "</div>";
 
@@ -388,8 +388,8 @@ function toolbar_unit_help(event) {
 	code += "<input class='button_gen' type='button' style='cursor:default;' value='<#CTL_Reset_OOB#>' disabled/>";
 	code += "</div>";
 	code += "<div class='help_desc step6'>";
-	code += "<div class='help_desc_title'>6. Reset your actions</div>";/*untranslated*/
-	code += "<div class='help_desc_text'>The reset button allow you to reset the web costume to the default or to the last saved version, if you are editing a saved profile.</div>";/*untranslated*/
+	code += "<div class='help_desc_title'>6. <#FreeWiFi_Temp_Reset#></div>";
+	code += "<div class='help_desc_text'><#FreeWiFi_Temp_Reset_desc#></div>";
 	code += "</div>";
 	code += "</div>";
 
@@ -410,8 +410,8 @@ function toolbar_unit_help(event) {
 function gen_tab_menu() {
 	var code = "";
 	code += "<div style='height:50px;'>"
-	code += "<div id='captive_portal_adv_step_1' onclick='switch_tab(1)'>1. Configuration</div>";
-	code += "<div id='captive_portal_adv_step_2' onclick='switch_tab(2)'>2. Splash Page</div>";/*untranslated*/
+	code += "<div id='captive_portal_adv_step_1' onclick='switch_tab(1)'>1. <#Configuration#></div>";
+	code += "<div id='captive_portal_adv_step_2' onclick='switch_tab(2)'>2. <#FreeWiFi_title#></div>";
 	code += "<div id='captive_portal_adv_step_3' onclick='switch_tab(3)'>3. <#PPPConnection_UserName_sectionname#></div>";
 	code += "</div>";
 	return code;
@@ -490,7 +490,7 @@ function gen_basic_settings() {
 	code += "</tr>";
 	code += "</thead>";
 	code += "<tr>";
-	code += "<th>Brand Name</th>";/*untranslated*/
+	code += "<th><#FreeWiFi_BrandName#></th>";
 	code += "<td>";
 	code += "<input style='margin-left:0px;' type='text' name='cpa_profile_name' value='Brand Name' maxlength='32' class='input_25_table' autocomplete='off' autocorrect='off' autocapitalize='off' onkeyup='auto_fill_wl_name();'>";
 	code += "</td>";
@@ -501,7 +501,7 @@ function gen_basic_settings() {
 		var _default_wl_name = ["Brand Name", "Brand Name_5G", "Brand Name_5G-2"];
 		var code = "";
 		code += "<tr>";
-		code += "<th>" + wl_nband_title[_unit] + " <#QIS_finish_wireless_item1#></th>";/*untranslated*/
+		code += "<th>" + wl_nband_title[_unit] + " <#QIS_finish_wireless_item1#></th>";
 		code += "<td>";
 		code += "<input type='checkbox' name='cb_wl_" + _unit + "' id='cb_wl_" + _unit + "' onclick='change_wl_input_status(" + _unit + ");' checked>";
 		code += "<input name='wl_" + _unit + "' class='input_25_table' value='" + _default_wl_name[_unit] + "' type='text' maxlength='32' autocorrect='off' autocapitalize='off'>";
@@ -527,12 +527,12 @@ function gen_basic_settings() {
 	code += "<table width='100%' border='1' align='center' cellpadding='4' cellspacing='0' bordercolor='#6b8fa3' class='FormTable' style='margin-top:15px;'>";
 	code += "<thead>";
 	code += "<tr>";
-	code += "<td colspan='2'>Access Policy</td>";/*untranslated*/
+	code += "<td colspan='2'><#FreeWiFi_AccessPolicy#></td>";
 	code += "</tr>";
 	code += "</thead>";
 
 	code += "<tr>";
-	code += "<th><a class='hintstyle' href='javascript:void(0);' onClick='openHint(31, 2);'>Idle Timeout</a></th>";/*untranslated*/
+	code += "<th><a class='hintstyle' href='javascript:void(0);' onClick='openHint(31, 2);'><#FreeWiFi_Idle#></a></th>";
 	code += "<td>";
 	code += "<input type='radio' name='cpa_away_timeout' id='cpa_away_timeout_time'>";
 	code += "<input type='text' name='cpa_away_set' value='1' maxlength='3' class='input_6_table' onKeyPress='return validator.isNumber(this,event)' autocomplete='off' autocorrect='off' autocapitalize='off'>";
@@ -545,7 +545,7 @@ function gen_basic_settings() {
 	code += "</tr>";
 
 	code += "<tr>";
-	code += "<th><a class='hintstyle' href='javascript:void(0);' onClick='openHint(31, 3);'>Connection Timeout</a></th>";/*untranslated*/
+	code += "<th><a class='hintstyle' href='javascript:void(0);' onClick='openHint(31, 3);'><#FreeWiFi_timeout#></a></th>";
 	code += "<td>";
 	code += "<input type='radio' name='cpa_session_timeout' id='cpa_session_timeout_time'>";
 	code += "<input type='text' name='cpa_session_set' value='1' maxlength='3' class='input_6_table' onKeyPress='return validator.isNumber(this,event)' autocomplete='off' autocorrect='off' autocapitalize='off'>";
@@ -559,7 +559,7 @@ function gen_basic_settings() {
 	code += "</tr>";
 
 	code += "<tr>";
-	code += "<th>Landing Page (Redirect to your website)</th>";/*untranslated*/
+	code += "<th><#FreeWiFi_LandingPage#> (<#FreeWiFi_RedirectPage#>)</th>";
 	code += "<td>";
 	code += "<input style='margin-left:0px;' type='text' name='cpa_landing_page' value='' class='input_25_table' maxlength='64' autocomplete='off' autocorrect='off' autocapitalize='off'>";
 	code += "<span style='margin-left:5px;'>ex. http or https ://www.asus.com</span>";
@@ -912,7 +912,7 @@ function edit_component_eula() {
 	code += "</div>";
 
 	code += "<div class='edit_component_item_content' style='margin-top:5px;'>";
-	code += "<div class='edit_component_item_title' style='margin-top:5px;'>Terms of service</div>";/*untranslated*/
+	code += "<div class='edit_component_item_title' style='margin-top:5px;'><#Terms_of_Service#></div>";
 	code += "<textarea name='edit_eula_terms_service' id='edit_eula_terms_service' class='edit_eula_textarea auto_add_onblur' rows='8' cols='40' maxlength='2048'>";
 	code += "By using Captive Portal Wi-Fi internet service, you hereby expressly acknowledge and agree that there are significant security, privacy and confidentiality risks inherent in accessing or transmitting information through the internet, whether the connection is facilitated through wired or wireless technology. Security issues include, without limitation, interception of transmissions, loss of data, and the introduction or viruses and other programs that can corrupt or damage your computer.\n\nAccordingly, you agree that the owner and/or provider of this network is NOT liable for any interception or transmissions, computer worms or viruses, loss of data, file corruption, hacking or damage to your computer or other devices that result from the transmission or download of information or materials through the internet service provided.\n\nUse of the wireless network is subject to the general restrictions outlined below. If abnormal, illegal, or unauthorized behavior is detected, including heavy consumption of bandwidth, the network provider reserves the right to permanently disconnect the offending device from the wireless network.";
 	code += "</textarea>";
@@ -1417,9 +1417,9 @@ function edit_component_background() {
 		code += "<div id='edit_drag_drop_bg' class='edit_drag_drop_bg' onclick='edit_upload_file_trigger(\"background\");'>";
 		code += "<div class='edit_drag_drop_text' >Drag the Image here to use<br>or<br>Click here to select Image</div>";/*untranslated*/
 		code += "</div>";
-		code += "<div class='edit_drag_drop_hint'>Image Size: < 10MB</div>";/*untranslated*/
-		code += "<div class='edit_drag_drop_hint'>Recommend Types: jpg, png</div>";/*untranslated*/
-		code += "<div class='edit_drag_drop_hint'>Recommend Resolution: 1152 x 864 px or above</div>";/*untranslated*/
+		code += "<div class='edit_drag_drop_hint'><#FreeWiFi_ImageSize#>: < 10MB</div>";
+		code += "<div class='edit_drag_drop_hint'><#FreeWiFi_RecommendType#>: jpg, png</div>";
+		code += "<div class='edit_drag_drop_hint'><#FreeWiFi_RecommendResolution#>: 1152 x 864 px or above</div>";
 	}
 	else {
 		code += "<div id='edit_drag_drop_bg' class='edit_drag_drop_bg'>";
@@ -2253,11 +2253,11 @@ function gen_splash_page() {
 	//tool bar left
 	code += "<div id='splash_page_container_layout' class='splash_page_container_left'>";
 	code += "<div class='splash_page_toolbar_bg_left'>";
-	code += "<div id='toolbar_unit_image' title='<#CTL_add#> Image' class='splash_page_toolbar_unit_bg_left splash_page_toolbar_unit_image' onclick='edit_component_add(\"image\", event);'></div>";/*untranslated*/
-	code += "<div id='toolbar_unit_text' title='<#CTL_add#> Text' class='splash_page_toolbar_unit_bg_left splash_page_toolbar_unit_text' onclick='edit_component_add(\"text\" , event);'></div>";/*untranslated*/
+	code += "<div id='toolbar_unit_image' title='<#CTL_add#> Image' class='splash_page_toolbar_unit_bg_left splash_page_toolbar_unit_image' onclick='edit_component_add(\"image\", event);'></div>";
+	code += "<div id='toolbar_unit_text' title='<#CTL_add#> Text' class='splash_page_toolbar_unit_bg_left splash_page_toolbar_unit_text' onclick='edit_component_add(\"text\" , event);'></div>";
 	code += "<div id='toolbar_unit_account' title='<#CTL_add#> <#PPPConnection_Authentication_itemname#>' class='splash_page_toolbar_unit_bg_left splash_page_toolbar_unit_account' onclick='edit_component_add(\"account\" , event);'></div>";
-	code += "<div id='toolbar_unit_eula' title='<#CTL_add#> Eula' class='splash_page_toolbar_unit_bg_left splash_page_toolbar_unit_eula' onclick='edit_component_add(\"eula\" , event);'></div>";/*untranslated*/
-	code += "<div title='Preview' class='splash_page_toolbar_unit_preview' onclick='preview(event);'></div>";/*untranslated*/
+	code += "<div id='toolbar_unit_eula' title='<#CTL_add#> Eula' class='splash_page_toolbar_unit_bg_left splash_page_toolbar_unit_eula' onclick='edit_component_add(\"eula\" , event);'></div>";
+	code += "<div title='<#btn_Preview#>' class='splash_page_toolbar_unit_preview' onclick='preview(event);'></div>";
 	code += "</div>";
 
 	//component layout left
@@ -2288,8 +2288,8 @@ function gen_splash_page() {
 	code += "<div id='toolbar_template' title='Template' class='splash_page_toolbar_unit_bg_right splash_page_toolbar_unit_template' onclick='edit_component_template();'>";
 	code += "<div class='splash_page_toolbar_unit_title'>Template</div>";/*untranslated*/
 	code += "</div>";
-	code += "<div id='toolbar_background'  title='Background' class='splash_page_toolbar_unit_bg_right splash_page_toolbar_unit_background' onclick='edit_component_background();'>";
-	code += "<div class='splash_page_toolbar_unit_title'>Background</div>";/*untranslated*/
+	code += "<div id='toolbar_background'  title='<#btn_Background#>' class='splash_page_toolbar_unit_bg_right splash_page_toolbar_unit_background' onclick='edit_component_background();'>";
+	code += "<div class='splash_page_toolbar_unit_title'><#btn_Background#></div>";
 	code += "</div>";
 	code += "<div id='toolbar_editor' title='Editor' class='splash_page_toolbar_unit_bg_right splash_page_toolbar_unit_editor' onclick='edit_component_editor();'>";
 	code += "<div class='splash_page_toolbar_unit_title'>Editor</div>";/*untranslated*/
@@ -2323,7 +2323,7 @@ function showHideVerification() {
 function gen_account_settings() {
 	var code = "";
 	code += "<div id='account_settings_hint' class='account_settings_hint'>* You didn't have the requirement for both account numbers and ID in the second step, so this step can be ignored. Please directly press the saving button.</div>";
-	code += "<div>Account Setting is an easy guest account management, which allows you to maintain the security for your guest network. The associated client need to enter the following account and password before getting the permission of Internet access.</div>";/*untranslated*/
+	code += "<div><#FreeWiFi_AccountSetting_desc1#></div>";
 	code += "<table width='100%' border='1' align='center' cellpadding='4' cellspacing='0' bordercolor='#6b8fa3' class='FormTable' style='margin-top:15px;'>";
 	code += "<thead>";
 	code += "<tr>";
@@ -2331,7 +2331,7 @@ function gen_account_settings() {
 	code += "</tr>";
 	code += "</thead>";
 	code += "<tr>";
-	code += "<th>Verification</th>";/*untranslated*/
+	code += "<th><#FreeWiFi_AccountSetting_varification#></th>";
 	code += "<td>";
 	code += "<input type='radio' name='cpa_verification' id='cpa_verification_local' value='0' onclick='showHideVerification();' checked><label for='cpa_verification_local'>Local</label>";/*untranslated*/
 	code += "<input type='radio' name='cpa_verification' id='cpa_verification_radius' value='1' onclick='showHideVerification();'><label for='cpa_verification_radius'>RADIUS</label>";/*untranslated*/
@@ -2340,7 +2340,7 @@ function gen_account_settings() {
 	code += "</table>";
 
 	code += "<div id='verification_local_bg' style='margin-top:15px;'>";
-	code += "<div>Set up the username and password for Captive Portal authentication.</div>";/*untranslated*/
+	code += "<div><#FreeWiFi_AccountSetting_desc2#></div>";
 	code += "<table width='100%' border='1' align='center' cellpadding='4' cellspacing='0' class='FormTable_table' style='margin-top:15px;'>";
 	code += "<thead>";
 	code += "<tr>";
@@ -3295,7 +3295,7 @@ function finishRule(flag) {
 	splash_page_adv_html += "<meta http-equiv='Content-Type' content='text/html; charset=utf-8' />\n";
 	splash_page_adv_html += "<meta HTTP-EQUIV='Pragma' CONTENT='no-cache'>\n";
 	splash_page_adv_html += "<meta HTTP-EQUIV='Expires' CONTENT='-1'>\n";
-	splash_page_adv_html += "<title>Splash Page</title><!--untranslated-->\n";
+	splash_page_adv_html += "<title><#FreeWiFi_title#></title>\n";
 	splash_page_adv_html += "<link rel='stylesheet' type='text/css' href='Uam.css'>\n";
 	splash_page_adv_html += "<script type='text/javascript' src='jquery-1.7.1.min.js'><\/script>\n";
 	splash_page_adv_html += "<script type='text/javascript' src='uam.js'><\/script>\n";
@@ -4586,8 +4586,8 @@ function show_event_log() {
 	code += "<th id='th_ipAddress_pass' width='10%' onclick='connect_status_sorter.addBorder(\"pass\", this);connect_status_sorter.doSorter(\"pass\");'><#IPConnection_ExternalIPAddress_itemname#></th>";
 	code += "<th id='th_userName_pass' width='10%' onclick='connect_status_sorter.addBorder(\"pass\", this);connect_status_sorter.doSorter(\"pass\");'>User Name</th>";/*untranslated*/
 	code += "<th id='th_auth_pass' width='10%' onclick='connect_status_sorter.addBorder(\"pass\", this);connect_status_sorter.doSorter(\"pass\");'><#PPPConnection_Authentication_itemname#></th>";
-	code += "<th id='th_session_pass' width='10%' onclick='connect_status_sorter.addBorder(\"pass\", this);connect_status_sorter.doSorter(\"pass\");'>Connection Timeout</th>";/*untranslated*/
-	code += "<th id='th_awayTimeout_pass' width='10%' onclick='connect_status_sorter.addBorder(\"pass\", this);connect_status_sorter.doSorter(\"pass\");'>Idle Timeout</th>";/*untranslated*/
+	code += "<th id='th_session_pass' width='10%' onclick='connect_status_sorter.addBorder(\"pass\", this);connect_status_sorter.doSorter(\"pass\");'><#FreeWiFi_timeout#></th>";
+	code += "<th id='th_awayTimeout_pass' width='10%' onclick='connect_status_sorter.addBorder(\"pass\", this);connect_status_sorter.doSorter(\"pass\");'><#FreeWiFi_Idle#></th>";
 	code += "<th id='th_startTime_pass' width='20%' onclick='connect_status_sorter.addBorder(\"pass\", this);connect_status_sorter.doSorter(\"pass\");'>Start Time</th>";/*untranslated*/
 	code += "<th id='th_receviedBytes_pass' width='10%' onclick='connect_status_sorter.addBorder(\"pass\", this);connect_status_sorter.doSorter(\"pass\");'>Recevied Bytes</th>";/*untranslated*/
 	code += "<th id='th_transmittedBytes_pass' width='10%' onclick='connect_status_sorter.addBorder(\"pass\", this);connect_status_sorter.doSorter(\"pass\");'>Transmitted Bytes</th>";/*untranslated*/
@@ -4908,12 +4908,12 @@ function isValidDomin(_val) {
 							<tr>
 								<td bgcolor="#4D595D" valign="top">
 									<div>&nbsp;</div>
-									<div class="formfonttitle"><#Guest_Network#> - Captive Portal<!--untranslated--></div>
+									<div class="formfonttitle"><#Guest_Network#> - <#Captive_Portal#></div>
 									<div style="margin-left:5px;margin-top:10px;margin-bottom:10px"><img src="/images/New_ui/export/line_export.png"></div>
 									<div class="captive_portal_adv_intro_icon"></div>
 									<div style='float:left;width:80%;'>
-									<div class="captive_portal_adv_intro_txt" style="color:#FC0;">The Captive Portal cannot work on signal extended WLAN service, such as using Wi-Fi repeater and Media Bridge</div><!--untranslated-->
-									<div class="captive_portal_adv_intro_txt">Captive portal provides you a secure web authentication method for protecting your guest or visitor network. As an administrator, you can configure access policies and account permission. A guest client are allowed to access the internet only when getting the permission through the pop-up splash web.<!--untranslated--></div>
+									<div class="captive_portal_adv_intro_txt" style="color:#FC0;"><#Captive_Portal_desc1#></div>
+									<div class="captive_portal_adv_intro_txt"><#Captive_Portal_desc2#></div>
 									</div>
 									<div style="clear:both;"></div>
 									<div style="margin-left:5px;margin-top:10px;margin-bottom:10px"><img src="/images/New_ui/export/line_export.png"></div>
@@ -4924,7 +4924,7 @@ function isValidDomin(_val) {
 										</tr>
 										</thead>
 										<tr>
-											<th>Enable Captive Portal<!--untranslated--></th>
+											<th><#Captive_Portal_enable#></th>
 											<td>
 												<div align="center" class="left" style="float:left;cursor:pointer;" id="radio_captive_portal_enable"></div>
 												<div class="iphone_switch_container" style="height:32px; width:74px; position: relative; overflow: hidden;"></div>
@@ -4948,14 +4948,14 @@ function isValidDomin(_val) {
 											</td>
 										</tr>
 										<tr id="tr_idle_timeout">
-											<th><a class="hintstyle" href="javascript:void(0);" onClick="openHint(31, 1);">Authentication Timeout<!--untranslated--></a></th>
+											<th><a class="hintstyle" href="javascript:void(0);" onClick="openHint(31, 1);"><#Captive_Portal_timeout#></a></th>
 											<td>
 												<input type="text" maxlength="3" class="input_6_table" id="captive_portal_adv_idle_timeout" name="captive_portal_adv_idle_timeout" value="<% nvram_get("captive_portal_adv_idle_timeout"); %>" onkeypress="return validator.isNumber(this,event)" autocorrect="off" autocapitalize="off">
 												<span style="color:#FFCC00;">(Range: 60 - 800, <#Setting_factorydefault_value#>: 300 <#Second#>)</span>
 											</td>
 										</tr>
 										<tr id="tr_event_log">
-											<th>Connection Event<!--untranslated--></th>
+											<th><#Captive_Portal_event#></th>
 											<td>
 												<input class='button_gen' onclick='show_event_log();' type='button' value='<#liveupdate#>'/>
 											</td>
@@ -4975,7 +4975,7 @@ function isValidDomin(_val) {
 											</tr>
 											</thead>
 											<tr>
-												<th width="30%">Brand Name<!--untranslated--></th>
+												<th width="30%"><#FreeWiFi_BrandName#></th>
 												<th width="20%"><#PPPConnection_Authentication_itemname#></th>
 												<th width="30%"><#QIS_finish_wireless_item1#></th>
 												<th width="10%"><#pvccfg_edit#></th>

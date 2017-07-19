@@ -48,7 +48,7 @@ define(function(){
 				tab: [
 					{url: "Guest_network.asp", tabName: "<#Guest_Network#>"},
 					{url: "Captive_Portal.asp", tabName: "Free Wi-Fi"},
-					{url: "Captive_Portal_Advanced.asp", tabName: "Captive Portal"},
+					{url: "Captive_Portal_Advanced.asp", tabName: "<#Captive_Portal#>"},
 					{url: "Guest_network_fbwifi.asp", tabName: "Facebook Wi-Fi"},
 					{url: "NULL", tabName: "__INHERIT__"}
 				]
@@ -58,10 +58,10 @@ define(function(){
 				index: "menu_AiProtection", 
 				tab: [
 					{url: "AiProtection_HomeSecurity.asp", tabName: "__HIDE__"},
+					{url: "AiProtection_HomeProtection.asp", tabName: "<#AiProtection_Home#>"},
 					{url: "AiProtection_MaliciousSitesBlocking.asp", tabName: "__INHERIT__"},
 					{url: "AiProtection_IntrusionPreventionSystem.asp", tabName: "__INHERIT__"},
 					{url: "AiProtection_InfectedDevicePreventBlock.asp", tabName: "__INHERIT__"},
-					{url: "AiProtection_HomeProtection.asp", tabName: "<#AiProtection_Home#>"},
 					{url: "AiProtection_WebProtector.asp", tabName: "<#Parental_Control#>"},
 					{url: "ParentalControl.asp", tabName: "__INHERIT__"},
 					{url: "AiProtection_AdBlock.asp", tabName: "Ad Blocking"},
@@ -88,7 +88,7 @@ define(function(){
 				menuName: "<#Traffic_Analyzer#>",
 				index: "menu_TrafficAnalyzer", 
 				tab: [
-					{url: "TrafficAnalyzer_Statistic.asp", tabName: "Statistic"},
+					{url: "TrafficAnalyzer_Statistic.asp", tabName: "<#Statistic#>"},
 					{url: "Main_TrafficMonitor_realtime.asp", tabName: "<#traffic_monitor#>"},
 					{url: "Main_TrafficMonitor_last24.asp", tabName: "__INHERIT__"},
 					{url: "Main_TrafficMonitor_daily.asp", tabName: "__INHERIT__"},
@@ -185,7 +185,7 @@ define(function(){
 				]
 			},
 			{
-				menuName: "smart Control",
+				menuName: "Smart Control",
 				index: "smart_control",
 				tab: [
 					{url: "Advanced_Smart_Control_Alexa.asp", tabName: "__INHERIT__"},
@@ -209,7 +209,7 @@ define(function(){
 					{url: "Advanced_VPN_PPTP.asp", tabName: "<#BOP_isp_heart_item#>"},
 					{url: "Advanced_VPN_OpenVPN.asp", tabName: "__INHERIT__"},
 					{url: "Advanced_VPN_IPSec.asp", tabName: "__INHERIT__"},
-					{url: "Advanced_VPNClient_Content.asp", tabName: "<#vpnc_title#>"},
+					{url: "Advanced_VPNClient_Content.asp", tabName: (vpn_fusion_support) ? "VPN Fusion" : "<#vpnc_title#>"},/*untranslated*/
 					{url: "Advanced_TOR_Content.asp", tabName: "TOR"},
 					{url: "NULL", tabName: "__INHERIT__"}
 				]
@@ -368,6 +368,10 @@ define(function(){
 					retArray.push("menu_VPN");
 					retArray.push("menu_VLAN");
 					retArray.push("menu_Firewall");
+				}
+
+				if(lyra_hide_support){
+					retArray.push("menu_Wireless");
 				}
 
 				return retArray;
@@ -542,7 +546,7 @@ define(function(){
 				else
 					retArray.push("Advanced_DHCP_Content.asp");
 
-				if((!Rawifi_support && ! Rtkwifi_support) || !concurrep_support || !isSwMode("re")){
+				if((!Rawifi_support && !Rtkwifi_support) || !concurrep_support || !isSwMode("re")){
 					retArray.push("Advanced_WProxy_Content.asp");
 				}
 				
@@ -643,6 +647,16 @@ define(function(){
 				}
 				else{
 					retArray.push("Advanced_MobileBroadband_Content.asp");
+				}
+
+				if(lyra_hide_support){
+					retArray.push("Advanced_IPTV_Content.asp");
+					retArray.push("AiProtection_HomeSecurity.asp");
+					retArray.push("AiProtection_WebProtector.asp");
+					retArray.push("ParentalControl.asp");
+					retArray.push("Advanced_OperationMode_Content.asp");
+					retArray.push("QoS_EZQoS.asp");
+					retArray.push("AdaptiveQoS_WebHistory.asp");
 				}
 
 				return retArray;

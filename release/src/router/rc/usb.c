@@ -490,7 +490,7 @@ void start_usb(int orig)
 #if defined(RTCONFIG_BT_CONN)
 		modprobe("btusb");
 		modprobe("ath3k");
-#if defined(MAPAC1300) || defined(MAPAC2200)
+#if defined(MAPAC1300) || defined(MAPAC2200) || defined(VRZAC1300)
 		if (nvram_match("x_Setting", "0"))
 			system("/usr/bin/btchk.sh &"); /* workaround script */
 #endif
@@ -501,7 +501,7 @@ void start_usb(int orig)
 	}
 }
 
-#if defined(RTAC58U) || defined(RTAC82U) || defined(MAPAC1300) || defined(MAPAC2200)
+#if defined(RTAC58U) || defined(RTAC82U) || defined(MAPAC1300) || defined(MAPAC2200) || defined(VRZAC1300)
 void remove_dakota_usb_modules(void)
 {
 	modprobe_r(USB_DWC3);
@@ -643,7 +643,7 @@ void remove_usb_module(void)
 	remove_usb_led_module();
 	remove_usb_host_module();
 
-#if defined(RTAC58U) || defined(RTAC82U) || defined(MAPAC1300) || defined(MAPAC2200)
+#if defined(RTAC58U) || defined(RTAC82U) || defined(MAPAC1300) || defined(MAPAC2200) || defined(VRZAC1300)
 	remove_dakota_usb_modules();
 #endif
 }
@@ -799,7 +799,7 @@ void stop_usb(int f_force)
 		}
 	}
 
-#if defined(RTAC58U) || defined(RTAC82U) || defined(MAPAC1300) || defined(MAPAC2200)
+#if defined(RTAC58U) || defined(RTAC82U) || defined(MAPAC1300) || defined(MAPAC2200) || defined(VRZAC1300)
 	if(disabled)remove_dakota_usb_modules();
 #endif
 #endif // HND_ROUTER
@@ -938,7 +938,9 @@ int mount_r(char *mnt_dev, char *mnt_dir, char *_type)
 				sprintf(options + strlen(options), "%snls=%s%s", options[0] ? "," : "",
 						isdigit(nvram_get("smbd_cset")[0]) ? "cp" : "",
 						nvram_get("smbd_cset"));
-
+#if defined(RTCONFIG_REALTEK) && defined(RTCONFIG_TUXERA_NTFS)
+			/* TUXERA module not support codepage options. */
+#else			
 			if (nvram_invmatch("smbd_cpage", "")) {
 				char cp[16];
 
@@ -954,7 +956,7 @@ int mount_r(char *mnt_dev, char *mnt_dir, char *_type)
 				modprobe(flagfn);
 				nvram_set("smbd_nlsmod", flagfn);
 			}
-
+#endif
 #ifndef RTCONFIG_BCMARM
 			sprintf(options + strlen(options), ",noatime" + (options[0] ? 0 : 1));
 #endif
@@ -1035,10 +1037,7 @@ int mount_r(char *mnt_dev, char *mnt_dir, char *_type)
 #ifdef RTCONFIG_OPEN_NTFS3G
 					ret = eval("ntfs-3g", "-o", options, mnt_dev, mnt_dir);
 #elif defined(RTCONFIG_TUXERA_NTFS)
-					if(nvram_get_int("usb_fs_ntfs_sparse"))
-						ret = eval("mount", "-t", "tntfs", "-o", options, "-o", "sparse", mnt_dev, mnt_dir);
-					else
-						ret = eval("mount", "-t", "tntfs", "-o", options, mnt_dev, mnt_dir);
+					ret = eval("mount", "-t", "tntfs", "-o", options, mnt_dev, mnt_dir);
 #elif defined(RTCONFIG_PARAGON_NTFS)
 					if(nvram_get_int("usb_fs_ntfs_sparse"))
 						ret = eval("mount", "-t", "ufsd", "-o", options, "-o", "force", "-o", "sparse", mnt_dev, mnt_dir);

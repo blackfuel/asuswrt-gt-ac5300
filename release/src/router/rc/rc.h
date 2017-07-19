@@ -82,7 +82,7 @@
 #define USB20_MOD	"ehci-hcd"
 #endif
 
-#if defined(RTAC58U) || defined(RTAC82U) || defined(MAPAC1300) || defined(MAPAC2200)
+#if defined(RTAC58U) || defined(RTAC82U) || defined(MAPAC1300) || defined(MAPAC2200) || defined(VRZAC1300)
 #define USB_DWC3	"dwc3"
 #define USB_DWC3_IPQ	"dwc3-ipq40xx"
 #define USB_PHY1	"phy-qca-baldur"
@@ -243,6 +243,10 @@ extern int getPSK(void);
 extern void start_envrams(void);
 extern int chk_envrams_proc(void);
 #endif
+extern int ate_run_arpstrom(void);
+#ifdef BLUECAVE
+extern int setCentralLedLv(int lv);
+#endif
 
 /* tcode_rc.c */
 #ifdef RTCONFIG_TCODE
@@ -275,6 +279,9 @@ extern int setATEModeLedOn(void);
 extern int start_wps_method(void);
 extern int stop_wps_method(void);
 extern int is_wps_stopped(void);
+#if defined(AMAS) && defined(CONFIG_BCMWL5)
+extern int start_wps_enr(void);
+#endif
 extern int setMAC_2G(const char *mac);
 extern int setMAC_5G(const char *mac);
 #if defined(RTCONFIG_NEW_REGULATION_DOMAIN)
@@ -407,7 +414,7 @@ extern void Set_ART2(void);
 extern void Get_EEPROM_X(char *command);
 extern void Get_CalCompare(void);
 #endif
-#if defined(RTCONFIG_WIFI_QCA9990_QCA9990) || defined(RTCONFIG_WIFI_QCA9994_QCA9994) || defined(RTCONFIG_SOC_IPQ40XX)
+#if defined(RTCONFIG_WIFI_QCA9990_QCA9990) || defined(RTCONFIG_WIFI_QCA9994_QCA9994) || defined(RTCONFIG_SOC_IPQ40XX) || defined(RPAC51)
 extern void Set_Qcmbr(const char *value);
 extern void Get_BData_X(const char *command);
 extern int start_thermald(void);
@@ -497,7 +504,7 @@ extern int set_wltxpower();
 extern void led_bh_prep(int post);
 extern int wl_check_chanspec();
 extern void wl_check_5g_band_group();
-#if defined(RTCONFIG_BCMWL6) && defined(RTCONFIG_PROXYSTA) && (defined(RTCONFIG_BCM7) || defined(RTCONFIG_BCM_7114) || defined(HND_ROUTER))
+#if defined(RTCONFIG_BCMWL6) && defined(RTCONFIG_PROXYSTA)
 extern void reset_psr_hwaddr();
 #endif
 #endif
@@ -507,6 +514,8 @@ extern void ldo_patch();
 #if defined(RTCONFIG_BCM_7114) || defined(HND_ROUTER)
 extern int wl_channel_valid(char *wif, int channel);
 extern int wl_subband(char *wif, int idx);
+extern void check_4366_dummy(void);
+extern void check_4366_fabid(void);
 #endif
 extern void wl_dfs_radarthrs_config(char *ifname, int unit);
 #if defined(RTCONFIG_BCM_7114) || defined(HND_ROUTER)
@@ -560,6 +569,8 @@ extern void setLANLedOff(void);
 extern void hnd_mfg_init();
 extern void hnd_mfg_services();
 #endif
+extern void mtd_erase_image_update();
+extern int wait_to_forward_state(char *ifname);
 #endif
 #ifdef RTCONFIG_BCMWL6
 extern int hw_vht_cap();
@@ -567,10 +578,14 @@ extern int hw_vht_cap();
 #endif
 
 #if defined(RTCONFIG_QCA)
-#if defined(MAPAC1300) || defined(MAPAC2200)
+#if defined(MAPAC1300) || defined(MAPAC2200) || defined(VRZAC1300)
 extern int start_cap(int c);
-extern void start_re(int c);                         
-extern void config_hive(int role,int band);   
+extern void start_re(int c);
+#ifdef RTCONFIG_ETHBACKHAUL
+extern void start_eth(int c);
+extern int lldpcli_det(void);
+#endif
+extern void config_hive(int role,int band);
 extern void stop_hyfi(void);
 extern void start_hyfi(void);
 extern int get_role(void);
@@ -578,6 +593,11 @@ extern void hyfi_process(void);
 extern void start_wifimon_check(int delay);
 extern void duplicate_5g2();
 extern int hyd_exec;
+#ifdef RTCONFIG_ETHBACKHAUL
+extern int eth_backl;
+extern int check_eth_time;
+extern int eth_down_time;
+#endif
 #endif
 #endif
 
@@ -653,6 +673,7 @@ extern int autodet_plc_main(int argc, char *argv[]);
 extern int autodet_main(int argc, char *argv[]);
 extern int detwan_main(int argc, char *argv[]);
 extern int dpdt_ant_main(int argc, char *argv[]);
+extern int thermal_txpwr_main(int argc, char *argv[]);
 extern void start_wan(void);
 extern void stop_wan(void);
 extern int add_multi_routes(void);
@@ -1285,6 +1306,7 @@ extern int stop_dhd_monitor(void);
 #if defined(BCA_HNDROUTER) && defined(MCPD_PROXY)
 extern void start_mcpd_proxy(void);
 extern void stop_mcpd_proxy(void);
+extern void restart_mcpd_proxy(void);
 #endif
 #endif
 extern int start_nat_rules(void);
@@ -1527,7 +1549,8 @@ extern void stop_bluetooth_service(void);
 #ifdef RTCONFIG_CFGSYNC
 extern void stop_cfgsync(void);
 extern int start_cfgsync(void);
-#if defined(MAPAC1300) || defined(MAPAC2200) /* for Lyra */
+extern void send_event_to_cfgmnt(int event_id);
+#if defined(MAPAC1300) || defined(MAPAC2200) || defined(VRZAC1300) /* for Lyra */
 extern int setDisableGUI(const char *);
 extern int getDisableGUI(void);
 #endif

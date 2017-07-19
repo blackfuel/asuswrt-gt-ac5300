@@ -45,6 +45,7 @@ typedef u_int8_t __u8;
 #endif
 #include <security_ipc.h>
 #ifdef HND_ROUTER
+#include <linux/if_bridge.h>
 #include "ethswctl.h"
 #include "ethctl.h"
 #endif
@@ -3459,7 +3460,7 @@ wl_check_chanspec()
 {
 	wl_uint32_list_t *list;
 	chanspec_t c, chansp_40m;
-	int ret = 0, i, count;
+	int ret = 0, i;
 	char data_buf[WLC_IOCTL_MAXLEN];
 	char chanbuf[CHANSPEC_STR_LEN];
 	char word[256], *next;
@@ -3468,6 +3469,7 @@ wl_check_chanspec()
 	int match;
 	int match_ctrl_ch;
 	int match_40m_ch;
+	unsigned int count;
 
 	foreach (word, nvram_safe_get("wl_ifnames"), next) {
 		snprintf(prefix, sizeof(prefix), "wl%d_", unit++);
@@ -3493,6 +3495,9 @@ wl_check_chanspec()
 
 		if (!count) {
 			dbg("number of valid chanspec is 0\n");
+			continue;
+		} else if (count > (data_buf + sizeof(data_buf) - (char *)&list->element[0])/sizeof(list->element[0])) {
+			dbg("number of valid chanspec %d is invalid\n", count);
 			continue;
 		} else
 		for (i = 0; i < count; i++) {
@@ -3543,19 +3548,21 @@ wl_check_5g_band_group()
 {
 	wl_uint32_list_t *list;
 	chanspec_t c;
-	int ret = 0, i, count;
+	int ret = 0, i;
 	char data_buf[WLC_IOCTL_MAXLEN];
 	char word[256], *next;
 	char tmp[100], tmp2[100], prefix[] = "wlXXXXXXXXXX_";
 	int unit = 0;
-	unsigned int band5grp;
+	unsigned int count, band5grp;
 
 	foreach (word, nvram_safe_get("wl_ifnames"), next) {
 		snprintf(prefix, sizeof(prefix), "wl%d_", unit++);
 		c = 0;
 
 		if (unit == 1) continue;
-
+#if defined(RTCONFIG_BCM_7114) || defined(HND_ROUTER)
+		if(nvram_get_int(strcat_r(prefix, "failed", tmp)) >= 3) continue;
+#endif
 		memset(data_buf, 0, WLC_IOCTL_MAXLEN);
 		ret = wl_iovar_getbuf(word, "chanspecs", &c, sizeof(chanspec_t),
 			data_buf, WLC_IOCTL_MAXLEN);
@@ -3569,6 +3576,9 @@ wl_check_5g_band_group()
 
 		if (!count) {
 			dbg("number of valid chanspec is 0\n");
+			continue;
+		} else if (count > (data_buf + sizeof(data_buf) - (char *)&list->element[0])/sizeof(list->element[0])) {
+			dbg("number of valid chanspec %d is invalid\n", count);
 			continue;
 		} else
 			for (i = 0, band5grp = 0; i < count; i++) {
@@ -3856,7 +3866,7 @@ GEN_CONF:
 		else
 			eval("wl", "-i", ifname, "txbf_imp", "0");
 #endif
-#if defined(RTCONFIG_BCM_7114) || defined(HND_ROUTER)
+#if defined(RTCONFIG_BCM_7114)
 		if (nvram_match(strcat_r(prefix, "atf", tmp), "1")) {
 			if (nvram_match(strcat_r(prefix, "atf_delay_disable", tmp), "1"))
 				eval("wl", "-i", ifname, "bus:ffsched_flr_rst_delay", "0");				// disable atf delay scheme
@@ -3907,6 +3917,9 @@ GEN_CONF:
 			if (nvram_match(strcat_r(prefix, "ampdu_rts", tmp), "0") &&
 				nvram_match(strcat_r(prefix, "nmode", tmp), "-1"))
 				eval("wl", "-i", ifname, "rtsthresh", "65535");
+
+			if (nvram_match(strcat_r(prefix, "frameburst_disable", tmp), "1"))
+				eval("wl", "-i", ifname, "frameburst", "0");
 #endif
 
 			wl_dfs_radarthrs_config(ifname, unit);
@@ -3969,25 +3982,7 @@ void wlconf_pre()
 			{
 				if (nvram_match(strcat_r(prefix, "turbo_qam", tmp), "1"))
 					eval("wl", "-i", word, "vht_features", "3");
-#if 0
-#if defined(RTCONFIG_BCM_7114) || defined(HND_ROUTER)
-				else if (nvram_match(strcat_r(prefix, "turbo_qam", tmp), "2"))
-					eval("wl", "-i", word, "vht_features", "7");
-#endif
-#endif
 			}
-#endif
-#if 0
-#if defined(RTCONFIG_BCM_7114) || defined(HND_ROUTER)
-			else if (nvram_match(strcat_r(prefix, "nband", tmp), "1")) {
-				if (nvram_match(strcat_r(prefix, "turbo_qam", tmp), "2"))
-#ifndef HND_ROUTER
-					eval("wl", "-i", word, "vht_features", "4");
-#else
-					eval("wl", "-i", word, "vht_features", "6");
-#endif
-			}
-#endif
 #endif
 #endif  // RTCONFIG_BCMARM
 			dbG("set vhtmode 1\n");
@@ -4460,5 +4455,35 @@ void led_bh_prep(int post)
 		default:
 			break;
 	}
+}
+#endif
+
+#ifdef HND_ROUTER
+#define SYSFS_BRPORT_STATE	"/sys/class/net/%s/brport/state"
+
+int wait_to_forward_state(char *ifname)
+{
+	FILE *fp;
+	char brport_state[64] = {0};
+	int timeout, state;
+
+	timeout = 5;
+	state = BR_STATE_DISABLED;
+
+	while (timeout-- && (state != BR_STATE_FORWARDING)) {
+		sprintf(brport_state, SYSFS_BRPORT_STATE, ifname);
+		if ((fp = fopen(brport_state, "r")) != NULL) {
+			fscanf(fp, "%d", &state);
+			fclose(fp);
+		}
+		if (state == BR_STATE_FORWARDING)
+			break;
+		sleep(1);
+	}
+
+	if (!timeout)
+		return 1;
+
+	return 0;
 }
 #endif

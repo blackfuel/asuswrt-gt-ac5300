@@ -48,7 +48,7 @@
 				"width" : "35%"
 			},
 			{
-				"title" : "Ping Status",
+				"title" : "<#Game_Ping_Status#>",
 				"width" : "25%"
 			}
 		],
@@ -319,7 +319,7 @@
 												<div class="formfontdesc"></div>
 
 												<div style="margin-left:10px">
-													Game List: 
+													<#Game_List#>: 
 													<select id="gameSelector" class="input_option" onchange="changeGame(this.value);"></select>
 													<br/>
 													<div id="mapContainer"></div>

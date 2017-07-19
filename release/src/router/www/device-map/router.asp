@@ -21,6 +21,8 @@ if(parent.location.pathname !== '<% abs_networkmap_page(); %>' && parent.locatio
 <% wl_get_parameter(); %>
 var flag = '<% get_parameter("flag"); %>';
 var smart_connect_flag_t;
+var wl_unit = '<% nvram_get("wl_unit"); %>';
+
 
 if(yadns_support){
 	var yadns_enable = '<% nvram_get("yadns_enable_x"); %>';
@@ -31,57 +33,66 @@ if(yadns_support){
 function initial(){
 	var wl_subunit = '<% nvram_get("wl_subunit"); %>';
 
-	if(band5g_support){
+	if(lyra_hide_support){
 		document.getElementById("t0").style.display = "";
-		document.getElementById("t1").style.display = "";
-		if(wl_info.band5g_2_support){
-			document.getElementById("t2").style.display = "";
-			tab_reset(0);
-		}
-
-		// disallow to use the other band as a wireless AP
-		if(parent.isSwMode("mb") && !localAP_support){
-			for(var x=0; x<wl_info.wl_if_total;x++){
-				if(x != '<% nvram_get("wlc_band"); %>')
-					document.getElementById('t'+parseInt(x)).style.display = 'none';			
-			}
-		}
+		document.getElementById("span0").innerHTML = "<#tm_wireless#>";
+		document.getElementById("t0").className = "tabclick_NW";
+		inputCtrl(document.form.wl_auth_mode_x, 0);
+		document.getElementById("wl_wpa_psk_title").innerHTML = "<#Network_key#>";
+		document.getElementById("t3").style.display = "none";
 	}
 	else{
-		document.getElementById("t0").style.display = "";	
-	}
+		if(band5g_support){
+			document.getElementById("t0").style.display = "";
+			document.getElementById("t1").style.display = "";
+			if(wl_info.band5g_2_support){
+				document.getElementById("t2").style.display = "";
+				tab_reset(0);
+			}
 
+			// disallow to use the other band as a wireless AP
+			if(parent.isSwMode("mb") && !localAP_support){
+				for(var x=0; x<wl_info.wl_if_total;x++){
+					if(x != '<% nvram_get("wlc_band"); %>')
+						document.getElementById('t'+parseInt(x)).style.display = 'none';
+				}
+			}
+		}
+		else{
+			document.getElementById("t0").style.display = "";
+		}
+	}
 	if(parent.sw_mode == 2){
 		if(parent.wlc_express != 0){
 			if(parent.wlc_express == 1){
 				document.getElementById("t0").style.display = "none";
-				if(wl_subunit != '1' || '<% nvram_get("wl_unit"); %>' != 1){
+				if(wl_subunit != '1' || wl_unit != '1'){
 					tabclickhandler(1);
 				}
 			}
 			else if(parent.wlc_express == 2){
 				document.getElementById("t1").style.display = "none";
-				if(wl_subunit != '1' || '<% nvram_get("wl_unit"); %>' != 0){
+				if(wl_subunit != '1' || wl_unit != '0'){
 					tabclickhandler(0);
 				}
 			}
 		}
 		else{
 			if(!parent.concurrep_support){
-				if('<% nvram_get("wl_unit"); %>' == '<% nvram_get("wlc_band"); %>' && wl_subunit != '1'){
-					tabclickhandler('<% nvram_get("wl_unit"); %>');
+				if(wl_unit == '<% nvram_get("wlc_band"); %>' && wl_subunit != '1'){
+					tabclickhandler(wl_unit);
 				}
-				else if('<% nvram_get("wl_unit"); %>' != '<% nvram_get("wlc_band"); %>' && wl_subunit == '1'){
-					tabclickhandler('<% nvram_get("wl_unit"); %>');
+				else if(wl_unit != '<% nvram_get("wlc_band"); %>' && wl_subunit == '1'){
+					tabclickhandler(wl_unit);
 				}
 			}
 			else{
-				if(wl_subunit != '1') tabclickhandler('<% nvram_get("wl_unit"); %>');
+				if(wl_subunit != '1') tabclickhandler(wl_unit);
 			}
 		}
 	}
 	else if(parent.sw_mode == 4){
-		if('<% nvram_get("wl_unit"); %>' != '<% nvram_get("wlc_band"); %>'){
+		if(wl_unit != '<% nvram_get("wlc_band"); %>'){
 			tabclickhandler('<% nvram_get("wlc_band"); %>');
 		}
 
@@ -90,13 +101,13 @@ function initial(){
 		document.getElementById("WLnetworkmap_re").style.display = "";
 	}
 	else{
-		if(wl_subunit != "-1"){
+		if(wl_unit == "-1" || wl_subunit != "-1"){
 			tabclickhandler(0);
 		}
 	}
 
 	// modify wlX.1_ssid(SSID to end clients) under repeater mode
-	if((parent.sw_mode == 2 || parent.sw_mode == 4) && '<% nvram_get("wlc_band"); %>' == '<% nvram_get("wl_unit"); %>')
+	if((parent.sw_mode == 2 || parent.sw_mode == 4) && '<% nvram_get("wlc_band"); %>' == wl_unit)
 		document.form.wl_subunit.value = 1;
 	else
 		document.form.wl_subunit.value = -1;
@@ -141,7 +152,8 @@ function initial(){
 		}
 	}
 
-	change_tabclick();
+	if(!lyra_hide_support)
+		change_tabclick();
 	/*if(document.getElementById("t1").className == "tabclick_NW" && 	parent.Rawifi_support)	//no exist Rawifi
 		document.getElementById("wl_txbf_tr").style.display = "";		//Viz Add 2011.12 for RT-N56U Ralink*/ 			
 
@@ -189,7 +201,7 @@ function initial(){
 }
 
 function change_tabclick(){
-	switch('<% nvram_get("wl_unit"); %>'){
+	switch(wl_unit){
 		case '0': document.getElementById("t0").className = "tabclick_NW";
 				break;
 		case '1': document.getElementById("t1").className = "tabclick_NW";
@@ -200,7 +212,7 @@ function change_tabclick(){
 }
 
 function tabclickhandler(wl_unit){
-	if(wl_unit == 3){
+	if(wl_unit == '3'){
 		location.href = "router_status.asp";
 	}
 	else{
@@ -260,7 +272,9 @@ function change_wpa_type(mode){
 	var new_array;
 	var cur_crypto;
 	/* enable/disable crypto algorithm */
-	if(mode == "wpa" || mode == "wpa2" || mode == "wpawpa2" || mode == "psk" || mode == "psk2" || mode == "pskpsk2")
+	if(lyra_hide_support)
+		inputCtrl(document.form.wl_crypto, 0);
+	else if(mode == "wpa" || mode == "wpa2" || mode == "wpawpa2" || mode == "psk" || mode == "psk2" || mode == "pskpsk2")
 		inputCtrl(document.form.wl_crypto, 1);
 	else
 		inputCtrl(document.form.wl_crypto, 0);
@@ -403,26 +417,26 @@ function show_LAN_info(v){
 	showtext(document.getElementById("PINCode"), '<% nvram_get("secret_code"); %>');
 	showtext(document.getElementById("MAC"), '<% nvram_get("lan_hwaddr"); %>');
 	showtext(document.getElementById("MAC_wl2"), '<% nvram_get("wl0_hwaddr"); %>');
-	if(document.form.wl_unit.value == 1)
+	if(document.form.wl_unit.value == '1')
 		showtext(document.getElementById("MAC_wl5"), '<% nvram_get("wl1_hwaddr"); %>');
-	else if(document.form.wl_unit.value == 2)
+	else if(document.form.wl_unit.value == '2')
 		showtext(document.getElementById("MAC_wl5_2"), '<% nvram_get("wl2_hwaddr"); %>');
 
-	if(document.form.wl_unit.value == 0){
+	if(document.form.wl_unit.value == '0'){
 		document.getElementById("macaddr_wl5").style.display = "none";
 		if(wl_info.band5g_2_support)
 			document.getElementById("macaddr_wl5_2").style.display = "none";	
 		if(!band5g_support)
 			document.getElementById("macaddr_wl2_title").style.display = "none";
 	}
-	else if (document.form.wl_unit.value == 1){
+	else if (document.form.wl_unit.value == '1'){
 		document.getElementById("macaddr_wl2").style.display = "none";
 		document.getElementById("macaddr_wl5_2").style.display = "none";
 		if(wl_info.band5g_2_support)
 			document.getElementById("macaddr_wl5_title").innerHTML = "5GHz-1 ";
 
 	}
-	else if (document.form.wl_unit.value == 2){
+	else if (document.form.wl_unit.value == '2'){
 		document.getElementById("macaddr_wl2").style.display = "none";
 		document.getElementById("macaddr_wl5").style.display = "none";
 		document.getElementById("macaddr_wl5_2").style.display = "";
@@ -437,7 +451,7 @@ function show_LAN_info(v){
 			document.getElementById("macaddr_wl5").style.display = "";
 			document.getElementById("macaddr_wl5_2").style.display = "";
 			parent.document.getElementById("statusframe").height = 760;
-		}else if(document.form.wl_unit.value != 0 && v == '2'){
+		}else if(document.form.wl_unit.value != '0' && v == '2'){
 			document.getElementById("macaddr_wl2").style.display = "none";
 			showtext(document.getElementById("MAC_wl5"), '<% nvram_get("wl1_hwaddr"); %>');
 			showtext(document.getElementById("MAC_wl5_2"), '<% nvram_get("wl2_hwaddr"); %>');
@@ -534,7 +548,7 @@ function clean_input(obj){
 
 function gotoSiteSurvey(){
 	if(sw_mode == 2)
-		parent.location.href = '/QIS_wizard.htm?flag=sitesurvey_rep&band='+'<% nvram_get("wl_unit"); %>';
+		parent.location.href = '/QIS_wizard.htm?flag=sitesurvey_rep&band='+wl_unit;
 	else
 		parent.location.href = '/QIS_wizard.htm?flag=sitesurvey_mb';
 }
@@ -605,13 +619,13 @@ function change_smart_connect(v){
 				tab_reset(0);	
 				break;
 		case '1': 
-				if('<% nvram_get("wl_unit"); %>' != 0)
+				if(wl_unit != '0')
 					tabclickhandler(0);
 				else
 					tab_reset(1);
 				break;
 		case '2': 
-				if(!('<% nvram_get("wl_unit"); %>' == 0 || '<% nvram_get("wl_unit"); %>' == 1))
+				if(!(wl_unit == '0' || wl_unit == '1'))
 					tabclickhandler(1);
 				else
 					tab_reset(2);
@@ -809,8 +823,7 @@ function change_smart_connect(v){
   		</tr>
   		<tr id='wl_wpa_psk_tr' style='display:none'>
     			<td style="padding:5px 10px 0px 10px;">
-      			<p class="formfonttitle_nwm" ><#WPA-PSKKey#>
-						</p>	
+					<p id="wl_wpa_psk_title" class="formfonttitle_nwm" ><#WPA-PSKKey#></p>
 							<input id="wl_wpa_psk" name="wl_wpa_psk" style="width:260px;*margin-top:-7px;" type="password" onBlur="switchType(this, false);" onFocus="switchType(this, true);" value="" maxlength="64" class="input_25_table" autocomplete="off" autocorrect="off" autocapitalize="off"/>
       						<!-- fake fields are a workaround for chrome autofill getting the wrong fields -->
       						<input style="display:none" type="password" name="fakepasswordremembered"/>
@@ -868,8 +881,8 @@ function change_smart_connect(v){
 	<td> 			
  		<table width="95%" border="1" align="center" cellpadding="4" cellspacing="0" class="table1px">
   		<tr id="apply_tr">
-    			<td style="border-bottom:5px #2A3539 solid;padding:5px 10px 5px 10px;">
-    				<input id="applySecurity" type="button" class="button_gen" value="<#CTL_apply#>" onclick="submitForm();" style="margin-left:90px;">
+				<td id="bottom_border">
+					<input id="applySecurity" type="button" class="button_gen" value="<#CTL_apply#>" onclick="submitForm();" style="margin-left:90px;">
     			</td>
   		</tr>
   		<tr>

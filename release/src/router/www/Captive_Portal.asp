@@ -80,7 +80,7 @@ function initial(){
 	}
 	else {
 		captivePortalShowAndHide(0);
-		$("#apply_button").val('Apply and Enable');/*untranslated*/
+		$("#apply_button").val('<#CTL_Apply_Enable#>');
 	}
 }
 function captivePortalShowAndHide(_flag) {
@@ -399,7 +399,7 @@ function gen_splash_page() {
 	var gen_wl_interface = function(_wl_idx) {
 		
 		code += "<div class='splash_item_content'>";
-		code += "<div class='splash_item_title'>" + wl_nband_title[_wl_idx] + " <#QIS_finish_wireless_item1#></div>";/*untranslated*/
+		code += "<div class='splash_item_title'>" + wl_nband_title[_wl_idx] + " <#QIS_finish_wireless_item1#></div>";
 		code += "<input type='checkbox' name='cb_wl_" + _wl_idx + "' id='cb_wl_" + _wl_idx + "' onclick='change_wl_input_status(" + _wl_idx + ");' checked>";
 		if(_wl_idx == "1")
 			code += "<input name='wl_" + _wl_idx + "' class='input_25_table' value='Brand Name-Free WiFi_5G' type='text' maxlength='32' autocorrect='off' autocapitalize='off'>";
@@ -414,12 +414,12 @@ function gen_splash_page() {
 
 	code = "";
 
-	code += "<div class='cp_item_title'>Splash Page</div>";/*untranslated*/
+	code += "<div class='cp_item_title'><#FreeWiFi_title#></div>";
 
 	code += "<div class='splash_content'>";
 		code += "<div class='splash_image_size_content'>";
 		code += "<select id='splash_image_size' name='splash_image_size' class='input_option' onchange='splash_image_size_change();'>";
-		code += "<option value='center'>Center</option>";/*untranslated*/
+		code += "<option value='center'><#FreeWiFi_center#></option>";
 		code += "<option value='extend'>Extend</option>";/*untranslated*/
 		code += "</select>";
 		code += "</div>";
@@ -441,7 +441,7 @@ function gen_splash_page() {
 					code += "</div>";
 					code += "<div class='splash_template_title'>Welcome to";
 					code += "</div>";
-					code += "<div id='splash_template_brand_name' class='splash_template_brand_name'>Brand Name";
+					code += "<div id='splash_template_brand_name' class='splash_template_brand_name'><#FreeWiFi_BrandName#>";
 					code += "</div>";
 					code += "<div id='splash_template_terms_service' class='splash_template_terms_service'>";
 						code += "<div style='width: 15%;float: left;'>";
@@ -457,13 +457,13 @@ function gen_splash_page() {
 			code += "</div>";
 		code += "</div>";
 
-		code += "<div class='splash_image_hint'>Image Size: < 10MB</div>";/*untranslated*/
-		code += "<div class='splash_image_hint'>Recommend Types: jpg, png</div>";/*untranslated*/
-		code += "<div class='splash_image_hint'>Recommend Resolution: 1152 x 864 px or above</div>";/*untranslated*/
+		code += "<div class='splash_image_hint'><#FreeWiFi_ImageSize#>: < 10MB</div>";
+		code += "<div class='splash_image_hint'><#FreeWiFi_RecommendType#>: jpg, png</div>";/*untranslated*/
+		code += "<div class='splash_image_hint'><#FreeWiFi_RecommendResolution#>: 1152 x 864 px or above</div>";/*untranslated*/
 		if(isSupportFileReader() && isSupportCanvas()) {
 			code += "<div class='splash_preview'>";
-			code += "<input class='button_gen' onclick='splash_upload_image();' type='button' value='Background'/>";/*untranslated*/
-			code += "<input class='button_gen' onclick='preview_splash_page();' type='button' value='Preview'/>";/*untranslated*/
+			code += "<input class='button_gen' onclick='splash_upload_image();' type='button' value='<#btn_Background#>'/>";
+			code += "<input class='button_gen' onclick='preview_splash_page();' type='button' value='<#btn_Preview#>'/>";
 			code += "</div>";
 			code += "<input type='file' name='splash_upload_file' id='splash_upload_file' class='splash_upload_file' onchange='previewSplashImage(this);'/>";
 		}
@@ -472,7 +472,7 @@ function gen_splash_page() {
 
 	code += "<div class='splash_content'>";
 		code += "<div class='splash_item_content'>";
-			code += "<div class='splash_item_title'>Brand Name</div>";/*untranslated*/
+			code += "<div class='splash_item_title'><#FreeWiFi_BrandName#></div>";
 			code += "<input name='brand_name' class='input_25_table' value='Brand Name' type='text' maxlength='32' autocorrect='off' autocapitalize='off' onkeyup='auto_fill_wl_name();'>";
 		code += "</div>";
 
@@ -487,23 +487,23 @@ function gen_splash_page() {
 		}
 
 		code += "<div class='splash_item_content'>";
-			code += "<div class='splash_item_title'>Terms of service</div>";/*untranslated*/
+			code += "<div class='splash_item_title'><#Terms_of_Service#></div>";
 			code += "<input type='checkbox' name='cb_terms_service' id='cb_terms_service' onchange='update_terms_service();' checked>";
-			code += "Option: Add your own Terms of Service";/*untranslated*/
+			code += "<#FreeWiFi_OptionHint#>";
 			code += "<textarea name='terms_service' id='terms_service' class='splash_textarea' rows='9' cols='40' maxlength='2048'>";
 			code += "By using Free Wi-Fi internet service, you hereby expressly acknowledge and agree that there are significant security, privacy and confidentiality risks inherent in accessing or transmitting information through the internet, whether the connection is facilitated through wired or wireless technology. Security issues include, without limitation, interception of transmissions, loss of data, and the introduction or viruses and other programs that can corrupt or damage your computer.\n\nAccordingly, you agree that the owner and/or provider of this network is NOT liable for any interception or transmissions, computer worms or viruses, loss of data, file corruption, hacking or damage to your computer or other devices that result from the transmission or download of information or materials through the internet service provided.\n\nUse of the wireless network is subject to the general restrictions outlined below. If abnormal, illegal, or unauthorized behavior is detected, including heavy consumption of bandwidth, the network provider reserves the right to permanently disconnect the offending device from the wireless network.";
 			code += "</textarea>";
 		code += "</div>";
 
 		code += "<div class='splash_item_content'>";
-			code += "<div class='splash_item_title'>Connection Timeout</div>";/*untranslated*/
+			code += "<div class='splash_item_title'><#FreeWiFi_timeout#></div>";
 			code += "<input name='session_length' class='input_6_table' value='60' type='text' maxlength='3' autocorrect='off' autocapitalize='off' onKeyPress='return validator.isNumber(this, event);'>";
 			code += "<span class='splash_item_text'><#Minute#></span>";
 			//code += "<span class='splash_item_hint'>(<#Setting_factorydefault_value#> : 60)</span>";
 		code += "</div>";
 
 		code += "<div class='splash_item_content'>";
-			code += "<div class='splash_item_title'>Landing Page (Redirect to your website)</div>";/*untranslated*/
+			code += "<div class='splash_item_title'><#FreeWiFi_LandingPage#> (<#FreeWiFi_RedirectPage#>)</div>";
 			code += "<input name='internet_website' class='input_32_table' value='' type='text' maxlength='64' autocorrect='off' autocapitalize='off'>";
 			code += "<span class='splash_item_hint'>ex. http or https ://www.asus.com</span>";
 		code += "</div>";
@@ -1228,7 +1228,7 @@ function save_splash_page_content() {
 		html_landing += "</g>\n";
 		html_landing += "</svg>\n";
 		html_landing += "<div id='splash_template_title' class='splash_template_title'>Welcome to</div>\n";
-		html_landing += "<div id='splash_template_brand_name' class='splash_template_brand_name'>Brand Name</div>\n";
+		html_landing += "<div id='splash_template_brand_name' class='splash_template_brand_name'><#FreeWiFi_BrandName#></div>\n";
 		if(terms_service_status) {
 			html_landing += "<div id='splash_template_terms_service' class='splash_template_terms_service'>\n";
 				html_landing += "<div class='splash_template_terms_service_cb'>\n";
@@ -1750,8 +1750,8 @@ function check_gn_if_status(_subunit, _gn_array) {
 									<div style="margin-left:5px;margin-top:10px;margin-bottom:10px"><img src="/images/New_ui/export/line_export.png"></div>
 									<div class="cp_page_intro_icon"></div>
 									<div style='float:left;width:80%;'>
-									<div class="cp_page_intro_txt" style="color:#FC0;">The Free Wi-Fi cannot work on signal extended WLAN service, such as using Wi-Fi repeater and Media Bridge</div><!--untranslated-->
-									<div class="cp_page_intro_txt">Free WiFi provides you a easy way to create a vistor WiFi network and promote your brand. A web page is displayed to a guest user who tries to access the internet. The user has to accept company's network useage policy in the web page.<!--untranslated--></div>
+									<div class="cp_page_intro_txt" style="color:#FC0;"><#FreeWiFi_desc1#></div>
+									<div class="cp_page_intro_txt"><#FreeWiFi_desc2#></div>
 									<div align="center" class="left" style="float:left;margin-left:20px;margin-top:10px;cursor:pointer;" id="radio_captive_portal_enable"></div>
 									<div class="iphone_switch_container" style="height:32px; width:74px; position: relative; overflow: hidden;"></div>
 									<script type="text/javascript">

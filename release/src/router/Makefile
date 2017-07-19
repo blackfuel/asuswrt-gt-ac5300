@@ -71,13 +71,13 @@ endif
 endif
 
 # New Broadcom/Ralink/MTK/QCA/RTK platform.
-KPATH_2636_OR_3X = $(if $(or $(findstring linux-2.6.36,$(LINUXDIR)),$(findstring linux-3.x,$(LINUXDIR)),$(findstring linux-3.3.x,$(LINUXDIR)),$(findstring linux-3.4.x,$(LINUXDIR)),$(findstring linux-4.1,$(LINUXDIR)),$(findstring linux-3.10,$(LINUXDIR)),$(findstring linux-3.14.x,$(LINUXDIR))),y)
+KPATH_2636_OR_3X = $(if $(or $(findstring linux-2.6.36,$(LINUXDIR)),$(findstring linux-3.x,$(LINUXDIR)),$(findstring linux-3.3.x,$(LINUXDIR)),$(findstring linux-3.3.8,$(LINUXDIR)),$(findstring linux-3.4.x,$(LINUXDIR)),$(findstring linux-4.1,$(LINUXDIR)),$(findstring linux-3.10,$(LINUXDIR)),$(findstring linux-3.14.x,$(LINUXDIR))),y)
 
 # New Ralink/MTK/QCA platform.
-KPATH_2636X_OR_3X = $(if $(or $(findstring linux-2.6.36.x,$(LINUXDIR)),$(findstring linux-3.x,$(LINUXDIR)),$(findstring linux-3.3.x,$(LINUXDIR)),$(findstring linux-3.4.x,$(LINUXDIR)),$(findstring linux-3.14.x,$(LINUXDIR))),y)
+KPATH_2636X_OR_3X = $(if $(or $(findstring linux-2.6.36.x,$(LINUXDIR)),$(findstring linux-3.x,$(LINUXDIR)),$(findstring linux-3.3.x,$(LINUXDIR)),$(findstring linux-3.3.8,$(LINUXDIR)),$(findstring linux-3.4.x,$(LINUXDIR)),$(findstring linux-3.14.x,$(LINUXDIR))),y)
 
 # New Ralink/MTK/QCA/RTK platform.
-KPATH_3X = $(if $(or $(findstring linux-3.x,$(LINUXDIR)),$(findstring linux-3.3.x,$(LINUXDIR)),$(findstring linux-3.4.x,$(LINUXDIR)),$(findstring linux-3.10,$(LINUXDIR)),$(findstring linux-3.14.x,$(LINUXDIR))),y)
+KPATH_3X = $(if $(or $(findstring linux-3.x,$(LINUXDIR)),$(findstring linux-3.3.x,$(LINUXDIR)),$(findstring linux-3.3.8,$(LINUXDIR)),$(findstring linux-3.4.x,$(LINUXDIR)),$(findstring linux-3.10,$(LINUXDIR)),$(findstring linux-3.14.x,$(LINUXDIR))),y)
 
 ifneq ($(BASE_MODEL),)
 MODEL = $(subst -,,$(subst +,P,$(BASE_MODEL)))
@@ -280,6 +280,10 @@ ifeq ($(RTCONFIG_TOAD),y)
 export CFLAGS += -D__CONFIG_TOAD__
 endif
 
+ifeq ($(RTCONFIG_BCM_APPEVENTD),y)
+export CFLAGS += -DBCM_APPEVENTD
+endif
+
 ifeq ($(RTCONFIG_BCMBSD),y)
 export CFLAGS += -DBCM_BSD
 endif
@@ -296,6 +300,10 @@ endif
 ifneq ($(BUILD_HND_MFG),)
 export BUILD_MFG := 1
 export WLTEST := 1
+endif
+
+ifeq ($(RTCONFIG_FBT),y)
+export CFLAGS  += -DWLHOSTFBT
 endif
 
 ifeq ($(RTCONFIG_BCMASPMD),y)
@@ -462,10 +470,21 @@ else ifeq ($(RTCONFIG_QCA),y)
 obj-y += wireless_tools
 obj-y += libnl-tiny-0.1
 obj-y += swconfig
+ifeq ($(RTCONFIG_SOC_IPQ40XX),y)
+SWCONFIG_PKG := qca-swconfig.ipq40xx
+else
+SWCONFIG_PKG := swconfig
+endif
 
 # QCA9558.ILQ 2.0
 obj-$(RTCONFIG_SOC_QCA9557) += shortcut-fe
-obj-$(QCA953X) += shortcut-fe
+ifeq ($(QCA953X),y)
+ifeq ($(RPAC51),y)
+obj-y += shortcut-fe.collard
+else
+obj-y += shortcut-fe
+endif
+endif
 ifneq ($(BUILD_NAME), $(filter $(BUILD_NAME), RP-AC66))
 obj-$(QCA956X) += shortcut-fe
 endif
@@ -473,9 +492,30 @@ ifeq ($(SWITCH_CHIP),QCA8337N)
 obj-$(RTCONFIG_WIFI_QCA9990_QCA9990) += qca-ssdk
 obj-$(RTCONFIG_WIFI_QCA9994_QCA9994) += qca-ssdk30
 endif
-obj-$(or $(RTCONFIG_WIFI_QCA9557_QCA9882),$(QCA953X),$(QCA956X)) += qca-wifi
+
+ifeq ($(or $(RTCONFIG_WIFI_QCA9557_QCA9882),$(QCA953X),$(QCA956X)),y)
+ifeq ($(RPAC51),y)
+obj-y += qca-wifi.collard-10.4
+else
+obj-y += qca-wifi
+endif
+endif
 #obj-$(RTCONFIG_WIFI_QCA9557_QCA9882) += qca-art2
-obj-$(or $(RTCONFIG_WIFI_QCA9557_QCA9882),$(QCA953X),$(QCA956X)) += qca-hostap
+ifeq ($(or $(RTCONFIG_WIFI_QCA9557_QCA9882),$(QCA953X),$(QCA956X)),y)
+ifeq ($(RPAC51),y)
+obj-y += qca-hostap-collard.10.4
+else
+obj-y += qca-hostap
+endif
+endif
+
+ifeq ($(RPAC51),y)
+obj-y += libnl-bf
+obj-y += qcmbr.collard
+obj-y += qca-wifi-fw-qca9888
+#obj-y += qca-ssdk.collard
+#obj-y += qca-ssdk-shell.collard
+endif
 
 # IPQ8064.ILQ 1.3
 obj-$(RTCONFIG_WIFI_QCA9990_QCA9990) += qca-wifi-qca9990
@@ -530,7 +570,7 @@ obj-$(RTCONFIG_SOC_IPQ40XX) += qca-ssdk-shell.ipq40xx
 
 obj-$(RTCONFIG_SOC_IPQ40XX) += ethtool-3.7
 obj-$(RTCONFIG_SOC_IPQ40XX) += stress-1.x
-ifeq ($(MAPAC1300)$(MAPAC2200),y)
+ifeq ($(MAPAC1300)$(MAPAC2200)$(VRZAC1300),y)
 obj-y  += qca-hyfi-qdisc.ipq40xx
 obj-y  += qca-hyfi-bridge.ipq40xx
 ifeq ($(HIVE_LIB),y)
@@ -542,10 +582,12 @@ obj-y  += qca-libwpa2.ipq40xx
 obj-y  += qca-libubox.ipq40xx
 obj-y  += qca-libuci.ipq40xx
 obj-y  += qca-whc-lbd.ipq40xx
+obj-y  += jansson-2.7
 endif
 ifeq ($(HIVE_BIN),y)
 obj-y  += qca-wsplcd.ipq40xx
 obj-y  += qca-hyctl.ipq40xx
+obj-y  += qca-lldpd.ipq40xx
 endif
 endif
 
@@ -579,7 +621,8 @@ endif
 
 endif
 
-ifeq ($(RTCONFIG_REALTEK),y)
+obj-$(RTCONFIG_CLOUDSYNC) += neon
+ifeq ($(RTCONFIG_REALTEK)$(RTCONFIG_ALPINE),y)
 obj-$(RTCONFIG_BT_CONN) += rtk_hciattach
 obj-$(RTCONFIG_BT_CONN) += rtk_bluetooth_firmware
 obj-$(RTCONFIG_BT_CONN) += ncurses-6.0
@@ -724,7 +767,7 @@ obj-y += wireless_tools
 else ifeq ($(RTCONFIG_ALPINE),y)
 obj-y += taskset
 else ifeq ($(RTCONFIG_LANTIQ),y)
-obj-y += btconfig
+obj-$(RTCONFIG_BT_CONN) += btconfig
 # obj-y += ppacmd
 obj-y += libhelper-1.4.0.2
 obj-y += fapi_wlan_common-1.0.0.1
@@ -1077,6 +1120,7 @@ obj-$(RTCONFIG_BCMBSD) += bsd
 #endif
 endif
 endif
+obj-$(RTCONFIG_BCM_APPEVENTD) += appeventd
 obj-$(RTCONFIG_BCMSSD) += ssd
 
 ifeq ($(RTCONFIG_WLCEVENTD),y)
@@ -1331,7 +1375,7 @@ ifeq ($(RTCONFIG_RALINK),y)
 endif
 ifeq ($(RTCONFIG_QCA),y)
 ifeq ($(CONFIG_LINUX3_14),y)
-	cp $(LINUXDIR)/include/linux/switch.h $@/include/linux/
+	cp -fr $(LINUXDIR)/include/uapi/* $@/include/uapi/
 else
 	cp $(LINUXDIR)/include/net/switch.h $@/include/linux/
 endif
@@ -1704,7 +1748,7 @@ endif
 
 ifeq ($(RTCONFIG_QCA),y)
 	#FIXME
-ifeq ($(MAPAC1300)$(MAPAC2200),y)
+ifeq ($(MAPAC1300)$(MAPAC2200)$(VRZAC1300),y)
 	ln -sf $(TARGETDIR)/lib/ld-uClibc.so.0  $(TARGETDIR)/usr/lib/ld-uClibc.so.1 && \
 	ln -sf $(TARGETDIR)/lib/libc.so.0  $(TARGETDIR)/usr/lib/libc.so.1 && \
 	ln -sf $(TARGETDIR)/lib/libdl.so.0  $(TARGETDIR)/usr/lib/libdl.so.1 && \
@@ -1726,7 +1770,11 @@ endif
 	@chmod 0555 $(TARGETDIR)/lib/*.so*
 	@chmod 0555 $(TARGETDIR)/usr/lib/*.so*
 
-
+ifeq ($(RTCONFIG_QCA),y)
+ifeq ($(RPAC51),y)
+	@mv $(INSTALLDIR)/lib/firmware $(TARGETDIR)/lib/ || true
+endif
+endif
 
 # !!TB - moved to run after libfoo.pl - to make sure shared libs include all symbols needed by extras
 # separated/copied extra stuff
@@ -1909,6 +1957,7 @@ ifeq ($(RTCONFIG_LANTIQ),y)
 	install -D rom_lantiq/usr/lib/crda/regulatory.bin $(TARGETDIR)/usr/lib/crda/
 	# install -D rom_lantiq/usr/lib/libfapiwlancommon.so $(TARGETDIR)/usr/lib/
 	install -D rom_lantiq/opt/lantiq/usr/lib/libhelper.so $(TARGETDIR)/usr/lib/
+	install -D rom_lantiq/opt/lantiq/lib/libfapiwave.so $(TARGETDIR)/usr/lib/
 	install -D rom_lantiq/etc/rc.d/wlan_discover $(TARGETDIR)/sbin/wlan_discover
 	mkdir $(TARGETDIR)/rom/etc/; cp -Rf rom_lantiq/etc/udev $(TARGETDIR)/rom/etc/
 endif
@@ -1917,6 +1966,10 @@ ifeq ($(RTCONFIG_ALPINE),y)
 	install -D qsr10g_image/pearl-linux.lzma.img $(TARGETDIR)/lib/firmware/pearl-linux.lzma.img
 	install -D aqr107_image/aq-fw-download $(TARGETDIR)/sbin/aq-fw-download
 	install -D aqr107_image/aqr_firmware.cld $(TARGETDIR)/lib/firmware/aqr_firmware.cld
+	install -D rtk_bluetooth_firmware/serial/rtl8761a/rtl8761a_fw $(TARGETDIR)/lib/firmware/rtlbt/rtl8761a_fw
+	install -D rtk_bluetooth_firmware/serial/rtl8761a/rtl8761at_fw $(TARGETDIR)/lib/firmware/rtlbt/rtl8761at_fw
+	install -D rtk_bluetooth_firmware/serial/rtl8761a/rtl8761a_config $(TARGETDIR)/lib/firmware/rtlbt/rtl8761a_config
+	install -D rtk_bluetooth_firmware/serial/rtl8761a/rtl8761at_config $(TARGETDIR)/lib/firmware/rtlbt/rtl8761at_config
 	install -D ${SRCBASE}/tools/${TOOLCHAIN_NAME}/lib/libstdc++.so.6.0.19 $(TARGETDIR)/lib/libstdc++.so.6
 	$(STRIP) $(TARGETDIR)/lib/libstdc++.so.6
 	cd ${PLATFORMDIR}/target; cp ${SRCBASE}/proprietary/sbin/fw_print sbin/
@@ -2401,7 +2454,7 @@ wb-install:
 
 push_log: wb
 
-rc: shared nvram$(BCMEX)$(EX7) libbcmcrypto libdisk $(if $(RTCONFIG_FBWIFI),fb_wifi) $(if $(RTCONFIG_QTN),libqcsapi_client) $(if $(CONFIG_LIBBCM),libbcm) $(if $(RTCONFIG_BWDPI),bwdpi_source) $(if $(RTCONFIG_USB_SMS_MODEM),smspdu) $(if $(RTCONFIG_HND_ROUTER),bcm_flashutil bcm_util bcm_boardctl) $(if $(RTCONFIG_OPENVPN),libvpn) $(if $(RTCONFIG_LANTIQ),libfapi-0.1)
+rc: shared nvram$(BCMEX)$(EX7) libbcmcrypto libdisk $(if $(RTCONFIG_FBWIFI),fb_wifi) $(if $(RTCONFIG_QTN),libqcsapi_client) $(if $(CONFIG_LIBBCM),libbcm) $(if $(RTCONFIG_BWDPI),bwdpi_source) $(if $(RTCONFIG_USB_SMS_MODEM),smspdu) $(if $(RTCONFIG_HND_ROUTER),bcm_flashutil bcm_util bcm_boardctl) $(if $(RTCONFIG_OPENVPN),libvpn) $(if $(RTCONFIG_LANTIQ),libfapi-0.1) $(if $(RTCONFIG_CFGSYNC), $(CFGSYNC_PKG))
 
 rc-install:
 	$(MAKE) -C rc INSTALLDIR=$(INSTALLDIR)/rc install
@@ -3349,7 +3402,7 @@ accel-pptp/stamp-h1: kernel_header $(LINUX_INC_DIR)/include/linux/version.h
 endif
 endif
 	cd accel-pptp && CFLAGS="-g -O2 $(EXTRACFLAGS) -idirafter $(KDIR)/include $(if $(RTCONFIG_VPNC), -DRTCONFIG_VPNC,)" \
-	$(CONFIGURE) --prefix=/usr KDIR=$(KDIR) PPPDIR=$(TOP)/pppd
+	$(CONFIGURE) --prefix=/usr --build=i686-linux KDIR=$(KDIR) PPPDIR=$(TOP)/pppd 
 	touch $@
 
 accel-pptp: pppd accel-pptp/stamp-h1
@@ -3675,7 +3728,7 @@ libbcm-install:
 	install -D libbcm/libbcm.so $(INSTALLDIR)/libbcm/usr/lib/libbcm.so
 	$(STRIP) $(INSTALLDIR)/libbcm/usr/lib/libbcm.so
 
-.PHONY: libnl-tiny-0.1 swconfig
+.PHONY: libnl-tiny-0.1 $(SWCONFIG_PKG)
 libnl-tiny-0.1:
 	$(MAKE) -C $@
 
@@ -3687,13 +3740,13 @@ libnl-tiny-0.1-install: libnl-tiny-0.1
 	$(STRIP) $(INSTALLDIR)/libnl-tiny-0.1/usr/lib/libnl-tiny.so
 
 swconfig: libnl-tiny-0.1
-	$(MAKE) -C $@
+	$(MAKE) -C $(SWCONFIG_PKG)
 
 swconfig-clean:
-	$(MAKE) -C swconfig clean
+	$(MAKE) -C $(SWCONFIG_PKG) clean
 
 swconfig-install: swconfig
-	install -D swconfig/swconfig $(INSTALLDIR)/swconfig/usr/sbin/swconfig
+	install -D $(SWCONFIG_PKG)/swconfig $(INSTALLDIR)/swconfig/usr/sbin/swconfig
 	$(STRIP) $(INSTALLDIR)/swconfig/usr/sbin/swconfig
 
 iperf: iperf/Makefile
@@ -3711,6 +3764,30 @@ iperf-install:
 iperf-clean:
 	[ ! -f iperf/Makefile ] || $(MAKE) -C iperf distclean
 	@rm -f iperf/Makefile
+
+qca-lldpd.ipq40xx: qca-lldpd.ipq40xx/Makefile
+	$(MAKE) -C $@
+
+qca-lldpd.ipq40xx/Makefile:qca-lldpd.ipq40xx-configure
+	(cd qca-lldpd.ipq40xx ; LDFLAGS="-L$(TOP)/qca-lldpd.ipq40xx/lib -lm -L$(STAGEDIR)/usr/lib -ljansson" \
+	$(CONFIGURE) --prefix= --bindir=/usr/sbin --libdir=/usr/lib --with-privsep-user=admin  --with-privsep-group=root --with-privsep-path=/var/run/lldpd)
+
+qca-lldpd.ipq40xx-configure:
+	cd qca-lldpd.ipq40xx && ./autogen.sh
+
+qca-lldpd.ipq40xx-install: qca-lldpd.ipq40xx
+	@chmod 755 qca-lldpd.ipq40xx/src/client/.libs/lldpcli
+	@chmod 755 qca-lldpd.ipq40xx/src/daemon/lldpd
+	cp qca-lldpd.ipq40xx/src/client/.libs/lldpcli hive_bin
+	cp qca-lldpd.ipq40xx/src/daemon/lldpd hive_bin
+	cp qca-lldpd.ipq40xx/lib/* hive_lib
+	cp qca-lldpd.ipq40xx/src/lib/.libs/liblldpctl.* hive_lib
+
+
+qca-lldpd.ipq40xx-clean:
+	[ ! -f qca-lldpd.ipq40xx/Makefile ] || $(MAKE) -C qca-lldpd.ipq40xx clean
+	@rm -f qca-lldpd.ipq40xx/Makefile
+	@cd qca-lldpd.ipq40xx/libevent && make clean
 
 libevent-2.0.21: libevent-2.0.21/Makefile
 	$(MAKE) -C $@ && $(MAKE) $@-stage
@@ -4164,6 +4241,7 @@ igmpproxy/Makefile:
 	cd igmpproxy && CFLAGS="-O2 -Wall $(EXTRACFLAGS) -ffunction-sections -fdata-sections" \
 	LDFLAGS="-ffunction-sections -fdata-sections -Wl,--gc-sections" \
 	$(CONFIGURE) --prefix=/usr --disable-dependency-tracking
+
 
 igmpproxy: igmpproxy/Makefile
 	@$(SEP)
@@ -5905,6 +5983,30 @@ qca-wifi-clean:
 qca-wifi-stage:
 	$(MAKE) -C qca-wifi stage
 
+
+qca-wifi-fw-qca9888/stamp-h1:
+	touch $@
+
+qca-wifi-fw-qca9888: qca-wifi-fw-qca9888/stamp-h1
+	$(MAKE) -C $@
+
+qca-wifi-fw-qca9888-install: 
+	$(MAKE) -C qca-wifi-fw-qca9888 install
+
+qca-wifi.collard-10.4: iproute2-3.x
+	$(MAKE) -C $@ && $(MAKE) $@-stage
+
+qca-wifi.collard-10.4-install: qca-wifi.collard-10.4
+	$(MAKE) -C $< INSTALLDIR=$(INSTALLDIR)/$< install
+
+qca-wifi.collard-10.4-clean:
+	$(MAKE) -C qca-wifi.collard-10.4 clean
+	$(RM) -f qca-wifi.collard-10.4/source/lsdk_flags
+
+qca-wifi.collard-10.4-stage:
+	$(MAKE) -C qca-wifi.collard-10.4 stage
+
+
 #qca-wifi.ipq40xx: qca-nss-drv.ipq40xx iproute2-3.x
 qca-wifi.ipq40xx: iproute2-3.x
 	$(MAKE) -C $@ && $(MAKE) $@-stage
@@ -5945,6 +6047,9 @@ qca-wifi-qca9994-clean:
 qca-wifi-qca9994-stage:
 	$(MAKE) -C qca-wifi-qca9994 stage
 
+qca-hostap-collard.10.4: qca-wifi.collard-10.4 libnl-bf openssl
+	$(MAKE) -C $@ && $(MAKE) $@-stage
+
 qca-hostap: qca-wifi
 	$(MAKE) -C $@
 
@@ -5978,6 +6083,15 @@ qca-ssdk.ipq40xx-stage:
 qca-ssdk-shell.ipq40xx:
 	$(MAKE) -C $@
 
+qca-ssdk.collard:
+	$(MAKE) -C $@ && $(MAKE) $@-stage
+
+qca-ssdk.collard-stage:
+	$(MAKE) -C qca-ssdk.collard stage
+
+qca-ssdk-shell.collard:
+	$(MAKE) -C $@
+
 qca-hyfi-qdisc.ipq40xx:
 	$(MAKE) -C $@ && $(MAKE) $@-stage
 
@@ -5996,8 +6110,18 @@ qca-hyfi-bridge.ipq40xx-stage:
 qca-hyfi-bridge.ipq40xx-install: qca-hyfi-bridge.ipq40xx
 	$(MAKE) -C $< INSTALLDIR=$(INSTALLDIR)/$< install
 
-libnl-bf:
+libnl-bf/stamp-h1:
+	touch $@
+
+libnl-bf:libnl-bf/stamp-h1
 	$(MAKE) -C $@ && $(MAKE) $@-stage
+
+libnl-bf-install:libnl-bf
+	$(MAKE) -C $< INSTALLDIR=$(INSTALLDIR)/$< install
+
+libnl-bf-clean:
+	$(MAKE) -C libnl-bf clean
+	$(RM) -f libnl-bf/stamp-h1
 
 shortcut-fe.ipq40xx: libnl-bf
 	$(MAKE) -C $@ && $(MAKE) $@-stage
@@ -6156,6 +6280,7 @@ libhelper-1.4.0.2:
 	cd libhelper-1.4.0.2; make
 
 libhelper-1.4.0.2-install:
+	mkdir -p $(TARGETDIR)/usr/lib
 	install -D libhelper-1.4.0.2/libhelper.so $(TARGETDIR)/usr/lib/
 
 libfapi-0.1: fapi_wlan_common-1.0.0.1
@@ -6169,6 +6294,7 @@ fapi_wlan_common-1.0.0.1: libhelper-1.4.0.2
 	cd fapi_wlan_common-1.0.0.1; make clean; make
 
 fapi_wlan_common-1.0.0.1-install:
+	mkdir -p $(TARGETDIR)/usr/lib
 	install -D fapi_wlan_common-1.0.0.1/libfapiwlancommon.so $(TARGETDIR)/usr/lib/
 
 btconfig:
@@ -6299,6 +6425,29 @@ qca-libubox.ipq40xx-clean:
 
 qca-libubox.ipq40xx-install:
 	cp qca-libubox.ipq40xx/libubox.so hive_lib
+
+jansson-2.7/configure:
+	cd jansson-2.7 && ./autogen.sh
+
+jansson-2.7/Makefile: jansson-2.7/configure
+	@cd jansson-2.7 && $(CONFIGURE) CC=$(CC) \
+		--prefix=/usr --exec-prefix=/usr --bindir=/usr/bin --sbindir=/usr/sbin --libexecdir=/usr/lib \
+		--sysconfdir=/etc --datadir=/usr/share --localstatedir=/var --mandir=/usr/man --infodir=/usr/info
+
+jansson-2.7: jansson-2.7/Makefile
+	@$(MAKE) -C $@ && $(MAKE) $@-stage
+
+jansson-2.7-install: jansson-2.7
+	install -D jansson-2.7/src/.libs/libjansson.so $(INSTALLDIR)/jansson-2.7/usr/lib/libjansson.so
+	$(STRIP) $(INSTALLDIR)/jansson-2.7/usr/lib/libjansson.so
+	cd $(INSTALLDIR)/jansson-2.7/usr/lib && \
+		ln -sf libjansson.so libjansson.so.4
+
+jansson-2.7-clean:
+	[ ! -f jansson-2.7/Makefile ] || $(MAKE) -C jansson-2.7 clean
+	@rm -f jansson-2.7/Makefile
+
+qca-whc-lbd.ipq40xx: jansson-2.7
 
 libffi-3.0.11/Makefile: libffi-3.0.11/configure
 	cd libffi-3.0.11 && $(CONFIGURE) --prefix=$(STAGEDIR)/usr/local

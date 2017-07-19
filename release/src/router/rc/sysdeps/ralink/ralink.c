@@ -277,7 +277,8 @@ int getCountryRegion2G(const char *countryCode)
 		(strcasecmp(countryCode, "PA") == 0) || (strcasecmp(countryCode, "PR") == 0) ||
 		(strcasecmp(countryCode, "TW") == 0) || (strcasecmp(countryCode, "US") == 0) ||
 		(strcasecmp(countryCode, "UZ") == 0) ||
-		(strcasecmp(countryCode, "Z1") == 0) || (strcasecmp(countryCode, "Z3") == 0)
+		(strcasecmp(countryCode, "Z1") == 0) || (strcasecmp(countryCode, "Z3") == 0) ||
+		(strcasecmp(countryCode, "AA") == 0)
 		)
 	{
 		return 0;	// 1-11
@@ -374,6 +375,7 @@ int getCountryRegion5G(const char *countryCode, int *warning, int IEEE80211H)
 			(!strcasecmp(countryCode, "VN")) ||
 			(!strcasecmp(countryCode, "YE")) ||
 			(!strcasecmp(countryCode, "ZW")) ||
+			(!strcasecmp(countryCode, "AA")) ||
 #if defined(RTN65U)
 			//for specific power
 			(!strcasecmp(countryCode, "Z1"))

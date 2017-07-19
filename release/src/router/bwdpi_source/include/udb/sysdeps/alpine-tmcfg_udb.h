@@ -25,7 +25,7 @@
 
 /*
  * Automatically generated make config: don't edit
- * Date: Fri Jan 13 15:46:10 2017
+ * Date: Fri Apr 28 15:47:35 2017
  */
 #ifndef __TMCFG__UDB_AUTOCONF_OUTPUT_H_
 #define __TMCFG__UDB_AUTOCONF_OUTPUT_H_
@@ -89,10 +89,9 @@
 
 #define TMCFG_BRAND_ASUS 1 // y
 #define TMCFG_BRAND "asus"
-#define TMCFG_MODEL_GT_AC5300 1 // y
-#define TMCFG_MODEL "gt-ac5300"
-#define TMCFG_OEM_SRC 1 // y
-#define TMCFG_OEM_SRC_BRCM_FC 1 // y
+#define TMCFG_MODEL_GT_AC9600 1 // y
+#define TMCFG_MODEL "gt-ac9600"
+#define TMCFG_OEM_SRC 0 // n
 
 /*
  * Target device information
@@ -101,12 +100,12 @@
 #define TMCFG_ARCH_X86 0 // n
 #define TMCFG_ARCH_MIPS 0 // n
 #define TMCFG_ARCH_ARM 1 // y
-#define TMCFG_CPU_32BITS 0 // n
-#define TMCFG_CPU_64BITS 1 // y
+#define TMCFG_CPU_32BITS 1 // y
+#define TMCFG_CPU_64BITS 0 // n
 #define TMCFG_CPU_BIG_ENDIAN 0 // n
 #define TMCFG_CPU_LITTLE_ENDIAN 1 // y
-#define TMCFG_KERN_DIR "/opt/ASUS/asuswrt_GT_AC5300_GPL_382_8165_fc/release/src-rt-5.02hnd/kernel/linux-4.1"
-#define TMCFG_KERN_ARCH "arm64"
+#define TMCFG_KERN_DIR "/opt/ASUS/asuswgt_AC9600_GPL_382_10842/release/src-annapurna/linux/linux-3.10.20"
+#define TMCFG_KERN_ARCH "arm"
 
 /*
  * Toolchain (TC) configurations
@@ -115,7 +114,7 @@
 /*
  * Target device toolchain (cross utilities)
  */
-#define TMCFG_TC_PFX "/opt/toolchains/crosstools-aarch64-gcc-5.3-linux-4.1-glibc-2.22-binutils-2.25/usr/bin/aarch64-linux-"
+#define TMCFG_TC_PFX "/opt/ASUS/toolchains/toolchain-arm-gt_ac9600/bin/arm-openwrt-linux-"
 
 /*
  * Advanced Build Options
@@ -160,8 +159,8 @@
 #define TMCFG_E_UDB_CORE 1 // y
 #define TMCFG_E_UDB_CORE_MAJ_VER 0
 #define TMCFG_E_UDB_CORE_MIN_VER 2
-#define TMCFG_E_UDB_CORE_REV_VER 9
-#define TMCFG_E_UDB_CORE_SHN_REV_NUM 3116481
+#define TMCFG_E_UDB_CORE_REV_VER 11
+#define TMCFG_E_UDB_CORE_SHN_REV_NUM 3296181
 #define TMCFG_E_UDB_CORE_USE_KBUILD 1 // y
 #define TMCFG_E_UDB_CORE_EXTRA_CFLAGS ""
 #define TMCFG_E_UDB_CORE_CONN_EXTRA 1 // y
@@ -175,10 +174,7 @@
 #define TMCFG_E_UDB_CORE_DC_META_EXTRACT 1 // y
 #define TMCFG_E_UDB_CORE_ANOMALY_PREVENT 1 // y
 #define TMCFG_E_UDB_CORE_VIRTUAL_PATCH 1 // y
-#define TMCFG_E_UDB_CORE_SWNAT 0 // n
 #define TMCFG_E_UDB_CORE_IQOS_SUPPORT 1 // y
-#define TMCFG_E_UDB_CORE_HWNAT 0 // n
-#define TMCFG_E_UDB_CORE_HWQOS 0 // n
 #define TMCFG_E_UDB_CORE_APP_PATROL 1 // y
 #define TMCFG_E_UDB_CORE_PATROL_TIME_QUOTA 1 // y
 #define TMCFG_E_UDB_CORE_PATROL_TIME_GRP_NUM 32
@@ -194,13 +190,14 @@
 #define TMCFG_E_UDB_SHELL_IOCTL_DEV_NAME "idpfw"
 #define TMCFG_E_UDB_SHELL_IOCTL_DEV_MAJ 191
 #define TMCFG_E_UDB_SHELL_IOCTL_DEV_MIN 0
+#define TMCFG_E_UDB_SHELL_IOCTL_DEV_MAGIC 191
 #define TMCFG_E_UDB_SHELL_CT_MARK_RSV 1 // y
 #define TMCFG_E_UDB_SHELL_CT_MARK_RSV_BITS 3
 #define TMCFG_E_UDB_SHELL_PROCFS 1 // y
 #define TMCFG_E_REL_PKG_MAJ_VER 2
 #define TMCFG_E_REL_PKG_MIN_VER 0
 #define TMCFG_E_REL_PKG_REV_VER 1
-#define TMCFG_E_REL_PKG_LOCAL_VER "r3116481"
+#define TMCFG_E_REL_PKG_LOCAL_VER "r3296181"
 
 /*
  * Accompany applications or modules
@@ -209,11 +206,10 @@
 /*
  * Kernel
  */
-#define TMCFG_APP_K_EXTRA_CFLAGS "-I/opt/ASUS/asuswrt_GT_AC5300_GPL_382_8165_fc/release/src-rt-5.02hnd/shared/opensource/include/bcm963xx -I/opt/ASUS/asuswrt_GT_AC5300_GPL_382_8165_fc/release/src-rt-5.02hnd/bcmdrivers/broadcom/include/bcm963xx -I/opt/ASUS/asuswrt_GT_AC5300_GPL_382_8165_fc/release/src-rt-5.02hnd/bcmdrivers/opensource/include/bcm963xx"
+#define TMCFG_APP_K_EXTRA_CFLAGS ""
 #define TMCFG_APP_K_TDTS_NFFW 0 // n
 #define TMCFG_APP_K_TDTS_UDBFW 1 // y
-#define TMCFG_APP_K_TDTS_UDBFW_EXTRA_SYMBOLS ""
-#define TMCFG_APP_K_TDTS_UDBFW_FAST_PATH 1 // y
+#define TMCFG_APP_K_TDTS_UDBFW_CT_NOTIF 1 // y
 #define TMCFG_APP_K_TDTS_UDBFW_META_EXTRACT 1 // y
 #define TMCFG_APP_K_TDTS_UDBFW_TC_WQ 0 // n
 #define TMCFG_APP_K_TDTS_UDBFW_QOS_NETLINK_ID 21
@@ -227,7 +223,7 @@
 /*
  * Userspace toolchain
  */
-#define TMCFG_APP_U_TC_PFX "/opt/toolchains/crosstools-arm-gcc-5.3-linux-4.1-glibc-2.22-binutils-2.25/usr/bin/arm-buildroot-linux-gnueabi-"
+#define TMCFG_APP_U_TC_PFX "$(TMCFG_TC_PFX)"
 #define TMCFG_APP_U_TC_CC "$(TMCFG_APP_U_TC_PFX)gcc"
 #define TMCFG_APP_U_TC_AR "$(TMCFG_APP_U_TC_PFX)ar"
 #define TMCFG_APP_U_TC_LD "$(TMCFG_APP_U_TC_PFX)ld"

@@ -228,9 +228,8 @@ struct language_table language_tables[] = {
 /* Forwards. */
 static int initialize_listen_socket(usockaddr* usa, const char *ifname);
 static int auth_check( char* dirname, char* authorization, char* url, char* file, char* cookies, int fromapp_flag);
-static int referer_check(char* referer, int fromapp_flag);
-static int check_noauth_referrer(char* referer, int fromapp_flag);
-static char *get_referrer(char *referer);
+int check_noauth_referrer(char* referer, int fromapp_flag);
+char *get_referrer(char *referer);
 char *generate_token(void);
 static void send_error( int status, char* title, char* extra_header, char* text );
 //#ifdef RTCONFIG_CLOUDSYNC
@@ -263,7 +262,7 @@ char *http_ifname = NULL;
 time_t login_dt=0;
 char login_url[128];
 int login_error_status = 0;
-char cloud_file[128];
+char cloud_file[256];
 
 
 /* Added by Joey for handle one people at the same time */
@@ -279,11 +278,6 @@ time_t login_timestamp_tmp_wan=0; // the timestamp of the current session.
 time_t last_login_timestamp_wan=0; // the timestamp of the current session.
 unsigned int login_try_wan=0;
 int cur_login_ip_type = -1;	//0:LAN, 1:WAN, -1:ERROR
-/* limit login IP addr; 2012.03 Yau */
-struct {
-	struct in_addr ip;
-	struct in_addr netmask;
-} access_ip[4];
 unsigned int MAX_login;
 int lock_flag = 0;
 
@@ -452,7 +446,7 @@ __send_login_page(int fromapp_flag, int error_status, char* url, char* file, int
 	send_login_page(fromapp_flag, error_status, url, file, lock_time);
 }
 
-static char
+char
 *get_referrer(char *referer)
 {
 	char *auth_referer=NULL;
@@ -475,71 +469,6 @@ static char
 		auth_referer = location_cp1;
 
 	return auth_referer;
-}
-
-static int
-check_noauth_referrer(char* referer, int fromapp_flag)
-{
-	char *auth_referer=NULL;
-
-	if(fromapp_flag != 0)
-		return 0;
-
-	if(!referer || !strlen(host_name)){
-		return NOREFERER;
-	}else{
-		auth_referer = get_referrer(referer);
-	}
-
-	if(!strcmp(host_name, auth_referer))
-		return 0;
-	else
-		return REFERERFAIL;
-}
-
-static int
-referer_check(char* referer, int fromapp_flag)
-{
-	char *auth_referer=NULL;
-	const int d_len = strlen(DUT_DOMAIN_NAME);
-	int port = 0;
-	int referer_from_https = 0;
-	int referer_host_check = 0;
-
-	if(fromapp_flag != 0)
-		return 0;
-	if(!referer){
-		return NOREFERER;
-	}else{
-		auth_referer = get_referrer(referer);
-	}
-
-	if(referer_host[0] == 0){
-		return WEB_NOREFERER;
-	}
-
-	if(!strcmp(host_name, auth_referer)) referer_host_check = 1;
-
-	if (*(auth_referer + d_len) == ':' && (port = atoi(auth_referer + d_len + 1)) > 0 && port < 65536)
-		referer_from_https = 1;
-
-	if (((strlen(auth_referer) == d_len) || (*(auth_referer + d_len) == ':' && atoi(auth_referer + d_len + 1) > 0))
-	   && strncmp(DUT_DOMAIN_NAME, auth_referer, d_len)==0){
-		if(referer_from_https)
-			snprintf(auth_referer,sizeof(referer_host),"%s:%d",nvram_safe_get("lan_ipaddr"), port);
-		else
-			snprintf(auth_referer,sizeof(referer_host),"%s",nvram_safe_get("lan_ipaddr"));
-	}
-
-	/* form based referer info? */
-	if(referer_host_check && (strlen(auth_referer) == strlen(referer_host)) && strncmp( auth_referer, referer_host, strlen(referer_host) ) == 0){
-		//_dprintf("asus token referer_check: the right user and password\n");
-		return 0;
-	}else{
-		//_dprintf("asus token referer_check: the wrong user and password\n");
-		return REFERERFAIL;
-	}
-	return REFERERFAIL;
 }
 
 #define	HEAD_HTTP_LOGIN	"HTTP login"	// copy from push_log/push_log.h
@@ -1011,7 +940,7 @@ handle_request(void)
 	int i, isDeviceDiscovery=0;
 	char id_local[32],prouduct_id[32];
 #endif
-	char inviteCode[256];
+	char inviteCode[512];
 
 	/* Initialize the request variables. */
 	authorization = boundary = cookies = referer = useragent = NULL;
@@ -1377,10 +1306,13 @@ handle_request(void)
 				if ((mime_exception&MIME_EXCEPTION_NOAUTH_FIRST)&&!x_Setting) {
 					//skip_auth=1;
 				}
-#if defined(MAPAC1300) || defined(MAPAC2200)
+#if defined(MAPAC1300) || defined(MAPAC2200) || defined(VRZAC1300)
 				else if ((mime_exception&MIME_EXCEPTION_NOAUTH_FIRST)&&nvram_match("qis_Setting", "0")) {
 					// pass
-				}else if(!fromapp && !strcmp(nvram_safe_get("hive_ui"), "")){
+				}else if(!fromapp && nvram_match("sw_mode", "1") && nvram_match("qis_Setting", "0")){
+					snprintf(inviteCode, sizeof(inviteCode), "<script>top.location.href='/QIS_wizard.htm';</script>");
+					send_page( 200, "OK", (char*) 0, inviteCode, 0);
+				}else if(!fromapp && !nvram_match("sw_mode", "1") && strcmp(nvram_safe_get("hive_ui"), "") == 0){
 					snprintf(inviteCode, sizeof(inviteCode), "<script>top.location.href='/message.htm';</script>");
 					send_page( 200, "OK", (char*) 0, inviteCode, 0);
 				}
@@ -1431,7 +1363,7 @@ handle_request(void)
 					}
 				}
 			}else{
-				if(fromapp == 0 && (do_referer&CHECK_REFERER)){
+				if(do_referer&CHECK_REFERER){
 					referer_result = check_noauth_referrer(referer, fromapp);
 					if(referer_result != 0){
 						if(strcasecmp(method, "post") == 0){
@@ -1615,30 +1547,6 @@ void http_login_cache(usockaddr *u) {
 		_dprintf("[%s, %d]ERROR! Can not check the remote ip!\n", __FUNCTION__, __LINE__);
 }
 
-void http_get_access_ip(void)
-{
-	struct in_addr addr4;
-	char *nv, *nvp, *b, *ip;
-	int i, size;
-
-	memset(&access_ip, 0, sizeof(access_ip));
-
-	nv = nvp = strdup(nvram_safe_get("http_clientlist"));
-	i = 0;
-	while (nv && (b = strsep(&nvp, "<")) != NULL && i < ARRAY_SIZE(access_ip)) {
-		ip = strsep(&b, "/");
-		size = (b && *b) ? strtoul(b, NULL, 10) : 32;
-		if (inet_pton(AF_INET, ip, &addr4) > 0) {
-			if (size > 32)
-				size = 32;
-			access_ip[i].ip.s_addr = addr4.s_addr;
-			access_ip[i].netmask.s_addr = htonl(0xffffffffUL << (32 - size));
-			i++;
-		}
-	}
-	free(nv);
-}
-
 void http_login(unsigned int ip, char *url) {
 	if(strncmp(url, "Main_Login.asp", strlen(url))==0)
 		return;
@@ -1671,24 +1579,6 @@ void http_login(unsigned int ip, char *url) {
 	memset(login_timestampstr, 0, 32);
 	sprintf(login_timestampstr, "%lu", login_timestamp);
 	nvram_set("login_timestamp", login_timestampstr);
-}
-
-int http_client_ip_check(void)
-{
-	int i = 0;
-
-	if (nvram_match("http_client", "1")) {
-		for (i = 0; i < ARRAY_SIZE(access_ip); i++) {
-			if (access_ip[i].ip.s_addr == INADDR_ANY)
-				continue;
-			if ((login_ip_tmp & access_ip[i].netmask.s_addr) ==
-			    (access_ip[i].ip.s_addr & access_ip[i].netmask.s_addr))
-				return 1;
-		}
-		return 0;
-	}
-
-	return 1;
 }
 
 // 0: can not login, 1: can login, 2: loginer, 3: not loginer
@@ -2283,8 +2173,6 @@ int main(int argc, char **argv)
 	detect_timestamp = 0;
 	signal_timestamp = 0;
 
-	http_get_access_ip();
-
 	/* Ignore broken pipes */
 	signal(SIGPIPE, SIG_IGN);
 	signal(SIGCHLD, reapchild);	// 0527 add
@@ -2414,8 +2302,7 @@ int main(int argc, char **argv)
 				}
 
 				http_login_cache(&item->usa);
-				if (http_client_ip_check())
-					handle_request();
+				handle_request();
 				fflush(conn_fp);
 #ifdef RTCONFIG_HTTPS
 				if (!do_ssl)

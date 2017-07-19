@@ -40,12 +40,16 @@ COMMON_OBJS += encrypt.o cfg_crc.o cfg_udp.o cfg_dencrypt.o cfg_common.o cfg_ipc
 SERVER_OBJS += $(COMMON_OBJS) cfg_mnt.o
 CLIENT_OBJS += $(COMMON_OBJS) cfg_client.o
 
-ifeq ($(or $(MAPAC1300),$(MAPAC2200)),y)
+ifeq ($(or $(MAPAC1300),$(MAPAC2200),$(VRZAC1300)),y)
 CFLAGS += -DREPORT_PAP_INFO
+#COMMON_OBJS += cfg_onboarding.o
+#CFLAGS += -DONBOARDING
 else
 ifneq ($(RTCONFIG_REALTEK),y)
 COMMON_OBJS += cfg_roaming.o
 CFLAGS += -DLEGACY_ROAMING
+COMMON_OBJS += cfg_onboarding.o
+CFLAGS += -DONBOARDING
 # for wireless channel sync
 #CFLAGS += -DSYNC_WCHANNEL
 # for roaming info for sta

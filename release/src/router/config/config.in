@@ -247,6 +247,10 @@ config RTCONFIG_TOAD
 	bool "Traffic Ordering Agent Daemon"
 	default n
 
+config RTCONFIG_BCM_APPEVENTD
+	bool "bcm appeventd"
+	default n
+
 config RTCONFIG_HSPOT
 	bool "HOTSPOT 2.0 support"
 	default n
@@ -278,11 +282,16 @@ config RTCONFIG_REPEATER
 
 config RTCONFIG_DISABLE_REPEATER_UI
 	bool "Hiden UI Repeater Mode"
-	depends on RTCONFIG_REPEATER
+	depends on RTCONFIG_WIRELESSREPEATER || RTCONFIG_REPEATER
 	default n
 
 config RTCONFIG_PROXYSTA
 	bool "Proxy STA"
+	default n
+
+config RTCONFIG_DISABLE_PROXYSTA_UI
+	bool "Hiden UI Media Bridge Mode"
+	depends on RTCONFIG_PROXYSTA
 	default n
 
 config RTCONFIG_CONCURRENTREPEATER
@@ -1342,6 +1351,10 @@ config RTCONFIG_BCMASPMD
 	bool "bcm aspmd"
 	default n
 
+config RTCONFIG_FBT
+	bool "bcm fbt"
+	default n
+
 config RTCONFIG_WLCLMLOAD
 	bool "bcm clm specefic-load"
 	default n
@@ -1484,6 +1497,14 @@ config RTCONFIG_SSID_AMAPS
 	bool "Single SSID rule as ASUS_2X(MAC)_AMAPS"
 	default n
 
+config RTCONFIG_CSU2_2
+	bool "version csu2.2"
+	default n
+
+config RTCONFIG_DUAL_BACKHAUL
+	bool "version csu2.2"
+	default n
+
 config RTCONFIG_FREERADIUS
 	bool "freeradius Support"
 	default n
@@ -1538,4 +1559,16 @@ config RTCONFIG_USB_SWAP
 	default n	
 config RTCONFIG_SW_DEVLED
 	bool "software led control."
-	default n	
+	default n
+
+config RTCONFIG_LYRA_HIDE
+	bool "Hide UI item for Lyra"
+	default n
+
+config RTCONFIG_WIFI_PROXY
+	bool "Enable WiFi Proxy."
+	default n
+
+config RTCONFIG_FBT
+	bool "FAST BSS Transition (802.11r FBT) support"
+	default n

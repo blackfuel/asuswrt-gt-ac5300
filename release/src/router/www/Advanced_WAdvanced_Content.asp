@@ -174,6 +174,12 @@ var country_selection_list = [["AA", "Asia"], ["CN", "China"], ["SG", "Singapore
 var country_selection_array = new Array();
 var _AU1_support = false;
 var _AU2_support = false;
+
+if(country_array.indexOf("NZ") != -1){
+	country_selection_list[7][1] = "New Zealand";
+	country_selection_list.splice(8,1);
+}
+
 if(country_array.indexOf("AU") != -1){
 	_AU1_index = country_array.indexOf("AU");
 	_AU1_support = true;
@@ -288,7 +294,7 @@ function initial(){
 			}
 		}
 
-		if(based_modelid == "RT-AC88N" || based_modelid == "RT-AC88Q" || based_modelid == "BRT-AC828" || based_modelid == "RT-AC58U"  || based_modelid == "RT-AC82U" || based_modelid == "MAP-AC1300" || based_modelid == "MAP-AC2200"){
+		if(based_modelid == "RT-AC88N" || based_modelid == "RT-AC88Q" || based_modelid == "BRT-AC828" || based_modelid == "RT-AC58U"  || based_modelid == "RT-AC82U" || based_modelid == "MAP-AC1300" || based_modelid == "MAP-AC2200" || based_modelid == "VRZ-AC1300"){
 			inputCtrl(document.form.wl_txbf, 1);
 			document.getElementById("wl_MU_MIMO_field").style.display = "";
 			document.form.wl_mumimo.disabled = false;
@@ -317,7 +323,7 @@ function initial(){
 		}
 
 		if((!Qcawifi_support && !Rawifi_support) || based_modelid == "RT-AC87U"
-		    || based_modelid == "MAP-AC1300" || based_modelid == "MAP-AC2200"
+		    || based_modelid == "MAP-AC1300" || based_modelid == "MAP-AC2200" || based_modelid == "VRZ-AC1300"
 		    || based_modelid == "RT-AC82U" || based_modelid == "RT-AC58U" || (based_modelid == "RP-AC87" && wl_unit_value == "1") ){		// hide on Broadcom platform
 			document.getElementById("wl_plcphdr_field").style.display = "none";
 		}
@@ -375,7 +381,7 @@ function initial(){
 				inputCtrl(document.form.wl_itxbf, 1);
 			}	
 		}	
-		if(based_modelid == "RT-AC88N" || based_modelid == "RT-AC88Q" || based_modelid == "BRT-AC828" || based_modelid == "RT-AC58U" || based_modelid == "RT-AC82U" || based_modelid == "MAP-AC1300" || based_modelid == "MAP-AC2200")
+		if(based_modelid == "RT-AC88N" || based_modelid == "RT-AC88Q" || based_modelid == "BRT-AC828" || based_modelid == "RT-AC58U" || based_modelid == "RT-AC82U" || based_modelid == "MAP-AC1300" || based_modelid == "MAP-AC2200" || based_modelid == "VRZ-AC1300")
 		{
 			$('wl_txbf_desc').innerHTML = "<#WLANConfig11b_x_ExpBeam#>";
 			inputCtrl(document.form.wl_txbf, 1);
@@ -468,7 +474,7 @@ function initial(){
 	}
 	
 
-	if( based_modelid == "RT-AC82U" ||  based_modelid == "RT-AC58U" || based_modelid == "MAP-AC1300" || based_modelid == "MAP-AC2200")
+	if( based_modelid == "RT-AC82U" ||  based_modelid == "RT-AC58U" || based_modelid == "MAP-AC1300" || based_modelid == "MAP-AC2200" || based_modelid == "VRZ-AC1300")
 		document.getElementById("wl_implicitxbf_field").style.display = "";
 	else
 		document.getElementById("wl_implicitxbf_field").style.display = "none";
@@ -498,7 +504,7 @@ function initial(){
 	
 	/*location_code Setting*/		
 	if(location_list_support){
-		if(based_modelid == "GT-AC5300" || based_modelid == "GT-AC9600"){
+		if(based_modelid == "GT-AC5300" || based_modelid == "GT-AC9600" || based_modelid == "RT-AC88U" || based_modelid == "RT-AC5300" || based_modelid == "RT-AC3100" || based_modelid == "RT-AC58U"){
 			generate_country_selection();
 		}
 		else{
@@ -560,6 +566,8 @@ function generate_country_selection(){
 	code += '<select class="input_option" name="location_code">';
 	for(i=0; i<country_array.length; i++){
 		var index = country_array[i];
+		if(index == "NZ")
+			index = "AU";
 
 		if(tcode == index){
 			matched = true;
@@ -1738,7 +1746,7 @@ function handle_beamforming(value){
 							</select>
 						</td>
 					</tr>					
-					<!-- RT-AC82U & RT-AC58U & MAP-AC1300 & MAP-AC2200 -->
+					<!-- RT-AC82U & RT-AC58U & MAP-AC1300 & MAP-AC2200 & VRZ-AC1300 -->
 					<tr id="wl_implicitxbf_field"  style="display:none">
 						<th><a class="hintstyle" href="javascript:void(0);" onClick="">Implicit beamforming</a></th>
 						<td>

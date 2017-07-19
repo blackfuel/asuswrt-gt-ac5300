@@ -1,7 +1,7 @@
 /*
  * Wireless interface translation utility functions
  *
- * Copyright (C) 2016, Broadcom. All Rights Reserved.
+ * Copyright (C) 2017, Broadcom. All Rights Reserved.
  * 
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -15,7 +15,7 @@
  * OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *
- * $Id: wlif_utils.c 652100 2016-07-29 14:34:24Z $
+ * $Id: wlif_utils.c 669471 2016-11-09 17:01:43Z $
  */
 
 #include <typedefs.h>
@@ -428,9 +428,16 @@ get_ifname_by_wlmac(unsigned char *mac, char *name)
 	return 0;
 }
 
+#if defined(HND_ROUTER)
+#define CHECK_NAS(mode) ((mode) & (WPA_AUTH_UNSPECIFIED | WPA_AUTH_PSK | \
+			 	   WPA2_AUTH_UNSPECIFIED | WPA2_AUTH_PSK | WPA2_AUTH_FT))
+#define CHECK_PSK(mode) ((mode) & (WPA_AUTH_PSK | WPA2_AUTH_PSK | WPA2_AUTH_FT))
+#else
 #define CHECK_NAS(mode) ((mode) & (WPA_AUTH_UNSPECIFIED | WPA_AUTH_PSK | \
 				   WPA2_AUTH_UNSPECIFIED | WPA2_AUTH_PSK))
 #define CHECK_PSK(mode) ((mode) & (WPA_AUTH_PSK | WPA2_AUTH_PSK))
+
+#endif
 #define CHECK_RADIUS(mode) ((mode) & (WPA_AUTH_UNSPECIFIED | WLIFU_AUTH_RADIUS | \
 				      WPA2_AUTH_UNSPECIFIED))
 
@@ -535,6 +542,10 @@ get_wsec(wsec_info_t *info, unsigned char *mac, char *osifname)
 			info->akm |= WPA2_AUTH_UNSPECIFIED;
 		if (!strcmp(akm, "psk2"))
 			info->akm |= WPA2_AUTH_PSK;
+#ifdef HND_ROUTER
+		if (!strcmp(akm, "psk2ft"))
+			info->akm |= WPA2_AUTH_PSK | WPA2_AUTH_FT;
+#endif
 	}
 	/* wsec encryption */
 	value = nvram_safe_get(strcat_r(wl_prefix, "wep", comb));

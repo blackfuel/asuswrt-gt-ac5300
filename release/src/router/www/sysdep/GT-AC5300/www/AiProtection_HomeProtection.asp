@@ -705,16 +705,40 @@ function check_TM_feature(){
 
 function show_tm_eula(){
 	if(document.form.preferred_lang.value == "JP"){
-			$.get("JP_tm_eula.htm", function(data){
-				document.getElementById('agreement_panel').innerHTML= data;
-				adjust_TM_eula_height("agreement_panel");
-			});
+		$.get("JP_tm_eula.htm", function(data){
+			document.getElementById('agreement_panel').innerHTML= data;
+			adjust_TM_eula_height("agreement_panel");
+		});
 	}
+	else if(document.form.preferred_lang.value == "TW"){
+		$.get("tm_eula_TC.htm", function(data){
+			document.getElementById('agreement_panel').innerHTML= data;
+			adjust_TM_eula_height("agreement_panel");
+		});
+	}
+	else if(document.form.preferred_lang.value == "CN"){
+		$.get("tm_eula_SC.htm", function(data){
+			document.getElementById('agreement_panel').innerHTML= data;
+			adjust_TM_eula_height("agreement_panel");
+		});
+	}
+	else if(document.form.preferred_lang.value == "FR"){
+		$.get("tm_eula_FR.htm", function(data){
+			document.getElementById('agreement_panel').innerHTML= data;
+			adjust_TM_eula_height("agreement_panel");
+		});
+	}
+	else if(document.form.preferred_lang.value == "RU"){
+		$.get("tm_eula_RU.htm", function(data){
+			document.getElementById('agreement_panel').innerHTML= data;
+			adjust_TM_eula_height("agreement_panel");
+		});
+	}																			
 	else{
-			$.get("tm_eula.htm", function(data){
-				document.getElementById('agreement_panel').innerHTML= data;
-				adjust_TM_eula_height("agreement_panel");
-			});
+		$.get("tm_eula.htm", function(data){
+			document.getElementById('agreement_panel').innerHTML= data;
+			adjust_TM_eula_height("agreement_panel");
+		});
 	}
 	dr_advise();
 	cal_panel_block("agreement_panel", 0.25);
@@ -1275,7 +1299,7 @@ function shadeHandle(flag){
 												<td style="padding:10px;cursor:pointer;" onclick="location.href='AiProtection_IntrusionPreventionSystem.asp'">
 													<div>
 														<div style="font-size:18px;text-shadow:1px 1px 0px black;"><#AiProtection_two-way_IPS#></div>
-														<div style="font-style: italic;font-size: 14px;color:#FC0;height:auto;padding-top:5px;">Two-Way IPS (Intrusion Prevention System) prevents Spam or DDoS from attacking Internet device and blocks malicious incoming packets to protect router from network vulnerability attacks like Shellshocked, Heartbleed, Bitcoin mining and Ransomware attack ; And also detects suspicious outgoing packets to find infected device out, and then prevent from being enslaved by Botnets.</div>
+														<div style="font-style: italic;font-size: 14px;color:#FC0;height:auto;padding-top:5px;"><#AiProtection_two-way_IPS_desc#></div>
 													</div>								
 												</td>
 												 <td width="6px">
@@ -1326,7 +1350,7 @@ function shadeHandle(flag){
 												</td>
 												<td style="padding:10px;cursor:pointer" onclick="location.href='AiProtection_InfectedDevicePreventBlock.asp'">
 													<div style="font-size:18px;text-shadow:1px 1px 0px black;"><#AiProtection_detection_blocking#></div>
-													<div style="font-style: italic;font-size: 14px;color:#FC0;height:auto;;padding-top:5px;">Infected Device Prevention and Blocking prevents infected network device from being enslaved by Botnets or Zombies, and stealing your sensitive information or attacking other computers.</div>
+													<div style="font-style: italic;font-size: 14px;color:#FC0;height:auto;;padding-top:5px;"><#AiProtection_detection_block_desc#></div>
 												</td>
 												 <td>
 													<div><img src="/images/line.png"></div>

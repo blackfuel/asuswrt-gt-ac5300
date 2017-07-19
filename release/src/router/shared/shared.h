@@ -17,7 +17,7 @@
 #include "realtek_common.h"
 #include <time.h>
 #endif
-#ifdef RTCONFIG_USB
+#if defined(RTCONFIG_USB) || defined(RPAC51)
 #include <mntent.h>	// !!TB
 #endif
 
@@ -513,6 +513,7 @@ enum {
 	MODEL_RTAC82U,
 	MODEL_MAPAC1300,
 	MODEL_MAPAC2200,
+	MODEL_VRZAC1300,
 	MODEL_RTN36U3,
 	MODEL_RTN56U,
 	MODEL_RTN65U,
@@ -554,6 +555,7 @@ enum {
 	MODEL_RTAC1200GA1,
 	MODEL_RTAC1200GU,
 	MODEL_RPAC66,
+	MODEL_RPAC51,
 	MODEL_RTAC51UP,
 	MODEL_RTAC53,
 	MODEL_RTN11P_B1,
@@ -795,7 +797,7 @@ enum led_id {
 	LED_5G_GREEN,
 	LED_5G_RED,
 #endif
-#ifdef RPAC66
+#if defined(RPAC66)
 	LED_ORANGE_POWER ,
 	LED_2G_BLUE,
 	LED_2G_GREEN,
@@ -803,6 +805,12 @@ enum led_id {
 	LED_5G_BLUE,
 	LED_5G_GREEN,
 	LED_5G_RED,
+#endif
+#if defined(RPAC51)
+	LED_RED_POWER ,
+	LED_SINGLE,
+	LED_FAR,
+	LED_NEAR,
 #endif
 #ifdef RPAC87
 	LED_2G_GREEN1 ,

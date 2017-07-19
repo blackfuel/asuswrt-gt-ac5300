@@ -6,7 +6,7 @@ ASUSWRTTOOLSDIR2 = $(SRCBASE)/router/tools/Lnx_ToolHelp
 MODELS_HAVE_USB3 = "DSL-AC68U RT-AC3200 RT-AC87U RT-AC68U RT-AC68A 4G-AC68U RT-AC56S RT-AC56U RT-AC55U RT-AC55UHP RT-N18U RT-N65U RT-AC88U RT-AC3100 RT-AC5300 GT-AC5300 GT-AC9600 RT-AC86U AC2900 RT-AC58U RT-AC82U RP-AC68U RT-AC85U RT-AC65U"
 
 MODELS_HAVE_TRAFFIC_ANALYZER = RT-AC3200 RT-AC87U RT-AC88U RT-AC86U RT-AC3100 RT-AC5300 GT-AC5300 GT-AC9600 DSL-AC68U RT-AC68U \
-	4G-AC68U RT-AC68R RT-AC68W RT-AC68RW RT-AC1900P RT-AC67U RT-AC56U RT-AC56R RT-AC85U BRT-AC828
+	4G-AC68U RT-AC68R RT-AC68W RT-AC68RW RT-AC1900P RT-AC67U RT-AC56U RT-AC56R RT-AC85U BRT-AC828 MAP-AC1300 MAP-AC2200 VRZ-AC1300
 
 all:
 ifeq ($(and $(HND_ROUTER),$(RTCONFIG_VISUALIZATION)),y)
@@ -323,6 +323,9 @@ endif
 ifeq ($(BUILD_NAME), RT-N12)
 	cd $(INSTALLDIR)/www && find . -name "*.dict"|xargs -n 1 -I @ sed -i "s/RT-N12/ZVDYNMODELVZ/g" @
 endif
+ifeq ($(BUILD_NAME), BLUECAVE)
+	cd $(INSTALLDIR)/www && find . -name "*.dict"|xargs -n 1 -I @ sed -i "s/BLUECAVE/ZVDYNMODELVZ/g" @
+endif
 
 ifeq ($(RTCONFIG_OPENVPN), y)
 	cd $(INSTALLDIR)/www && ln -sf ../etc/openvpn/server1/client.ovpn && cd $(TOP)/www
@@ -389,6 +392,10 @@ endif
 	rm -rf $(INSTALLDIR)/www/getNonIPSChart.asp
 	rm -rf $(INSTALLDIR)/www/tm_eula.htm
 	rm -rf $(INSTALLDIR)/www/JP_tm_eula.htm
+	rm -rf $(INSTALLDIR)/www/tm_eula_TC.htm
+	rm -rf $(INSTALLDIR)/www/tm_eula_SC.htm
+	rm -rf $(INSTALLDIR)/www/tm_eula_FR.htm
+	rm -rf $(INSTALLDIR)/www/tm_eula_RU.htm
 	rm -rf $(INSTALLDIR)/www/js/Chart.js
 	rm -rf $(INSTALLDIR)/www/images/New_ui/HomeProtection.png
 	rm -rf $(INSTALLDIR)/www/images/New_ui/TimeLimits.png
@@ -480,7 +487,7 @@ ifneq ($(BUILD_NAME),$(filter $(BUILD_NAME), RT-AC88U RT-AC3100 RT-AC5300 GT-AC5
 	rm -rf $(INSTALLDIR)/www/qis_m
 	rm -rf $(INSTALLDIR)/www/images/qis/icon_MAC_clone.svg
 	rm -rf $(INSTALLDIR)/www/images/qis/logo.png
-ifneq ($(BUILD_NAME),$(filter $(BUILD_NAME), RP-AC66 RP-AC68U))
+ifneq ($(BUILD_NAME),$(filter $(BUILD_NAME), RP-AC66 RP-AC68U RP-AC51 MAP-AC1300 MAP-AC2200 VRZ-AC1300))
 	rm -rf $(INSTALLDIR)/www/css/icon-qis.css
 	rm -rf $(INSTALLDIR)/www/images/qis/loading.gif
 	rm -rf $(INSTALLDIR)/www/images/qis/mainimage_img4.png
@@ -578,10 +585,17 @@ endif
 
 ifneq ($(RTCONFIG_IFTTT), y)
 	rm -rf $(INSTALLDIR)/www/Advanced_IFTTT_Pincode.asp
-	rm -rf $(INSTALLDIR)/www/Advanced_Smart_Control_Alexa.asp
 	rm -rf $(INSTALLDIR)/www/Advanced_Smart_Control_IFTTT.asp
 	rm -rf $(INSTALLDIR)/www/images/New_ui/icon_alexa.jpg
 	rm -rf $(INSTALLDIR)/www/images/New_ui/icon_ifttt.png
+	rm -rf $(INSTALLDIR)/www/images/New_ui/smc_asus_router.png
+	rm -rf $(INSTALLDIR)/www/images/New_ui/smc_blue_cave.png
+	rm -rf $(INSTALLDIR)/www/images/New_ui/smc_step_1.png
+	rm -rf $(INSTALLDIR)/www/images/New_ui/smc_step_2.png
+	rm -rf $(INSTALLDIR)/www/images/New_ui/smc_step_2_text.png
+	rm -rf $(INSTALLDIR)/www/images/New_ui/smc_step_3.png
+	rm -rf $(INSTALLDIR)/www/images/New_ui/smc_step_3_acclink.png
+	rm -rf $(INSTALLDIR)/www/images/New_ui/smc_step_4_flow.png
 endif
 
 ifneq ($(RTCONFIG_PORT_BASED_VLAN), y)
@@ -613,14 +627,12 @@ ifeq ($(BUILD_NAME),RT-AC68A)
 	cd $(INSTALLDIR)/www/require && mv menuTrees/menuTree_RTAC68A.js modules/menuTree.js
 else ifeq ($(BUILD_NAME),AC2900)
 	cd $(INSTALLDIR)/www/require && mv menuTrees/menuTree_AC2900.js modules/menuTree.js
-else ifeq ($(BUILD_NAME),RT-AC85U)
-	cd $(INSTALLDIR)/www/require && mv menuTrees/menuTree_RT-AC85U.js modules/menuTree.js
-else ifeq ($(BUILD_NAME),RT-AC65U)
-	cd $(INSTALLDIR)/www/require && mv menuTrees/menuTree_RT-AC65U.js modules/menuTree.js
 else ifeq ($(BUILD_NAME),$(filter $(BUILD_NAME), GT-AC5300 GT-AC9600))
 	cd $(INSTALLDIR)/www/require && mv menuTrees/menuTree_ROG.js modules/menuTree.js
 else ifeq ($(BUILD_NAME),BRT-AC828)
 	cd $(INSTALLDIR)/www/require && mv menuTrees/menuTree_BRTAC828.js modules/menuTree.js
+else ifeq ($(BUILD_NAME),BLUECAVE)
+	cd $(INSTALLDIR)/www/require && mv menuTrees/menuTree_BLUECAVE.js modules/menuTree.js	
 else ifeq ($(RTCONFIG_BWDPI),y)
 ifeq ($(findstring $(BUILD_NAME),$(MODELS_HAVE_TRAFFIC_ANALYZER)),)
 	cd $(INSTALLDIR)/www/require && mv menuTrees/menuTree_bwdpi_no_traffic_analyzer.js modules/menuTree.js

@@ -81,7 +81,7 @@ function initial(){
 	load_time();
 	
 	if(document.form.bwdpi_db_enable.value == 1){
-		document.getElementById('statistic_hint').innerHTML = "*Data will be refreshed on the hour";
+		document.getElementById('statistic_hint').innerHTML = "* <#Traffic_Analyzer_refresh_note#>";
 		document.getElementById('statistic_hint').style.display = "none";
 		document.getElementById("demo_background").style.zIndex = "0";
 	}
@@ -91,7 +91,7 @@ function initial(){
 			document.cookie = "demo=1";
 		}
 		
-		document.getElementById('statistic_hint').innerHTML = "*You should turn on the Traffic Statistic to record the traffic information";	
+		document.getElementById('statistic_hint').innerHTML = "* <#Traffic_Analyzer_note#>";	
 	}
 	
 	get_every_client_data("all", "detail", "24", date_second, date_string);		//get clients and find top 5 clients' traffic last 24 hours
@@ -143,21 +143,21 @@ function get_client_used_apps_info(client_index, used_data_array, top5_info, typ
 	var code = "";
 
 	if(type == "router"){
-		document.getElementById('info_block_title').innerHTML = "Monthly Top 5 Clients Used";
+		document.getElementById('info_block_title').innerHTML = "<#traffic_analysis_top5client_monthly#>";
 		document.getElementById('top_client_title').innerHTML = "<#Client_Name#>:";
 	}
 	else{
-		document.getElementById('info_block_title').innerHTML = "Monthly Top 5 Apps Used";
+		document.getElementById('info_block_title').innerHTML = "<#traffic_analysis_top5app_monthly#>";
 		document.getElementById('top_client_title').innerHTML = "App:";
 	}
 	
 	if(top5_info == ""){
 		if(type == "router")
-			document.getElementById('top_client_name').innerHTML = "No Client";
+			document.getElementById('top_client_name').innerHTML = "<#traffic_analysis_noclients#>";
 		else
-			document.getElementById('top_client_name').innerHTML = "No App";
+			document.getElementById('top_client_name').innerHTML = "<#traffic_analysis_noapps#>";
 			
-		document.getElementById('top_client_traffic').innerHTML = "No Traffic";
+		document.getElementById('top_client_traffic').innerHTML = "<#traffic_analysis_notraffic#>";
 	}
 	else{
 		if(type_detail == "detail"){
@@ -292,9 +292,9 @@ function get_client_info(list_info, type){
 	var match_flag = 0;
 	var temp_array = new Array();
 	if(type == "router")
-		code = "<option value='all' selected>All Clients</option>";
+		code = "<option value='all' selected><#traffic_analysis_allclients#></option>";
 	else
-		code = "<option value='all' selected>All Apps</option>";
+		code = "<option value='all' selected><#traffic_analysis_allapps#></option>";
 	top5_client_array = [];
 	top5_app_array = [];
 
@@ -530,7 +530,7 @@ function show_detail_info(mac, used_data_array, type){
 	code += '</tr>';
 	code += '<tr style="font-size:13px;">';
 	if(type == "router"){
-		code += '<th style="width:55%;text-align:left;">App\'s Name</th>';	
+		code += "<th style='width:55%;text-align:left;'><#traffic_analysis_appname#></th>";	
 	}
 	else{
 		code += '<th style="width:55%;text-align:left;"><#Client_Name#></th>';
@@ -578,7 +578,7 @@ function show_all_info(mac, type){
 		
 		code += "</tr>";
 		code += '<tr style="font-size:13px;">';
-		code += "<th style='width:55%;text-align:left;'>App Name</th>";
+		code += "<th style='width:55%;text-align:left;'><#traffic_analysis_appname#></th>";
 		code += '<th style="width:15%;text-align:right;"><#option_upload#></th>';
 		code += '<th style="width:15%;text-align:right;"><#option_download#></th>';
 		code += '<th style="width:15%;text-align:right;"><#Total#></th>';
@@ -599,7 +599,7 @@ function show_all_info(mac, type){
 	}
 	else{
 		code += "<tr style='font-size:14px;'>";
-		code += "<th colspan='4'>App Name: "+ mac +"</th>";		
+		code += "<th colspan='4'><#traffic_analysis_appname#> : "+ mac +"</th>";		
 		code += "</tr>";
 		code += '<tr style="font-size:13px;">';
 		code += "<th style='width:55%;text-align:left;'><#Client_Name#></th>";
@@ -1100,7 +1100,7 @@ function draw_pie_chart(list_info, top5_info, type){
 			id: "0"
 		}];
 		
-		code = '<div style="width:110px;word-wrap:break-word;padding-left:5px;background-color:#B3645B;margin-right:-10px;border-top-left-radius:10px;border-bottom-left-radius:10px;">No Client</div>';		
+		code = '<div style="width:110px;word-wrap:break-word;padding-left:5px;background-color:#B3645B;margin-right:-10px;border-top-left-radius:10px;border-bottom-left-radius:10px;"><#traffic_analysis_noclients#></div>';		
 	}
 	else{
 		for(i=0;i<top5_info.length && i<6;i++){		
@@ -1549,16 +1549,13 @@ function getClientCurrentName(_mac) {
 										<table width="100%">
 											<tr>
 												<td class="formfonttitle" align="left">								
-													<div><#Traffic_Analyzer#> - Statistic</div>
+													<div><#Traffic_Analyzer#> - <#Statistic#></div>
 												</td>
 												<td>
 													<div>
 														<table align="right">
 															<tr>
 																<td style="cursor:pointer;" onclick="introduce_demo();" id="introduce_demo"><div id="play_icon" class="icon_play" style="padding:1px;display:table-cell;width:22px;height:22px;"></div><div style="display:table-cell;font-size:16px;text-decoration:underline;padding-left:7px;" ><#Introduce_demo#></div></td>
-																<!--td>														
-																	<div class="formfonttitle" style="margin-bottom:0px;margin-left:20px;" title="<#traffic_analysis_desc#>">Traffic Statistic</div>
-																</td-->
 																<td >
 																	<div align="center" class="left" style="width:94px; float:left; cursor:pointer;" id="traffic_analysis_enable"></div>
 																	<script type="text/javascript">
@@ -1577,18 +1574,42 @@ function getClientCurrentName(_mac) {
 																						}
 																					};
 
-																					if(document.form.preferred_lang.value == "JP"){
-																						$.get("JP_tm_eula.htm", function(data){
-																							document.getElementById('agreement_panel').innerHTML= data;
-																							adjust_TM_eula_height("agreement_panel");
-																						});
-																					}
-																					else{
-																						$.get("tm_eula.htm", function(data){
-																							document.getElementById('agreement_panel').innerHTML= data;
-																							adjust_TM_eula_height("agreement_panel");
-																						});
-																					}	
+																			if(document.form.preferred_lang.value == "JP"){
+																				$.get("JP_tm_eula.htm", function(data){
+																					document.getElementById('agreement_panel').innerHTML= data;
+																					adjust_TM_eula_height("agreement_panel");
+																				});
+																			}
+																			else if(document.form.preferred_lang.value == "TW"){
+																				$.get("tm_eula_TC.htm", function(data){
+																					document.getElementById('agreement_panel').innerHTML= data;
+																					adjust_TM_eula_height("agreement_panel");
+																				});
+																			}
+																			else if(document.form.preferred_lang.value == "CN"){
+																				$.get("tm_eula_SC.htm", function(data){
+																					document.getElementById('agreement_panel').innerHTML= data;
+																					adjust_TM_eula_height("agreement_panel");
+																				});
+																			}
+																			else if(document.form.preferred_lang.value == "FR"){
+																				$.get("tm_eula_FR.htm", function(data){
+																					document.getElementById('agreement_panel').innerHTML= data;
+																					adjust_TM_eula_height("agreement_panel");
+																				});
+																			}
+																			else if(document.form.preferred_lang.value == "RU"){
+																				$.get("tm_eula_RU.htm", function(data){
+																					document.getElementById('agreement_panel').innerHTML= data;
+																					adjust_TM_eula_height("agreement_panel");
+																				});
+																			}																			
+																			else{
+																				$.get("tm_eula.htm", function(data){
+																					document.getElementById('agreement_panel').innerHTML= data;
+																					adjust_TM_eula_height("agreement_panel");
+																				});
+																			}	
 																					
 																					dr_advise();
 																					cal_agreement_block();
@@ -1613,7 +1634,6 @@ function getClientCurrentName(_mac) {
 											</tr>
 										</table>								
 									</div>
-									<!--div class="formfonttitle">Adaptive QoS - Traffic Statistic</div-->
 									<div style="margin-left:5px;margin-bottom:10px"><img src="/images/New_ui/export/line_export.png"></div>
 									<div style="margin-left:10px;">
 										<label style="font-size:16px;"><#Statistic_last_date#>:</label>
@@ -1700,7 +1720,7 @@ function getClientCurrentName(_mac) {
 													<canvas id="pie_chart" width="300" height="300"></canvas>
 												</td>
 												<td style="vertical-align:top;width:110px;" id="top5_client_banner">
-													<div onclick="change_top5_clients(0);" style="width:100px;word-wrap:break-word;padding-left:5px;background-color:#B3645B;margin-right:-10px;border-top-left-radius:10px;border-bottom-left-radius:10px;">No Client</div>
+													<div onclick="change_top5_clients(0);" style="width:100px;word-wrap:break-word;padding-left:5px;background-color:#B3645B;margin-right:-10px;border-top-left-radius:10px;border-bottom-left-radius:10px;"><#traffic_analysis_noclients#></div>
 												</td>
 												<td>
 													<div id="top5_info_block" style="width:310px;min-height:330px;;background-color:#B3645B;border-bottom-right-radius:10px;border-bottom-left-radius:10px;border-top-right-radius:10px;box-shadow: 3px 5px 5px #2E3537;">
@@ -1714,7 +1734,7 @@ function getClientCurrentName(_mac) {
 																<td style="font-size:14px;" id="top_client_traffic"></td>
 															</tr>
 															<tr>
-																<th style="font-size:16px;text-align:left;padding-left:10px;width:140px;color:#ADADAD">Top 5 apps used:</th>
+																<th style="font-size:16px;text-align:left;padding-left:10px;width:140px;color:#ADADAD"><#Traffic_Analyzer_TopApps#> :</th>
 																<td></td>
 															</tr>													
 														</table>
@@ -1724,7 +1744,7 @@ function getClientCurrentName(_mac) {
 											</tr>
 											<tr>
 												<td colspan="3">
-													<div style="font-size:16px;color:#FC0;text-align:center;" id="info_block_title">Daily Top 5 Clients Used</div>
+													<div style="font-size:16px;color:#FC0;text-align:center;" id="info_block_title"><#traffic_analysis_top5client_daily#></div>
 												</td>
 											</td>
 										</table>

@@ -26,6 +26,10 @@ var tableStruct = {
 	title: Optional, table title description
 	ex: title: "Server List",
 
+	// table title hint
+	titieHint: Optional, hint between title and table 
+	ex: titieHint: "You can add exception policies in the list to make client device connecting to different VPN tunnels.",
+
 	// capability block
 	capability : // control table capability
 	{
@@ -251,6 +255,9 @@ var tableApi = {
 		// table title block
 		"title" : "", // table title
 
+		// table hint block
+		"titieHint" : "", // table hint
+
 		// capability block
 		"capability": {
 			add: false, //create new rule flag, true/false
@@ -401,6 +408,17 @@ var tableApi = {
 		return $addRuleHtml;
 	},
 
+	//Create table hint
+	genTableTitleHint : function(_hint) {
+		var $hintHtml = "";
+		if(_hint != "") {
+			$hintHtml = $("<div>");
+			$hintHtml.addClass("tableTitleHint");
+			$hintHtml.html(_hint);
+		}
+		return $hintHtml;
+	},
+
 	genFullScreen : function() {
 		var $fullScreenHtml = $("<div>");
 		$fullScreenHtml.addClass("fullScreen");
@@ -419,7 +437,7 @@ var tableApi = {
 		//title
 		var $titleHtml = $("<div>");
 		$titleHtml.addClass("pureText");
-		$titleHtml.html("Create New Rule");
+		$titleHtml.html("Create New Policy");/*untranslated*/
 		$titleHtml.appendTo($divHtml);
 
 		//close icon
@@ -477,11 +495,6 @@ var tableApi = {
 
 		//action control
 		var $actionFrameHtml = $("<div>");
-
-		var $actionTextHtml = $("<div>");
-		$actionTextHtml.addClass("actionText");
-		$actionTextHtml.html("Editoring " + (tableApi._privateAttr.data_num + 1)  + " Rule");
-		$actionTextHtml.appendTo($actionFrameHtml);
 
 		var $actionButtonFrameHtml = $("<div>");
 		$actionButtonFrameHtml.addClass("actionButtonFrame");
@@ -808,6 +821,11 @@ var tableApi = {
 			tableApi.genAddRule_frame(tableApi._attr.capability.add, tableApi._attr.createPanel.inputs, tableApi._attr.createPanel.maximum, tableApi._privateAttr.data_num, tableApi._attr.title)
 		);
 
+		//Add table title hint
+		$("#" + tableApi._attr.container).append(
+			tableApi.genTableTitleHint(tableApi._attr.titieHint)
+		);
+
 		//table main
 		$("#" + tableApi._attr.container)
 			//table
@@ -906,12 +924,18 @@ var tableApi = {
 				
 				for(var k in currRow){
 					if (currRow.hasOwnProperty(k)) {
+						var textHint = "";
 						var _dataItemText = currRow[k];
 						if(_obj_attr.clickRawEditPanel.inputs != "") {
 							if(_obj_attr.clickRawEditPanel.inputs[k] != undefined) {
 								switch(_obj_attr.clickRawEditPanel.inputs[k].editMode) {
 									case "select" :
 										_dataItemText = tableApi.transformSelectOptionToText(_obj_attr.clickRawEditPanel.inputs[k].option, _dataItemText);
+										if(_dataItemText.length > 28) {
+											textHint = _dataItemText;
+											_dataItemText = _dataItemText.substring(0, 26) + "..";
+										}
+										_dataItemText = htmlEnDeCode.htmlEncode(_dataItemText);
 										break;
 									case "activateIcon" :
 										_dataItemText = tableApi.transformValueToActivateIcon(_dataItemText);
@@ -920,6 +944,10 @@ var tableApi = {
 										_dataItemText = tableApi.transformMacToClientName(_dataItemText);
 										break;
 									default :
+										if(_dataItemText.length > 28) {
+											textHint = _dataItemText;
+											_dataItemText = _dataItemText.substring(0, 26) + "..";
+										}
 										_dataItemText = htmlEnDeCode.htmlEncode(_dataItemText);
 										break;
 								}
@@ -947,6 +975,7 @@ var tableApi = {
 							.addClass(dataRawClass)
 							.attr("row_td_idx", k)
 							.attr("width", _headerWidthArray[k])
+							.attr({"title" : textHint})
 							.html(
 								$("<div>")
 									.addClass("static-text")
@@ -1166,8 +1195,16 @@ var tableApi = {
 			for (var optIdx in _dataObj.option) {
 				var optionText = optIdx;
 				var optionValue =_dataObj.option[optIdx];
+				var textHint = "";
+				if(optionText.length > 23) {
+					textHint = optionText;
+					optionText = optionText.substring(0, 21) + "..";
+				}
 				var $optionHtml = $('<option/>');
 				$optionHtml.attr("value", optionValue).text(optionText);
+				if(textHint != "") {
+					$optionHtml.attr({"title" : textHint});
+				}
 				$editItemHtml.append($optionHtml);
 			}
 		}

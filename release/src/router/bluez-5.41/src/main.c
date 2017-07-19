@@ -352,6 +352,8 @@ static void init_defaults(void)
 	memset(&main_opts, 0, sizeof(main_opts));
 #if defined(RTCONFIG_REALTEK)
 	main_opts.name = g_strdup_printf("ASUS_%02X_%s", mac_binary[5], nvram_safe_get("productid"));
+#elif defined(RTCONFIG_LANTIQ) || defined(RTCONFIG_ALPINE)
+	main_opts.name = g_strdup_printf("ASUS_%02X", mac_binary[5]);
 #else
 	main_opts.name = g_strdup_printf("ASUS_%02X_AMAPS", mac_binary[5]);
 #endif
@@ -668,7 +670,7 @@ int main(int argc, char *argv[])
 	 * the plugins might wanna expose some paths on the bus. However the
 	 * best order of how to init various subsystems of the Bluetooth
 	 * daemon needs to be re-worked. */
-//	plugin_init(option_plugin, option_noplugin);
+	plugin_init(option_plugin, option_noplugin);
 
 	/* no need to keep parsed option in memory */
 	free_options();

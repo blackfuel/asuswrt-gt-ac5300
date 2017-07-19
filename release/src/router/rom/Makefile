@@ -23,6 +23,11 @@ else ifeq ($(or $(RTCONFIG_QCA),$(RTCONFIG_REALTEK)),y)
 	DM_VERSION=3.1.0.101
 	HTTP_VERSION=3.1.0.97
 	OPENSSL_VERSION=1.0.2j.v001
+else ifeq ($(RTCONFIG_NEW_APP_ARM),y)
+	pkg_type=arm
+	DM_VERSION=9.1.0.101
+	HTTP_VERSION=9.1.0.97
+	OPENSSL_VERSION=9.1.0.2j.v001
 else
 	pkg_type=mipsel
 	DM_VERSION=3.1.0.101
@@ -74,6 +79,8 @@ ifeq ($(RTCONFIG_NEW_APP_ARM),y)
 else
 	install -m 0644 optware.mbwe-bluering $(INSTALLDIR)/rom
 endif
+else ifeq ($(RTCONFIG_NEW_APP_ARM),y)
+	install -m 0644 optware.armeabi-ng $(INSTALLDIR)/rom
 else
 	install -m 0644 optware.oleg $(INSTALLDIR)/rom
 endif

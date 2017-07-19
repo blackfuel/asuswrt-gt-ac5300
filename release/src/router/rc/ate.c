@@ -465,6 +465,9 @@ void get_usb_port_eject_button(unsigned int port)
 void asus_ate_StartATEMode(void)
 {
 	nvram_set("asus_mfg", "1");
+#if defined(RTCONFIG_ALPINE) || defined(RTCONFIG_LANTIQ)
+	nvram_set("ATEMODE", "1");
+#endif
 #ifdef RTCONFIG_QSR10G
 	start_ate_mode_qsr10g();
 #endif
@@ -567,7 +570,7 @@ int asus_ate_command(const char *command, const char *value, const char *value2)
 		return setAllOrangeLedOn();
 	}
 #endif
-#if defined(RPAC55)
+#if defined(RPAC51) || defined(RPAC55)
 	else if (!strcmp(command, "Set_AllBlueLedOn"))  {
 		return setAllBlueLedOn();
 	}
@@ -577,7 +580,7 @@ int asus_ate_command(const char *command, const char *value, const char *value2)
 		return setAllGreenLedOn();
 	}
 #endif
-#if defined(RPAC53) || defined(RPAC55)
+#if defined(RPAC53) || defined(RPAC51) || defined(RPAC55)
 	else if (!strcmp(command, "Set_AllRedLedOn"))  {
 		return setAllRedLedOn();
 	}
@@ -769,7 +772,7 @@ int asus_ate_command(const char *command, const char *value, const char *value2)
 	}
 #endif	/* RTCONFIG_HAS_5G */
 #else	/* ! RTCONFIG_NEW_REGULATION_DOMAIN */
-#if defined(RTCONFIG_REALTEK) && defined(RTCONFIG_HAS_5G)
+#if (defined(RTCONFIG_REALTEK) && defined(RTCONFIG_HAS_5G)) || defined(RTCONFIG_ALPINE) || defined(RTCONFIG_LANTIQ)
 /* [MUST]: Why can't use the common API ??? */
 	else if (!strcmp(command, "Set_RegulationDomain_5G")) {
 		if (!setCountryCode_5G(value))
@@ -1232,7 +1235,7 @@ int asus_ate_command(const char *command, const char *value, const char *value2)
 	}
 #endif	/* RTCONFIG_HAS_5G */
 #else	/* ! RTCONFIG_NEW_REGULATION_DOMAIN */
-#if defined(RTCONFIG_REALTEK) && defined(RTCONFIG_HAS_5G)
+#if (defined(RTCONFIG_REALTEK) && defined(RTCONFIG_HAS_5G)) || defined(RTCONFIG_ALPINE) || defined(RTCONFIG_LANTIQ)
 /* [MUST] : Why can't use the same API to get country code : getCountryCode_5G() */
 	else if (!strcmp(command, "Get_RegulationDomain_5G")) {
 		getCountryCode_5G();
@@ -1512,7 +1515,7 @@ int asus_ate_command(const char *command, const char *value, const char *value2)
 		Get_CalCompare();
 		return 0;
 	}
-#elif defined(RTCONFIG_WIFI_QCA9990_QCA9990) || defined(RTCONFIG_WIFI_QCA9994_QCA9994) || defined(RTCONFIG_SOC_IPQ40XX)
+#elif defined(RTCONFIG_WIFI_QCA9990_QCA9990) || defined(RTCONFIG_WIFI_QCA9994_QCA9994) || defined(RTCONFIG_SOC_IPQ40XX) || defined(RPAC51)
 	else if (!strcmp(command, "Set_Qcmbr")) {
 #if defined(RTCONFIG_QCA) && defined(RTCONFIG_SOC_IPQ40XX)
 		nvram_set_int("restwifi_qis", 1);
@@ -1521,7 +1524,7 @@ int asus_ate_command(const char *command, const char *value, const char *value2)
 		return 0;
 	}
 #endif
-#if defined(RTCONFIG_WIFI_QCA9990_QCA9990) || defined(RTCONFIG_WIFI_QCA9994_QCA9994) || defined(RTCONFIG_SOC_IPQ40XX)
+#if defined(RTCONFIG_WIFI_QCA9990_QCA9990) || defined(RTCONFIG_WIFI_QCA9994_QCA9994) || defined(RTCONFIG_SOC_IPQ40XX) || defined(RPAC51)
 	/* ATE Get_BData_2G / ATE Get_BData_5G
 	 * To prevent whole ATE command strings exposed in rc binary,
 	 * compare these commands in 3 steps instead.
@@ -1532,7 +1535,7 @@ int asus_ate_command(const char *command, const char *value, const char *value2)
 		return 0;
 	}
 #endif
-#if defined(MAPAC1300) || defined(MAPAC2200) /* for Lyra */
+#if defined(MAPAC1300) || defined(MAPAC2200) || defined(VRZAC1300) /* for Lyra */
 	else if (!strcmp(command, "Set_DisableGUI")) {
 		if (setDisableGUI(value))
 		{
@@ -1959,6 +1962,7 @@ int ate_dev_status(void)
 		wl_band++;
 	}
 
+#ifndef RTCONFIG_ALPINE
 #ifdef RTCONFIG_BT_CONN
 	{
 		int retry;
@@ -1981,6 +1985,7 @@ int ate_dev_status(void)
 	len = snprintf(p, remain, ",hci0=%c", result);
 	p += len;
 	remain -= len;
+#endif
 #endif
 
 	nvram_set("Ate_dev_status", dev_chk_buf);
@@ -2006,3 +2011,16 @@ void start_envrams(void) {
 }
 
 #endif
+
+int ate_run_arpstrom(void) {
+
+	int ate_arpstorm = 0;
+	ate_arpstorm = nvram_get_int("ate_arpstorm");
+	while(ate_arpstorm) {
+		ate_arpstorm--;
+		doSystem("arpstorm &");
+		sleep(1);
+	}
+
+	return 1;
+}

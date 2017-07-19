@@ -870,7 +870,7 @@ function regen_auto_option(obj){
 			<table width="99%" border="1" align="center" cellpadding="4" cellspacing="0" id="WLgeneral" class="FormTable">
 
 			<tr id="smartcon_enable_field" style="display:none;">
-			  	<th width="30%"><a class="hintstyle" href="javascript:void(0);" onClick="openHint(13,1);"><#smart_connect_enable#></a></th>
+				<th width="30%"><a class="hintstyle" href="javascript:void(0);" onClick="openHint(0,27);"><#smart_connect_enable#></a></th>
 			  	<td>
 			    	<div id="smartcon_enable_block" style="display:none;">
 			    		<span style="color:#FFF;" id="smart_connect_enable_word">&nbsp;&nbsp;</span>

@@ -89,21 +89,33 @@ get_cgi(char *name)
 char *
 get_cgi_json(char *name, json_object *root)
 {
+	char *value;
+
 	if(root == NULL){
-		ENTRY e, *ep;
-
-	if (!htab.table)
-		return NULL;
-
-	e.key = name;
-	hsearch_r(e, FIND, &ep, &htab);
-
-	return ep ? ep->data : NULL;
+		value = get_cgi(name);
+		return value;
 	}else{
 		struct json_object *json_value;
 		json_value = json_object_object_get(root, name);
 		return (char *)json_object_get_string(json_value);
 	}
+}
+
+char *
+safe_get_cgi_json(char *name, json_object *root)
+{
+	char *value;
+
+	if(root == NULL){
+		value = get_cgi(name);
+
+	}else{
+		struct json_object *json_value;
+		json_value = json_object_object_get(root, name);
+
+		value = json_object_get_string(json_value);
+	}
+	return value ? value : "";
 }
 
 void

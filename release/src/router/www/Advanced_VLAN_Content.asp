@@ -560,7 +560,7 @@ configuration. Please go to DHCP setting.</div>
 									<table id="tbVLANRuleList" width="100%" border="1" align="center" cellpadding="4" cellspacing="0"  class="FormTable_table">
 										<thead>
 										<tr>
-											<td id="tdVLANRuleList" colspan="8">Configuration</td>
+											<td id="tdVLANRuleList" colspan="8"><#Configuration#></td>
 										</tr>
 										</thead>
 										<tr>

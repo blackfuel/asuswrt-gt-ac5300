@@ -109,6 +109,7 @@ OBJS += base64.o
 OBJS += nvparse.o
 OBJS += bwdpi_utils.o
 OBJS += mac_name_tab.o
+OBJS += stun.o
 ifeq ($(RTCONFIG_TRAFFIC_LIMITER),y)
 OBJS += tld_utils.o
 endif

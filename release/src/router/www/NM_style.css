@@ -425,4 +425,5 @@
 	-moz-border-radius: 5px;
 	border-radius: 5px;
 	behavior: url(/PIE.htc);
+	min-height: 810px;
 }

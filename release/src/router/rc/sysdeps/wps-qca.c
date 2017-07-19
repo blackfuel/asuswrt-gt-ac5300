@@ -113,6 +113,21 @@ int is_wps_stopped(void)
 			continue;
 		}
 
+#if defined(MAPAC1300) || defined(MAPAC2200) || defined(VRZAC1300)
+#ifndef RTCONFIG_DUAL_BACKHAUL
+		if(i==0)
+		{	
+			++i;
+			continue;
+		}
+#endif
+		if(i==2)
+		{
+			++i;
+			continue;
+		}
+#endif
+
 #ifdef RTCONFIG_WPS_ENROLLEE
 		if (nvram_match("wps_enrollee", "1"))
 			strcpy(status, getWscStatus_enrollee(i));

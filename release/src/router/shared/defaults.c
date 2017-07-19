@@ -19,7 +19,7 @@ struct nvram_tuple router_defaults[] = {
 	// NVRAM for restore_defaults: system wide parameters
 	{ "nvramver", RTCONFIG_NVRAM_VER, CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
 	{ "restore_defaults", "0", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },	/* Set to 0 to not restore defaults on boot */
-#if defined(RPAC66) || defined(RPAC87) || defined(RTCONFIG_DEFAULT_REPEATER_MODE)
+#if defined(RPAC66) || defined(RPAC87) || defined(RPAC51) || defined(RTCONFIG_DEFAULT_REPEATER_MODE)
 	{ "sw_mode", "2", CKN_STR1, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },	/* big switch for different mode */
 #elif defined(RTCONFIG_DEFAULT_AP_MODE)
 	{ "sw_mode", "3", CKN_STR1, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },	/* big switch for different mode */
@@ -158,6 +158,7 @@ struct nvram_tuple router_defaults[] = {
 #endif /* __CONFIG_HSPOT__ */
 #ifdef RTCONFIG_REALTEK
 	{ "wl_country_code", DEF_COUNTRY_CODE, CKN_STR2, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
+	{ "wl_HT_GI", "1", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
 #endif
 //	{ "wl_country_code", "", 0 },		/* Country Code (default obtained from driver) */
 #ifdef CONFIG_BCMWL5
@@ -234,6 +235,9 @@ struct nvram_tuple router_defaults[] = {
 	{ "wl_mrate_x", "0", CKN_STR4, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },	/* Mcast Auto rate */
 #ifndef RTCONFIG_WIFILOGO
 	{ "wl_frameburst", "on", CKN_STR4, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },	/* BRCM Frambursting mode (off|on) */
+	{ "wl_frameburst_override", "on", 0 },  /* BRCM frameburst override to enable/disable
+						 * dynamic framebursting default on
+						 */
 #else
 	{ "wl_frameburst", "off", CKN_STR4, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
 #endif
@@ -476,7 +480,11 @@ struct nvram_tuple router_defaults[] = {
 	{ "wl1_bw", "3", CKN_STR1, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },	/* 0/1/2/3 auto/20/40/80MHz */
 #endif
 #else
+#ifdef RTCONFIG_LANTIQ
+	{ "wl_bw", "0", CKN_STR1, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },	/* 0/1/2/3 auto/20/40/80MHz */
+#else
 	{ "wl_bw", "1", CKN_STR1, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },	/* 0/1/2 20 */
+#endif
 #endif
 	{ "wl_auth_mode_x", "open", CKN_STR8, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
 // open/shared/psk/wpa/radius
@@ -525,7 +533,7 @@ struct nvram_tuple router_defaults[] = {
 #endif
 #if defined(RTCONFIG_QCA)
 #if defined(RTCONFIG_WIFI_QCA9990_QCA9990) || defined(RTCONFIG_WIFI_QCA9994_QCA9994) || defined(RTCONFIG_SOC_IPQ40XX)
-	{ "wl_turbo_qam", "1", CKN_STR1, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
+	{ "wl_turbo_qam", "0", CKN_STR1, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
 	{ "wl_turbo_qam_brcm_intop", "1", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
 	{ "wl_txbf", "1", CKN_STR1, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
 	{ "wl_mumimo", "1", CKN_STR1, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
@@ -712,7 +720,7 @@ struct nvram_tuple router_defaults[] = {
 #else
 	{ "wl_atf", "0", CKN_STR1, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
 #endif
-#if defined(RTCONFIG_BCM_7114) || defined(HND_ROUTER)
+#if defined(RTCONFIG_BCM_7114)
 	{ "wl_atf_delay_disable", "1", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },	/* delay scheme to reserve air time for the idle flowring */
 #endif
 #elif defined(RTCONFIG_AIR_TIME_FAIRNESS)
@@ -733,7 +741,7 @@ struct nvram_tuple router_defaults[] = {
 
 #ifdef RTCONFIG_DPSTA
 	{ "dpsta_ifnames", "", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
-	{ "dpsta_policy", "1", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
+	{ "dpsta_policy", "0", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
 	{ "dpsta_lan_uif", "3", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
 	{ "dpsta_band", "-1", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
 #endif
@@ -803,9 +811,10 @@ struct nvram_tuple router_defaults[] = {
 	{ "wl_acs_far_sta_rssi", "-75", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },	/* rssi threshold for far sta */
 	{ "wl_acs_bgdfs_fallback_blocking_cac", "1", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },	/* full MIMO blocking CAC */
 	{ "wl_acs_bgdfs_txblank_threshold", "50", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },	/* tx blanking threshold for 3+1 */
-	{ "wl_dyn160", "0", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },	/* dyn160 toggle */
+	{ "wl_dyn160", "", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },	/* dyn160 toggle */
 	{ "wl_phy_dyn_switch_th", "", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },	/* phy_dyn_switch_th (threshold values) */
 	{ "wl_acsd_scs_dfs_scan", "0", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },	/* acsd_scs_dfs_scan in scs mode */
+	{ "wl_acs_start_on_nondfs", "0", 0},    /* acs_start_on_nondfs toggle */
 #endif
 	{ "acs_2g_ch_no_restrict", "1", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },	/* 0: only pick from channel 1 */
 	{ "acs_no_restrict_align", "1", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },	/* 0: only aligned chanspec(few) can be picked (non-20Hz) */
@@ -1046,7 +1055,7 @@ struct nvram_tuple router_defaults[] = {
 #if defined(RTN300)
 	{ "lan_ipaddr", "192.168.50.1", CKN_STR15, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },	/* LAN IP address */
 	{ "lan_ipaddr_rt", "192.168.50.1", CKN_STR15, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
-#elif defined(MAPAC1300) || defined(MAPAC2200)
+#elif defined(MAPAC1300) || defined(MAPAC2200) || defined(VRZAC1300)
 	{ "lan_ipaddr", "192.168.72.1", CKN_STR15, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },	/* LAN IP address */
 	{ "lan_ipaddr_rt", "192.168.72.1", CKN_STR15, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
 #else
@@ -1102,7 +1111,7 @@ struct nvram_tuple router_defaults[] = {
 #if defined(RTN300)
 	{ "dhcp_start", "192.168.50.2", CKN_STR15, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
 	{ "dhcp_end", "192.168.50.254", CKN_STR15, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
-#elif defined(MAPAC1300) || defined(MAPAC2200)
+#elif defined(MAPAC1300) || defined(MAPAC2200) || defined(VRZAC1300)
 	{ "dhcp_start", "192.168.72.2", CKN_STR15, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
 	{ "dhcp_end", "192.168.72.254", CKN_STR15, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
 #else
@@ -1667,6 +1676,7 @@ struct nvram_tuple router_defaults[] = {
 	{ "TM_EULA",		"0", CKN_STR1, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },	// EULA of Trend Micro
 	{ "apps_analysis",	"0", CKN_STR1, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },	// Apps Analysis in bandwidth monitor (Adaptive QoS first page)
 	{ "bwdpi_wh_enable",	"0", CKN_STR1, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },	// web history
+	{ "bwdpi_wh_stamp",	"0", CKN_STR16, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },	// web history timestamp
 	{ "sig_update_t",	"0", CKN_STR16, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },	// signature upgrade timestamp
 #endif
 #endif	/* RTCONFIG_PARENTALCTRL */
@@ -1699,16 +1709,12 @@ struct nvram_tuple router_defaults[] = {
 	// UrlList
 	{ "url_enable_x", "0", CKN_STR1, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
 	{ "url_mode_x", "0", CKN_STR1, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
-	{ "url_date_x", "1111111", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
-	{ "url_time_x", "00002359", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
-	{ "url_enable_x_1", "0", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
-	{ "url_time_x_1", "00002359", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
+	{ "url_sched", "000000", CKN_STR2048, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
 	{ "url_rulelist", "", CKN_STR1024, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
 
 	// KeywordList
 	{ "keyword_enable_x", "0", CKN_STR1, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
-	{ "keyword_date_x", "1111111", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
-	{ "keyword_time_x", "00002359", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
+	{ "keyword_sched", "000000", CKN_STR2048, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
 	{ "keyword_rulelist", "", CKN_STR1024, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
 
 	// LWFilterListi
@@ -1723,10 +1729,10 @@ struct nvram_tuple router_defaults[] = {
 	// NVRAM for start_usb
 	{ "usb_enable", "1", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
 #ifdef RTCONFIG_USB_XHCI
-#if defined(MAPAC1300) || defined(MAPAC2200)
+#if defined(MAPAC1300) || defined(MAPAC2200) || defined(VRZAC1300)
 /* MODEL DON'T USB USB3 but NEED XHCI */
 #else
-#ifdef RTAC87U
+#if defined(RTAC87U) || defined(BLUECAVE)
 	{ "usb_usb3", "1", CKN_STR1, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
 #else
 	{ "usb_usb3", "0", CKN_STR1, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
@@ -1779,7 +1785,9 @@ struct nvram_tuple router_defaults[] = {
 	{ "usb_fs_fat", "1", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
 #ifdef RTCONFIG_NTFS
 	{ "usb_fs_ntfs", "1", CKN_STR1, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
+#if defined(RTCONFIG_PARAGON_NTFS)
 	{ "usb_fs_ntfs_sparse", "0", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
+#endif
 #endif
 #ifdef RTCONFIG_HFS
 	{ "usb_fs_hfs", "1", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
@@ -1827,12 +1835,14 @@ struct nvram_tuple router_defaults[] = {
 	{ "acc_num", "1", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
 	{ "acc_list", "admin>admin", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
 	{ "st_samba_mode", "4", CKN_STR1, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
+	{ "st_samba_force_mode", "4", CKN_STR1, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
 #ifdef RTCONFIG_FTP
 	{ "st_ftp_mode", "2", CKN_STR1, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
-	{ "enable_ftp", "0", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
+	{ "st_ftp_force_mode", "2", CKN_STR1, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
+	{ "enable_ftp", "0", CKN_STR1, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
 	{ "ftp_lang", "EN", CKN_STR2, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
 #endif
-	{ "enable_samba", "1", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
+	{ "enable_samba", "1", CKN_STR1, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
 	{ "st_max_user", "5", CKN_STR1, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
 	{ "computer_name", "", CKN_STR15, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
 	{ "st_samba_workgroup", "WORKGROUP", CKN_STR32, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
@@ -2122,7 +2132,7 @@ struct nvram_tuple router_defaults[] = {
 	{ "r_Setting", "0", CKN_STR1, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },	/* is repeater set */
 	{ "w_Setting", "0", CKN_STR1, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },	/* is wilreess set */
 	{ "ui_Setting", "0", CKN_STR1, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },	/* for Language change in QIS */
-#if defined(MAPAC1300) || defined(MAPAC2200)
+#if defined(MAPAC1300) || defined(MAPAC2200) || defined(VRZAC1300)
 	{ "qis_Setting", "0", CKN_STR1, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },	/* QIS finish */
 	{ "hive_ui", "", CKN_STR1, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },	/* for HIVE UI debug */
 #endif
@@ -2179,6 +2189,7 @@ struct nvram_tuple router_defaults[] = {
 	{ "sshd_pass", "1", CKN_STR1, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
 	{ "sshd_authkeys", "", CKN_STR2999, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
 #endif
+	{ "shell_timeout", "1200", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },	/* telnet/ssh autologout idle timeout, sec. */
 #ifdef RTCONFIG_POWER_SAVE
 	{ "pwrsave_mode", "0", CKN_STR1, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },	/* 1: auto (ondemand), 2: power save, otherwise: performance */
 #endif
@@ -2726,7 +2737,7 @@ struct nvram_tuple router_defaults[] = {
 #endif
 	{ "rast_idlrt", "2", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },	/* roaming assistant idle rate (Kbps) */
 #endif
-	{ "custom_clientlist", "", CKN_STR512, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },	/* for customize device name */
+	{ "custom_clientlist", "", CKN_STR_MAX, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },	/* for customize device name */
 	{ "nmp_client_list", "", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
 	{ "ttl_inc_enable", "0", CKN_STR1, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },	/* enable TTL increment */
 	{ "ttl_spoof_enable", "0", CKN_STR1, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },	/* enable TTL spoofing */
@@ -3234,6 +3245,9 @@ struct nvram_tuple router_state_defaults[] = {
 	{ "dsllog_latnup", "", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
 	{ "dsllog_satndown", "", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
 	{ "dsllog_satnup", "", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
+	{ "dsllog_sysvid", "2605443544e00", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
+	{ "dsllog_sysvmid", "00000000000000000000000000000000", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
+	{ "dsllog_modemvid", "26005443434E5A01", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
 #endif
 
 #endif
@@ -3741,6 +3755,9 @@ struct nvram_tuple router_defaults_override_type1[] = {
 #endif
 #endif
 	{ "wl_frameburst", "on", 0 },		/* BRCM Frambursting mode (off|on) */
+	{ "wl_frameburst_override", "on", 0 },  /* BRCM frameburst override to enable/disable
+						 * dynamic framebursting default on
+						 */
 #ifdef RTCONFIG_BCMWL6
 	{ "wl_acs_fcs_mode", "1", 0 },		/* Enable acsd fcs mode */
 #ifndef RTCONFIG_BCM7
@@ -3759,13 +3776,21 @@ struct nvram_tuple router_defaults_override_type1[] = {
 #endif
 #endif
 #endif
+#ifdef HND_ROUTER
+	{ "wl_cal_period", "-1", 0 },		/* Disable periodic cal */
+#else
 	{ "wl_cal_period", "0", 0 },		/* Disable periodic cal */
+#endif
 	{ "wl_amsdu", "off", 0 },		/* Default IPTV AMSDU setting */
 #ifdef RTCONFIG_BCMARM
 #if !defined(RTCONFIG_BCM_7114) && !defined(HND_ROUTER)
 	{ "wl_rx_amsdu_in_ampdu", "off", 0 },	/* Media RX AMSDU In AMPDU setting */
 #endif
+#ifdef HND_ROUTER
+	{ "wl_psta_inact", "600", 0 },		/* PSTA inactivity timer */
+#else
 	{ "wl_psta_inact", "0", 0 },		/* PSTA inactivity timer */
+#endif
 	{ "wl_srl", "11", 0},			/* Short Retry Limit */
 	{ "wl_lrl", "11", 0},			/* Long Retry Limit */
 #endif
@@ -3828,6 +3853,7 @@ nvram_default_get(const char *name)
 	}
 #endif /* __CONFIG_HSPOT__ */
 #endif
+#ifndef HND_ROUTER
 	if (!strcmp(nvram_safe_get("devicemode"), "1")) {
 		for (idx = 0; router_defaults_override_type1[idx].name != NULL; idx++) {
 			if (strcmp(router_defaults_override_type1[idx].name, fixed_name) == 0) {
@@ -3836,8 +3862,14 @@ nvram_default_get(const char *name)
 		}
 	}
 #endif
+#endif
 #ifdef RTCONFIG_TCODE
-	if (strncmp(name, "lan_", 4) == 0 || strncmp(name, "dhcp_", 5) == 0) {
+	if (strncmp(name, "lan_", 4) == 0 || strncmp(name, "dhcp_", 5) == 0
+#if defined(RTAC58U)
+	 || strcmp(name, "http_username") == 0
+	 || strcmp(name, "http_passwd") == 0
+#endif
+	) {
 		char *value = tcode_default_get(fixed_name);
 		if (value) {
 			return value;
@@ -3882,6 +3914,7 @@ nvram_validate_all(char *prefix, bool restore)
 		}
 	}
 
+#ifndef HND_ROUTER
 	/* override router type1 nvram setting */
 	if (!strcmp(nvram_safe_get("devicemode"), "1")) {
 		for (t = router_defaults_override_type1; t->name; t++) {
@@ -3894,6 +3927,7 @@ nvram_validate_all(char *prefix, bool restore)
 			}
 		}
 	}
+#endif
 }
 
 /* restore specific per-interface variable */
@@ -3910,6 +3944,7 @@ nvram_restore_var(char *prefix, char *name)
 		}
 	}
 
+#ifndef HND_ROUTER
 	/* override router type1 setting */
 	if (!strcmp(nvram_safe_get("devicemode"), "1")) {
 		for (t = router_defaults_override_type1; t->name; t++) {
@@ -3919,4 +3954,5 @@ nvram_restore_var(char *prefix, char *name)
 			}
 		}
 	}
+#endif
 }

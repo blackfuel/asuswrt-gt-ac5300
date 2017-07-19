@@ -26,6 +26,7 @@ var vpnc_dev_policy_list_array_ori = [];
 
 var dhcp_staticlist_array = '<% nvram_get("dhcp_staticlist"); %>';
 var manually_dhcp_list_array = new Array();
+var manually_dhcp_list_array_ori = new Array();
 Object.prototype.getKey = function(value) {
 	for(var key in this) {
 		if(this[key] == value) {
@@ -67,6 +68,7 @@ function initial(){
 	for(var i = 1; i < dhcp_staticlist_row.length; i += 1) {
 		var dhcp_staticlist_col = dhcp_staticlist_row[i].split('&#62');
 		manually_dhcp_list_array[dhcp_staticlist_col[1]] = dhcp_staticlist_col[0].toUpperCase();
+		manually_dhcp_list_array_ori[dhcp_staticlist_col[1]] = dhcp_staticlist_col[0].toUpperCase();
 	}
 
 	//Viz 2011.10{ for LAN ip in DHCP pool or Static list
@@ -183,6 +185,13 @@ function del_Row(r){
 	var i = r.parentNode.parentNode.rowIndex;
 	var delIP = document.getElementById('dhcp_staticlist_table').rows[i].cells[1].innerHTML;
 
+	if(vpn_fusion_support) {
+		if(manually_dhcp_list_array_ori[delIP] != undefined) {
+			if(!confirm("Delete this policy will also remove the exception policy setting in VPN Fusion feature. Are you sure want to delete?"))/*untranslated*/
+				return false;
+		}
+	}
+
 	delete manually_dhcp_list_array[delIP];
 	document.getElementById('dhcp_staticlist_table').deleteRow(i);
 
@@ -266,7 +275,7 @@ function showdhcp_staticlist(){
 			code += '</td></tr></table>';
 			code += '</td>';
 			code +='<td width="30%">'+ clientIP +'</td>';
-			code +='<td width="10%">';<!--input class="edit_btn" onclick="edit_Row(this);" value=""/-->
+			code +='<td width="10%">';
 			code +='<input class="remove_btn" onclick="del_Row(this);" value=""/></td></tr>';
 		});
 	}
@@ -311,6 +320,8 @@ function applyRule(){
 			}
 		}
 
+		if(based_modelid == "MAP-AC1300" || based_modelid == "MAP-AC2200" || based_modelid == "VRZ-AC1300")
+			alert("By applying new LAN settings, please reboot all Lyras connected to main Lyra manually.");
 		showLoading();
 		document.form.submit();
 	}

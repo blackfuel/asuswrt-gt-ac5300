@@ -102,8 +102,6 @@ typedef struct _WPS_CONFIGURED_VALUE {
 
 /* shared/sysdeps/api-qca.c */
 extern u_int ieee80211_mhz2ieee(u_int freq);
-extern int get_channel_list_via_driver(int unit, char *buffer, int len);
-extern int get_channel_list_via_country(int unit, const char *country_code, char *buffer, int len);
 
 #define WL_A		(1U << 0)
 #define WL_B		(1U << 1)
@@ -1688,27 +1686,14 @@ static int ej_wl_channel_list(int eid, webs_t wp, int argc, char_t **argv, int u
 {
 	int retval = 0;
 	char tmp[128], prefix[] = "wlXXXXXXXXXX_";
-	char *country_code;
 	char chList[256];
-	int band;
 
 	snprintf(prefix, sizeof(prefix), "wl%d_", unit);
-	country_code = nvram_get(strcat_r(prefix, "country_code", tmp));
-	band = unit;
 
-	if (country_code == NULL || strlen(country_code) != 2) return retval;
+	sprintf(tmp, "[\"%d\"]", 0);
 
-	if (band != 0 && band != 1) return retval;
-
-	//try getting channel list via wifi driver first
-	if(get_channel_list_via_driver(unit, chList, sizeof(chList)) > 0)
-	{
-		retval += websWrite(wp, "[%s]", chList);
-	}
-	else if(get_channel_list_via_country(unit, country_code, chList, sizeof(chList)) > 0)
-	{
-		retval += websWrite(wp, "[%s]", chList);
-	}
+	wave_get_channel_list(unit, chList);
+	retval += websWrite(wp, "[%s]", chList);
 	return retval;
 }
 

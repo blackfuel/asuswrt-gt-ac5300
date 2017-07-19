@@ -51,17 +51,21 @@ function show_warning_message(){
 			else
 				setTimeout("get_real_ip();", 3000);
 		}
-		else if(realip_state != "2")
-			valid_wan_ip();
+		else if(realip_state != "2"){
+			if(validator.isPrivateIP(wanlink_ipaddr()))
+				showhide("wan_ip_hide2", 1);
+			else
+				showhide("wan_ip_hide2", 0);
+		}
 		else{
 			if(!external_ip)
-		    	showhide("wan_ip_hide2", 1);
-		    else
-		    	showhide("wan_ip_hide2", 0);
+				showhide("wan_ip_hide2", 1);
+			else
+				showhide("wan_ip_hide2", 0);
 		}
 	}
-	else
-    	valid_wan_ip();
+	else if(validator.isPrivateIP(wanlink_ipaddr()))
+		showhide("wan_ip_hide2", 1);
 }
 
 function get_real_ip(){
@@ -100,33 +104,6 @@ function force_update() {
 		
 	document.form.submit();
 	showLoading();
-}
-
-function valid_wan_ip() {
-    // test if WAN IP is a private IP.
-    var A_class_start = inet_network("10.0.0.0");
-    var A_class_end = inet_network("10.255.255.255");
-    var B_class_start = inet_network("172.16.0.0");
-    var B_class_end = inet_network("172.31.255.255");
-    var C_class_start = inet_network("192.168.0.0");
-    var C_class_end = inet_network("192.168.255.255");     
-    var ip_obj = wanlink_ipaddr();
-    var ip_num = inet_network(ip_obj);
-    var ip_class = "";
-
-    if(ip_num > A_class_start && ip_num < A_class_end)
-        ip_class = 'A';
-    else if(ip_num > B_class_start && ip_num < B_class_end)
-        ip_class = 'B';
-    else if(ip_num > C_class_start && ip_num < C_class_end)
-        ip_class = 'C';
-    else if(ip_num != 0){
-        showhide("wan_ip_hide2", 0);
-        return;
-    }
-		
-    showhide("wan_ip_hide2", 1);
-    return;
 }
 
 function ddns_load_body(){

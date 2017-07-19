@@ -55,7 +55,10 @@ enum lp55xx_leds_mode {
 	LP55XX_ACT_3ON1OFF,
 	LP55XX_ACT_BREATH,
 	LP55XX_ACT_BREATH_DOWN_011,
-	LP55XX_END_BLINK
+	LP55XX_END_BLINK,
+//	Exception of Blink Mode
+	LP55XX_ACT_BREATH_EXCEPTION = 900,
+	LP55XX_END
 };
 
 extern void lp55xx_leds_proc(int ptv_mode, int ptb_mode);

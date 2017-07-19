@@ -154,6 +154,8 @@ typedef struct client
 	void *im_user_data;
 	int im_timeout_sec;			  /* The timeout value in second unit for sending message. */
 	struct timeval      im_request_timeout;     // for check timeout.
+
+	int sleep_while_data_sent;
 } client_t;
 
 /* Call specific data */
@@ -164,7 +166,6 @@ typedef struct call_data
 	fd_set              client_fds;
 	int					nfds;
 	list_t             *clients;
-	list_t             *client_locks;
 
     /* for UDP_CLIENT */
     list_t             *conn_clients;

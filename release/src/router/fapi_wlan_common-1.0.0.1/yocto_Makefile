@@ -5,7 +5,7 @@ PKG_NAME := libfapiwlancommon
 LIBRARY = libfapiwlancommon.so
 #CCSP module is not included
 LIB_OBJS = fapi_wlan.o wlan_config_server_api.o help_list.o help_debug.o fapi_wlan_beerock.o fapi_wlan_tools.o
-EXTRALDFLAGS := -L./ -lfapiwlancommon
+EXTRALDFLAGS := -L./ -lfapiwlancommon  -ldl -lhelper -lrt
 
 COMPILE = $(CC) $(INCLUDES) $(CFLAGS) $(DEFS) $(CPPFLAGS) -I./include -DCONFIG_CTRL_IFACE -DCONFIG_CTRL_IFACE_UNIX -DYOCTO
 

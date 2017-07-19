@@ -278,7 +278,6 @@ var forceChangePW = false;
 if('<% check_pw(); %>' == '1'){
 	forceChangePW = true;
 }
-
 var scan_flag = 0;
 var aplist_info = "";
 var parent_ap = new Array();
@@ -754,6 +753,7 @@ function gen_aplist_table(band){
 	var code_connected = "";
 	var prefix_ssid = "";
 	var code_similar = "";
+
 	for(i=0;i<aplist_info.length;i++){
 		if(select_band != 0){
 			if(parent_ap[aplist_info[i][6]].band == select_band.toUpperCase()){
@@ -761,8 +761,9 @@ function gen_aplist_table(band){
 			}
 		}
 
-		if(parent_ap[aplist_info[i][6]].band ==  band)
+		if(parent_ap[aplist_info[i][6]].band ==  band){
 			continue;
+		}
 		
 		if(parent_ap[aplist_info[i][6]].SSID == "" || parent_ap[aplist_info[i][6]].SSID == " "){
 			continue;
@@ -791,7 +792,6 @@ function gen_aplist_table(band){
 			code_connected += '</div>';
 			code_connected += '</div>';
 			code_connected += '</div>';
-			
 			continue;
 		}
 		
@@ -825,7 +825,7 @@ function gen_aplist_table(band){
 			code_similar += '</div>';
 			code_similar += '</div>';
 			code_similar += '</div>';
-		
+	
 			continue;
 		}
 		
@@ -853,7 +853,8 @@ function gen_aplist_table(band){
 		code += '</div>';
 	}
 	
-	if(code == ""){
+
+	if(aplist_info == ""){
 		code = '<div style="font-family:Helvetica,Arial;font-size:2em;color:#FFF;margin:34px 0 0 46px;text-align:left;">Cannot detect Wi-Fi signal. Rescan Wi-Fi or add the Wi-Fi network manually.</div>';
 	}
 
@@ -2182,7 +2183,7 @@ function genOptions(){
 					<input id="http_passwd" type="text" maxlength="64" style="padding-left:18px;font-family:HelveticaNeueW10-45Ligh,Helvetica,Arial;font-size:1.875em;color:#DBDBDB;" value="" data-clear-btn="true"></input>
 				</div>
 			</div>
-			<div style="margin-left:38px;">
+			<div style="margin-left:38px;margin-bottom:150px;">
 				<div style="display:table;margin:18px 0 19px 30px;width:100%">
 					<div style="HelveticaNeueLT45_Light_regular,Helvetica_regular,Arial;font-size:1.5em;color:#B8D8FF;display:table-cell"><#PASS_retype#></div>
 				</div>	
@@ -2190,6 +2191,7 @@ function genOptions(){
 					<input id="http_passwd_confirm" type="text" maxlength="64" style="padding-left:18px;font-family:HelveticaNeueW10-45Ligh,Helvetica,Arial;font-size:1.875em;color:#DBDBDB;" value="" data-clear-btn="true"></input>
 				</div>
 			</div>
+
 				<!--for desktop-->
 			<div class="footer_desktop" style="color:#FFF;text-align:center;margin-top:0;">
 				<div style="display:inline-block;width:300px;border:1px solid #DBDBDB;border-radius:4px;height:66px;line-height:66px;margin:0 20px;font-size:1.5em;cursor:pointer;" onclick='$("#http_username").val("");$("#http_passwd").val("");$("#http_password_confirm").val("");$.mobile.changePage("#welcome", {transition: "slide", changeHash: false, reverse: true});'>CANCEL</div>
@@ -2388,7 +2390,7 @@ function genOptions(){
 				<input id="parentAP_key" type="text" maxlength="64" style="padding-left:18px;font-family:HelveticaNeueW10-45Ligh,Helvetica,Arial;font-size:1.875em;color:#DBDBDB;" value="" data-clear-btn="true"></input>
 			</div>
 		</div>
-		<div style="margin-left:38px";>
+		<div style="margin-left:38px;">
 			<label style="background:transparent;color:#C5C5C5; border:0;font-size:1.875em;font-weight:normal;font-family:HelveticaNeueW10-45Ligh,Helvetica,Arial;text-align:left;left:-0.3em">
 				<input id="ip_advance_setting_checkbox" type="checkbox" style="width:21px;height:21px;" onclick="ip_advance_setting_show(this);">Advanced Setting
 			</label>	

@@ -180,6 +180,12 @@ static const struct led_btn_table_s {
 	{ "led_5g_green_gpio",	&led_gpio_table[LED_5G_GREEN] },
 	{ "led_5g_red_gpio",	&led_gpio_table[LED_5G_RED] },
 #endif
+#if defined(RPAC51)
+	{ "led_pwr_red_gpio",&led_gpio_table[LED_RED_POWER] },
+	{ "led_single_gpio",	&led_gpio_table[LED_SINGLE] },
+	{ "led_far_gpio",	&led_gpio_table[LED_FAR] },
+	{ "led_near_gpio",	&led_gpio_table[LED_NEAR] },
+#endif
 #ifdef RPAC87
 	{ "led_2g_green_gpio1",	&led_gpio_table[LED_2G_GREEN1] },
 	{ "led_2g_green_gpio2",	&led_gpio_table[LED_2G_GREEN2] },
@@ -304,9 +310,12 @@ int init_gpio(void)
 		, "led_2g_green_gpio", "led_2g_orange_gpio", "led_2g_red_gpio"
 		, "led_5g_green_gpio", "led_5g_orange_gpio", "led_5g_red_gpio"
 #endif
-#ifdef RPAC66
+#if defined(RPAC66)
 		, "led_pwr_orange_gpio" , "led_2g_blue_gpio", "led_2g_green_gpio", "led_2g_red_gpio"
 		, "led_5g_blue_gpio", "led_5g_green_gpio", "led_5g_red_gpio"
+#endif
+#if defined(RPAC51)
+		, "led_pwr_red_gpio" , "led_single_gpio", "led_far_gpio", "led_near_gpio"
 #endif
 #ifdef RPAC87
 		, "led_2g_green_gpio1" , "led_2g_green_gpio2", "led_2g_green_gpio3", "led_2g_green_gpio4"

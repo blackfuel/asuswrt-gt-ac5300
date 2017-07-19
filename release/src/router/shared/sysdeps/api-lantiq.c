@@ -1142,17 +1142,17 @@ void set_power_save_mode(void)
 char *get_lan_mac_name(void)
 {
 	int model = get_model();
-	char *mac_name = "et1macaddr";
+	char *mac_name = "et0macaddr";
 
 	/* Check below configuration in convert_wan_nvram() too. */
 	switch (model) {
 	case MODEL_BLUECAVE:	/* fall-through */
 		/* Use 5G MAC address as LAN MAC address. */
-		mac_name = "et1macaddr";
+		mac_name = "et0macaddr";
 		break;
 	default:
 		dbg("%s: Define LAN MAC address for model %d\n", __func__, model);
-		mac_name = "et1macaddr";
+		mac_name = "et0macaddr";
 		break;
 	};
 

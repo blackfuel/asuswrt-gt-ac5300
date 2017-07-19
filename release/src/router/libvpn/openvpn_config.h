@@ -176,6 +176,7 @@ typedef enum ovpn_status{
 	OVPN_STS_STOP = 0,
 	OVPN_STS_INIT,
 	OVPN_STS_RUNNING,
+	OVPN_STS_STOPPING,
 }ovpn_status_t;
 
 

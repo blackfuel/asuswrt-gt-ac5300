@@ -91,6 +91,37 @@
 	padding:15px 10px 20px 10px;
 	display: none;
 }
+
+.AiProtection_01{
+	text-align:center;
+	background: url('/images/New_ui/AiProtection_01.png');
+	width:34px;
+	height:34px;
+	margin: 0 5px;
+}
+
+.AiProtection_02{
+	text-align:center;
+	background: url('/images/New_ui/AiProtection_02.png');
+	width:34px;
+	height:34px;
+	margin: 0 5px;
+}
+
+.AiProtection_03{
+	text-align:center;
+	background: url('/images/New_ui/AiProtection_03.png');
+	width:34px;
+	height:34px;
+	margin: 0 5px;
+}
+
+.line_1{
+	background:url('/images/line.png') no-repeat;
+	width:6px;
+	height:102px;
+	background-size:4px 185px;
+}
 </style>
 <script>
 if(usb_support) addNewScript("/disk_functions.js");
@@ -117,6 +148,15 @@ var safe_count = 0;
 
 function initial(){
 	show_menu();
+
+	if(lyra_hide_support){
+		document.getElementById("scenario_tr").style.display = "none";
+		document.getElementById("security_scan_tr").style.display = "none";
+		$(".AiProtection_02").css('display','none');
+		$(".AiProtection_03").css('display','none');
+		$(".line_1").css('display','none');
+	}
+
 	if(document.form.wrs_protect_enable.value == '1'){
 		shadeHandle('1');
 	}
@@ -705,16 +745,40 @@ function check_TM_feature(){
 
 function show_tm_eula(){
 	if(document.form.preferred_lang.value == "JP"){
-			$.get("JP_tm_eula.htm", function(data){
-				document.getElementById('agreement_panel').innerHTML= data;
-				adjust_TM_eula_height("agreement_panel");
-			});
+		$.get("JP_tm_eula.htm", function(data){
+			document.getElementById('agreement_panel').innerHTML= data;
+			adjust_TM_eula_height("agreement_panel");
+		});
 	}
+	else if(document.form.preferred_lang.value == "TW"){
+		$.get("tm_eula_TC.htm", function(data){
+			document.getElementById('agreement_panel').innerHTML= data;
+			adjust_TM_eula_height("agreement_panel");
+		});
+	}
+	else if(document.form.preferred_lang.value == "CN"){
+		$.get("tm_eula_SC.htm", function(data){
+			document.getElementById('agreement_panel').innerHTML= data;
+			adjust_TM_eula_height("agreement_panel");
+		});
+	}
+	else if(document.form.preferred_lang.value == "FR"){
+		$.get("tm_eula_FR.htm", function(data){
+			document.getElementById('agreement_panel').innerHTML= data;
+			adjust_TM_eula_height("agreement_panel");
+		});
+	}
+	else if(document.form.preferred_lang.value == "RU"){
+		$.get("tm_eula_RU.htm", function(data){
+			document.getElementById('agreement_panel').innerHTML= data;
+			adjust_TM_eula_height("agreement_panel");
+		});
+	}																			
 	else{
-			$.get("tm_eula.htm", function(data){
-				document.getElementById('agreement_panel').innerHTML= data;
-				adjust_TM_eula_height("agreement_panel");
-			});
+		$.get("tm_eula.htm", function(data){
+			document.getElementById('agreement_panel').innerHTML= data;
+			adjust_TM_eula_height("agreement_panel");
+		});
 	}
 	dr_advise();
 	cal_panel_block("agreement_panel", 0.25);
@@ -1129,14 +1193,14 @@ function shadeHandle(flag){
 													<table>
 														<tr>
 															<td>
-																<div style="width:430px">AiProtection with Trend Micro protects against network exploit to secure your network from malicious access, ransomware or cybercriminal attakcs.</div>
+																<div style="width:430px"><#AiProtection_desc#></div>
 																<div style="width:430px"><a style="text-decoration:underline;" href="http://www.asus.com/support/FAQ/1008719/" target="_blank"><#AiProtection_title#> FAQ</a></div>
 															</td>
 															<td>
 																<div style="width:100px;height:48px;margin-left:-40px;background-image:url('images/New_ui/tm_logo.png');"></div>
 															</td>
 														</tr>
-														<tr>
+														<tr id="scenario_tr">
 															<td rowspan="2">
 																<div>
 																	<img src="/images/New_ui/Home_Protection_Scenario.png">
@@ -1182,13 +1246,13 @@ function shadeHandle(flag){
 									<!--=====Beginning of Main Content=====-->
 									<div style="margin-top:5px;">
 										<table style="width:99%;border-collapse:collapse;">
-											<tr class="block_bg block_line" style="height:120px;">
+											<tr id="security_scan_tr" class="block_bg block_line" style="height:120px;">
 												<td style="border-radius:10px 0px 0px 10px;">
-													<div style="text-align:center;background: url('/images/New_ui/AiProtection_01.png');width:34px;height:34px;margin: 0 5px;"></div>	
+													<div class="AiProtection_01"></div>
 												</td>
 												 <td width="6px">
-													<div><img src="/images/line.png"></div>
-												</td>											
+													<div class="line_1"></div>
+												</td>
 												<td style="padding:10px;">
 													<div style="font-size:18px;text-shadow:1px 1px 0px black;"><#AiProtection_scan#></div>
 													<div style="font-style: italic;font-size: 14px;color:#FC0;height:auto;padding-top:5px;"><#AiProtection_scan_desc#></div>
@@ -1214,15 +1278,15 @@ function shadeHandle(flag){
 											<tr style="height:10px;"></tr>
 											<tr class="block_bg block_line" style="height:120px;">
 												<td style="border-radius:10px 0px 0px 10px;">
-													<div style="text-align:center;background: url('/images/New_ui/AiProtection_02.png');width:34px;height:34px;margin: 0 5px;"></div>	
+													<div class="AiProtection_02"></div>
 												</td>
 												 <td width="6px">
-													<div style="background:url('/images/line.png') no-repeat;width:6px;height:102px;background-size:4px 185px;";></div>
-												</td>											
+													<div class="line_1"></div>
+												</td>
 												<td style="padding:10px;cursor:pointer;" onclick="location.href='AiProtection_MaliciousSitesBlocking.asp'">
 													<div>
 														<div style="font-size:18px;text-shadow:1px 1px 0px black;"><#AiProtection_sites_blocking#></div>
-														<div style="font-style: italic;font-size: 14px;color:#FC0;height:auto;padding-top:5px;">Malicious Sites Blocking restricts access to known malicious websites to prevent malware, phishing, spam, adware, hacking or ransomware from attacking your network device.</div>
+														<div style="font-style: italic;font-size: 14px;color:#FC0;height:auto;padding-top:5px;"><#AiProtection_sites_block_desc#></div>
 													</div>								
 												</td>
 												 <td width="6px">
@@ -1235,16 +1299,16 @@ function shadeHandle(flag){
 														<div class="iphone_switch_container" style="height:32px; width:74px; position: relative; overflow: hidden">
 															<script type="text/javascript">
 																$('#radio_mals_enable').iphoneSwitch('<% nvram_get("wrs_mals_enable"); %>',
-																	function(){																					
+																	function(){
 																		document.form.wrs_mals_enable.value = 1;
-																		applyRule();																				
+																		applyRule();
 																	},
 																	function(){
 																		document.form.wrs_mals_enable.value = 0;
 																		applyRule();
 																	}
 																);
-															</script>			
+															</script>
 														</div>
 													</div>
 												</td>
@@ -1261,16 +1325,16 @@ function shadeHandle(flag){
 														</div>
 													</div>
 
-												</td>										
+												</td>
 											</tr>
 
 											<tr style="height:10px;"></tr>
 											<tr class="block_bg block_line" style="height:120px;">
 												<td style="border-radius:10px 0px 0px 10px;">
-													<div style="text-align:center;background: url('/images/New_ui/AiProtection_02.png');width:34px;height:34px;margin: 0 5px;"></div>	
+													<div class="AiProtection_02"></div>
 												</td>
 												 <td width="6px">
-													<div style="background:url('/images/line.png') no-repeat;width:6px;height:102px;background-size:4px 185px;";></div>
+													<div class="line_1"></div>
 												</td>
 												<td style="padding:10px;cursor:pointer;" onclick="location.href='AiProtection_IntrusionPreventionSystem.asp'">
 													<div>
@@ -1319,10 +1383,10 @@ function shadeHandle(flag){
 											<tr style="height:10px;"></tr>										
 											<tr class="block_bg" style="height:120px;">
 												<td style="border-radius:10px 0px 0px 10px;">
-													<div style="text-align:center;background: url('/images/New_ui/AiProtection_03.png');width:34px;height:34px;margin: 0 5px;"></div>	
+													<div class="AiProtection_03"></div>
 												</td>
 												 <td width="6px">
-													<div style="background:url('/images/line.png') no-repeat;width:6px;height:102px;background-size:4px 185px;";></div>
+													<div class="line_1"></div>
 												</td>
 												<td style="padding:10px;cursor:pointer" onclick="location.href='AiProtection_InfectedDevicePreventBlock.asp'">
 													<div style="font-size:18px;text-shadow:1px 1px 0px black;"><#AiProtection_detection_blocking#></div>

@@ -2064,3 +2064,29 @@ int num_of_wl_if()
 
 	return count;
 }
+
+/* hex2str()
+ * Convert the hex array to string.
+ * @param hex pointer to hex to be converted
+ * @param str storage for the converted string
+ * @param hex_len length of storage for hex
+ * @return TRUE if conversion was successful and FALSE otherwise
+ */
+int hex2str(unsigned char *hex, char *str, int hex_len)
+{
+	int i = 0;
+	char *d = NULL;
+	unsigned char *s = NULL;
+	const static char hexdig[] = "0123456789ABCDEF";
+	if(hex == NULL||str == NULL)
+		return 0;
+	d = str;
+	s = hex;
+
+	for (i = 0; i < hex_len; i++,s++){
+		*d++ = hexdig[(*s >> 4) & 0xf];
+		*d++ = hexdig[*s & 0xf];
+	}
+	*d = 0;
+	return 1;
+} /* End of hex2str */

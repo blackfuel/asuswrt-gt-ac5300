@@ -208,6 +208,12 @@ struct natnl_config {
 
 	// The array of instant message port.
 	natnl_im_port im_ports[MAX_USER_PORT_COUNT];
+
+	// The file path of trusted ca certificate list for SIP server.
+	char sip_trusted_ca_certs[256];
+
+	// The file path of trusted ca certificate list for SIP server.
+	int sip_verify_server_peer;
 };
 
 //Global declare, nantl_config structure basic config

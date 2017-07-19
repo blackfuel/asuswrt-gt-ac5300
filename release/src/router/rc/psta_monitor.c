@@ -83,6 +83,13 @@ typedef struct wlc_ap_list_info
 static wlc_ap_list_info_t ap_list[MAX_NUMBER_OF_APINFO];
 static char scan_result[WLC_SCAN_RESULT_BUF_LEN];
 
+#ifdef AMAS
+static char hexdata_g[256];
+static unsigned char mac_ap[ETHER_ADDR_LEN];
+static wlc_ssid_t ssid_ap = { 0, {0} };
+static void psta_add_ie();
+#endif
+
 /* The below macro handle endian mis-matches between wl utility and wl driver. */
 static bool g_swap = FALSE;
 #define htod32(i) (g_swap?bcmswap32(i):(uint32)(i))
@@ -215,7 +222,7 @@ get_scan_escan(char *scan_buf, uint buf_len)
 						bi->SSID_len == bss->SSID_len &&
 						!memcmp(bi->SSID, bss->SSID, bi->SSID_len))
 						break;
-					}
+				}
 
 				if (!result) {
 					/* New BSS. Allocate memory and save it */
@@ -362,6 +369,7 @@ wl_get_scan_results_escan(int unit)
 	params_size += OFFSETOF(wl_escan_params_t, params);
 
 	ifname = nvram_safe_get(strcat_r(prefix, "ifname", tmp));
+
 	/* extend scan channel time to get more AP probe resp */
 	wl_ioctl(ifname, WLC_GET_SCAN_CHANNEL_TIME, &org_scan_time, sizeof(org_scan_time));
 	if (org_scan_time < scan_time)
@@ -430,6 +438,71 @@ wl_get_scan_results(int unit)
 	params->channel_num = 0;
 
 	ifname = nvram_safe_get(strcat_r(prefix, "ifname", tmp));
+
+	/* extend scan channel time to get more AP probe resp */
+	wl_ioctl(ifname, WLC_GET_SCAN_CHANNEL_TIME, &org_scan_time, sizeof(org_scan_time));
+	if (org_scan_time < scan_time)
+		wl_ioctl(ifname, WLC_SET_SCAN_CHANNEL_TIME, &scan_time,	sizeof(scan_time));
+
+	while ((ret = wl_ioctl(ifname, WLC_SCAN, params, params_size)) < 0 &&
+				retry_times++ < WLC_SCAN_RETRY_TIMES) {
+		dbg("set scan command failed, retry %d\n", retry_times);
+		sleep(1);
+	}
+
+	free(params);
+
+	/* restore original scan channel time */
+	wl_ioctl(ifname, WLC_SET_SCAN_CHANNEL_TIME, &org_scan_time, sizeof(org_scan_time));
+
+	sleep(2);
+
+	if (ret == 0) {
+		list->buflen = WLC_SCAN_RESULT_BUF_LEN;
+		ret = wl_ioctl(ifname, WLC_SCAN_RESULTS, scan_result, WLC_SCAN_RESULT_BUF_LEN);
+		if (ret < 0) {
+			if (psta_debug)
+			dbg("get scan result failed, retry %d\n", retry_times);
+		}
+	}
+
+	if (ret < 0)
+		return NULL;
+
+	return scan_result;
+}
+
+#ifdef AMAS
+static char *
+wl_get_scan_results_amas(int unit)
+{
+	int ret, retry_times = 0;
+	wl_scan_params_t *params;
+	wl_scan_results_t *list = (wl_scan_results_t*)scan_result;
+	int params_size = WL_SCAN_PARAMS_FIXED_SIZE + NUMCHANS * sizeof(uint16);
+	int org_scan_time = 20, scan_time = 40;
+	char tmp[NVRAM_BUFSIZE], prefix[] = "wlXXXXXXXXXX_";
+	char *ifname = NULL;
+
+	snprintf(prefix, sizeof(prefix), "wl%d_", unit);
+
+	params = (wl_scan_params_t*)malloc(params_size);
+	if (params == NULL) {
+		return NULL;
+	}
+
+	memset(params, 0, params_size);
+	params->bss_type = DOT11_BSSTYPE_ANY;
+	memcpy(&params->bssid, &ether_bcast, ETHER_ADDR_LEN);
+	params->scan_type = WL_SCANFLAGS_PASSIVE;
+	params->nprobes = -1;
+	params->active_time = -1;
+	params->passive_time = -1;
+	params->home_time = -1;
+	params->channel_num = 0;
+
+	ifname = nvram_safe_get(strcat_r(prefix, "ifname", tmp));
+
 	/* extend scan channel time to get more AP probe resp */
 	wl_ioctl(ifname, WLC_GET_SCAN_CHANNEL_TIME, &org_scan_time, sizeof(org_scan_time));
 	if (org_scan_time < scan_time)
@@ -463,6 +536,7 @@ wl_get_scan_results(int unit)
 	return scan_result;
 }
 #endif
+#endif
 
 static int
 wl_scan(int unit)
@@ -471,7 +545,7 @@ wl_scan(int unit)
 	wl_bss_info_t *bi;
 	wl_bss_info_107_t *old_bi;
 	uint i, ap_count = 0;
-	char ssid_str[128], macstr[18];
+	char macstr[18];
 
 #if defined(RTCONFIG_BCM_7114) || defined(HND_ROUTER)
 	if (wl_get_scan_results_escan(unit) == NULL)
@@ -535,11 +609,7 @@ wl_scan(int unit)
 		if (psta_debug)
 		dbg("%-4s%-33s%-18s\n", "Ch", "SSID", "BSSID");
 
-		for (i = 0; i < ap_count; i++)
-		{
-			memset(ssid_str, 0, sizeof(ssid_str));
-			char_to_ascii(ssid_str, (const char *) trim_r((char *) ap_list[i].ssid));
-
+		for (i = 0; i < ap_count; i++) {
 			ether_etoa((const unsigned char *) &ap_list[i].BSSID, macstr);
 			if (psta_debug)
 			dbg("%-4d%-33s%-18s\n",
@@ -552,6 +622,178 @@ wl_scan(int unit)
 
 	return ap_count;
 }
+
+#ifdef AMAS
+static int
+wl_scan_amas(int unit)
+{
+	wl_scan_results_t *list = (wl_scan_results_t*)scan_result;
+	wl_bss_info_t *bi;
+	wl_bss_info_107_t *old_bi;
+	struct bss_ie_hdr *ie;
+	struct vndr_ie *ie_vs;
+	struct tlvbase *tlv;
+	uint i, j, left, left2;
+	char eaddr[18];
+	wlc_ssid_t ssid = { 0, {0} };
+	uint8 channel;
+	int match_1, match_2, match_3, match_4;
+	char tmp[NVRAM_BUFSIZE], prefix[] = "wlXXXXXXXXXX_";
+	char *ifname = NULL;
+	uint8 status = 0, cost;
+	unsigned char ID[20], mac_re[ETHER_ADDR_LEN], ea[ETHER_ADDR_LEN];
+
+#if defined(RTCONFIG_BCM_7114) || defined(HND_ROUTER)
+	if (wl_get_scan_results_escan(unit) == NULL)
+#else
+	if (wl_get_scan_results_amas(unit) == NULL)
+#endif
+		return 0;
+
+	if (list->count == 0)
+		return 0;
+#if !(defined(RTCONFIG_BCM_7114) || defined(HND_ROUTER))
+	else if (list->version != WL_BSS_INFO_VERSION &&
+			list->version != LEGACY_WL_BSS_INFO_VERSION &&
+			list->version != LEGACY2_WL_BSS_INFO_VERSION) {
+		dbg("Sorry, your driver has bss_info_version %d "
+		    "but this program supports only version %d.\n",
+		    list->version, WL_BSS_INFO_VERSION);
+		return 0;
+	}
+#endif
+
+	bi = list->bss_info;
+	if (psta_debug)
+	dbg("%-4s%-4s%-33s%-18s\n", "idx", "Ch", "SSID", "BSSID");
+	for (i = 0; i < list->count; i++) {
+		/* Convert version 107 to 109 */
+		if (dtoh32(bi->version) == LEGACY_WL_BSS_INFO_VERSION) {
+			old_bi = (wl_bss_info_107_t *)bi;
+			bi->chanspec = CH20MHZ_CHSPEC(old_bi->channel);
+			bi->ie_length = old_bi->ie_length;
+			bi->ie_offset = sizeof(wl_bss_info_107_t);
+		}
+
+		if (bi->ie_length) {
+			ether_etoa((const unsigned char *) (uint8 *)&bi->BSSID, eaddr);
+
+			strncpy((char *) ssid.SSID, (char *)bi->SSID, bi->SSID_len);
+			ssid.SSID[bi->SSID_len] = '\0';
+			ssid.SSID_len = bi->SSID_len;
+
+			if (dtoh32(bi->version) != LEGACY_WL_BSS_INFO_VERSION && bi->n_cap)
+				channel= bi->ctl_ch;
+			else
+				channel= (bi->chanspec & WL_CHANSPEC_CHAN_MASK);
+
+			if (psta_debug)
+			dbg("%-4d%-4d%-33s%-18s\n", i+1, channel, ssid.SSID, eaddr);
+		}
+
+		match_1 = match_2 = match_3 = match_4 = 0;
+		ie = (struct bss_ie_hdr *)((unsigned char *) bi + bi->ie_offset);
+		for (left = bi->ie_length; left > 0;
+			left -= (ie->len + 2), ie = (struct bss_ie_hdr *) ((unsigned char *) ie + 2 + ie->len)) {
+
+			if (ie->elem_id != DOT11_MNG_VS_ID)
+				continue;
+
+			if (memcmp(ie->oui, OUI_ASUS, 3))
+				continue;
+
+			ie_vs = (struct vndr_ie *) ie;
+			tlv = (struct tlvbase *) &(ie_vs->data[0]);
+			for (left2 = ie->len - DOT11_OUI_LEN; left2 > 0;
+				left2 -= (tlv->len + 2), tlv = (struct tlvbase *) ((unsigned char *) tlv + 2 + tlv->len)) {
+				switch (tlv->type) {
+				case 1:
+					if (tlv->len != 1) break;
+					match_1 = 1;
+					status = tlv->data[0];
+					if (psta_debug)
+					dbg("Status: %x\n", status);
+					break;
+				case 2:
+					if (tlv->len != 1) break;
+					match_2 = 1;
+					cost = tlv->data[0];
+					if (psta_debug)
+					dbg("Cost: %x\n", cost);
+					break;
+				case 3:
+					if (tlv->len != 20) break;
+					match_3 = 1;
+					memcpy(ID, &tlv->data[0], 20);
+					if (psta_debug) {
+					dbg("ID: ");
+					for (j = 0; j < tlv->len; j++)
+						dbg("%02X ", tlv->data[j]);
+					dbg("\n");
+					}
+					break;
+				case 4:
+					if (tlv->len != 6) break;
+					match_4 = 1;
+					memcpy(mac_re, &tlv->data[0], ETHER_ADDR_LEN);
+					if (psta_debug)
+					dbg("MAC address: %s\n", ether_etoa(&tlv->data[0], eaddr));
+					break;
+				}
+			}
+
+			if (!(match_1 && match_2 && match_3))
+				break;
+
+			switch (status) {
+			case 0:
+				memset(mac_ap, 0, ETHER_ADDR_LEN);
+
+				memset(ssid_ap.SSID, 0, 32);
+				ssid_ap.SSID_len = 0;
+
+				if (psta_debug)
+				dbg("Reset AP data\n");
+				break;
+			case 2:
+				memcpy(mac_ap, &bi->BSSID, ETHER_ADDR_LEN);
+
+				strncpy((char *)ssid_ap.SSID, (char *)bi->SSID, bi->SSID_len);
+				ssid_ap.SSID[bi->SSID_len] = '\0';
+				ssid_ap.SSID_len = bi->SSID_len;
+
+				psta_add_ie(unit);
+
+				snprintf(prefix, sizeof(prefix), "wl%d_", unit);
+				ifname = nvram_safe_get(strcat_r(prefix, "ifname", tmp));
+
+				if (psta_debug)
+				dbg("Send probe-req to SSID %s (BSSID: %s)\n", ssid.SSID, eaddr);
+				eval("wl", "-i", ifname, "scan", "-s", (char *) ssid.SSID, "-b", eaddr);
+				break;
+			case 4:
+				ether_atoe(get_lan_hwaddr(), ea);
+				if (match_4 &&
+					!memcmp(ea, mac_re, ETHER_ADDR_LEN) &&
+					!memcmp(&bi->BSSID, mac_ap, ETHER_ADDR_LEN) &&
+					(bi->SSID_len == ssid_ap.SSID_len) &&
+					!memcmp(bi->SSID, ssid_ap.SSID, ssid_ap.SSID_len)) {
+					if (psta_debug)
+					dbg("Start WPS Enroll\n");
+					notify_rc("start_wps_enr");
+				}
+				break;
+			}
+
+			break;
+		}
+
+		bi = (wl_bss_info_t*)((int8*)bi + bi->length);
+	}
+
+	return 0;
+}
+#endif
 
 static struct itimerval itv;
 static void
@@ -753,6 +995,117 @@ psta_monitor_exit(int sig)
 	}
 }
 
+#ifdef AMAS
+static int vsie_setbuf(int type, unsigned char *dst, unsigned char *data)
+{
+	int len = 0;
+	unsigned char c;
+
+	switch (type) {
+	case 1:
+		len = 1;
+		break;
+	case 3:
+		len = 20;
+		break;
+	case 4:
+		len = 6;
+		break;
+	}
+
+	if (len) {
+		c = type;
+		memcpy(dst, &c, 1);
+		c = len;
+		memcpy(dst+1, &c, 1);
+		memcpy(dst+2, data, len);
+	}
+
+	return len + 2;
+}
+
+static void set_temp_id(unsigned char *buf)
+{
+	time_t now;
+	char now_byte[4];
+	char str_groupid[] = "DC1A2BFCBCAE839DF23EF0F3B676C0DB";
+	unsigned char groupid[16];
+	char hexstr[3];
+	char *src, *dest, *pp;
+	int idx;
+	unsigned char val;
+
+	time(&now);
+	src = str_groupid;
+	dest = (char *) groupid;
+	for (idx = 0; idx < sizeof(groupid); idx++) {
+		hexstr[0] = src[0];
+		hexstr[1] = src[1];
+		hexstr[2] = '\0';
+
+		val = (unsigned char) strtoul(hexstr, NULL, 16);
+
+		*dest++ = val;
+		src += 2;
+	}
+
+	pp = (char *) &now;
+	for (idx = 0; idx < sizeof(now_byte); idx++)
+		now_byte[idx] = pp[sizeof(now_byte) - 1 -idx];
+
+	for (idx = 0; idx < sizeof(groupid); idx++)
+		groupid[idx] = groupid[idx] & now_byte[idx % sizeof(now_byte)];
+
+	f_read("/dev/urandom", buf, 16);
+	memcpy(buf + 16, now_byte, 4);
+}
+
+static void
+psta_add_ie(int unit)
+{
+	unsigned char value[256];
+	char hexdata[256];
+	unsigned char *p = NULL;
+	unsigned char status[] = { 0x3 };
+	unsigned char ea[ETHER_ADDR_LEN];
+	unsigned char ID[20];
+	int len, i;
+	char tmp[NVRAM_BUFSIZE], prefix[] = "wlXXXXXXXXXX_";
+	char *ifname = NULL;
+	char length[3], oui_asus_str[9];
+
+	memset(value, 0, sizeof(value));
+	p = value;
+	p += vsie_setbuf(1, p, status);
+	ether_atoe(get_lan_hwaddr(), ea);
+	p += vsie_setbuf(4, p, ea);
+	set_temp_id(ID);
+	p += vsie_setbuf(3, p, ID);
+
+	len = DOT11_OUI_LEN + (p - value);
+
+	for (i = 0; i < len; i++)
+		sprintf(&hexdata[2 * i], "%02x", value[i]);
+	hexdata[2 * len] = 0;
+	snprintf(prefix, sizeof(prefix), "wl%d_", unit);
+	ifname = nvram_safe_get(strcat_r(prefix, "ifname", tmp));
+	snprintf(length, sizeof(length), "%d", len);
+	memset(oui_asus_str, 0, sizeof(oui_asus_str));
+	sprintf(oui_asus_str, "%02X:%02X:%02X", OUI_ASUS[0], OUI_ASUS[1], OUI_ASUS[2]);
+	if (memcmp(hexdata_g, "\x0", 1)) {
+		eval("wl", "-i", ifname, "del_ie", "16", length, oui_asus_str, hexdata_g);
+	}
+	eval("wl", "-i", ifname, "add_ie", "16", length, oui_asus_str, hexdata);
+	memcpy(hexdata_g, hexdata, sizeof(hexdata_g));
+}
+
+static void
+psta_scan()
+{
+	wl_scan_amas(nvram_get_int("wlc_band"));
+}
+#endif
+
 int
 psta_monitor_main(int argc, char *argv[])
 {
@@ -775,14 +1128,24 @@ psta_monitor_main(int argc, char *argv[])
 	if (nvram_match("psta_debug", "1"))
 		psta_debug = 1;
 
+#ifdef AMAS
+	memset(hexdata_g, 0, sizeof(hexdata_g));
+#endif
+
 	/* set the signal handler */
 	sigemptyset(&sigs_to_catch);
 	sigaddset(&sigs_to_catch, SIGALRM);
 	sigaddset(&sigs_to_catch, SIGTERM);
+#ifdef AMAS
+	sigaddset(&sigs_to_catch, SIGUSR1);
+#endif
 	sigprocmask(SIG_UNBLOCK, &sigs_to_catch, NULL);
 
 	signal(SIGALRM, psta_monitor);
 	signal(SIGTERM, psta_monitor_exit);
+#ifdef AMAS
+	signal(SIGUSR1, psta_scan);
+#endif
 
 	/* turn off wireless led of other bands under psta mode */
 	if (is_psta(nvram_get_int("wlc_band"))

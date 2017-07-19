@@ -27,9 +27,7 @@ LDFLAGS += -L$(TOP)/wlc_nt -lwlc_nt_client
 endif
 
 ifeq ($(RTCONFIG_CFGSYNC),y)
-CFGLAGS += -I$(TOP)/json-c
 CFLAGS  += -I$(TOP)/cfg_mnt
-LDFLAGS += -L$(TOP)/json-c/.libs -ljson-c
 LDFLAGS += -L$(TOP)/cfg_mnt -lcfgmnt
 endif 
 

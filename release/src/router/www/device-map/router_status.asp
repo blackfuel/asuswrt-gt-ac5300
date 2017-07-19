@@ -127,27 +127,33 @@ function initial(){
 		document.form.wl_subunit.value = 1;
 	else
 		document.form.wl_subunit.value = -1;
-	
-	if(band5g_support){
+
+	if(lyra_hide_support){
 		document.getElementById("t0").style.display = "";
-		document.getElementById("t1").style.display = "";
-
-		if(wl_info.band5g_2_support)
-			tab_reset(0);
-
-		if(smart_connect_support && (parent.isSwMode("rt") || parent.isSwMode("ap")))
-			change_smart_connect('<% nvram_get("smart_connect_x"); %>');	
-		
-		// disallow to use the other band as a wireless AP
-		if(parent.sw_mode == 4 && !localAP_support){
-			for(var x=0; x<wl_info.wl_if_total;x++){
-				if(x != '<% nvram_get("wlc_band"); %>')
-					document.getElementById('t'+parseInt(x)).style.display = 'none';			
-			}
-		}
+		document.getElementById("span0").innerHTML = "<#tm_wireless#>";
 	}
 	else{
-		document.getElementById("t0").style.display = "";
+		if(band5g_support){
+			document.getElementById("t0").style.display = "";
+			document.getElementById("t1").style.display = "";
+
+			if(wl_info.band5g_2_support)
+				tab_reset(0);
+
+			if(smart_connect_support && (parent.isSwMode("rt") || parent.isSwMode("ap")))
+				change_smart_connect('<% nvram_get("smart_connect_x"); %>');
+			
+			// disallow to use the other band as a wireless AP
+			if(parent.sw_mode == 4 && !localAP_support){
+				for(var x=0; x<wl_info.wl_if_total;x++){
+					if(x != '<% nvram_get("wlc_band"); %>')
+						document.getElementById('t'+parseInt(x)).style.display = 'none';
+				}
+			}
+		}
+		else{
+			document.getElementById("t0").style.display = "";
+		}
 	}
 
 	if(parent.wlc_express == '1' && parent.sw_mode == '2'){

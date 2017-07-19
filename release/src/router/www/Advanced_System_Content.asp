@@ -119,7 +119,7 @@ function initial(){
 		document.getElementById('reboot_schedule_time_tr').style.display = "none";
 	}
 
-	corrected_timezone();
+	setInterval("corrected_timezone();", 5000);
 	load_timezones();
 	parse_dstoffset();
 	load_dst_m_Options();
@@ -568,8 +568,9 @@ function done_validating(action){
 
 function corrected_timezone(){
 	var today = new Date();
-	var StrIndex;	
-	
+	var StrIndex;
+	var timezone = uptimeStr_update.substring(26,31);
+
 	if(today.toString().lastIndexOf("-") > 0)
 		StrIndex = today.toString().lastIndexOf("-");
 	else if(today.toString().lastIndexOf("+") > 0)
@@ -1561,7 +1562,7 @@ function control_all_rule_status(obj) {
 					<td width="40%">
 						<input type="checkbox" name="access_webui" class="input access_type" value="1">Web UI<!--untranslated-->
 						<input type="checkbox" name="access_ssh" class="input access_type" value="2">SSH<!--untranslated-->
-						<input type="checkbox" name="access_telnet" class="input access_type" value="4">Telnet (Lan only)<!--untranslated-->
+						<input type="checkbox" name="access_telnet" class="input access_type" value="4">Telnet(LAN only)<!--untranslated-->
 					</td>
 					<td width="10%">
 						<div id="add_delete" class="add_enable" style="margin:0 auto" onclick="addRow(document.form.http_client_ip_x_0, 4);"></div>

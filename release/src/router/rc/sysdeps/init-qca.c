@@ -62,6 +62,18 @@ static struct load_wifi_kmod_seq_s {
 	{ "ath_dev", 0, 0, 0 },
 	/* { "qca_da", 0, 0, 0 }, */
 	{ "qca_ol", 0, 0, 0 },
+#elif defined(RPAC51)
+	{ "mem_manager", 1, 0, 0 },	/* If QCA WiFi configuration file has WIFI_MEM_MANAGER_SUPPORT=1 */
+	{ "asf", 0, 0, 0 },
+	{ "adf", 0, 0, 0 },
+	{ "ath_dfs", 0, 0, 0 },
+	{ "ath_spectral", 0, 0, 0 },
+	{ "umac", 0, 0, 2 },
+	{ "ath_hal", 0, 0, 0 },
+	{ "ath_rate_atheros", 0, 0, 0 },
+	{ "hst_tx99", 0, 0, 0 },
+	{ "ath_dev", 0, 0, 0 },
+	{ "qca_da", 0, 0, 0 },
 #else
 	{ "asf", 0, 0, 0 },
 	{ "adf", 0, 0, 0 },
@@ -123,7 +135,7 @@ void init_devs(void)
     defined(RTCONFIG_SWITCH_RTL8370MB_PHY_QCA8033_X2)
 	__mknod("/dev/rtkswitch", S_IFCHR | 0666, makedev(206, 0));
 #endif
-#if (defined(PLN12) || defined(PLAC56) || defined(PLAC66U) || defined(RPAC66))
+#if (defined(PLN12) || defined(PLAC56) || defined(PLAC66U) || defined(RPAC66) || defined(RPAC51))
 	eval("ln", "-sf", "/dev/mtdblock2", "/dev/caldata");	/* mtdblock2 = SPI flash, Factory MTD partition */
 #elif (defined(RTAC58U) || defined(RTAC82U))
 	eval("ln", "-sf", "/dev/mtdblock3", "/dev/caldata");	/* mtdblock3 = cal in NAND flash, Factory MTD partition */
@@ -225,6 +237,11 @@ static void init_switch_qca(void)
 #endif
 		NULL
 	}, **qmod;
+#if defined(RTCONFIG_SOC_IPQ40XX)
+	char *essedma_argv[10] = {
+		"modprobe", "-s", NULL
+	}, **v;
+#endif
 
 	for (qmod = &qca_module_list[0]; *qmod != NULL; ++qmod) {
 		if (module_loaded(*qmod))
@@ -232,7 +249,7 @@ static void init_switch_qca(void)
 
 #if defined(RTCONFIG_SOC_IPQ40XX)
 		if (!strcmp(*qmod, "shortcut-fe-cm")) {
-#if defined(MAPAC1300) || defined(MAPAC2200)
+#if defined(MAPAC1300) || defined(MAPAC2200) || defined(VRZAC1300)
 			if(sw_mode() != SW_MODE_ROUTER)
 				continue;
 #endif
@@ -240,12 +257,23 @@ static void init_switch_qca(void)
 				continue;
 		}
 		else if (!strcmp(*qmod, "essedma")) {
+			v = &essedma_argv[2];
+			*v++ = *qmod;
 			if (nvram_get_int("jumbo_frame_enable")) {
-				modprobe(*qmod, "overwrite_mode=1", "page_mode=1");
-				continue;
+				*v++ = "overwrite_mode=1";
+				*v++ = "page_mode=1";
 			}
+
+#if defined(RTAC58U) /* for RAM 128MB */
+			if (get_meminfo_item("MemTotal") <= 131072)
+				*v++ = "reduce_rx_ring_size=1";
+#endif
+
+			*v++ = NULL;
+			_eval(essedma_argv, NULL, 0, NULL);
+			continue;
 		}
-#if defined(MAPAC1300) || defined(MAPAC2200)
+#if defined(MAPAC1300) || defined(MAPAC2200) || defined(VRZAC1300)
 		else if (!strcmp(*qmod, "shortcut-fe")) {
 			if(sw_mode() != SW_MODE_ROUTER)
 				continue;
@@ -263,7 +291,7 @@ static void init_switch_qca(void)
 	char *wan0_ifname = nvram_safe_get("wan0_ifname");
 	char *lan_ifname, *lan_ifnames, *ifname, *p;
 
-#if (defined(PLN12) || defined(PLAC56) || defined(PLAC66U) || defined(RPAC66))
+#if (defined(PLN12) || defined(PLAC56) || defined(PLAC66U) || defined(RPAC66)|| defined(RPAC51))
 	wan0_ifname = MII_IFNAME;
 #endif
 
@@ -432,6 +460,7 @@ void config_switch(void)
 	case MODEL_RTAC58U:	/* fall through */
 	case MODEL_RTAC82U:	/* fall through */
 	case MODEL_MAPAC1300:	/* fall through */
+	case MODEL_VRZAC1300:	/* fall through */
 	case MODEL_MAPAC2200:	/* fall through */
 	case MODEL_RTAC88N:	/* fall through */
 		merge_wan_port_into_lan_ports = 1;
@@ -636,6 +665,19 @@ void config_switch(void)
 				__setup_vlan(10, 0, 0x02000210);
 			}
 #endif
+			else if (!strcmp(nvram_safe_get("switch_wantag"), "vodafone")) {
+				system("rtkswitch 40 1");			/* admin all frames on all ports */
+				system("rtkswitch 38 3");			/* Vodafone: P0  IPTV: P1 */
+				/* Internet:	untag: P9;   port: P4, P9 */
+				__setup_vlan(100, 1, 0x02000211);
+				/* IPTV:	untag: N/A;  port: P0, P4 */
+				__setup_vlan(101, 0, 0x00000011);
+				/* Vodafone:	untag: P1;   port: P0, P1, P4 */
+				__setup_vlan(105, 1, 0x00020013);
+			}
+			else if (!strcmp(nvram_safe_get("switch_wantag"), "hinet")) { /* Hinet MOD */
+				eval("rtkswitch", "8", "4");			/* LAN4 with WAN */
+			}
 			else {
 				/* Cherry Cho added in 2011/7/11. */
 				/* Initialize VLAN and set Port Isolation */
@@ -962,7 +1004,12 @@ static void __load_wifi_driver(int testmode)
 		if (!strcmp(p->kmod_name, "ath_hal")) {
 			int ce_level = nvram_get_int("ce_level");
 			if (ce_level <= 0)
+#if defined(RPAC51)
+				ce_level = 0xa0;
+#else
 				ce_level = 0xce;
+#endif
+
 
 			*v++ = s;
 			s += sprintf(s, "ce_level=%d", ce_level);
@@ -971,8 +1018,13 @@ static void __load_wifi_driver(int testmode)
 #endif
 		if (!strcmp(p->kmod_name, "umac")) {
 			if (!testmode) {
-#if defined(RTCONFIG_WIFI_QCA9990_QCA9990) || defined(RTCONFIG_WIFI_QCA9994_QCA9994)
+#if defined(RTCONFIG_WIFI_QCA9990_QCA9990) || defined(RTCONFIG_WIFI_QCA9994_QCA9994) || defined(RPAC51)
 				*v++ = "msienable=0";	/* FIXME: Enable MSI interrupt in future. */
+
+#if defined(RPAC51)
+				*v++ = "wifi_start_idx=1";	/* FIXME: The internal direct attach radio should always be wifi0 */
+				*v++ = "qca9888_20_targ_clk=300000000";
+#endif
 				for (up = &umac_params[0]; *up != NULL; up++) {
 					snprintf(umac_nv, sizeof(umac_nv), "qca_%s", *up);
 					if (!(val = nvram_get(umac_nv)))
@@ -1008,7 +1060,7 @@ static void __load_wifi_driver(int testmode)
 				}
 #endif
 			}
-#if defined(RTCONFIG_WIFI_QCA9990_QCA9990) || defined(RTCONFIG_WIFI_QCA9994_QCA9994)
+#if defined(RTCONFIG_WIFI_QCA9990_QCA9990) || defined(RTCONFIG_WIFI_QCA9994_QCA9994) || defined(RPAC51)
 			else {
 				*v++ = "testmode=1";
 				*v++ = "ahbskip=1";
@@ -1230,7 +1282,7 @@ void init_wl(void)
 #endif
 #endif
 
-#if defined(MAPAC1300) || defined(MAPAC2200)
+#if defined(MAPAC1300) || defined(MAPAC2200) || defined(VRZAC1300)
 		if(sw_mode() != SW_MODE_ROUTER || nvram_match("wps_e_success", "1"))
 		{
 			if(nvram_get_int("x_Setting"))
@@ -1252,7 +1304,7 @@ void init_wl(void)
 #endif
 	}
 
-#if defined(MAPAC1300) || defined(MAPAC2200)
+#if defined(MAPAC1300) || defined(MAPAC2200) || defined(VRZAC1300)
 	int i;
 	if(sw_mode() == SW_MODE_AP) //router->ap
 	{
@@ -1336,7 +1388,7 @@ void fini_wl(void)
 		}      
 #endif
 
-#if defined(MAPAC1300) || defined(MAPAC2200)
+#if defined(MAPAC1300) || defined(MAPAC2200) || defined(VRZAC1300)
 	if(sw_mode() != SW_MODE_ROUTER || nvram_match("wps_e_success", "1"))
 	{
 		if(nvram_get_int("x_Setting"))
@@ -1407,7 +1459,7 @@ void init_syspara(void)
 	char modelname[16];
 #endif
 #endif
-#if defined(MAPAC1300) || defined(MAPAC2200) /* for Lyra */
+#if defined(MAPAC1300) || defined(MAPAC2200) || defined(VRZAC1300) /* for Lyra */
 	char disableGUI;
 #endif
 #ifdef RTCONFIG_CFGSYNC
@@ -1465,7 +1517,7 @@ void init_syspara(void)
 	ether_etoa(buffer, macaddr2);
 #endif
 
-#if defined(PLN12) || defined(PLAC56) || defined(PLAC66U) || defined(RPAC66)
+#if defined(PLN12) || defined(PLAC56) || defined(PLAC66U) || defined(RPAC66) || defined(RPAC51)
 	/* set et1macaddr the same as et0macaddr (for cpu connect to switch only use single RGMII) */
 	strcpy(macaddr2, macaddr);
 #endif
@@ -1592,7 +1644,7 @@ void init_syspara(void)
 	nvram_set("firmver", rt_version);
 	nvram_set("productid", rt_buildname);
 
-#if !defined(RTCONFIG_TCODE) || defined(RPAC66) // move the verification later bcz TCODE/LOC
+#if !defined(RTCONFIG_TCODE) || defined(RPAC66)  || defined(RPAC51) // move the verification later bcz TCODE/LOC
 	verify_ctl_table();
 #endif
 
@@ -1614,7 +1666,7 @@ void init_syspara(void)
 	}
 #endif
 
-#if defined(MAPAC1300) || defined(MAPAC2200) /* for Lyra */
+#if defined(MAPAC1300) || defined(MAPAC2200) || defined(VRZAC1300) /* for Lyra */
 	if (FRead(&disableGUI, OFFSET_DISABLE_GUI, 1) < 0) {
 		_dprintf("Out of scope\n");
 	} else {
@@ -1727,7 +1779,7 @@ void reinit_sfe(int unit)
 #endif
 	}
 
-#if defined(MAPAC1300) || defined(MAPAC2200)
+#if defined(MAPAC1300) || defined(MAPAC2200) || defined(VRZAC1300)
 	if(sw_mode() != SW_MODE_ROUTER) /* maybe we should determin by wan0_nat_x, just override */
 		act = 0;
 #endif

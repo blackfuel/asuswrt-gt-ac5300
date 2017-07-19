@@ -42,7 +42,9 @@
 #include "ate.h"
 #endif 
 
-#if defined(MAPAC1300) || defined(MAPAC2200)
+//#define DETECT_5G 1
+
+#if defined(MAPAC1300) || defined(MAPAC2200) || defined(VRZAC1300)
 //parameter control
 #define wifi_son_mode 1
 int hive_daisy_chain=1;  //if 0 , topology is star mode.
@@ -56,6 +58,7 @@ int scaling_factor=70;
 int disable_2g=0;
 #endif
 int self_restart=60;
+int resolving=0;
 #define  percent_rate_min 30
 #define  percent_rate_max 70
 
@@ -63,8 +66,13 @@ int self_restart=60;
 #define	CMP_CONF	"/tmp/wscmp"
 #define	CMP_CONF_NEW	"/tmp/wscmp_new"
 #define AP_SCAN_FILE	"/tmp/apscan_file.txt"
-
+#ifdef RTCONFIG_ETHBACKHAUL
+int check_eth_time=20;  //more than wlready=1 time after watchdog start-up
+int eth_down_time=25;
+#endif
 int dbg_m=0;
+
+
 int check_period=30;
 
 
@@ -396,9 +404,9 @@ static void gen_wsplcd_conf(int role, char *filename, int cmp_only)
 	fprintf(fp, "config_station=yes\n");
 	fprintf(fp, "search_timeout=60\n");
 	fprintf(fp, "WPS_session_timeout=120\n");
-	fprintf(fp, "WPS_retransmission_timeout=20\n");
-	fprintf(fp, "WPS_per_message_timeout=20\n");
-	fprintf(fp, "band_sel_enable=1\n");
+	fprintf(fp, "WPS_retransmission_timeout=5\n");
+	fprintf(fp, "WPS_per_message_timeout=15\n");
+	fprintf(fp, "band_sel_enable=0\n");
 	fprintf(fp, "band_choice=5G\n");  //default: 5G
 	fprintf(fp, "rm_collect_timeout=10\n");
 	fprintf(fp, "deep_clone_enable=%d\n",deep_clone);
@@ -463,6 +471,9 @@ static void gen_wsplcd_conf(int role, char *filename, int cmp_only)
 #if defined(MAPAC2200)
 	fprintf(fp, "WLAN.1.CH5G2=%d\n",get_ch(get_freq(2)));  //valid for CAP 5G-2 
 #endif
+#ifndef RTCONFIG_DUAL_BACKHAUL
+	fprintf(fp, "WLAN.1.CH2G=%d\n",get_ch(get_freq(0)));  //valid for CAP 2G
+#endif
 	//2G,sta
 	fprintf(fp, "WLAN.3.Enable=%d\n",role?1:0); 
 	fprintf(fp, "WLAN.3.X_ATH-COM_RadioIndex=1\n");
@@ -507,6 +518,9 @@ static void gen_wsplcd_conf(int role, char *filename, int cmp_only)
 #if defined(MAPAC2200)
 	fprintf(fp, "WLAN.3.CH5G2=%d\n",get_ch(get_freq(2)));  //valid for CAP 5G-2 
 #endif
+#ifndef RTCONFIG_DUAL_BACKHAUL
+	fprintf(fp, "WLAN.3.CH2G=%d\n",get_ch(get_freq(0)));  //valid for CAP 2G
+#endif
 
 	//wifi1
 	fprintf(fp, "RADIO.2.Channel=%d\n",nvram_get_int("wl1_channel"));
@@ -543,6 +557,10 @@ static void gen_wsplcd_conf(int role, char *filename, int cmp_only)
 #if defined(MAPAC2200)
 	fprintf(fp, "WLAN.2.CH5G2=%d\n",get_ch(get_freq(2)));  //valid for CAP 5G-2 
 #endif
+#ifndef RTCONFIG_DUAL_BACKHAUL
+	fprintf(fp, "WLAN.2.CH2G=%d\n",get_ch(get_freq(0)));  //valid for CAP 2G
+#endif
+
 	//5G,sta
 	fprintf(fp, "WLAN.4.Enable=%d\n",role?1:0); 
 	fprintf(fp, "WLAN.4.X_ATH-COM_RadioIndex=2\n");
@@ -581,6 +599,10 @@ static void gen_wsplcd_conf(int role, char *filename, int cmp_only)
 #if defined(MAPAC2200)
 	fprintf(fp, "WLAN.4.CH5G2=%d\n",get_ch(get_freq(2)));  //valid for CAP 5G-2 
 #endif
+#ifndef RTCONFIG_DUAL_BACKHAUL
+	fprintf(fp, "WLAN.4.CH2G=%d\n",get_ch(get_freq(0)));  //valid for CAP 2G
+#endif
+
 #if defined(MAPAC2200)
 	//wifi2
 	fprintf(fp, "RADIO.3.Channel=%d\n",nvram_get_int("wl2_channel"));
@@ -610,6 +632,9 @@ static void gen_wsplcd_conf(int role, char *filename, int cmp_only)
 	fprintf(fp, "WLAN.5.X_ATH-COM_WPSConfigured=CONFIGURED\n");
 	fprintf(fp, "WLAN.5.X_ATH-COM_HT40Coexist=1\n");
 	fprintf(fp, "WLAN.5.CH5G2=%d\n",get_ch(get_freq(2)));  //valid for CAP 5G-2 
+#ifndef RTCONFIG_DUAL_BACKHAUL
+	fprintf(fp, "WLAN.5.CH2G=%d\n",get_ch(get_freq(0)));  //valid for CAP 2G
+#endif
 	//WLAN.2 (ap,5G-1), WLAN.5(ap,5G-2): One of them can do sync. Disable 5G-2 sync by wsplcdunmanaged=1!!
 	if (!cmp_only) {
 	fprintf(fp, "WLAN.5.WsplcdUnmanaged=1\n");
@@ -699,14 +724,14 @@ void gen_hyd_conf(int role)
 		fprintf(fp, "ForceGroupRelaying=1\n");
 	}
 	fprintf(fp, "SwitchLanVid=1\n"); //default 1
-	fprintf(fp, "SwitchCpuPort=6\n"); //default 6
+	fprintf(fp, "SwitchCpuPort=0\n"); //default 0
+	fprintf(fp, "VlanIds=\n"); 
 
 	fprintf(fp, "[HY]\n");
-	fprintf(fp, "ExtraQueryResponseTime=0\n");
 	fprintf(fp, "LoadBalancingSeamless=1\n");
 	fprintf(fp, "ConstrainTCPMedium=0\n");
 	fprintf(fp, "MaxLBReordTimeout=1500\n");
-	fprintf(fp, "PathTransitionMethod=0\n");
+	fprintf(fp, "HActiveMaxAge=120000\n");
 
 	fprintf(fp, "[PATHCHWLAN]\n");
 	fprintf(fp, "UpdatedStatsInterval_W2=1\n");
@@ -714,7 +739,11 @@ void gen_hyd_conf(int role)
 	fprintf(fp, "MaxMediumUtilization_W2=70\n");
 	fprintf(fp, "MediumChangeThreshold_W2=10\n");
 	fprintf(fp, "LinkChangeThreshold_W2=10\n");
+#ifdef RTCONFIG_DUAL_BACKHAUL
 	fprintf(fp, "MaxMediumUtilizationForLC_W2=70\n");
+#else
+	fprintf(fp, "MaxMediumUtilizationForLC_W2=0\n");
+#endif
 	fprintf(fp, "CPULimitedTCPThroughput_W2=4294967295\n");
 	fprintf(fp, "CPULimitedUDPThroughput_W2=4294967295\n");
 	fprintf(fp, "PHYRateThresholdForMU_W2=2000\n");
@@ -727,7 +756,11 @@ void gen_hyd_conf(int role)
 	fprintf(fp, "MaxMediumUtilization_W5=70\n");
 	fprintf(fp, "MediumChangeThreshold_W5=10\n");
 	fprintf(fp, "LinkChangeThreshold_W5=10\n");
+#ifdef RTCONFIG_DUAL_BACKHAUL
 	fprintf(fp, "MaxMediumUtilizationForLC_W5=70\n");
+#else
+	fprintf(fp, "MaxMediumUtilizationForLC_W5=99\n");
+#endif
 	fprintf(fp, "CPULimitedTCPThroughput_W5=4294967295\n");
 	fprintf(fp, "CPULimitedUDPThroughput_W5=4294967295\n");
 	fprintf(fp, "PHYRateThresholdForMU_W5=2000\n");
@@ -766,6 +799,9 @@ void gen_hyd_conf(int role)
 	fprintf(fp, "ENABLE_TD3=1\n");
 	fprintf(fp, "ENABLE_BD_SPOOFING=1\n");
 	fprintf(fp, "NOTIFICATION_THROTTLING_WINDOW=1\n");
+	fprintf(fp, "PERIODIC_QUERY_INTERVAL=60\n");
+	fprintf(fp, "ENABLE_NOTIFICATION_UNICAST=0\n");
+
 
 	fprintf(fp, "[PATHSELECT]\n");
 	fprintf(fp, "UpdateHDInterval=10\n");
@@ -781,10 +817,6 @@ void gen_hyd_conf(int role)
 	fprintf(fp, "NotificationThresholdPercentage=20\n");
 	fprintf(fp, "AlphaNumerator=3\n");
 	fprintf(fp, "AlphaDenominator=8\n");
-	fprintf(fp, "BufferAllocationThresholdLow=1000\n");
-	fprintf(fp, "BufferAllocationThresholdHigh=1000000\n");
-	fprintf(fp, "MaxTrackedFlows=3\n");
-	fprintf(fp, "ReservedMemory=4\n");
 	fprintf(fp, "LocalFlowRateThreshold=2000000\n");
 	fprintf(fp, "LocalFlowRatioThreshold=5\n");
 	fprintf(fp, "MaxHActiveEntries=8192\n");
@@ -805,7 +837,11 @@ void gen_hyd_conf(int role)
 
 	fprintf(fp, "[IEEE1905]\n");
 	fprintf(fp, "StrictIEEE1905Mode=0\n");
+#ifdef RTCONFIG_ETHBACKHAUL
 	fprintf(fp, "GenerateLLDP=1\n");
+#else
+	fprintf(fp, "GenerateLLDP=0\n");
+#endif
 
 	fprintf(fp, "[HCP]\n");
 	fprintf(fp, "V1Compat=1\n");
@@ -866,6 +902,7 @@ void gen_hyd_conf(int role)
 	fprintf(fp, "InactIdleThreshold=10\n");
 	fprintf(fp, "InactOverloadThreshold=10\n");
 	fprintf(fp, "InactCheckInterval=1\n");
+	fprintf(fp, "AuthAllow=0\n");
 	fprintf(fp, "InactRSSIXingHighThreshold=35\n");
 	fprintf(fp, "LowRSSIXingThreshold=10\n");
 	fprintf(fp, "BcnrptActiveDuration=50\n");
@@ -873,12 +910,16 @@ void gen_hyd_conf(int role)
 	fprintf(fp, "HighTxRateXingThreshold=50000\n");
 	fprintf(fp, "HighRateRSSIXingThreshold=30\n");
 	fprintf(fp, "LowRSSIAPSteeringThreshold=20\n");
+	fprintf(fp, "Delay24GProbeRSSIThreshold=35\n");
+	fprintf(fp, "Delay24GProbeTimeWindow=0\n");
+	fprintf(fp, "Delay24GProbeMinReqCount=0\n");
 
 	fprintf(fp, "[WLANIF5G]\n");
 	fprintf(fp, "InterferenceDetectionEnable=1\n");
 	fprintf(fp, "InactIdleThreshold=10\n");
 	fprintf(fp, "InactOverloadThreshold=10\n");
 	fprintf(fp, "InactCheckInterval=1\n");
+	fprintf(fp, "AuthAllow=0\n");
 	fprintf(fp, "InactRSSIXingHighThreshold=20\n");
 	fprintf(fp, "InactRSSIXingLowThreshold=0\n");
 	fprintf(fp, "LowRSSIXingThreshold=10\n");
@@ -994,6 +1035,9 @@ void gen_hyd_conf(int role)
 	fprintf(fp, "LogLevelStaMon=2\n");
 	fprintf(fp, "LogLevelEstimator=2\n");
 	fprintf(fp, "LogLevelDiagLog=2\n");
+	
+	fprintf(fp, "[PERSIST]\n");
+ 	fprintf(fp, "PersistPeriod=3600\n");
 	fclose(fp);
 
 }
@@ -1210,6 +1254,23 @@ void wps_enable(int role)
 }
 #endif 
 
+
+//only for backhaul 2G/5G
+void set_wifi_otherband_bssid(int band)
+{
+	char *temp=NULL,tmp[50],prefix_wl[]="wlxxxx_",cmd[128];
+#if defined(MAPAC2200)
+		if(band==2)
+			return ;
+#endif
+	snprintf(prefix_wl, sizeof(prefix_wl), "wl%d_", band);
+	temp = nvram_safe_get(strcat_r(prefix_wl, "hwaddr", tmp));
+	doSystem("nvram set wl%d_part1=`echo %s | sed -e \"s/\\://g\" | cut -b 1-8`",band?1:0,temp);
+	doSystem("nvram set wl%d_part2=`echo %s | sed -e \"s/\\://g\" | cut -b 9-12`",band?1:0,temp);
+	doSystem("iwpriv ath%d otherband_bssid 0x%s 0x%s",band?0:1,
+		 nvram_safe_get(strcat_r(prefix_wl, "part1", tmp)),nvram_safe_get(strcat_r(prefix_wl, "part2", tmp)));
+}
+
 //4 vaps: ath0(pre-created) ath1(pre-crated) 
 //      : sta0(pre-created) sta1(pre-crated) 
 void set_vap(int role, int band)
@@ -1223,6 +1284,7 @@ void set_vap(int role, int band)
 	doSystem("iwpriv %s blockdfschan %d", get_wififname(band), block_dfs_enable);
 	doSystem("iwpriv %s son 1", get_wififname(band));
 	doSystem("iwpriv %s athnewind 1", get_wififname(band));
+	set_wifi_otherband_bssid(band);
 
 	if(role) //range extender
 	{
@@ -1237,7 +1299,10 @@ void set_vap(int role, int band)
 		doSystem("iwpriv %s wds 1",get_staifname(band));
 		doSystem("iwpriv %s set_whc_sfactor %d",get_staifname(band),scaling_factor);
 		doSystem("iwpriv %s athnewind 1",get_staifname(band));
+		doSystem("iwpriv %s shortgi 1",get_staifname(band));
 		//doSystem("iwpriv %s mode auto",get_staifname(band));
+		if(nvram_get_int("dfs_check_period") && band)
+			doSystem("iwpriv wifi%d staDFSEn 1",band);
 	}
 }
 
@@ -1538,7 +1603,7 @@ int check_wsc_enrollee_status(int max_sec)
 			if(chk_assoc(get_staifname(j))> 0)
 			{
 				char prefix_mssid[] = "wlXXXXXXXXXX_";
-				_dprintf("[[STA%d is CONNECTED]]\n",j);
+			//	_dprintf("[[STA%d is CONNECTED]]\n",j);
 				flag[j]=1;
 				getWscStatus_keywd(j,"bssid",res);
 				snprintf(prefix_mssid, sizeof(prefix_mssid), "wl%d_", j);
@@ -1612,6 +1677,7 @@ void wpa_supplicant_stop(int band)
 	kill_pidfile_tk(pid_file);
 	sprintf(conf, "/tmp/wpa_supplicant-%s.conf", get_staifname(band));
 	unlink(conf);
+	sleep(1);
         doSystem("ifconfig %s down",get_wififname(band));
 }
 
@@ -1629,6 +1695,8 @@ void wpa_supplicant_start(int band)
 		detect_5gband_bssid(); 
 
 	}
+
+	sleep(1);
         doSystem("ifconfig %s up",get_wififname(band));
 
 }
@@ -1680,6 +1748,7 @@ static int cmp_file(char *fname1, char *fname2)
 // return 1: nothing changed
 int start_cap(int c)
 {
+
 	if(c==0) //first start, for user
 	{
 		_dprintf("starting WHC auto-configuration for CAP\n");
@@ -1752,7 +1821,6 @@ int start_cap(int c)
 void start_re(int c)
 {
 	int i;
-
 	wsplcd_stop();
 	if(c==3)
 	{
@@ -1772,7 +1840,9 @@ void start_re(int c)
 	else
 		cfg_re_syncing=0;
 
+#ifdef RTCONFIG_DUAL_BACKHAUL
 	wpa_supplicant_stop(0);
+#endif
 	wpa_supplicant_stop(1);
 	hyd_stop();
 
@@ -1894,6 +1964,96 @@ void stop_hyfi(void)
 	hyd_stop();
 	wsplcd_stop();
 }
+
+
+#ifdef RTCONFIG_ETHBACKHAUL
+int eth_backl=0;
+int lldpcli_det(void)
+{
+	char buf[2048];
+        FILE *fp;
+        int len;
+        char *pt1,*pt2;
+	char bssid[18];
+        sprintf(buf, "lldpcli show neighbors");
+	
+        fp = popen(buf, "r");
+        if (fp) {
+                memset(buf, 0, sizeof(buf));
+                len = fread(buf, 1, sizeof(buf), fp);
+                pclose(fp);
+                if (len > 1) {
+                        buf[len-1] = '\0';
+			if(get_role()) //RE
+                        	pt1 = strstr(buf, "MAP-CAP"); //get 
+			else
+                        	pt1 = strstr(buf, "MAP-RE"); //get 
+                        if (pt1)
+                               return 1;
+		}
+	}
+	return 0;
+}
+
+void wpacli_reset()
+{
+	doSystem("wpa_cli -p /var/run/wpa_supplicant-sta1 disable_network 0");
+
+	if(strlen(nvram_safe_get("wl1_sta_bssid")) && strcmp(nvram_safe_get("wl1_sta_bssid"),"00:00:00:00:00:00")!=0)
+	{
+		_dprintf("==> wpacli set %s\n",nvram_safe_get("wl1_sta_bssid"));
+		doSystem("wpa_cli -p /var/run/wpa_supplicant-sta1 set_network 0 bssid %s",nvram_safe_get("wl1_sta_bssid"));
+	}
+	doSystem("wpa_cli -p /var/run/wpa_supplicant-sta1 enable_network 0");
+}
+
+void start_eth(int c)
+{
+        char ifname[32];
+        char *next;
+	int i=0;
+	if(c) //eth up
+	{
+		_dprintf("=> RE: eth backhaul up\n");
+		wpacli_reset();
+		sleep(eth_down_time); //for green led
+	}
+	else
+	{
+		_dprintf("=> RE: eth backhaul down\n");
+		ifconfig("eth1", 0, NULL, NULL);
+		doSystem("killall -9 hyd");
+		doSystem("hyd -C /tmp/hyd.conf");
+		wpacli_reset();
+
+		if (pids("udhcpc"))
+                {
+                        killall("udhcpc", SIGUSR2);
+                        killall("udhcpc", SIGTERM);
+                        unlink("/tmp/udhcpc_lan");
+                }
+                
+		char *dhcp_argv[] = { "udhcpc",
+                                        "-i", "br0",
+                                        "-p", "/var/run/udhcpc_lan.pid",
+                                        "-s", "/tmp/udhcpc_lan",
+                                        NULL };
+                pid_t pid;
+
+                symlink("/sbin/rc", "/tmp/udhcpc_lan");
+                _eval(dhcp_argv, NULL, 0, &pid);
+
+		sleep(eth_down_time);
+		ifconfig("eth1", IFUP, NULL, NULL);
+		foreach(ifname, nvram_safe_get("wl_ifnames"), next) 
+		{
+			ifconfig(ifname, 0, NULL, NULL);
+			sleep(1);
+			ifconfig(ifname, IFUP, NULL, NULL);
+		}
+	}
+}
+#endif
 
 //for daisy chain
 int sta_is_assoc(int band)
@@ -2022,23 +2182,15 @@ void wpa_cli_set_bssid(int band,char *mac)
 		doSystem("wpa_cli -p /var/run/wpa_supplicant-sta%d set_network 0 bssid %s",band,mac);
 		doSystem("wpa_cli -p /var/run/wpa_supplicant-sta%d enable_network 0",band);
 		sleep(6);
-		if(dbg_m)
-			_dprintf("=> RE: wpacli reset sta%d's bssid as %s\n",band,mac);
+		_dprintf("=> RE: wpacli set sta%d's bssid as %s\n",band,mac);
 	}
 }
 
-/*
-void wpacli_restart(band)
-{
-	doSystem("wpa_cli -p /var/run/wpa_supplicant-sta%d disable_network 0",band);
-	sleep(4);
-	doSystem("wpa_cli -p /var/run/wpa_supplicant-sta%d enable_network 0",band);
-}
-*/
 
-int find_pap_bssid(int band)
+int find_pap_bssid(int band,int config)
 {
 	char tmp[20];
+	doSystem("iwpriv %s sendprobereq 1",get_staifname(band));
 	nvram_set("sta_bssid_tmp","00:00:00:00:00:00"); //reset 
 	if(band)
 		nvram_set("sta_bssid_bk","00:00:00:00:00:00"); //reset 
@@ -2048,24 +2200,80 @@ int find_pap_bssid(int band)
 	if(strcmp(nvram_safe_get("sta_bssid_tmp"),"00:00:00:00:00:00")!=0)
 	{
 		_dprintf("=> get pap's %s bssid\n",band?"5G":"2G");
-		wpa_cli_set_bssid(band,nvram_safe_get("sta_bssid_tmp"));
-		sprintf(tmp,"wl%d_sta_bssid",band);
-		nvram_set(tmp,nvram_safe_get("sta_bssid_tmp"));
+		if(config)
+		{
+			wpa_cli_set_bssid(band,nvram_safe_get("sta_bssid_tmp"));
+			sprintf(tmp,"wl%d_sta_bssid",band);
+			nvram_set(tmp,nvram_safe_get("sta_bssid_tmp"));
+			if(band)
+				nvram_set("wl1_sig",nvram_safe_get("sig_tmp"));
+		}
 	}
 	return 0;
 }
 
 void detect_5gband_bssid(void)
 {	
-	find_pap_bssid(1);
+	find_pap_bssid(1,1);
 }
 
-void find_pap_2gband_bssid(void)
+#ifdef RTCONFIG_DUAL_BACKHAUL
+int find_pap_2g_bssid_and_config(void)
 {
-	find_pap_bssid(0);
+        char buf[1024];
+        FILE *fp;
+        int len,i;
+        char *pt1,*pt2=NULL;
+	char mac[17];
+
+        sprintf(buf, "iwpriv sta1 g_whc_ob_bssid");
+
+        fp = popen(buf, "r");
+        if (fp) {
+                memset(buf, 0, sizeof(buf));
+                len = fread(buf, 1, sizeof(buf), fp);
+                pclose(fp);
+                if (len > 1) {
+                        buf[len-1] = '\0';
+                        pt1 = strstr(buf, "g_whc_ob_bssid:");
+			if(pt1)
+			{
+                                pt2= pt1 + strlen("g_whc_ob_bssid:");
+                                chomp(pt2);
+			}
+                }
+        }
+
+	memset(mac,0,sizeof(mac));
+	if(strcmp(pt2,"000000000000"))
+	{
+		for(i=0;i<6;i++)
+		{
+			if(i==0)
+				sprintf(mac,"%c%c",*(pt2+2*i),*(pt2+2*i+1));
+			else
+				sprintf(mac,"%s:%c%c",mac,*(pt2+2*i),*(pt2+2*i+1));
+		}
+	}
+	else
+	{
+		_dprintf("=> RE: can not resolve 2G bssid ! disable 2g..\n");
+		doSystem("wpa_cli -p /var/run/wpa_supplicant-sta0 disable_network 0");
+		disable_2g=1;
+		return 0;
+	}	
+
+	_dprintf("=> RE: get 2G bssid=%s from sta1\n",mac);
+	wpa_cli_set_bssid(0,mac);
+	disable_2g=0;
+	nvram_set("wl0_sta_bssid",mac);
+        return 1;
+
 }
+#endif
 
 //get CAP's 2G bssid and try configuring 2.4G backhaul bssid.
+/*
 int config_cap_bssid(int band)
 {
         char buf[1024];
@@ -2120,7 +2328,7 @@ int config_cap_bssid(int band)
         return 1;
 
 }
-
+*/
 
 void reset_loop(void) //only for 5G
 {
@@ -2276,7 +2484,156 @@ int pap_db_mac(void) //check if the 2G/5G connection to the same pap
 #endif
 }
 
+void force_down_2g(void)
+{
+#ifdef RTCONFIG_DUAL_BACKHAUL
+	_dprintf("=> RE: temporarily disable 2G...\n");
+	disable_2g=1;
+	resolving=0;
+	nvram_unset("wl0_sta_bssid");
+	doSystem("wpa_cli -p /var/run/wpa_supplicant-sta0 disable_network 0");
+#endif
+}
 
+void check_iface_all(void)
+{
+        char buf[1024],ifname[32];
+        FILE *fp;
+        int len;
+        char *pt1,*next;
+	_dprintf("=>RE: check all iface ...\n");
+	foreach(ifname, nvram_safe_get("wl_ifnames"), next) 
+	{
+        	sprintf(buf, "iwconfig %s", ifname);
+        	fp = popen(buf, "r");
+        	if (fp) {
+                	memset(buf, 0, sizeof(buf));
+                	len = fread(buf, 1, sizeof(buf), fp);
+               		pclose(fp);
+                	if (len > 1) {
+                       	 	buf[len-1] = '\0';
+                        	pt1 = strstr(buf, "Not-Associated");
+                        	if (pt1)
+				{
+					//not assoc
+					_dprintf("=>RE: find %s disable, enable it\n",ifname);
+        				doSystem("ifconfig %s down",ifname);
+					sleep(5);
+        				doSystem("ifconfig %s up",ifname);
+				}
+			}
+                }
+        }
+}
+
+
+//only RE
+#if defined(RTCONFIG_CSU2_2)
+#ifdef DETECT_5G		
+int change_5g=0;
+int detect_5g=1;
+#endif
+int wifimon_check_assoc(int retry)
+{
+#ifndef RTCONFIG_DUAL_BACKHAUL
+	int ch_2g;
+#endif
+	if(sta_is_assoc(1))
+	{
+		check_wsc_enrollee_status(7); //update current pap's bssid
+		if(detect_loop())
+		{
+			_dprintf("=> RE: detect loop on 5G, reset!\n");
+			reset_loop();
+			force_down_2g();
+			return 2;
+		}
+#ifdef  DETECT_5G		
+		if(getStaXRssi(1)<-80) //distance/sig level/link quality: 25m/-80dbm/30, 12m/-65dbm/80
+		{
+			if(change_5g>2 && detect_5g)
+			{
+				find_pap_bssid(1,0);
+				if(nvram_get_int("siglv_tmp")<60)
+				{
+			
+			_dprintf("=> RE: find high-rssi pap bssid ...\n");
+					if(strcmp(nvram_safe_get("sta_bssid_tmp"),nvram_safe_get("wl1_sta_bssid")))
+					{
+						if(strcmp(nvram_safe_get("sta_bssid_tmp"),"00:00:00:00:00:00"))
+						{
+					    _dprintf("=> RE: o_quality=%d, n_quality=-%d,detect better pap ... restart\n",getStaXRssi(1),nvram_get_int("siglv_tmp"));
+								wpa_cli_set_bssid(1,nvram_safe_get("sta_bssid_tmp"));
+						}
+						force_down_2g();
+						change_5g=0;
+						return 1;
+					}
+				}
+				else
+				{
+					_dprintf("=>RE: no other pap is found\n");
+					detect_5g=0;
+				}
+			}
+			else
+			{
+				if(detect_5g==0)
+				 	change_5g=0;	
+				else
+					change_5g++;
+			}
+		}
+#endif
+
+#ifdef RTCONFIG_DUAL_BACKHAUL
+		if(!resolving)
+		{
+			_dprintf("=> RE: 5G assoc ok. try to resolve 2G\n");
+			if(!find_pap_2g_bssid_and_config())//find 2G bssid,if y, config it
+				return 1;		
+			else
+				resolving=1;
+		}
+		else
+		{
+			if(retry!=0xff && !sta_is_assoc(0))  //try resolve 2G until 2G is down
+			{
+				resolving=0;
+				nvram_unset("wl0_sta_bssid");
+				_dprintf("=> RE: still resolve 2G...\n");
+			}
+			else
+				_dprintf("=> RE: do not resolve 2G\n");
+
+		}
+
+		if(sta_is_assoc(0))
+		{
+			if(!pap_db_mac())
+			{
+				force_down_2g();
+				_dprintf("=> RE: detcet diff bssid between 2G and 5G\n");
+				return 2;
+			}
+		}
+#else
+		ch_2g=nvram_get_int("wl0_channel");
+                if(ch_2g!=0 && ch_2g!=get_ch(get_freq(0)))
+                {
+                        _dprintf("=> RE: sync ath0 ch!!\n");
+                        doSystem("iwconfig %s channel %d",nvram_get("wl0_ifname"),ch_2g);
+                }
+
+#endif
+		check_iface_all();	
+		_dprintf("=> RE: done\n");
+		return 0;
+	}	
+	return 2;	
+}
+
+#else
 #ifdef RTCONFIG_DUAL_BACKHAUL
 int once=0;
 #endif
@@ -2287,6 +2644,7 @@ int wifimon_check_assoc(void)
 #ifdef RTCONFIG_DUAL_BACKHAUL
 	if(sta_is_assoc(0) && sta_is_assoc(1))
 #else
+	int ch_2g;
 	if(sta_is_assoc(1))
 #endif
 	{
@@ -2343,6 +2701,14 @@ int wifimon_check_assoc(void)
 			return 1;
 		}
 #else
+		ch_2g=nvram_get_int("wl0_channel");
+		if(ch_2g!=0 && ch_2g!=get_ch(get_freq(0)))
+		{
+			_dprintf("=> RE: sync ath0 ch!!\n");
+                   	doSystem("iwconfig %s channel %d",nvram_get("wl0_ifname"),ch_2g);
+                }
+		check_iface_all();      
+
 		return 0;
 #endif
 	}	
@@ -2358,6 +2724,7 @@ int wifimon_check_assoc(void)
 	return 2;	
 }
 
+#endif
 
 //measure the rate to the serving AP.
 //get the phyrate of the associated sta interface and calculate the min and max threshold rates.
@@ -2449,6 +2816,143 @@ int detect_loop(void) //only for 5G
 	return 0;
 }
 
+#if defined(RTCONFIG_CSU2_2)
+void start_wifimon_check(int delay)
+{
+	int i,state, assoc_timeout;
+	int restart_process=0;
+	int retry;
+	doSystem("iwpriv wifi0 ignore_dbg 1");
+
+	if(nvram_get_int("wifimon_dbg"))
+		dbg_m=1;
+	else 
+		dbg_m=0;
+
+	if(nvram_get_int("dfs_check_period"))
+		check_period=60;
+	else
+		check_period=30;
+
+	retry=0;
+	assoc_timeout=0;
+	//temporarily disable 2G
+	force_down_2g();
+
+	if(dbg_m)
+		_dprintf("=> wifi monitor check: delay %d sec ...\n",delay);
+	sleep(delay);
+
+	for(i=0;i<2;i++)
+	{
+        	doSystem("ifconfig %s down",get_wififname(i));
+		sleep(1);
+        	doSystem("ifconfig %s up",get_wififname(i));
+	}
+
+	while(1)
+	{
+		if(dbg_m)
+			_dprintf("=> RE: wifi monitor check ...\n");
+		state=wifimon_check_assoc(retry);
+		switch(state)
+		{
+			case 0:
+			case 1:
+				assoc_timeout=0;
+				break;
+			case 2: //5G not-assoc, 2G unknown
+				assoc_timeout++;
+#ifdef RTCONFIG_ETHBACKHAUL
+				if(nvram_get_int("eth_detect_proc")) //eth backhaul process, ignore wifimon
+					assoc_timeout=0;
+#endif
+				break;
+			default:
+				break;
+		}
+		sleep(check_period);
+		
+		if(restart_process)
+		{
+			_dprintf("=> RE:restart hyd/wsplcd/wifimon process after reset 2G or 5G\n");
+			wsplcd_stop();
+			hyd_stop();
+			gen_wsplcd_conf(1, WSPLCD_CONF, 0);
+                	wsplcd_enable();
+			hyd_start(1);
+		}
+
+		if(assoc_timeout==0)
+		{
+			restart_process=0;
+		}
+		else if(assoc_timeout>=2)  //2G or 5G not assoc for more than 60 seconds
+		{
+
+#ifdef RTCONFIG_DUAL_BACKHAUL
+			if(sta_is_assoc(1))
+			{
+				if(detect_loop())
+				{
+					_dprintf("=> RE: detect loop on 5G, reset2!\n");
+					reset_loop();
+					force_down_2g();
+				}
+					
+				if(!sta_is_assoc(0))
+				{
+					if(retry>2)
+					{
+						_dprintf("=> RE: 2G is down ...\n");
+						force_down_2g();
+						resolving=1;
+						retry=0xff;
+					}
+					else
+						retry++;
+				}
+				else if(!pap_db_mac())
+				{	
+					force_down_2g();
+					_dprintf("=> RE: detcet diff bssid between 2G and 5G !!!\n");
+				}
+				
+			}
+			else
+#endif
+			{
+
+#ifndef RTCONFIG_DUAL_BACKHAUL
+				if(!sta_is_assoc(1))
+#endif
+				{
+					_dprintf("=> RE: 5G is not assoc.Reset wpa_supplicant for 5G!!\n");
+					wpa_supplicant_stop(1);
+					wpa_supplicant_start(1);
+					force_down_2g();
+#ifdef DETECT_5G
+					detect_5g=1;
+#endif
+				}
+			}
+			restart_process=1;
+			assoc_timeout=0;
+		}
+		else
+			restart_process=0;
+		
+		if(!pids("watchdog"))
+		{
+			 nvram_set("wps_syncing","0");
+                         lp55xx_leds_proc(LP55XX_ALL_LEDS_OFF, LP55XX_PREVIOUS_STATE);
+			 start_watchdog();
+		}
+
+	}
+}
+#else //CSU2_2
+
 void start_wifimon_check(int delay)
 {
 	int i,state, assoc_timeout;
@@ -2461,6 +2965,11 @@ void start_wifimon_check(int delay)
 	else 
 		dbg_m=0;
 
+	if(nvram_get_int("dfs_check_period"))
+		check_period=60;
+	else
+		check_period=30;
+
 	assoc_timeout=0;
 	retry_times=0;
 #ifdef RTCONFIG_DUAL_BACKHAUL
@@ -2471,8 +2980,11 @@ void start_wifimon_check(int delay)
 	sleep(delay);
 
 	for(i=0;i<2;i++)
+	{
+        	doSystem("ifconfig %s down",get_wififname(i));
+		sleep(1);
         	doSystem("ifconfig %s up",get_wififname(i));
-
+	}
 	while(1)
 	{
 		if(dbg_m)
@@ -2593,9 +3105,12 @@ void start_wifimon_check(int delay)
 				}
 			}
 #else
-			_dprintf("=> RE: 5G is not assoc.Reset wpa_supplicant for 5G!!\n");
-			wpa_supplicant_stop(1);
-			wpa_supplicant_start(1);
+			if(!sta_is_assoc(1))
+			{
+				_dprintf("=> RE: 5G is not assoc.Reset wpa_supplicant for 5G!!\n");
+				wpa_supplicant_stop(1);
+				wpa_supplicant_start(1);
+			}
 #endif
 			restart_process=1;
 			assoc_timeout=0;
@@ -2612,4 +3127,5 @@ void start_wifimon_check(int delay)
 
 	}
 }
+#endif
 #endif

@@ -83,17 +83,23 @@ var isFirst = ('<% nvram_get("x_Setting"); %>' == '1') ? false : true;;
 var header_info = [<% get_header_info(); %>][0];
 var ROUTERHOSTNAME = '<% nvram_get("local_domain"); %>';
 var domainNameUrl = ((header_info.host.split(":").length==2)?"https":"http")+"://"+header_info.host.replace(header_info.host.split(":")[0], ROUTERHOSTNAME);
-var iAmAlive = function(ret){if(ret.isdomain) window.location.href=domainNameUrl};
+var chdom = function(){window.location.href=domainNameUrl};
 (function(){
 	if(ROUTERHOSTNAME !== header_info.host && ROUTERHOSTNAME != "" && isFirst){
 		setTimeout(function(){
-			var s=document.createElement("script");s.type="text/javascript";s.src=domainNameUrl+"/httpd_check.json?hostname="+header_info.host.split(":")[0];var h=document.getElementsByTagName("script")[0];h.parentNode.insertBefore(s,h);
+			var s=document.createElement("script");s.type="text/javascript";s.src=domainNameUrl+"/chdom.json?hostname="+header_info.host.split(":")[0];var h=document.getElementsByTagName("script")[0];h.parentNode.insertBefore(s,h);
 		}, 1);
 	}
 })();
 
 var sw_mode = '<% nvram_get("sw_mode"); %>';
 var based_modelid = '<% nvram_get("productid"); %>';
+// parsing rc_support
+var rc_support = '<% nvram_get("rc_support"); %>';
+function isSupport(_ptn){
+	return (rc_support.search(_ptn) == -1) ? false : true;
+}
+var spirit_logo_support = isSupport("spirit");
 if(((sw_mode == 2 || sw_mode == 3) && '<% nvram_get("wlc_psta"); %>' == 1) || (sw_mode == 3 && '<% nvram_get("wlc_psta"); %>' == 3))
 	sw_mode = 4;
 if(sw_mode == 3 && '<% nvram_get("wlc_psta"); %>' == 2)
@@ -109,7 +115,7 @@ if(isMobile() && (based_modelid == "RT-AC88U" || based_modelid == "RT-AC3100" ||
 }
 	
 var parent_macaddr = '<% nvram_get("lan_hwaddr"); %>';
-
+var nz_isp_support = isSupport("nz_isp");
 var isRepeater = true;
 var reduced_internet_type = "disable";
 var targeturl = "/index.htm";
@@ -335,7 +341,15 @@ function QIS_load_body(){
 		document.getElementById("logo").style.width = "358px"
 		document.getElementById("logo").style.height = "86px"
 	}
-	
+	else if(spirit_logo_support){
+		document.getElementById("logo").src = "images/New_ui/asus_spirit_title.png";
+		document.getElementById("logo").style.width = "214px";
+		document.getElementById("logo").style.height = "31px";
+		document.getElementById("logo").style.marginTop = "13px";
+		document.getElementById("logo").style.marginLeft = "30px";
+		document.getElementById("title_name").style.display = "none";
+	}
+
 	document.getElementById("language_menu").innerHTML = '<% shown_language_css(); %>';
 	show_selected_language();
 	
@@ -349,7 +363,7 @@ function QIS_load_body(){
 			document.QKform.sw_mode.value = 4;
 	}
 
-	if(based_modelid == "MAP-AC1300" || based_modelid == "MAP-AC2200"){
+	if(based_modelid == "MAP-AC1300" || based_modelid == "MAP-AC2200" || based_modelid == "VRZ-AC1300"){
 		document.getElementById("QIS_wizard_menu").style.display = "none";
 		document.getElementById("qis_menu").style.marginTop = "-160px";
 	}

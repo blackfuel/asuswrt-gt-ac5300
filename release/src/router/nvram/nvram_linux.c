@@ -33,8 +33,13 @@
 #ifdef RTCONFIG_REALTEK
 #include <sysdeps/realtek/realtek.h>
 #endif
+
+
+#if defined(RTCONFIG_ALPINE) || defined(RTCONFIG_LANTIQ)
+#define PATH_DEV_NVRAM "/dev/"MTD_OF_NVRAM
+#else
 #define PATH_DEV_NVRAM "/dev/nvram"
-//#define PATH_DEV_NVRAM "/dev/"MTD_OF_NVRAM
+#endif
 
 #define NVRAM_IOCTL_GET_SPACE	0x0001
 

@@ -233,16 +233,16 @@ function overHint(itemNum){
 	}
 		
 	if(itemNum == 85){
-		statusmenu ="<span>Manually prioritize apps category depending on your preference.</span>";		/* untranslated */
+		statusmenu ="<span><#Adaptive_Custom_desc#></span>";
 	}
 	else if(itemNum == 86){
-		statusmenu ="<span>This mode is suitable for playing internet game and boost your gaming bandwidth.<br><#Adaptive_Category1#></span>";		/* untranslated */
+		statusmenu ="<span><#Adaptive_Game_desc#><br><#Adaptive_Category1#></span>";
 	}
 	else if(itemNum == 87){
-		statusmenu ="<span>This mode is suitable for playing video streaming and make sure your viewing experience.<br><#Adaptive_Category2#></span>";	/* untranslated */
+		statusmenu ="<span><#Adaptive_Stream_desc#><br><#Adaptive_Category2#></span>";
 	}
 	else if(itemNum == 88){
-		statusmenu ="<span>This mode is suitable for general web browsing and avoid to networking latency while?file transferring.<br><#Adaptive_Category4#></span>";	/* untranslated */
+		statusmenu ="<span><#Adaptive_WebSurf_desc#><br><#Adaptive_Category4#></span>";
 	}
 	else if(itemNum == 89){
 		statusmenu ="<span>Enable this function allow block advertisement in the streaming video.</span>";
@@ -275,7 +275,7 @@ function overHint(itemNum){
 			statusmenu += "<div class='StatusHint'><#Mobile_no_signal#></div>";
 		}
 		else if(usb_state == 2 && usb_sbstate == 0 && usb_auxstate == 0){
-			statusmenu += "<div class='StatusHint'><#Connected#> <#HSDPAConfig_ISP_itemname#>: </div><span>" + sim_spn + "</span>";
+			statusmenu += "<div class='StatusHint'><#Connected#> <#HSDPAConfig_ISP_itemname#>: </div><span>" + modem_act_provider + "</span>";
 		}
 		else{
 			statusmenu += "<div class='StatusHint'><#Disconnected#></div>";

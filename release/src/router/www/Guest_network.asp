@@ -123,6 +123,9 @@ function initial(){
 	if(!fbwifi_support) {
 		document.getElementById("guest_tableFBWiFi").style.display = "none";
 	}
+
+	if(lyra_hide_support)
+		document.getElementById("gn_index_tr").style.display = "none";
 }
 
 function change_wl_expire_radio(){
@@ -197,7 +200,8 @@ function gen_gntable_tr(unit, gn_array, slicesb){
 	htmlcode += '"><tr><th align="left" width="160px">';
 	htmlcode += '<table id="GNW_'+GN_band+'G" class="gninfo_th_table" align="left" style="margin:auto;border-collapse:collapse;">';
 	htmlcode += '<tr><th align="left" style="height:40px;"><#QIS_finish_wireless_item1#></th></tr>';
-	htmlcode += "<tr><th align=\"left\" style=\"height:40px;\"><#WLANConfig11b_AuthenticationMethod_itemname#></th></tr>";
+	if(!lyra_hide_support)
+		htmlcode += "<tr><th align=\"left\" style=\"height:40px;\"><#WLANConfig11b_AuthenticationMethod_itemname#></th></tr>";
 	htmlcode += '<tr><th align="left" style="height:40px;"><#Network_key#></th></tr>';
 	htmlcode += '<tr><th align="left" style="height:40px;"><#mssid_time_remaining#></th></tr>';
 	if(sw_mode != "3"){
@@ -287,7 +291,8 @@ function gen_gntable_tr(unit, gn_array, slicesb){
 						show_str = show_str.substring(0,17) + "...";
 					show_str = handle_show_str(show_str);
 					htmlcode += '<tr><td align="center" onclick="change_guest_unit('+ unit +','+ subunit +');">'+ show_str +'</td></tr>';
-					htmlcode += '<tr><td align="center" onclick="change_guest_unit('+ unit +','+ subunit +');">'+ translate_auth(gn_array[i][2]) +'</td></tr>';
+					if(!lyra_hide_support)
+						htmlcode += '<tr><td align="center" onclick="change_guest_unit('+ unit +','+ subunit +');">'+ translate_auth(gn_array[i][2]) +'</td></tr>';
 					
 					if(gn_array[i][2].indexOf("wpa") >= 0 || gn_array[i][2].indexOf("radius") >= 0)
 							show_str = "";
@@ -370,63 +375,67 @@ function gen_gntable(){
 	var band5sb = 0;
 	var band5sb_2 = 0;
 
-	htmlcode += '<table style="margin-left:20px;margin-top:25px;" width="95%" align="center" cellpadding="4" cellspacing="0" class="gninfo_head_table" id="gninfo_table_2g">';
-	htmlcode += '<tr id="2g_title"><td align="left" style="color:#5AD;font-size:16px; border-bottom:1px dashed #AAA;"><span>2.4GHz</span>';
-	htmlcode += '<span id="2g_radio_hint" style="font-size: 14px;display:none;color:#FC0;margin-left:17px;">* <#GuestNetwork_Radio_Status#>	<a style="font-family:Lucida Console;color:#FC0;text-decoration:underline;cursor:pointer;" onclick="_change_wl_unit_status(0);"><#btn_go#></a></span></td></tr>';	
-	while(gn_array_2g_tmp.length > 4){
+	if(gn_array_2g_tmp.length > 0){
+		htmlcode += '<table style="margin-left:20px;margin-top:25px;" width="95%" align="center" cellpadding="4" cellspacing="0" class="gninfo_head_table" id="gninfo_table_2g">';
+		htmlcode += '<tr id="2g_title"><td align="left" style="color:#5AD;font-size:16px; border-bottom:1px dashed #AAA;"><span>2.4GHz</span>';
+		htmlcode += '<span id="2g_radio_hint" style="font-size: 14px;display:none;color:#FC0;margin-left:17px;">* <#GuestNetwork_Radio_Status#>	<a style="font-family:Lucida Console;color:#FC0;text-decoration:underline;cursor:pointer;" onclick="_change_wl_unit_status(0);"><#btn_go#></a></span></td></tr>';
+		while(gn_array_2g_tmp.length > 4){
+			htmlcode += '<tr><td>';
+			htmlcode += gen_gntable_tr(0, gn_array_2g_tmp.slice(0, 4), band2sb);
+			band2sb++;
+			gn_array_2g_tmp = gn_array_2g_tmp.slice(4);
+			htmlcode += '</td></tr>';
+		}
+
 		htmlcode += '<tr><td>';
-		htmlcode += gen_gntable_tr(0, gn_array_2g_tmp.slice(0, 4), band2sb);
-		band2sb++;
-		gn_array_2g_tmp = gn_array_2g_tmp.slice(4);
+		htmlcode += gen_gntable_tr(0, gn_array_2g_tmp, band2sb);
 		htmlcode += '</td></tr>';
+		htmlcode += '</table>';
+		document.getElementById("guest_table2").innerHTML = htmlcode;
 	}
 	
-	htmlcode += '<tr><td>';
-	htmlcode += gen_gntable_tr(0, gn_array_2g_tmp, band2sb);
-	htmlcode += '</td></tr>';
-	htmlcode += '</table>';
-	document.getElementById("guest_table2").innerHTML = htmlcode;
-	
-	htmlcode5 += '<table style="margin-left:20px;margin-top:25px;" width="95%" align="center" cellpadding="4" cellspacing="0" class="gninfo_head_table" id="gninfo_table_5g">';
-	htmlcode5 += '<tr id="5g_title"><td align="left" style="color:#5AD; font-size:16px; border-bottom:1px dashed #AAA;">';
-	if(wl_info.band5g_2_support)
-		htmlcode5 += '<span>5GHz-1</span>';
-	else
-		htmlcode5 += '<span>5GHz</span>';
-	htmlcode5 += '<span id="5g_radio_hint" style="font-size: 14px;display:none;color:#FC0;margin-left:17px;">* <#GuestNetwork_Radio_Status#>	<a style="font-family:Lucida Console;color:#FC0;text-decoration:underline;cursor:pointer;" onclick="_change_wl_unit_status(1);"><#btn_go#></a></span></td></tr>';
+	if(gn_array_5g_tmp.length > 0){
+		htmlcode5 += '<table style="margin-left:20px;margin-top:25px;" width="95%" align="center" cellpadding="4" cellspacing="0" class="gninfo_head_table" id="gninfo_table_5g">';
+		htmlcode5 += '<tr id="5g_title"><td align="left" style="color:#5AD; font-size:16px; border-bottom:1px dashed #AAA;">';
+		if(wl_info.band5g_2_support)
+			htmlcode5 += '<span>5GHz-1</span>';
+		else
+			htmlcode5 += '<span>5GHz</span>';
+		htmlcode5 += '<span id="5g_radio_hint" style="font-size: 14px;display:none;color:#FC0;margin-left:17px;">* <#GuestNetwork_Radio_Status#>	<a style="font-family:Lucida Console;color:#FC0;text-decoration:underline;cursor:pointer;" onclick="_change_wl_unit_status(1);"><#btn_go#></a></span></td></tr>';
 
-	while(gn_array_5g_tmp.length > 4){
-		htmlcode5 += '<tr><td >';
-		htmlcode5 += gen_gntable_tr(1, gn_array_5g_tmp.slice(0, 4), band5sb);
-		band5sb++;
-		gn_array_5g_tmp = gn_array_5g_tmp.slice(4);
+		while(gn_array_5g_tmp.length > 4){
+			htmlcode5 += '<tr><td >';
+			htmlcode5 += gen_gntable_tr(1, gn_array_5g_tmp.slice(0, 4), band5sb);
+			band5sb++;
+			gn_array_5g_tmp = gn_array_5g_tmp.slice(4);
+			htmlcode5 += '</td></tr>';
+		}
+
+		htmlcode5 += '<tr><td>';
+		htmlcode5 += gen_gntable_tr(1, gn_array_5g_tmp, band5sb);
 		htmlcode5 += '</td></tr>';
+		htmlcode5 += '</table>';
+		document.getElementById("guest_table5").innerHTML = htmlcode5;
 	}
-	
-	htmlcode5 += '<tr><td>';
-	htmlcode5 += gen_gntable_tr(1, gn_array_5g_tmp, band5sb);
-	htmlcode5 += '</td></tr>';
-	htmlcode5 += '</table>';	
-	document.getElementById("guest_table5").innerHTML = htmlcode5;
 
-  if(wl_info.band5g_2_support){
-	htmlcode5_2 += '<table style="margin-left:20px;margin-top:25px;" width="95%" align="center" cellpadding="4" cellspacing="0" class="gninfo_head_table" id="gninfo_table_5g_2">';
-	htmlcode5_2 += '<tr id="5g_2_title"><td align="left" style="color:#5AD; font-size:16px; border-bottom:1px dashed #AAA;"><span>5GHz-2</span>';
-	htmlcode5_2 += '<span id="5g_2_radio_hint" style="font-size: 14px;display:none;color:#FC0;margin-left:17px;">* <#GuestNetwork_Radio_Status#>	<a style="font-family:Lucida Console;color:#FC0;text-decoration:underline;cursor:pointer;" onclick="_change_wl_unit_status(1);"><#btn_go#></a></span></td></tr>';
-	while(gn_array_5g_2_tmp.length > 4){
-		htmlcode5_2 += '<tr><td >';
-		htmlcode5_2 += gen_gntable_tr(2, gn_array_5g_2_tmp.slice(0, 4), band5sb_2);
-		band5sb++;
-		gn_array_5g_2_tmp = gn_array_5g_2_tmp.slice(4);
+  	if(wl_info.band5g_2_support && gn_array_5g_2_tmp.length > 0){
+		htmlcode5_2 += '<table style="margin-left:20px;margin-top:25px;" width="95%" align="center" cellpadding="4" cellspacing="0" class="gninfo_head_table" id="gninfo_table_5g_2">';
+		htmlcode5_2 += '<tr id="5g_2_title"><td align="left" style="color:#5AD; font-size:16px; border-bottom:1px dashed #AAA;"><span>5GHz-2</span>';
+		htmlcode5_2 += '<span id="5g_2_radio_hint" style="font-size: 14px;display:none;color:#FC0;margin-left:17px;">* <#GuestNetwork_Radio_Status#>	<a style="font-family:Lucida Console;color:#FC0;text-decoration:underline;cursor:pointer;" onclick="_change_wl_unit_status(1);"><#btn_go#></a></span></td></tr>';
+		while(gn_array_5g_2_tmp.length > 4){
+			htmlcode5_2 += '<tr><td >';
+			htmlcode5_2 += gen_gntable_tr(2, gn_array_5g_2_tmp.slice(0, 4), band5sb_2);
+			band5sb++;
+			gn_array_5g_2_tmp = gn_array_5g_2_tmp.slice(4);
+			htmlcode5_2 += '</td></tr>';
+		}
+
+		htmlcode5_2 += '<tr><td>';
+		htmlcode5_2 += gen_gntable_tr(2, gn_array_5g_2_tmp, band5sb_2);
 		htmlcode5_2 += '</td></tr>';
+		htmlcode5_2 += '</table>';
+		document.getElementById("guest_table5_2").innerHTML = htmlcode5_2;
 	}
-	
-	htmlcode5_2 += '<tr><td>';
-	htmlcode5_2 += gen_gntable_tr(2, gn_array_5g_2_tmp, band5sb_2);
-	htmlcode5_2 += '</td></tr>';
-	htmlcode5_2 += '</table>';	
-	document.getElementById("guest_table5_2").innerHTML = htmlcode5_2;
-  }
 }
 
 function add_options_value(o, arr, orig){
@@ -718,7 +727,7 @@ function change_guest_unit(_unit, _subunit){
 	}
 	
 	idx = _subunit - 1;
-	limit_auth_method(_unit);	
+	limit_auth_method(_unit);
 	document.form.wl_unit.value = _unit;
 	document.form.wl_subunit.value = _subunit;
 	document.getElementById("wl_vifname").innerHTML = document.form.wl_subunit.value;
@@ -726,7 +735,10 @@ function change_guest_unit(_unit, _subunit){
 	document.form.wl_ssid.value = decodeURIComponent(gn_array[idx][1]);
 	wl_x_y_bss_enabled = 1;
 	
-	document.form.wl_auth_mode_x.value = decodeURIComponent(gn_array[idx][2]);
+	if(lyra_hide_support)
+		document.form.wl_auth_mode_x.value = "psk2";
+	else
+		document.form.wl_auth_mode_x.value = decodeURIComponent(gn_array[idx][2]);
 	wl_auth_mode_change(1);
 	document.form.wl_crypto.value = decodeURIComponent(gn_array[idx][3]);
 	document.form.wl_wpa_psk.value = decodeURIComponent(gn_array[idx][4]);
@@ -755,6 +767,14 @@ function change_guest_unit(_unit, _subunit){
 	guest_divctrl(1);
 
 	updateMacModeOption();
+
+	if(lyra_hide_support){
+		document.form.wl_crypto.value = "aes";
+		document.getElementById("wl_auth_mode_tr").style.display = "none";
+		document.getElementById("wl_crypt_tr").style.display = "none";
+		document.getElementById("psk_title").innerHTML = "<#Network_key#>";
+		inputCtrl(document.form.wl_macmode, 0);
+	}
 }
 
 function create_guest_unit(_unit, _subunit){
@@ -1168,7 +1188,7 @@ function bandwidth_code(o,event){
 								</tr>
 								<tr>
 									<td width="70%">
-										<span style="line-height: 20px;" >Facebook Wi-Fi kets customers check in to participating businesses on Facebok for free Wi-Fi access. When people check int to your Page, you can share offers and other announcements with them.
+										<span style="line-height: 20px;" >Facebook Wi-Fi lets customers check in to participating businesses on Facebok for free Wi-Fi access. When people check int to your Page, you can share offers and other announcements with them.
 										</span>
 									</td>
 									<td width="30%" style="text-align:center;">
@@ -1195,7 +1215,7 @@ function bandwidth_code(o,event){
 									<span><span><input type="hidden" name="wl_wpa_gtk_rekey" value="<% nvram_get("wl_wpa_gtk_rekey"); %>" disabled></span></span>
 								</td>
 							</tr>
-							<tr>
+							<tr id="gn_index_tr">
 								<th><#Guest_network_index#></th>
 								<td>
 									<p id="wl_vifname"></p>
@@ -1257,7 +1277,7 @@ function bandwidth_code(o,event){
 									</select>
 								</td>
 							</tr>
-							<tr>
+							<tr  id="wl_auth_mode_tr">
 								<th><a class="hintstyle" href="javascript:void(0);" onClick="openHint(0, 5);"><#WLANConfig11b_AuthenticationMethod_itemname#></a></th>
 								<td>
 									<select name="wl_auth_mode_x" class="input_option" onChange="authentication_method_change(this);">
@@ -1271,7 +1291,7 @@ function bandwidth_code(o,event){
 									<span id="wl_nmode_x_hint" style="display:none;"><#WLANConfig11n_automode_limition_hint#></span>
 								</td>
 							</tr>					
-							<tr>
+							<tr id="wl_crypt_tr">
 								<th><a class="hintstyle" href="javascript:void(0);" onClick="openHint(0, 6);"><#WLANConfig11b_WPAType_itemname#></a></th>
 								<td>		
 									<select name="wl_crypto" class="input_option" onChange="authentication_method_change(this);">
@@ -1281,7 +1301,7 @@ function bandwidth_code(o,event){
 								</td>
 							</tr>	  
 							<tr>
-								<th><a class="hintstyle" href="javascript:void(0);" onClick="openHint(0, 7);"><#WLANConfig11b_x_PSKKey_itemname#></a></th>
+								<th><a id="psk_title" class="hintstyle" href="javascript:void(0);" onClick="openHint(0, 7);"><#WLANConfig11b_x_PSKKey_itemname#></a></th>
 								<td>
 									<input type="text" name="wl_wpa_psk" maxlength="64" class="input_32_table" value="<% nvram_get("wl_wpa_psk"); %>" autocorrect="off" autocapitalize="off">
 								</td>

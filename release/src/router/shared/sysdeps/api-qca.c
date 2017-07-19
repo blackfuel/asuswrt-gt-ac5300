@@ -1021,7 +1021,9 @@ char *get_lan_mac_name(void)
 	case MODEL_BRTAC828:	/* fall-through */
 	case MODEL_RTAC88S:	/* fall-through */
 	case MODEL_RTAC88N:	/* fall-through */
+	case MODEL_RPAC51:	/* fall-through */
         case MODEL_MAPAC1300:
+        case MODEL_VRZAC1300:
         case MODEL_MAPAC2200:
 		/* Use 5G MAC address as LAN MAC address. */
 		mac_name = "et1macaddr";
@@ -1053,6 +1055,7 @@ char *get_wan_mac_name(void)
 	case MODEL_BRTAC828:	/* fall-through */
 	case MODEL_RTAC88S:	/* fall-through */
 	case MODEL_RTAC88N:	/* fall-through */
+	case MODEL_RPAC51:	/* fall-through */
 		/* Use 2G MAC address as LAN MAC address. */
 		mac_name = "et0macaddr";
 		break;

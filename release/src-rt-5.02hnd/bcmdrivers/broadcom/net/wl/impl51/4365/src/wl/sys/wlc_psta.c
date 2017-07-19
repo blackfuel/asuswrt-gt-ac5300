@@ -4,7 +4,7 @@
  * This module implements Proxy STA as well as the Wireless Repeater
  * features.
  *
- * Broadcom Proprietary and Confidential. Copyright (C) 2016,
+ * Broadcom Proprietary and Confidential. Copyright (C) 2017,
  * All Rights Reserved.
  * 
  * This is UNPUBLISHED PROPRIETARY SOURCE CODE of Broadcom;
@@ -12,7 +12,7 @@
  * or duplicated in any form, in whole or in part, without the prior
  * written permission of Broadcom.
  *
- * $Id: wlc_psta.c 645930 2016-06-27 22:29:51Z $
+ * $Id: wlc_psta.c 672672 2016-11-29 10:58:39Z $
  */
 
 
@@ -352,6 +352,12 @@ wlc_psta_rcmta_alloc(wlc_psta_info_t *psta, uint8 *idx)
 	for (i = 0; i < PSTA_MAX_ASSOC(psta->wlc); i++) {
 		if (isset(&psta->rcmap[0], start_off + i))
 			continue;
+
+		/* Confirm amt_idx by keymgmt as well */
+		if (wlc_keymgmt_amt_idx_isset(psta->wlc->keymgmt, start_off + i)) {
+			continue;
+		}
+
 		*idx = start_off + i;
 		setbit(&psta->rcmap[0], *idx);
 		WL_PSTA(("wl%d: Allocing RCMTA index %d\n", psta->pub->unit, *idx));
@@ -1989,7 +1995,8 @@ wlc_psta_scb_state_upd(bcm_notif_client_data ctx, bcm_notif_server_data scb_data
 			PSTA_MODE_UPDATE_ACTION_SAVE);
 	}
 
-	if ((data->oldstate & ASSOCIATED) && !(scb->state & ASSOCIATED)) {
+	if (((data->oldstate & ASSOCIATED) && !(scb->state & ASSOCIATED)) ||
+		((data->oldstate & AUTHENTICATED) && !(scb->state & AUTHENTICATED))) {
 		/* If the deassociated client is downstream, then deauthenticate
 		 * the corresponding proxy client to free dongle memory.
 		 */

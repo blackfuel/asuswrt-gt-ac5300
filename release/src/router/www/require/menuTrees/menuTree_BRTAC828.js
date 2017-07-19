@@ -73,7 +73,7 @@ define(function(){
 					{url: "Advanced_VPN_PPTP.asp", tabName: "<#BOP_isp_heart_item#>"},
 					{url: "Advanced_VPN_OpenVPN.asp", tabName: "__INHERIT__"},
 					{url: "Advanced_VPN_IPSec.asp", tabName: "__INHERIT__"},
-					{url: "Advanced_VPNClient_Content.asp", tabName: "<#vpnc_title#>"},
+					{url: "Advanced_VPNClient_Content.asp", tabName: (vpn_fusion_support) ? "VPN Fusion" : "<#vpnc_title#>"},/*untranslated*/
 					{url: "Advanced_TOR_Content.asp", tabName: "TOR"},
 					{url: "NULL", tabName: "__INHERIT__"}
 				]
@@ -83,7 +83,7 @@ define(function(){
 				index: "menu_GuestNetwork",
 				tab: [
 					{url: "Captive_Portal.asp", tabName: "Free Wi-Fi"},
-					{url: "Captive_Portal_Advanced.asp", tabName: "Captive Portal"},
+					{url: "Captive_Portal_Advanced.asp", tabName: "<#Captive_Portal#>"},
 					{url: "Guest_network_fbwifi.asp", tabName: "Facebook Wi-Fi"},
 					{url: "Guest_network.asp", tabName: "<#Guest_Network#>"},
 					{url: "NULL", tabName: "__INHERIT__"}
@@ -111,8 +111,8 @@ define(function(){
 					{url: "Advanced_Firewall_IPv6_Content.asp", tabName: "<#menu5_5_6#>"},*/
 					
 					{url: "Advanced_BasicFirewall_Content.asp", tabName: "<#menu5_1_1#>"},
-					{url: "AiProtection_AppProtector.asp", tabName: "App Patrol"},
-					{url: "AiProtection_WebProtector.asp", tabName: "Web Content Filters"},
+					{url: "AiProtection_AppProtector.asp", tabName: "APP Patrol"},
+					{url: "AiProtection_WebProtector.asp", tabName: "<#AiProtection_filter#>"},
 					{url: "Advanced_URLFilter_Content.asp", tabName: "<#menu5_5_2#>"},
 					{url: "Advanced_KeywordFilter_Content.asp", tabName: "<#menu5_5_5#>"},
 					{url: "Advanced_Firewall_Content.asp", tabName: "<#menu5_5_4#>"},
@@ -124,7 +124,7 @@ define(function(){
 				menuName: "<#Traffic_Analyzer#>",
 				index: "menu_TrafficAnalyzer",
 				tab: [
-					{url: "TrafficAnalyzer_Statistic.asp", tabName: "Statistic"},
+					{url: "TrafficAnalyzer_Statistic.asp", tabName: "<#Statistic#>"},
 					{url: "AdaptiveQoS_WebHistory.asp", tabName: "<#Adaptive_History#>"},
 					{url: "NULL", tabName: "__INHERIT__"}
 				]
@@ -530,7 +530,7 @@ define(function(){
 				else
 					retArray.push("Advanced_DHCP_Content.asp");
 
-				if((!Rawifi_support && !Rtkwifi_support) || !concurrep_support || !isSwMode("re")){
+				if(!wifiproxy_support || !concurrep_support || !isSwMode("re")){
 					retArray.push("Advanced_WProxy_Content.asp");
 				}
 				

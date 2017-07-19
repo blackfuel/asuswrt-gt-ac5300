@@ -4476,8 +4476,7 @@ wl_get_scan_results_escan(char *ifname)
 
 	return scan_result;
 }
-
-#else
+#endif
 
 static char *
 wl_get_scan_results(char *ifname)
@@ -4533,7 +4532,6 @@ wl_get_scan_results(char *ifname)
 
 	return scan_result;
 }
-#endif
 
 int
 ej_nat_accel_status(int eid, webs_t wp, int argc, char_t **argv)
@@ -4564,11 +4562,16 @@ wl_scan(int eid, webs_t wp, int argc, char_t **argv, int unit)
 	name = nvram_safe_get(strcat_r(prefix, "ifname", tmp));
 
 #if defined(RTCONFIG_BCM_7114) || defined(HND_ROUTER)
-	if (wl_get_scan_results_escan(name) == NULL)
-#else
-	if (wl_get_scan_results(name) == NULL)
+	if (!nvram_match(strcat_r(prefix, "mode", tmp), "wds")) {
+		if (wl_get_scan_results_escan(name) == NULL) {
+			return 0;
+		}
+	}
+	else
 #endif
+	if (wl_get_scan_results(name) == NULL) {
 		return 0;
+	}
 
 	if (list->count == 0)
 		return 0;

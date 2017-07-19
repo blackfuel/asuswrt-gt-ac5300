@@ -2,7 +2,7 @@
  * Configuration-related definitions for
  * Broadcom 802.11abg Networking Device Driver
  *
- * Broadcom Proprietary and Confidential. Copyright (C) 2016,
+ * Broadcom Proprietary and Confidential. Copyright (C) 2017,
  * All Rights Reserved.
  * 
  * This is UNPUBLISHED PROPRIETARY SOURCE CODE of Broadcom;
@@ -1384,7 +1384,7 @@ int wlc_bmac_is_singleband_5g(unsigned int device);
 #endif /* MAXBSS */
 
 #ifdef DONGLEBUILD
-#define MAXUSCANBSS	16	/* reduce active limit for user scans */
+#define MAXUSCANBSS	32	/* reduce active limit for user scans */
 #if (MAXBSS < MAXUSCANBSS)
 #undef MAXUSCANBSS
 #endif

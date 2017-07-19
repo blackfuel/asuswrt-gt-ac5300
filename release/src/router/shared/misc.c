@@ -3348,3 +3348,64 @@ int is_valid_group_id(const char *str)
 	return 1;
 }
 #endif /* RTCONFIG_CFGSYNC */
+
+#ifdef RTCONFIG_BONDING
+#ifdef HND_ROUTER
+
+#define SYS_BOND_FILE "/proc/net/bonding/bond0"
+#define STR_PARTNER_MAC "Partner Mac Address: "
+
+enum {
+	BS_NOCONFIG,
+	BS_NOPROC,
+	BS_NOLINK,
+	BS_FAIL,
+	BS_OK
+};
+
+char *bs_desc[] = {
+	"option disabled",
+	"no report",
+	"not linked",
+	"not established",
+	"successfully"
+};
+
+int get_bonding_status()
+{
+	FILE *fp;
+	char line[128], *lp, *mp=NULL;
+	int ret = 0;
+
+	if(!nvram_match("lacp_enabled", "1"))
+		return BS_NOCONFIG;
+
+	fp = fopen(SYS_BOND_FILE, "r");
+
+	if(fp != NULL)
+	{
+		while(fgets(line, sizeof(line), fp) != NULL){
+			if((lp = strstr(line, STR_PARTNER_MAC)) != NULL) {
+				mp = lp + strlen(STR_PARTNER_MAC);
+				mp[17] = 0;
+				break;
+			}
+		}
+
+		fclose(fp);
+
+		if(mp == NULL)
+			ret = BS_NOLINK;
+		else if(strncmp(mp, "00:00:00:00:00:00", 17) == 0)
+			ret = BS_FAIL;
+		else
+			ret = BS_OK;
+	} else {
+		ret = BS_NOPROC;
+	}
+
+	return ret;
+}
+
+#endif
+#endif

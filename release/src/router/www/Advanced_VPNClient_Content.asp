@@ -772,6 +772,8 @@ function show_vpnc_rulelist(){
 							code +="<td width='10%'><img title='<#Connected#>' src='/images/checked_parentctrl.png' style='width:25px;'></td>";
 						else if(vpnc_state_t == 4 && vpnc_sbstate_t == 2)
 							code +="<td width='10%'><img title='<#qis_fail_desc1#>' src='/images/button-close2.png' style='width:25px;'></td>";
+						else if(vpnc_state_t == 4 && vpnc_sbstate_t == 7)
+							code +="<td width='10%'><div title='<#vpn_openvpn_conflict#>' class='vpnc_ipconflict_icon'></div></td>";
 						else // Stop connection
 							code +="<td width='10%'><img title='<#ConnectionFailed#>' src='/images/button-close2.png' style='width:25px;'></td>";
 					}
@@ -2299,11 +2301,11 @@ function parseArrayToStr_vpnc_pptp_options_x_list() {
 		</tr>
 		<tr>
 			<td>
-				<div class="formfonttitle">Net-to-Net Client / Peer<!--untranslated--></div>
+				<div class="formfonttitle"><#vpnc_net_client_peer#></div>
 				<div class="formfontdesc">
-					IPSec VPN Client allows <#Web_Title2#> connect with Net-to-Net IPSec Server / Cliet or connect each other with Peer / Peer mode.
+					<#vpnc_net_client_peer_desc1#>
 					<br>
-					For using Peer / Peer mode, using two <#Web_Title2#> as an example, you need to create a IPSec peer profile here, and create ceate another peer on the other <#Web_Title2#> with corresponding configurations.<!--untranslated-->
+					<#vpnc_net_client_peer_desc2#>
 				</div>
 				<!-- VPN Type table start-->
 				<table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3"  class="FormTable">

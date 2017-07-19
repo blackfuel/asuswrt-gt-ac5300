@@ -8,7 +8,7 @@
 <meta HTTP-EQUIV="Expires" CONTENT="-1">
 <link rel="shortcut icon" href="images/favicon.png">
 <link rel="icon" href="images/favicon.png">
-<title><#Web_Title#> - <#vpnc_title#></title>
+<title><#Web_Title#> - VPN Fusion<!--untranslated--></title>
 <link rel="stylesheet" type="text/css" href="index_style.css"> 
 <link rel="stylesheet" type="text/css" href="form_style.css">
 <link rel="stylesheet" type="text/css" href="usp_style.css">
@@ -88,16 +88,16 @@
 }
 .vpn_illustration {
 	background-image: url('/images/vpn_illustration.png');
-	width: 160px;
 	height: 90px;
 	background-size: 160px 90px;
 	background-repeat: no-repeat;
 	float: left;
-	margin-right: 10px;
+	width: 24%;
+	margin: 5% 0%;
 }
 .addRuleFrame {
 	margin-top: 5px;
-	height: 30px;
+	height: 35px;
 	padding-left: 5px;
 }
 .addRuleText {
@@ -132,6 +132,10 @@
 .activateScan {
 	background-image: url('/images/InternetScan.gif');
 }
+.tableApi_table {
+	width: 98%;
+	margin: auto;
+}
 </style>
 <script>
 var subnetIP_support_IPv6 = false;
@@ -156,6 +160,7 @@ var ipsec_profile_client_4 = decodeURIComponent('<% nvram_char_to_ascii("","ipse
 var ipsec_profile_client_5 = decodeURIComponent('<% nvram_char_to_ascii("","ipsec_profile_client_5"); %>');
 var all_profile_subnet_list = "";
 var control_profile_flag = true;
+var serverList_maxNum = 0;
 
 function parseNvramToArray(_oriNvram, _arrayLength) {
 	var parseArray = [];
@@ -289,7 +294,8 @@ function gen_exception_list_table() {
 	var tableStruct = {
 		data: vpnc_dev_policy_list_array,
 		container: "exception_list_table",
-		title: "Exception list",
+		title: "Exception List", /*untranslated*/
+		titieHint : "You can add exception policies in the list to make client device connecting to different VPN tunnels.", /*untranslated*/
 		capability: {
 			add: true,
 			del: true,
@@ -302,11 +308,11 @@ function gen_exception_list_table() {
 			},
 			{
 				"title" : "<#IPConnection_ExternalIPAddress_itemname#>",
-				"width" : "30%"
+				"width" : "20%"
 			},
 			{
-				"title" : "<#Connectiontype#>",
-				"width" : "20%"
+				"title" : "Connection Name", /*untranslated*/
+				"width" : "30%"
 			},
 			{
 				"title" : "Activate", /*untranslated*/
@@ -329,7 +335,7 @@ function gen_exception_list_table() {
 				},
 				{
 					"editMode" : "select",
-					"title" : "<#Connectiontype#>",
+					"title" : "Connection Name", /*untranslated*/
 					"option" : {"<#Internet#>" : "0"}
 				},
 				{
@@ -337,7 +343,7 @@ function gen_exception_list_table() {
 					"value" : "0"
 				}
 			],
-			maximum: 32
+			maximum: 64
 		},
 		clickRawEditPanel: {
 			inputs : [
@@ -764,17 +770,17 @@ function show_vpnc_rulelist(){
 	var gen_default_connect = function(_idx) {
 		var html = "";
 		html +='<tr>';
-		html +='<td width="15%">';
+		html +='<td width="10%">';
 		html +='<div id="vpnc_default_wan_status_' + _idx + '" class="default_disconnect" onclick="set_default_connection(0);">';
 		html +='</div>';
 		html +='</td>';
-		html +='<td width="20%">';
+		html +='<td width="15%">';
 		if(wanConnectStatus)
 			html += '<#Connected#>';
 		else
 			html += '<#Disconnected#>';
 		html +='</td>';
-		html +='<td width="20%">';
+		html +='<td width="30%">';
 		html +='</td>';
 		html +='<td width="15%">';
 		html += '<#Internet#>';
@@ -820,6 +826,7 @@ function show_vpnc_rulelist(){
 		code +='<tr><td colspan="6" style="color:#FC0;"><#IPConnection_VSList_Norule#></td></tr>';
 	}
 	else{
+		serverList_maxNum = 0;
 		code += gen_default_connect(0);
 		for(var i = 0; i < vpnc_clientlist_array.length; i += 1) {
 			if(vpnc_clientlist_array[i] != "") {
@@ -834,10 +841,10 @@ function show_vpnc_rulelist(){
 					openvpn_arrayLength++;
 
 				code +='<tr id="vpnc_row_' + vpnc_profile_idx + '">';
-				code +='<td width="15%"><div id="vpnc_default_wan_status_' + vpnc_profile_idx + '" class="default_disconnect" onclick="set_default_connection(' + vpnc_profile_idx + ');"></div></td>';
+				code +='<td width="10%"><div id="vpnc_default_wan_status_' + vpnc_profile_idx + '" class="default_disconnect" onclick="set_default_connection(' + vpnc_profile_idx + ');"></div></td>';
 
 				//status
-				code += '<td width="20%">';
+				code += '<td width="15%">';
 				var vpnc_status = vpnc_status_array[i][0];
 				var vpnc_reason = vpnc_status_array[i][1];
 				var vpnc_idx = vpnc_status_array[i][2];
@@ -878,10 +885,10 @@ function show_vpnc_rulelist(){
 				//Description
 				if(vpnc_desc.length >28) {
 					var overlib_str = vpnc_desc.substring(0, 25) + "...";
-					code +='<td width="20%" title="'+vpnc_desc+'">'+ overlib_str +'</td>';
+					code +='<td width="30%" title="'+vpnc_desc+'">'+ overlib_str +'</td>';
 				}
 				else {
-					code +='<td width="20%">'+ vpnc_desc +'</td>';					
+					code +='<td width="30%">'+ vpnc_desc +'</td>';					
 				}
 				//VPN type
 				code += '<td width="15%">'+ vpnc_proto +'</td>';
@@ -889,6 +896,7 @@ function show_vpnc_rulelist(){
 				if(vpnc_proto == "OpenVPN"){ 
 					if(vpnc_activate_status == "1") {	//connecting
 						code += '<td width="15%"><div class="activate_icon" onClick="connect_Row(this);"></div></td>';
+						serverList_maxNum++;
 					}
 					else{			//OpenVPN is not connecting
 						code += '<td width="15%"><div class="deactivate_icon" onClick="connect_Row(this);"></div></td>';
@@ -898,6 +906,7 @@ function show_vpnc_rulelist(){
 				else{
 					if(vpnc_activate_status == "1") {
 						code += '<td width="15%"><div class="activate_icon" onClick="connect_Row(this);"></div></td>';
+						serverList_maxNum++;
 					}
 					else{		// This rule is not connecting
 						code += '<td width="15%"><div class="deactivate_icon" onClick="connect_Row(this);"></div></td>';
@@ -982,7 +991,6 @@ function show_vpnc_rulelist(){
 	}
 }
 
-
 function connect_Row(rowdata) {
 	var $activateItem = $(rowdata);
 	var flag = $activateItem.hasClass("activate_icon") ? "disconnect" : "connect";
@@ -997,13 +1005,19 @@ function connect_Row(rowdata) {
 		$activateItem.removeClass("activate_icon");	
 		vpnc_clientlist_array[idx_array][5] = "0";
 		document.form.action_script.value = "stop_vpnc";
+		serverList_maxNum--;
 	}
 	else { //"vpnc" making connection
+		if(serverList_maxNum >= 4) {
+			alert("It reached the max number of concurrent active VPN connections, please deactivate one of active VPN profile before activate a new one.");
+			return;
+		}
 		$connectActionRow.removeClass("deactivate_text");
 		$activateItem.addClass("activate_icon");
 		$activateItem.removeClass("deactivate_icon");
 		vpnc_clientlist_array[idx_array][5] = "1";
 		document.form.action_script.value = "restart_vpnc";
+		serverList_maxNum++;
 	}
 
 	document.form.vpnc_unit.value = idx_array;
@@ -1073,7 +1087,7 @@ function Edit_Row(rowdata) {
 	idx = idx - 1;
 	var vpnc_activate_status = vpnc_clientlist_array[idx_tmp][5];
 	if(vpnc_activate_status == "1") {
-		alert("Please deactivate before clicking delete button.");/*untranslated*/
+		alert("Please deactivate before using editor.");/*untranslated*/
 		return false;
 	}
 	
@@ -2477,44 +2491,66 @@ function applyExceptionList() {
 					<tr>
 						<td bgcolor="#4D595D" valign="top">
 							<div>&nbsp;</div>
-							<div class="formfonttitle">How will this benefit me?<!--untranslated--></div>
+							<div class="formfonttitle">VPN - VPN Fusion<!--untranslated--></div>
 							<div style="margin-left:5px;margin-top:10px;margin-bottom:10px"><img src="/images/New_ui/export/line_export.png"></div>
 							<div>
 								<div class='vpn_illustration'></div>
 								<div class="formfontdesc">
-									VPN Fusion develops from VPN client function of ASUSWRT and allow you connect several VPN server simultaneously. You can also assign which VPN tunnel will your client device connect to.<!--untranslated-->
+									VPN Fusion allow you connect several VPN server simultaneously and assign your client device connect to different VPN tunnel. Some devices like set-top boxes, smart TVs and Blu-ray players do not support VPN software. This feature provides VPN access to these devices in a home network without having to install VPN software , but remains your smart phone on the general Internet connection.
 									<br>
-									VPN Fusion counteracts DDoS attack to prevent your PC game or your stream from disconnecting with game server. Build a VPN connection via VPN Fusion also can simply change your IP address to the region where game server locate to improve your ping to gaming servers.
+									For Gamer, VPN Fusion counteracts DDoS attack to prevent your PC game or your stream from disconnecting with game server. Build a VPN connection via VPN Fusion also can simply change your IP address to the region where game server locate to improve your ping to gaming servers.<!--untranslated-->
 								</div>
 							</div>
-						</td>		
-        			</tr>	
-					<tr>
-						<td>
-							<div id="exception_list_table" style="width:98%;margin:auto;"></div>
-							<div class="apply_gen">
-								<input type="button" name="button" class="button_gen" onclick="applyExceptionList();" value="<#CTL_apply#>"/>
+							<div class="formfontdesc">
+								To start a VPN Fusion, please follow the steps below:<!--untranslated-->
+								<br>
+								1. Click "+" button in Server List to add a new VPN Tunnel.<!--untranslated--> 
+								<br>
+								2. Activate the VPN connection you create in Server List.<!--untranslated--> 
+								<br>
+								3. Click "+" button in Exception List and choose the online client you want to configure.<!--untranslated--> 
+								<br>
+								4. Assign a VPN connection to the client device, and click ok.<!--untranslated--> 
+								<br>
+								5. Activate the policy in Exception List, and click apply at the bottom.<!--untranslated-->
+								<br>
+								6. If any questions, please refer to VPN Fusion FAQ.<!--untranslated-->
 							</div>
-							<div style="margin-left:5px;margin-top:10px;margin-bottom:10px"><img src="/images/New_ui/export/line_export.png"></div>
 						</td>
-					</tr>
+        			</tr>
 					<tr>
 						<td>
 							<div class="addRuleFrame">
 								<div class="addRuleText">Server List<!--untranslated--> ( <#List_limit#> 16 )</div>
 								<div class="add_btn" style="float:left;" onclick="Add_profile(16)"></div>
 							</div>
+							<span style="color:#FC0;margin-left:5px;">Create profiles in server list to connect to VPN Server and the max number of concurrent active VPN connections is up to 4.<!--untranslated--> 
+							</span>
 							<table width="98%" border="1" align="center" cellpadding="4" cellspacing="0" class="FormTable_table">
 								<tr>
-									<th width="15%"><a class='hintstyle' href='javascript:void(0);' onClick='openHint(32, 1);'>Default Connection<!--untranslated--></a></th>
-									<th width="20%"><#Status_Str#></th>
-									<th width="20%"><#Description#></th>
-									<th width="15%">Type<!--untranslated--></th>
+									<th width="10%"><a class='hintstyle' href='javascript:void(0);' onClick='openHint(32, 1);'><#Setting_factorydefault_value#></a></th>
+									<th width="15%"><#Status_Str#></th>
+									<th width="30%">Connection Name<!--untranslated--></th>
+									<th width="15%"><#QIS_internet_vpn_type#></th>
 									<th width="15%">Activate<!--untranslated--></th>
 									<th width="15%">Editor<!--untranslated--></th>
 								</tr>
 							</table>
 							<div id="vpnc_clientlist_Block"></div>
+							
+						</td>
+					</tr>
+					<tr>
+						<td>
+							<div style="margin-left:5px;margin-top:10px;margin-bottom:10px"><img src="/images/New_ui/export/line_export.png"></div>
+						</td>	
+					</tr>
+					<tr>
+						<td>
+							<div id="exception_list_table"></div>
+							<div class="apply_gen">
+								<input type="button" name="button" class="button_gen" onclick="applyExceptionList();" value="<#CTL_apply#>"/>
+							</div>
 						</td>
 					</tr>
 				</table>
@@ -2567,11 +2603,11 @@ function applyExceptionList() {
 		</tr>
 		<tr>
 			<td>
-				<div class="formfonttitle">Net-to-Net Client / Peer<!--untranslated--></div>
+				<div class="formfonttitle"><#vpnc_net_client_peer#></div>
 				<div class="formfontdesc">
-					IPSec VPN Client allows <#Web_Title2#> connect with Net-to-Net IPSec Server / Cliet or connect each other with Peer / Peer mode.
+					<#vpnc_net_client_peer_desc1#>
 					<br>
-					For using Peer / Peer mode, using two <#Web_Title2#> as an example, you need to create a IPSec peer profile here, and create ceate another peer on the other <#Web_Title2#> with corresponding configurations.<!--untranslated-->
+					<#vpnc_net_client_peer_desc2#>
 				</div>
 				<!-- VPN Type table start-->
 				<table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3"  class="FormTable">

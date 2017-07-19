@@ -89,6 +89,10 @@ var fwdl_percent="";
 var varload = 0;
 var helplink = "";
 var dpi_engine_status = <%bwdpi_engine_status();%>;
+var lyra_fwup = "<% nvram_get("lyra_fwup"); %>";
+var cfg_check = '<% nvram_get("cfg_check"); %>';
+var sig_ver_ori = '<% nvram_get("bwdpi_sig_ver"); %>';
+
 function initial(){
 	show_menu();
 	if(bwdpi_support){
@@ -97,11 +101,11 @@ function initial(){
 		else
 			document.getElementById("sig_ver_field").style.display="none";
 			
-		var sig_ver = '<% nvram_get("bwdpi_sig_ver"); %>';
-		if(sig_ver == "")
+		var sig_ver_ori = '<% nvram_get("bwdpi_sig_ver"); %>';
+		if(sig_ver_ori == "")
 			document.getElementById("sig_ver_word").innerHTML = "1.008";
 		else
-			document.getElementById("sig_ver_word").innerHTML = sig_ver;
+			document.getElementById("sig_ver_word").innerHTML = sig_ver_ori;
 
 		var sig_update_t = "<% nvram_get("sig_update_t"); %>";
 		if(sig_update_t == "" || sig_update_t == "0")
@@ -175,6 +179,13 @@ function initial(){
 		inputCtrl(document.form.file, 1);
 		inputCtrl(document.form.upload, 1);
 	}
+
+	if(lyra_hide_support){
+		document.getElementById("productid_tr").style.display = "none";
+		document.getElementById("beta_firmware_path_span").style.display = "none";
+		if(lyra_fwup != "1")
+			document.getElementById("manually_upgrade_tr").style.display = "none";
+	}
 }
 
 var dead = 0;
@@ -195,11 +206,11 @@ function detect_firmware(flag){
 		},
 
 		success: function(){
-  			if(webs_state_update==0){
+			if(webs_state_update == "0" || (lyra_hide_support && (cfg_check == "0" || cfg_check == "1" || cfg_check == "5"))){
 				setTimeout("detect_firmware();", 1000);
   			}
   			else{	// got fw info
-				if(webs_state_error == "1"){	//1:wget fail 
+				if(webs_state_error == "1" || (lyra_hide_support && cfg_check == "2")){	//1:wget fail
 					document.getElementById('update_scan').style.display="none";
 					if(document.start_update.firmware_path.value==1){	//Beta Firmware not available yet
 						document.getElementById('update_states').innerHTML="No beta firmware available now.";	/* untranslated */
@@ -209,7 +220,7 @@ function detect_firmware(flag){
 					}
 					document.getElementById('update').disabled = false;
 				}
-				else if(webs_state_error == "3"){	//3: FW check/RSA check fail
+				else if(webs_state_error == "3" || (lyra_hide_support && cfg_check == "4")){	//3: FW check/RSA check fail
 					document.getElementById('update_scan').style.display="none";
 					document.getElementById('update_states').innerHTML="<#FIRM_fail_desc#><br><#FW_desc1#>";
 					document.getElementById('update').disabled = false;
@@ -252,7 +263,7 @@ function do_show_confirm(FWVer, CheckPath, CurrentPath){
          					left_button_callback: function(){confirm_cancel();},
          					left_button_args: {},
          					right_button: "<#CTL_upgrade#>",
-         					right_button_callback: function(){	
+							right_button_callback: function(){
 										document.start_update.action_mode.value="apply";
 										document.start_update.firmware_path.value=1;
 										document.start_update.action_script.value="start_webs_upgrade";
@@ -273,10 +284,15 @@ function do_show_confirm(FWVer, CheckPath, CurrentPath){
          					left_button_callback: function(){confirm_cancel();},
          					left_button_args: {},
          					right_button: "<#CTL_upgrade#>",
-         					right_button_callback: function(){         						
+							right_button_callback: function(){
+										if(lyra_hide_support){
+											cfgsync_firmware_upgrade();
+										}
+										else{
 											document.start_update.action_mode.value="apply";
 											document.start_update.action_script.value="start_webs_upgrade";
 											document.start_update.submit();
+										}
 									},
          					right_button_args: {},
          					iframe: "get_release_note0.asp",
@@ -300,15 +316,48 @@ function do_show_confirm(FWVer, CheckPath, CurrentPath){
 
 }
 
+function cfgsync_firmware_check(){
+	$.ajax({
+			url: '/apply.cgi?action_mode=firmware_check',
+			dataType: 'script',
+			error: function(xhr) {
+				setTimeout("cfgsync_firmware_check();", 1000);
+			},
+
+			success: function(response){
+				setTimeout("detect_firmware();", 5000);
+			}
+	});
+}
+
+function cfgsync_firmware_upgrade(){
+	$.ajax({
+			url: '/apply.cgi?action_mode=firmware_upgrade',
+			dataType: 'script',
+			error: function(xhr) {
+				setTimeout("cfgsync_firmware_upgrade();", 1000);
+			},
+
+			success: function(response){
+				setTimeout("startDownloading();", 1000);
+			}
+	});
+}
+
 function detect_update(firmware_path){
 	if(sw_mode != "1" || (link_status == "2" && link_auxstatus == "0") || (link_status == "2" && link_auxstatus == "2")){
-		document.start_update.action_mode.value="apply";
-		document.start_update.action_script.value="start_webs_update";  	
+		if(lyra_hide_support){
+			cfgsync_firmware_check();
+		}
+		else{
+			document.start_update.action_mode.value="apply";
+			document.start_update.action_script.value="start_webs_update";
+			document.start_update.submit();
+		}
 		document.getElementById('update_states').style.display="";
 		document.getElementById('update_states').innerHTML="<#check_proceeding#>";
 		document.getElementById('update_scan').style.display="";
 		document.getElementById('update').disabled = true;
-		document.start_update.submit();
 	}
 	else if(dualwan_enabled &&
 				((first_link_status == "2" && first_link_auxstatus == "0") || (first_link_status == "2" && first_link_auxstatus == "2")) ||
@@ -471,7 +520,8 @@ function sig_check_status(){
 					if(sig_state_upgrade == 1){		//update complete
 						$("#sig_status").html("Signature update completely");	/* Untranslated */
 						document.getElementById("sig_update_scan").style.display = "none";
-						$("#sig_ver").html(sig_ver);
+
+						update_sig_ver();
 						document.getElementById("sig_check").disabled = false;
 					}
 					else{		//updating
@@ -480,6 +530,25 @@ function sig_check_status(){
 					}				
 				}			
 			}
+  		}
+  	});
+}
+
+function update_sig_ver(){
+	$.ajax({
+    	url: '/detect_firmware.asp',
+    	dataType: 'script',
+		timeout: 3000,
+    	error:	function(xhr){
+    		setTimeout('update_sig_ver();', 2000);
+    	},
+    	success: function(){
+    		if(sig_ver_ori == sig_ver){
+    			setTimeout('update_sig_ver();', 2000);
+    		}	
+    		else{
+    			$("#sig_ver_word").html(sig_ver);
+    		}			
   		}
   	});
 }
@@ -701,7 +770,7 @@ function transferTimeFormat(time){
 					<td colspan="2"><#FW_item2#></td>	
 				</tr>	
 			</thead>	
-			<tr>
+			<tr id="productid_tr">
 				<th><#FW_item1#></th>
 				<td><#Web_Title2#></td>
 			</tr>
@@ -762,7 +831,7 @@ function transferTimeFormat(time){
 					</div>
 				</td>
 			</tr>
-			<tr>
+			<tr id="manually_upgrade_tr">
 				<th><#FW_item5#></th>
 				<td>
 					<input type="file" name="file" class="input" style="color:#FFCC00;*color:#000;width: 194px;">

@@ -462,11 +462,13 @@ elif [ "$1" == "fullsignal" ]; then
 				rsrp=`echo -n "$plmn_head" |awk 'BEGIN{FS="RSRP:"}{print $2}' |awk 'BEGIN{FS=","}{print $1}' 2>/dev/null`
 				lac=0
 				rssi=`echo -n "$plmn_head" |awk 'BEGIN{FS="RSSI:"}{print $2}' |awk 'BEGIN{FS=","}{print $1}' 2>/dev/null`
+				sinr=`echo -n "$plmn_head" |awk 'BEGIN{FS="SINR:"}{print $2}' |awk 'BEGIN{FS=","}{print $1}' 2>/dev/null`
 			else
 				rsrq=0
 				rsrp=0
 				lac=`echo -n "$plmn_head" |awk 'BEGIN{FS="LAC:"}{print $2}' |awk 'BEGIN{FS=","}{print $1}' 2>/dev/null`
 				rssi=`echo -n "$plmn_end" |awk 'BEGIN{FS="RSSI:"}{print $2}' |awk 'BEGIN{FS=","}{print $1}' 2>/dev/null`
+				sinr=0
 			fi
 		fi
 
@@ -535,6 +537,7 @@ elif [ "$1" == "fullsignal" ]; then
 		echo "rsrq=$rsrq."
 		echo "rsrp=$rsrp."
 		echo "rssi=$rssi."
+		echo "sinr=$sinr."
 		echo "reg_type=$reg_type."
 		echo "operation=$operation"
 		echo "signal=$signal"
@@ -544,6 +547,7 @@ elif [ "$1" == "fullsignal" ]; then
 		nvram set ${prefix}act_rsrq=$rsrq
 		nvram set ${prefix}act_rsrp=$rsrp
 		nvram set ${prefix}act_rssi=$rssi
+		nvram set ${prefix}act_sinr=$sinr
 		nvram set ${prefix}act_operation="$operation"
 		nvram set ${prefix}act_signal=$signal
 
@@ -599,6 +603,25 @@ elif [ "$1" == "operation" ]; then
 		nvram set ${prefix}act_operation="$operation"
 
 		echo "$operation"
+		echo "done."
+	fi
+elif [ "$1" == "provider" ]; then
+	if [ "$is_gobi" -eq "1" ]; then
+		at_ret=`/usr/sbin/modem_at.sh '+CGNWS' 2>&1`
+		at_cgnws=`echo -n $at_ret |grep "+CGNWS:" |awk 'BEGIN{FS=":"}{print $2}' 2>/dev/null`
+		if [ -z "$at_cgnws" ]; then
+			echo "Fail to get the CGNWS."
+			exit 39
+		fi
+
+		isp_long=`echo -n "$at_cgnws" |awk 'BEGIN{FS=","}{print $8}' 2>/dev/null`
+		if [ -n "$isp_long" ]; then
+			nvram set ${prefix}act_provider="$isp_long"
+		else
+			nvram set ${prefix}act_provider=""
+		fi
+
+		echo "provider=$isp_long"
 		echo "done."
 	fi
 elif [ "$1" == "setmode" ]; then
@@ -877,16 +900,10 @@ elif [ "$1" == "scan" ]; then
 	modem_roaming_scantime=`nvram get modem_roaming_scantime`
 	modem_roaming_scanlist=`nvram get modem_roaming_scanlist`
 	nvram set ${prefix}act_scanning=2
-	wait_time1=`expr $wandog_interval + $wandog_interval`
-	wait_time=`expr $wait_time1 + $modem_reg_time`
-	nvram set freeze_duck=$wait_time
 	at_ret=`/usr/sbin/modem_at.sh '+COPS=2' "$modem_reg_time" 2>&1`
 	ret=`echo -n "$at_ret" |grep "OK" 2>/dev/null`
 
 	echo "Scanning the stations."
-	wait_time1=`expr $wandog_interval + $wandog_interval`
-	wait_time=`expr $wait_time1 + $modem_roaming_scantime`
-	nvram set freeze_duck=$wait_time
 	at_ret=`/usr/sbin/modem_at.sh '+COPS=?' $modem_roaming_scantime 2>&1`
 	ret=`echo -n "$at_ret" |grep '+COPS: ' |awk 'BEGIN{FS=": "}{print $2}' |awk 'BEGIN{FS=",,"}{print $1}' 2>/dev/null`
 	echo "Finish the scan."
@@ -941,6 +958,7 @@ elif [ "$1" == "scan" ]; then
 	list=$list"]"
 	echo -n "$list" > $modem_roaming_scanlist
 	nvram set ${prefix}act_scanning=0
+	nvram set freeze_duck=$wandog_interval
 
 	echo "done."
 elif [ "$1" == "station" ]; then
@@ -949,7 +967,8 @@ elif [ "$1" == "station" ]; then
 	wait_time1=`expr $wandog_interval + $wandog_interval`
 	wait_time=`expr $wait_time1 + $modem_reg_time`
 	nvram set freeze_duck=$wait_time
-	at_ret=`/usr/sbin/modem_at.sh '+COPS=1,0,"'$2'"' "$modem_reg_time" 2>&1`
+	#at_ret=`/usr/sbin/modem_at.sh '+COPS=1,0,"'$2'"' "$modem_reg_time" 2>&1`
+	at_ret=`/usr/sbin/modem_at.sh +COPS=1,0,"$2" "$modem_reg_time" 2>&1`
 	ret=`echo -n "$at_ret" |grep "OK" 2>/dev/null`
 	if [ -z "$ret" ]; then
 		echo "19:Fail to set the station: $2."
@@ -1240,5 +1259,22 @@ elif [ "$1" == "smsc" ]; then
 
 	echo "smsc=$smsc."
 	echo "done."
+elif [ "$1" == "ip" ]; then
+	if [ "$is_gobi" -eq "1" ]; then
+		echo "Getting IP..."
+		at_ret=`/usr/sbin/modem_at.sh '+CGPADDR=1' 1 2>&1`
+		ret=`echo -n "$at_ret" |grep "+CGPADDR: 1," 2>/dev/null`
+		if [ -z "$ret" ]; then
+			echo "48:Fail to get the SMSC from $modem_act_node."
+			exit 48
+		fi
+
+		ip=`echo -n "$ret" |awk 'BEGIN{FS=","}{print $2}' 2>/dev/null`
+
+		nvram set ${prefix}act_ip=$ip
+
+		echo "ip=$ip."
+		echo "done."
+	fi
 fi
 

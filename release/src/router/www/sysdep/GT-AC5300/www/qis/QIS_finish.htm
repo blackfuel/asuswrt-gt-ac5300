@@ -313,11 +313,6 @@ function showLoadingUpdate(){
 	progressBar++;	
 }
 
-/* Find device (callback) */
-function iAmAlive(){
-	top.location.href = "http://" + parent.staticIP;
-}
-
 /* Restart service (run automatically) */
 function restartService(){
 	document.restartForm.force_change.value++;
@@ -1319,25 +1314,8 @@ function QKfinish_load_body(){
 			if(parent.isStatic){
 				$("#lanip")[0].innerHTML = parent.staticIP;
 				document.getElementById("applyBtn").innerHTML = "<div style='text-align:left;margin-left:70px;'><br/><br/><#SAVE_restart_desc#><br><#LAN_IP_changed_suggedtion1#>&nbsp;" + parent.staticIP + "&nbsp;<#LAN_IP_changed_suggedtion2#></div>";
-				
-				var startQuery = function(){
-					$.ajax({ 
-						url: location_org.replace(header_info[0].host, parent.staticIP) + "/httpd_check.json",
-						dataType: 'jsonp',
-						timeout: 2000,
 
-						error: function(){
-							setTimeout(function(){
-								startQuery();
-							}, 1000);
-						}
-					});
-
-				}
-
-				setTimeout(function(){
-					startQuery();
-				}, 80000);
+				setTimeout(startQuery, 80000);
 			}
 			else{
 				$("#lanip")[0].innerHTML = "<#BOP_ctype_title1#>";
@@ -1399,6 +1377,20 @@ function QKfinish_load_body(){
 	}
 }
 
+var startQuery = function(){
+	$.ajax({ 
+		url: location_org.replace(header_info[0].host, parent.staticIP) + "/repage.json",
+		dataType: "script",
+		timeout: 5000,
+		success: function(){
+			top.location.href = location_org.replace(header_info[0].host, parent.staticIP);
+		},
+		error: function(){
+			setTimeout(startQuery, 1000);
+		}
+	});
+};
+
 var intro_flag = 0;
 function show_rog_feature(){
 	intro_flag = 1;
@@ -1449,6 +1441,10 @@ function bandwidth_utilzation_next(){
 	$("#rog_password_1").html(decodeURIComponent(document.form.wl1_wpa_psk.value));
 	$("#rog_password_2").html(decodeURIComponent(document.form.wl2_wpa_psk.value));
 	$("#bandwidth_util_field").hide();
+	if(!parent.wl_info.band5g_2_support){
+		$("#rog_band5g_1_title")[0].innerHTML = "5 GHz";
+		$("#rog_band5g_2")[0].style.display = "none";
+	}
 	$("#rog_finish").show();
 	document.body.className = "";
 }
@@ -1475,19 +1471,42 @@ function check_eula(obj){
 var TM_eula_ori = '<% nvram_get("TM_EULA"); %>';
 function show_tm_eula(){
 	if(document.form.preferred_lang.value == "JP"){
-			$.get("/JP_tm_eula.htm", function(data){
-				document.getElementById('agreement_panel').innerHTML= data;
-			});
+		$.get("../JP_tm_eula.htm", function(data){
+			document.getElementById('agreement_panel').innerHTML= data;
 			adjust_TM_eula_height("agreement_panel");
+		});
 	}
-	else{
-			$.get("/tm_eula.htm", function(data){
-				document.getElementById('agreement_panel').innerHTML= data;
-			});
+	else if(document.form.preferred_lang.value == "TW"){
+		$.get("../tm_eula_TC.htm", function(data){
+			document.getElementById('agreement_panel').innerHTML= data;
 			adjust_TM_eula_height("agreement_panel");
+		});
+	}
+	else if(document.form.preferred_lang.value == "CN"){
+		$.get("../tm_eula_SC.htm", function(data){
+			document.getElementById('agreement_panel').innerHTML= data;
+			adjust_TM_eula_height("agreement_panel");
+		});
+	}
+	else if(document.form.preferred_lang.value == "FR"){
+		$.get("../tm_eula_FR.htm", function(data){
+			document.getElementById('agreement_panel').innerHTML= data;
+			adjust_TM_eula_height("agreement_panel");
+		});
+	}
+	else if(document.form.preferred_lang.value == "RU"){
+		$.get("../tm_eula_RU.htm", function(data){
+			document.getElementById('agreement_panel').innerHTML= data;
+			adjust_TM_eula_height("agreement_panel");
+		});
+	}																			
+	else{
+		$.get("../tm_eula.htm", function(data){
+			document.getElementById('agreement_panel').innerHTML= data;
+			adjust_TM_eula_height("agreement_panel");
+		});
 	}
 
-	//dr_advise();
 	cal_panel_block("agreement_panel", 0.25);
 	$("#agreement_panel").fadeIn(300);
 }
@@ -1962,7 +1981,7 @@ function cancel(){
 	</div>
 	<!-- END Stage Game Radar -->
 	<!-- Stage Game WiFi -->
-	<div id="game_wifi_field" style="display:none">
+	<div id="game_wifi_field" style="display:none;margin-top:-25px;">
 		<div style="font-size: 32px;color:rgb(207,10,44); margin: 60px 0 0 70px;"><#AiProtection_title_GameWiFi#></div>
 		<div style="display:inline-flex;margin:280px 0 0 70px;">
 			<div style="font-size: 18px;width:500px;">
@@ -1998,11 +2017,11 @@ function cancel(){
 			<div style="padding: 2px 0"><#Network_key#>: <span id="rog_password_0" style="font-size:14px;color:#FC0;"></span></div>
 		</div>
 		<div style="margin: 10px 0 10px 70px;font-size:14px;">
-			<div style="padding: 2px 0">5 GHz-1</div>
+			<div id="rog_band5g_1_title" style="padding: 2px 0">5 GHz-1</div>
 			<div style="padding: 2px 0">SSID: <span id="rog_ssid_1" style="font-size:14px;color:#FC0;"></span></div>
 			<div style="padding: 2px 0"><#Network_key#>: <span id="rog_password_1" style="font-size:14px;color:#FC0;"></span></div>
 		</div>
-		<div style="margin: 10px 0 10px 70px;font-size:14px;">
+		<div id="rog_band5g_2" style="margin: 10px 0 10px 70px;font-size:14px;">
 			<div style="padding: 2px 0">5 GHz-2</div>
 			<div style="padding: 2px 0">SSID: <span id="rog_ssid_2" style="font-size:14px;color:#FC0;"></span></div>
 			<div style="padding: 2px 0"><#Network_key#>: <span id="rog_password_2" style="font-size:14px;color:#FC0;"></span></div>

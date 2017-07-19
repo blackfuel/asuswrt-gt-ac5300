@@ -322,6 +322,9 @@ wl_sysdep:
 		elif [ -d $(SRCBASE)/../../../impl51/4365/src/wl/sysdeps/$(BUILD_NAME)/clm ]; then \
 			cp -f $(SRCBASE)/../../../impl51/4365/src/wl/sysdeps/$(BUILD_NAME)/clm/src/wlc_clm_data.c $(SRCBASE)/../../../impl51/4365/src/wl/clm/src/. ; \
 		fi; \
+		if [ -d $(SRCBASE)/../../../impl51/4365/src/wl/sysdeps/$(BUILD_NAME)/clm/types ]; then \
+			cp -f $(SRCBASE)/../../../impl51/4365/src/wl/sysdeps/$(BUILD_NAME)/clm/types/*_access.clm $(SRCBASE)/../../../impl51/4365/src/wl/clm/types/. ; \
+		fi; \
 	else \
 		if [ -d $(SRCBASE)/../../../impl51/4365/src/wl/sysdeps/default/clm ]; then \
 			cp -f $(SRCBASE)/../../../impl51/4365/src/wl/sysdeps/default/clm/src/wlc_clm_data.c $(SRCBASE)/../../../impl51/4365/src/wl/clm/src/. ; \
@@ -529,13 +532,6 @@ ifeq ($(CONFIG_RALINK),y)
 			echo "UNKNOWN PA/LNA" ; \
 		fi ; \
 	fi
-	if [ "$(BUILD_NAME)" = "RT-AC85U" ]; then \
-		sed -i 's/mt_wifi_7615E_4402/%DriverPath%/g' $(LINUXDIR)/ralink/Kconfig; \
-		sed -i 's/mt_wifi_ap_7615E_4402/%DriverPath%/g' $(LINUXDIR)/drivers/net/wireless/Makefile; \
-	elif [ "$(FIRST_IF)" = "MT7615E" ]; then \
-		sed -i 's/mt_wifi_7615E/%DriverPath%/g' $(LINUXDIR)/ralink/Kconfig; \
-		sed -i 's/mt_wifi_ap_7615E/%DriverPath%/g' $(LINUXDIR)/drivers/net/wireless/Makefile; \
-	fi;
 else ifeq ($(QCA),y)
 ifeq ($(and $(LOADADDR),$(ENTRYADDR)),)
 	$(error Unknown load/entry address)
@@ -767,6 +763,8 @@ bin_file:
 	[ ! -e .bin/$(BUILD_NAME)/Makefile ] || $(MAKE) -C .bin/$(BUILD_NAME) O=$(SRCBASE)/image FW_FN=$(IMGNAME).img
 	if [ "$(BUILD_NAME)" = "RT-AC58U" ]; then \
 		[ ! -e .bin/$(BUILD_NAME)/Makefile ] || $(MAKE) -C .bin/$(BUILD_NAME) O=$(SRCBASE)/image FW_FN=$(IMGNAME).img CE=y; \
+		[ ! -e .bin/$(BUILD_NAME)/Makefile ] || $(MAKE) -C .bin/$(BUILD_NAME) O=$(SRCBASE)/image FW_FN=$(IMGNAME).img RTAC1300UHP=y; \
+		[ ! -e .bin/$(BUILD_NAME)/Makefile ] || $(MAKE) -C .bin/$(BUILD_NAME) O=$(SRCBASE)/image FW_FN=$(IMGNAME).img RTAC1300UHP=y CE=y; \
 	fi
 else
 bin_file:
@@ -810,15 +808,7 @@ cleankernel:
 	$(MAKE) distclean || true; \
 	cp -p save-config .config || true
 
-kernel:
-	if [ "$(BUILD_NAME)" = "RT-AC85U" ]; then \
-		sed -i 's/%DriverPath%/mt_wifi_7615E_4402/g' $(LINUXDIR)/ralink/Kconfig; \
-		sed -i 's/%DriverPath%/mt_wifi_ap_7615E_4402/g' $(LINUXDIR)/drivers/net/wireless/Makefile; \
-	elif [ "$(FIRST_IF)" = "MT7615E" ]; then \
-		sed -i 's/%DriverPath%/mt_wifi_7615E/g' $(LINUXDIR)/ralink/Kconfig; \
-		sed -i 's/%DriverPath%/mt_wifi_ap_7615E/g' $(LINUXDIR)/drivers/net/wireless/Makefile; \
-	fi; \
-		
+kernel:	
 	$(MAKE) -C router kernel
 	@[ ! -e $(KERNEL_BINARY) ] || ls -l $(KERNEL_BINARY)
 
@@ -938,14 +928,6 @@ define RouterOptions
 	else \
 		echo "RTCONFIG_JFFSV1=y" >>$(1); \
 	fi; \
-	if [ "$(UBIFS)" = "y" ]; then \
-		sed -i "/RTCONFIG_UBIFS/d" $(1); \
-		echo "RTCONFIG_UBIFS" >>$(1); \
-		sed -i "/RTCONFIG_JFFS2/d" $(1); \
-		echo "# RTCONFIG_JFFS2 is not set" >>$(1); \
-		sed -i "/RTCONFIG_JFFSV1/d" $(1); \
-		echo "# RTCONFIG_JFFSV1 is not set" >>$(1); \
-	fi; \
 	if [ "$(YAFFS)" = "y" ]; then \
 		sed -i "/RTCONFIG_YAFFS/d" $(1); \
 		echo "RTCONFIG_YAFFS=y" >>$(1); \
@@ -1043,6 +1025,10 @@ define RouterOptions
 	if [ "$(PROXYSTA)" = "y" ]; then \
 		sed -i "/RTCONFIG_PROXYSTA/d" $(1); \
 		echo "RTCONFIG_PROXYSTA=y" >>$(1); \
+	fi; \
+	if [ "$(DISABLE_PROXYSTA_UI)" = "y" ] ; then \
+		sed -i "/RTCONFIG_DISABLE_PROXYSTA_UI/d" $(1); \
+		echo "RTCONFIG_DISABLE_PROXYSTA_UI=y" >>$(1); \
 	fi; \
 	if [ "$(CONCURRENTREPEATER)" = "y" ]; then \
 		sed -i "/RTCONFIG_CONCURRENTREPEATER/d" $(1); \
@@ -1633,6 +1619,10 @@ define RouterOptions
 		if [ "$(UBIFS)" = "y" ]; then \
 			sed -i "/RTCONFIG_UBIFS/d" $(1); \
 			echo "RTCONFIG_UBIFS=y" >>$(1); \
+			sed -i "/RTCONFIG_JFFS2/d" $(1); \
+			echo "# RTCONFIG_JFFS2 is not set" >>$(1); \
+			sed -i "/RTCONFIG_JFFSV1/d" $(1); \
+			echo "# RTCONFIG_JFFSV1 is not set" >>$(1); \
 		else \
 			sed -i "/RTCONFIG_UBIFS/d" $(1); \
 			echo "# RTCONFIG_UBIFS is not set" >>$(1); \
@@ -2306,6 +2296,14 @@ define RouterOptions
 		sed -i "/RTCONFIG_SSID_AMAPS/d" $(1); \
 		echo "RTCONFIG_SSID_AMAPS=y" >>$(1); \
 	fi; \
+	if [ "$(CSU2_2)" = "y" ]; then \
+		sed -i "/RTCONFIG_CSU2_2/d" $(1); \
+		echo "RTCONFIG_CSU2_2=y" >>$(1); \
+	fi; \
+	if [ "$(DUAL_BACKHAUL)" = "y" ]; then \
+		sed -i "/RTCONFIG_DUAL_BACKHAUL/d" $(1); \
+		echo "RTCONFIG_DUAL_BACKHAUL=y" >>$(1); \
+	fi; \
 	if [ "$(VPN_FUSION)" = "y" ]; then \
 		sed -i "/RTCONFIG_VPN_FUSION/d" $(1); \
 		echo "RTCONFIG_VPN_FUSION=y" >>$(1); \
@@ -2328,6 +2326,14 @@ define RouterOptions
 	if [ "$(SW_DEVLED)" = "y" ]; then \
 		sed -i "/RTCONFIG_SW_DEVLED/d" $(1); \
 		echo "RTCONFIG_SW_DEVLED=y" >>$(1); \
+	fi; \
+	if [ "$(LYRA_HIDE)" = "y" ]; then \
+		sed -i "/RTCONFIG_LYRA_HIDE/d" $(1); \
+		echo "RTCONFIG_LYRA_HIDE=y" >>$(1); \
+	fi; \
+	if [ "$(WIFI_PROXY)" = "y" ]; then \
+		sed -i "/RTCONFIG_WIFI_PROXY/d" $(1); \
+		echo "RTCONFIG_WIFI_PROXY=y" >>$(1); \
 	fi; \
 	)
 	$(call platformRouterOptions, $(1))
@@ -2510,7 +2516,7 @@ define BusyboxOptions
 		sed -i "/CONFIG_DEVMEM/d" $(1); \
 		echo "CONFIG_DEVMEM=y" >>$(1); \
 	fi; \
-	if [ "$(MAPAC1300)" = "y" ] || [ "$(MAPAC2200)" = "y" ]; then \
+	if [ "$(MAPAC1300)" = "y" ] || [ "$(MAPAC2200)" = "y" ] || [ "$(VRZAC1300)" = "y" ]; then \
 		sed -i "/CONFIG_TFTP/d" $(1); \
 		echo "CONFIG_TFTP=y" >>$(1); \
 		sed -i "/CONFIG_FEATURE_TFTP_GET/d" $(1); \
@@ -2620,6 +2626,10 @@ define BusyboxOptions
 		echo "CONFIG_FEATURE_TOPMEM=y" >>$(1); \
 		sed -i "/CONFIG_FEATURE_SHOW_THREADS/d" $(1); \
 		echo "CONFIG_FEATURE_SHOW_THREADS=y" >>$(1); \
+	fi; \
+	if [ "$(ALPINE)" = "y" ] ; then \
+		sed -i "/CONFIG_STTY/d" $(1); \
+		echo "CONFIG_STTY=y" >>$(1); \
 	fi; \
 	if [ "$(LANTIQ)" = "y" ] ; then \
 		sed -i "/CONFIG_LSPCI/d" $(1); \
@@ -2755,7 +2765,7 @@ if [ "$(TUNEK)" != "n" ]; then \
 		sed -i "/CONFIG_BUG/d" $(1); \
 		echo "# CONFIG_BUG is not set" >>$(1); \
 	fi; \
-	if [ "$(PLN12)" = "y" ] || [ "$(PLAC56)" = "y" ] || [ "$(RPAC66)" = "y" ]; then \
+	if [ "$(PLN12)" = "y" ] || [ "$(PLAC56)" = "y" ] || [ "$(RPAC66)" = "y" ] || [ "$(RPAC51)" = "y" ] ; then \
 		sed -i "/CONFIG_USB/d" $(1); \
 		echo "# CONFIG_USB is not set" >>$(1); \
 		sed -i "/CONFIG_USB_SUPPORT/d" $(1); \
@@ -3125,6 +3135,41 @@ fi; \
 				echo "# CONFIG_BT_MRVL is not set" >>$(1); \
 				sed -i "/CONFIG_BT_ATH3K/d" $(1); \
 				echo "CONFIG_BT_ATH3K=m" >>$(1); \
+			elif [ "$(ALPINE)" = "y" ]; then \
+				sed -i "/CONFIG_BT\b/d" $(1); \
+				echo "CONFIG_BT=y" >>$(1); \
+				sed -i "/CONFIG_BT_RFCOMM\b/d" $(1); \
+				echo "# CONFIG_BT_RFCOMM is not set" >>$(1); \
+				sed -i "/CONFIG_BT_BNEP\b/d" $(1); \
+				echo "# CONFIG_BT_BNEP is not set" >>$(1); \
+				sed -i "/CONFIG_BT_HIDP\b/d" $(1); \
+				echo "# CONFIG_BT_HIDP is not set" >>$(1); \
+				sed -i "/CONFIG_BT_HCIBTUSB\b/d" $(1); \
+				echo "# CONFIG_BT_HCIBTUSB is not set" >>$(1); \
+				sed -i "/CONFIG_BT_HCIUART\b/d" $(1); \
+				echo "CONFIG_BT_HCIUART=y" >>$(1); \
+				sed -i "/CONFIG_BT_HCIUART_H4\b/d" $(1); \
+				echo "CONFIG_BT_HCIUART_H4=y" >>$(1); \
+				sed -i "/CONFIG_BT_HCIUART_BCSP\b/d" $(1); \
+				echo "# CONFIG_BT_HCIUART_BCSP is not set" >>$(1); \
+				sed -i "/CONFIG_BT_HCIUART_RTKH5\b/d" $(1); \
+				echo "CONFIG_BT_HCIUART_RTKH5=y" >>$(1); \
+				sed -i "/CONFIG_BT_HCIUART_ATH3K\b/d" $(1); \
+				echo "# CONFIG_BT_HCIUART_ATH3K is not set" >>$(1); \
+				sed -i "/CONFIG_BT_HCIUART_LL\b/d" $(1); \
+				echo "# CONFIG_BT_HCIUART_LL is not set" >>$(1); \
+				sed -i "/CONFIG_BT_HCIUART_3WIRE\b/d" $(1); \
+				echo "# CONFIG_BT_HCIUART_3WIRE is not set" >>$(1); \
+				sed -i "/CONFIG_BT_HCIBCM203X\b/d" $(1); \
+				echo "# CONFIG_BT_HCIBCM203X is not set" >>$(1); \
+				sed -i "/CONFIG_BT_HCIBPA10X\b/d" $(1); \
+				echo "# CONFIG_BT_HCIBPA10X is not set" >>$(1); \
+				sed -i "/CONFIG_BT_HCIBFUSB\b/d" $(1); \
+				echo "# CONFIG_BT_HCIBFUSB is not set" >>$(1); \
+				sed -i "/CONFIG_BT_HCIVHCI\b/d" $(1); \
+				echo "# CONFIG_BT_HCIVHCI is not set" >>$(1); \
+				sed -i "/CONFIG_BT_MRVL\b/d" $(1); \
+				echo "# CONFIG_BT_MRVL is not set" >>$(1); \
 			fi ; \
 		fi ; \
 	fi; \
@@ -3277,8 +3322,14 @@ fi; \
 		echo "# CONFIG_NF_CONNTRACK_EVENTS is not set" >>$(1); \
 	fi; \
 	if [ "$(BWDPI)" = "y" ]; then \
+		sed -i "/CONFIG_NET_SCH_HTB/d" $(1); \
+		echo "CONFIG_NET_SCH_HTB=y" >>$(1); \
+		sed -i "/CONFIG_NET_SCH_SFQ/d" $(1); \
+		echo "CONFIG_NET_SCH_SFQ=y" >>$(1); \
 		sed -i "/CONFIG_CLS_U32_PERF/d" $(1); \
 		echo "CONFIG_CLS_U32_PERF=y" >>$(1); \
+		sed -i "/CONFIG_CLS_U32_MARK/d" $(1); \
+		echo "CONFIG_CLS_U32_MARK=y" >>$(1); \
 	fi; \
 	if [ "$(USB_DEBUG)" = "y" ]; then \
 		sed -i "/CONFIG_USB_DEBUG/d" $(1); \
@@ -3591,13 +3642,6 @@ else
 		else \
 			cp $(LINUXDIR)/config_base $(LINUXDIR)/config_$(lowercase_B) ; \
 		fi ; \
-		if [ "$(BUILD_NAME)" = "RT-AC85U" ]; then \
-			sed -i 's/%DriverPath%/mt_wifi_7615E_4402/g' $(LINUXDIR)/ralink/Kconfig; \
-			sed -i 's/%DriverPath%/mt_wifi_ap_7615E_4402/g' $(LINUXDIR)/drivers/net/wireless/Makefile; \
-		elif [ "$(FIRST_IF)" = "MT7615E" ]; then \
-			sed -i 's/%DriverPath%/mt_wifi_7615E/g' $(LINUXDIR)/ralink/Kconfig; \
-			sed -i 's/%DriverPath%/mt_wifi_ap_7615E/g' $(LINUXDIR)/drivers/net/wireless/Makefile; \
-		fi; \
 	else \
 		cp $(LINUXDIR)/config_base $(LINUXDIR)/config_$(lowercase_B) ; \
 	fi ;
@@ -3686,7 +3730,7 @@ endef
 	$(call save_src_config, RT$@)
 	$(MAKE) bin
 
-brt-% BRT-% rt-% RT-% gt-% GT-% rp-% RP-% ea-% EA-% tm-% TM-% pl-% PL-% ac% map-% MAP-%:
+brt-% BRT-% rt-% RT-% gt-% GT-% rp-% RP-% ea-% EA-% tm-% TM-% pl-% PL-% ac% map-% MAP-% vrz-% VRZ-%:
 ifeq ($(REALTEK),y)
 	rm -f include
 	ln -sf include-n66u include

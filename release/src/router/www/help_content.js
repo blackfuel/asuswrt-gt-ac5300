@@ -25,7 +25,8 @@ helpcontent[0] = new Array("",
 			'<div><#qis_wireless_help2#></div><br/><img width="350px" src="/images/qis/security_key.png">',
 			"",
 			"<#Access_Time_desc#>",
-			"<#Access_Intranet_desc#>"
+			"<#Access_Intranet_desc#>",
+			"Smart Connect is the feature which could automatically steer clients to the most appropriate band (2.4GHz, 5GHz-1 and 5GHz-2)." /*untranslated*/
 			 );
 helpcontent[1] = new Array("",
 						   "<#WLANConfig11b_x_APMode_itemdesc#>",
@@ -164,7 +165,7 @@ helpcontent[11] = new Array("",
 							"To set your clock forward one hour in the spring when DST (Daylight Saving Time) starts",	/* untranslated */
 							"To set your clock back one hour in the fall when DST (Daylight Saving Time) ends",	/* untranslated */
 							"For destination IP address, you can:<br/>(a) enter a specific IP address, such as \"192.168.1.2\"<br/>(b) enter IP addresses within one subnet or within the same IP pool, such as \"192.168.1.0/24\"",	/* untranslated */
-							"This feature allows you to restrict only specified IP address could access the wireless router via SSH / Telnet / Web Access from WAN (if SSH/ Telnet/ Web Access from WAN Enabled) from WAN or LAN side."	/* untranslated */
+							"This feature allows you to restrict only specified IP address could access the wireless router via \"SSH\" / \"Telnet\" / \"Web Access from WAN\" (if Enabled) from WAN or LAN side."	/* untranslated */
 		);
 //Log
 helpcontent[12] = new Array("",
@@ -333,5 +334,5 @@ helpcontent[31] = new Array("",
 
 //VPN Fusion
 helpcontent[32] = new Array("",
-							"The client which doesn't exist in the VPN policy list will connect to default connection. You can set default connection as VPN tunnel once VPN profile created. If VPN tunnel is disconnected or deactivate, client device will connect to Internet."/*untranslated*/
+							"The client device which doesn't exist in the exception list will connect to default connection. You can set the default as VPN tunnel once VPN profile created. If the VPN tunnel setting as default is disconnected or deactivate, the client device will connect to Internet."/*untranslated*/
 							);

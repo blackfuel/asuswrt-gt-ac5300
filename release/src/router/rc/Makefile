@@ -60,7 +60,7 @@ CFLAGS += -I$(TOP)/shared/sysdeps/alpine -I$(TOP)/wireless_tools -I$(TOP)/mtd-ut
 endif
 
 ifeq ($(RTCONFIG_LANTIQ),y)
-CFLAGS += -I$(TOP)/shared/sysdeps/lantiq -I$(TOP)/wireless_tools -I$(TOP)/fapi_wlan_common-1.0.0.1/include -I$(TOP)/libhelper-1.4.0.2 -DPACKAGE_ID=\"fapi_wlan_common\" -DLOGGING_ID="fapi_wlan_common"
+CFLAGS += -I$(TOP)/shared/sysdeps/lantiq -I$(TOP)/wireless_tools -I$(TOP)/fapi_wlan_common-1.0.0.1/include -I$(TOP)/libhelper-1.4.0.2/include -DPACKAGE_ID=\"fapi_wlan_common\" -DLOGGING_ID="fapi_wlan_common"
 endif
 
 include $(SRCBASE)/.config
@@ -211,7 +211,12 @@ CFLAGS += -DRTCONFIG_TRACEROUTE
 endif
 
 ifeq ($(HND_ROUTER),y)
-CFLAGS += -DNON_P_THREAD
+CFLAGS += -DNON_P_THREAD -DWATCHDOG_PERIOD2
+endif
+
+ifeq ($(RTCONFIG_CFGSYNC),y)
+CFLAGS += -I$(TOP)/cfg_mnt
+LDFLAGS += -L$(TOP)/cfg_mnt -lcfgmnt
 endif
 
 OBJS := rc.o init.o interface.o lan.o wireless.o wan.o pppd.o auth.o services.o
@@ -246,7 +251,7 @@ OBJS += init-ralink-dsl.o
 endif
 else ifeq ($(RTCONFIG_QCA),y)
 OBJS += init-qca.o wps-qca.o qca.o ate-qca.o $(if $(wildcard sysdeps/qca/ctl.c),ctl.obj,prebuild/ctl.obj)
-ifeq ($(or $(MAPAC1300),$(MAPAC2200)),y)
+ifeq ($(or $(MAPAC1300),$(MAPAC2200),$(VRZAC1300)),y)
 OBJS += repacd.o
 endif
 else ifeq ($(RTCONFIG_ALPINE),y)
@@ -567,6 +572,7 @@ endif
 ifeq ($(HND_ROUTER),y)
 	@cd $(INSTALLDIR)/sbin && ln -sf rc hnd-write
 	@cd $(INSTALLDIR)/sbin && ln -sf rc hnd-erase
+	@cd $(INSTALLDIR)/sbin && ln -sf rc mtd_erase_image_update
 else
 ifeq ($(RTCONFIG_BCMARM),y)
 	@cd $(INSTALLDIR)/sbin && ln -sf rc nvram_erase
@@ -582,6 +588,9 @@ endif
 	@cd $(INSTALLDIR)/sbin && ln -sf rc ots
 	@cd $(INSTALLDIR)/sbin && ln -sf rc watchdog
 	@cd $(INSTALLDIR)/sbin && ln -sf rc wave_monitor
+ifeq ($(RTCONFIG_LANTIQ),y)
+	@cd $(INSTALLDIR)/sbin && ln -sf rc restart_bluetoothd
+endif
 ifneq ($(RTCONFIG_QCA)$(RTCONFIG_RALINK)$(RTCONFIG_ALPINE)$(RTCONFIG_LANTIQ),y)
 	@cd $(INSTALLDIR)/sbin && ln -sf rc watchdog02
 endif
@@ -632,6 +641,9 @@ ifeq ($(RTCONFIG_QCA_PLC_UTILS),y)
 endif
 ifeq ($(MAPAC2200),y)
 	@cd $(INSTALLDIR)/sbin && ln -sf rc dpdt_ant
+endif
+ifeq ($(or $(MAPAC1300),$(VRZAC1300)),y)
+	@cd $(INSTALLDIR)/sbin && ln -sf rc thermal_txpwr
 endif
 
 #	ifeq ($(RTCONFIG_HEARTBEAT),y)
@@ -698,10 +710,11 @@ endif
 endif
 	@cd $(INSTALLDIR)/sbin && ln -sf rc restart_wireless
 
-ifeq ($(or $(MAPAC1300),$(MAPAC2200)),y)
+ifeq ($(or $(MAPAC1300),$(MAPAC2200),$(VRZAC1300)),y)
 	@cd $(INSTALLDIR)/sbin && ln -sf rc hive_cap 
 	@cd $(INSTALLDIR)/sbin && ln -sf rc hive_re
 	@cd $(INSTALLDIR)/sbin && ln -sf rc wifimon_check
+	@cd $(INSTALLDIR)/sbin && ln -sf rc hive_eth
 ifeq ($(RTCONFIG_LP5523),y)
 	@cd $(INSTALLDIR)/sbin && ln -sf rc lp55xx_set_led
 	@cd $(INSTALLDIR)/sbin && ln -sf rc lp55xx_user_set

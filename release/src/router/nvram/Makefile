@@ -30,13 +30,15 @@ CFLAGS += -I$(TOOLCHAIN_DIR)/include/ -I$(BUILD_DIR)/staging_dir/include/ -I$(BU
 LDLIBS+= $(SYSLIBS)
 endif
 
+ifeq ($(RTCONFIG_NVRAM_FILE),y)
 all: prebuilt libnvram.so libnvram.a nvram
+else
+all: libnvram.so libnvram.a nvram
+endif
 
 prebuilt:
-ifeq ($(RTCONFIG_LANTIQ),y)
 	@echo " [nvram] move sysdesp into nvram"
 	@cp sysdeps/* ./ -f
-endif
 
 libnvram.so: nvram_linux.o nvram_convert.o
 	@echo " [nvram] CC $@"
@@ -60,7 +62,7 @@ endif
 install: all
 	install -D libnvram.so $(INSTALLDIR)/usr/lib/libnvram.so
 	install -D nvram $(INSTALLDIR)/bin/nvram
-ifeq ($(RTCONFIG_LANTIQ),y)
+ifeq ($(RTCONFIG_NVRAM_FILE),y)
 	install -D nvram.txt $(INSTALLDIR)/sbin/nvram.txt
 endif
 	$(STRIP) $(INSTALLDIR)/usr/lib/libnvram.so

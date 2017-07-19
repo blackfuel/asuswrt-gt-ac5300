@@ -35,7 +35,7 @@
 #define link_quality_level3  60
 #endif
 
-#ifdef RPAC55
+#if defined(RPAC51) || defined(RPAC55)
 #define link_quality_level1  0
 #define link_quality_level2  35 // RSSI: -65
 #define link_quality_level3  80 // RSSI: -20
@@ -74,6 +74,22 @@ led_state_t leds[LEDS_COUNT] = {
 	},
 	[3] = {
 		.id = LED_SIG2
+	},
+};
+#elif defined(RPAC51)
+#define LEDS_COUNT 4
+led_state_t leds[LEDS_COUNT] = {
+	[0] = {
+		.id = LED_POWER
+	},
+	[1] = {
+		.id = LED_SINGLE
+	},
+	[2] = {
+		.id = LED_FAR
+	},
+	[3] = {
+		.id = LED_NEAR
 	},
 };
 #else /* RP-AC66 */
@@ -202,7 +218,7 @@ static void detect_eth_link()
 #if defined(RPAC53)
 			update_led(&leds[3], LED_GREEN, DELAY_0_5S);
 			update_gpiomode(14, 1);
-#elif defined(RPAC55)
+#elif defined(RPAC51) || defined(RPAC55)
 			update_led(&leds[1], LED_NONE, DELAY_0);
 #else
 			update_led(&leds[0], LED_GREEN, DELAY_0_5S);
@@ -212,7 +228,7 @@ static void detect_eth_link()
 #if defined(RPAC53)
 			update_led(&leds[3], LED_GREEN, DELAY_0);
 			update_gpiomode(14, 0);
-#elif defined(RPAC55)
+#elif defined(RPAC51) || defined(RPAC55)
 			update_led(&leds[1], LED_BLUE, DELAY_0);
 #else
 			update_led(&leds[0], LED_GREEN, DELAY_0);
@@ -232,15 +248,21 @@ static void detect_conn_link_quality()
 	   ) // Only for repeater mode
 		return;
 
-	if (nvram_get_int("wps_cli_state") == 1 || nvram_get_int("restore_defaults") == 1) // WPS processing and Restore defaults
-		return;
+	static int link_quality_2g = WIFI_2G_DOWN, link_quality_5g = WIFI_5G_DOWN;
 
-	if (status == LED_BOOTING || status == LED_WPS_PROCESSING || status == LED_WPS_RESTART_WL || status == LED_RESTART_WL || status == LED_FIRMWARE_UPGRADE)
+	if (nvram_get_int("wps_cli_state") == 1 || nvram_get_int("restore_defaults") == 1) {// WPS processing and Restore defaults
+		link_quality_2g = WIFI_2G_DOWN;
+		link_quality_5g = WIFI_5G_DOWN;
 		return;
+	}
+
+	if (status == LED_BOOTING || status == LED_WPS_START || status == LED_WPS_PROCESSING || status == LED_WPS_RESTART_WL || status == LED_RESTART_WL || status == LED_FIRMWARE_UPGRADE) {
+		link_quality_2g = WIFI_2G_DOWN;
+		link_quality_5g = WIFI_5G_DOWN;
+		return;
+	}
 	/* Stop detect coon link end */
 
-
-	static int link_quality_2g = WIFI_2G_DOWN, link_quality_5g = WIFI_5G_DOWN;
 	int link_quality = 0;
 
 	if (nvram_get_int("wlc0_state") == WLC_STATE_CONNECTED) {
@@ -367,7 +389,7 @@ static void detect_conn_link_quality()
 	}
 }
 
-#if defined(RPAC55) && defined(RTCONFIG_WLCSCAN_RSSI)
+#if (defined(RPAC51) || defined(RPAC55)) && defined(RTCONFIG_WLCSCAN_RSSI)
 #define DISTANCE_NORMAL 0
 #define DISTANCE_TOO_CLOSE 1
 #define DISTANCE_TOO_FAR 2
@@ -659,13 +681,13 @@ static void process_status(int sig)
 				update_led(&leds[2], LED_GREEN, DELAY_1S);
 				update_led(&leds[3], LED_GREEN, DELAY_1S);
 #endif
-#ifdef RPAC55
+#if defined(RPAC51) || defined(RPAC55)
 				update_led(&leds[0], LED_RED, DELAY_0);
 #endif	
 				break;
 
 			case LED_BOOTED:
-#ifdef RPAC55
+#if defined(RPAC51) || defined(RPAC55)
 				update_led(&leds[0], LED_BLUE, DELAY_0);
 #else
 				update_led(&leds[0], LED_GREEN, DELAY_0);
@@ -676,14 +698,14 @@ static void process_status(int sig)
 				update_led(&leds[3], LED_NONE, DELAY_0);
 				update_gpiomode(14, 0);
 #endif
-#ifdef RPAC55
+#if defined(RPAC51) || defined(RPAC55)
 				update_led(&leds[3], LED_NONE, DELAY_0);
 #endif				
 				break;
 
 			case LED_BOOTED_APMODE:
 
-#if defined(RPAC55)
+#if defined(RPAC51) || defined(RPAC55)
 				update_led(&leds[0], LED_BLUE, DELAY_0);
 				update_led(&leds[1], LED_NONE, DELAY_0);
 				update_led(&leds[2], LED_NONE, DELAY_0);
@@ -713,21 +735,21 @@ static void process_status(int sig)
 
 				break;
 			case LED_WIFI_2G_DOWN:
-#if defined(RPAC55)
+#if defined(RPAC51) || defined(RPAC55)
 				// TBD.
 #else
 				update_led(&leds[1], LED_NONE, DELAY_0);
 #endif				
 				break;
 			case LED_WIFI_5G_DOWN:
-#if defined(RPAC55)
+#if defined(RPAC51) || defined(RPAC55)
 				// TBD.
 #else
 				update_led(&leds[2], LED_NONE, DELAY_0);
 #endif
 				break;
 			case LED_WPS_START:
-#if defined(RPAC55)
+#if defined(RPAC51) || defined(RPAC55)
 				update_led(&leds[0], LED_BLUE, DELAY_0_5S);
 				update_led(&leds[1], LED_NONE, DELAY_0);
 #else			
@@ -743,7 +765,7 @@ static void process_status(int sig)
 #endif
 				break;
 			case LED_WPS_SCANNING:
-#if defined(RPAC55)
+#if defined(RPAC51) || defined(RPAC55)
 				update_led(&leds[0], LED_BLUE, DELAY_0_5S);
 				update_led(&leds[1], LED_NONE, DELAY_0);			
 #else			
@@ -759,7 +781,7 @@ static void process_status(int sig)
 #endif
 				break;
 			case LED_WPS_2G_SCANNING:
-#if defined(RPAC55)
+#if defined(RPAC51) || defined(RPAC55)
 				update_led(&leds[0], LED_BLUE, DELAY_0_5S);
 				update_led(&leds[1], LED_NONE, DELAY_0);
 #else			
@@ -775,7 +797,7 @@ static void process_status(int sig)
 #endif
 				break;
 			case LED_WPS_5G_SCANNING:
-#if defined(RPAC55)
+#if defined(RPAC51) || defined(RPAC55)
 				update_led(&leds[0], LED_BLUE, DELAY_0_5S);
 				update_led(&leds[1], LED_NONE, DELAY_0);
 #else			
@@ -798,7 +820,7 @@ static void process_status(int sig)
 #if defined(RPAC53)
 						update_led(&leds[3], LED_GREEN, DELAY_0);
 						update_gpiomode(14, 0);
-#elif defined(RPAC55)
+#elif defined(RPAC51) || defined(RPAC55)
 						update_led(&leds[0], LED_BLUE, DELAY_0);
 #else						
 						update_led(&leds[0], LED_GREEN, DELAY_0);
@@ -808,7 +830,7 @@ static void process_status(int sig)
 #if defined(RPAC53)
 						update_led(&leds[3], LED_GREEN, DELAY_0_5S);
 						update_gpiomode(14, 1);
-#elif defined(RPAC55)
+#elif defined(RPAC51) || defined(RPAC55)
 						update_led(&leds[0], LED_BLUE, DELAY_0);
 #else						
 						update_led(&leds[0], LED_GREEN, DELAY_0_5S);
@@ -831,7 +853,7 @@ static void process_status(int sig)
 #endif
 				}
 				else {
-#if defined(RPAC55)
+#if defined(RPAC51) || defined(RPAC55)
 					update_led(&leds[0], LED_BLUE, DELAY_0);
 #else					
 					update_led(&leds[0], LED_GREEN, DELAY_0);
@@ -842,7 +864,7 @@ static void process_status(int sig)
 
 				break;
 			case LED_WPS_PROCESSING:
-#if defined(RPAC55)
+#if defined(RPAC51) || defined(RPAC55)
 				update_led(&leds[0], LED_BLUE, DELAY_0_5S);
 				update_led(&leds[1], LED_NONE, DELAY_0);
 #else			
@@ -856,14 +878,14 @@ static void process_status(int sig)
 				update_led(&leds[1], LED_GREEN, DELAY_0_2S);
 				update_led(&leds[2], LED_GREEN, DELAY_0_2S);
 #endif
-#if defined(RPAC55)
+#if defined(RPAC51) || defined(RPAC55)
 				update_led(&leds[1], LED_NONE, DELAY_0);
 				update_led(&leds[2], LED_NONE, DELAY_0);
 				update_led(&leds[3], LED_NONE, DELAY_0);
 #endif
 				break;
 			case LED_WPS_RESTART_WL:
-#if defined(RPAC55)
+#if defined(RPAC51) || defined(RPAC55)
 				update_led(&leds[0], LED_BLUE, DELAY_0_5S);
 #else			
 				update_led(&leds[0], LED_GREEN, DELAY_0_5S);
@@ -878,7 +900,7 @@ static void process_status(int sig)
 #endif
 				break;
 			case LED_RESTART_WL:
-#if defined(RPAC55)
+#if defined(RPAC51) || defined(RPAC55)
 				// TBD.
 #else			
 				update_led(&leds[0], LED_GREEN, DELAY_0_5S);
@@ -896,7 +918,7 @@ static void process_status(int sig)
 
 				if (access_point_mode()) {
 					/* Check gw_status */
-#if defined(RPAC55)					
+#if defined(RPAC51) || defined(RPAC55)				
 					update_led(&leds[0], LED_BLUE, DELAY_0);
 #else					
 					if (nvram_get_int("dnsqmode") == 1)
@@ -923,7 +945,7 @@ static void process_status(int sig)
 #endif
 				}
 				else {
-#if defined(RPAC55)
+#if defined(RPAC51) || defined(RPAC55)
 					update_led(&leds[0], LED_BLUE, DELAY_0);
 #else					
 					update_led(&leds[0], LED_GREEN, DELAY_0);
@@ -952,7 +974,7 @@ static void process_status(int sig)
 				update_led(&leds[3], LED_NONE, DELAY_0);
 				update_gpiomode(14, 1);
 #endif
-#if defined(RPAC55)
+#if defined(RPAC51) || defined(RPAC55)
 				update_led(&leds[0], LED_RED, DELAY_0);				
 				update_led(&leds[1], LED_NONE, DELAY_0);
 				update_led(&leds[2], LED_NONE, DELAY_0);
@@ -978,7 +1000,7 @@ static void process_status(int sig)
 				update_led(&leds[3], LED_GREEN, DELAY_1S);
 				update_gpiomode(14, 1);
 #endif
-#if defined(RPAC55)
+#if defined(RPAC51) || defined(RPAC55)
 				update_led(&leds[0], LED_BLUE, DELAY_1S);			
 				update_led(&leds[1], LED_NONE, DELAY_0);
 				update_led(&leds[2], LED_NONE, DELAY_0);
@@ -997,7 +1019,7 @@ static void process_status(int sig)
 				update_led(&leds[2], LED_GREEN, DELAY_0_2S);
 
 #endif
-#ifdef RPAC55
+#if defined(RPAC51) || defined(RPAC55)
 				update_led(&leds[0], LED_BLUE, DELAY_0_5S);			
 #endif
 				break;
@@ -1009,7 +1031,7 @@ static void process_status(int sig)
 		update_interval_timer();
 	}
 	process_leds();
-#if defined(RPAC55) && defined(RTCONFIG_WLCSCAN_RSSI)
+#if (defined(RPAC51) || defined(RPAC55)) && defined(RTCONFIG_WLCSCAN_RSSI)
 	detect_conn_link_zone();
 #else
 	detect_conn_link_quality(); // Check and change WiFi LED in Real time mode.
@@ -1054,7 +1076,7 @@ led_monitor_main(int argc, char *argv[])
 
 	pre_status = -1;
 
-#if defined(RPAC55) && defined(RTCONFIG_WLCSCAN_RSSI)
+#if (defined(RPAC51) || defined(RPAC55)) && defined(RTCONFIG_WLCSCAN_RSSI)
 	nvram_set_int("wlcscan_ssid_rssi_state", 0); // Init wlcscan_ssid_rssi_state
 	nvram_set_int("wlc0_scan_rssi", 0); // Init wlc0_scan_rssi
 	nvram_set_int("wlc1_scan_rssi", 0); // Init wlc1_scan_rssi

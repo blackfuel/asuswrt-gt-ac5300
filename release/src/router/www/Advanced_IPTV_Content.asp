@@ -67,7 +67,7 @@ function initial(){
 	}
 
 	/* MODELDEP */
-	if( based_modelid != "RT-N14U" )
+	if( !meoVoda_support )
 	{
 		document.getElementById('meoOption').outerHTML = "";
 		document.getElementById('vodafoneOption').outerHTML = "";

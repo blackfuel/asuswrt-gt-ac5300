@@ -205,7 +205,6 @@ if(debug) printf("test 12. cmd=%s.\n", cmd);
 if(debug) printf("test 26. route flush cache.\n");
 	system("ip route flush cache");
 
-	logmessage("wan", "finish adding multi routes");
 	file_unlock(lock);
 	return 0;
 }
@@ -1273,8 +1272,11 @@ TRACE_PT("3g begin with %s.\n", wan_ifname);
 				if(nvram_get_int("stop_conn_3g") != 1){
 #ifdef RTCONFIG_TCPDUMP
 					char *tcpdump_argv[] = { "/usr/sbin/tcpdump", "-i", wan_ifname, "-nnXw", "/tmp/udhcpc.pcap", NULL};
-					_eval(tcpdump_argv, NULL, 0, &pid);
-					sleep(2);
+
+					if(nvram_get_int("dhcp_dump")){
+						_eval(tcpdump_argv, NULL, 0, &pid);
+						sleep(2);
+					}
 #endif
 					dbG("start udhcpc(%d): %s.\n", unit, wan_ifname);
 					start_udhcpc(wan_ifname, unit, &pid);
@@ -1976,8 +1978,8 @@ int update_resolvconf(void)
 		case IPV6_PASSTHROUGH:
 #endif
 			if (nvram_get_int(ipv6_nvname("ipv6_dnsenable"))) {
-				snprintf(wan_dns, sizeof(wan_dns), "%s", nvram_safe_get(strcat_r(prefix, "ipv6_get_dns", tmp)));
-				snprintf(wan_domain, sizeof(wan_domain), "%s", nvram_safe_get(strcat_r(prefix, "ipv6_get_domain", tmp)));
+				snprintf(wan_dns, sizeof(wan_dns), "%s", nvram_safe_get(ipv6_nvname("ipv6_get_dns")));
+				snprintf(wan_domain, sizeof(wan_domain), "%s", nvram_safe_get(ipv6_nvname("ipv6_get_domain")));
 				break;
 			}
 			/* fall through */
@@ -2312,7 +2314,7 @@ wan_up(const char *pwan_ifname)
 		add_dhcp_routes(prefix_x, wan_ifname, 1);
 
 		/* and default route with metric 1 */
-		snprintf(gateway, sizeof(gateway), "%s", nvram_safe_get(strcat_r(prefix, "gateway", tmp)));
+		snprintf(gateway, sizeof(gateway), "%s", nvram_safe_get(strcat_r(prefix_x, "gateway", tmp)));
 		if (inet_addr_(gateway) != INADDR_ANY) {
 			char word[100], *next;
 			in_addr_t addr = inet_addr(nvram_safe_get(strcat_r(prefix_x, "ipaddr", tmp)));
@@ -2327,7 +2329,7 @@ wan_up(const char *pwan_ifname)
 
 			/* ... and to dns servers as well for demand ppp to work */
 			if (nvram_get_int(strcat_r(prefix, "dnsenable_x", tmp))) {
-				snprintf(dns, sizeof(dns), "%s", nvram_safe_get(strcat_r(prefix, "dns", tmp)));
+				snprintf(dns, sizeof(dns), "%s", nvram_safe_get(strcat_r(prefix_x, "dns", tmp)));
 				foreach(word, dns, next) {
 					if ((inet_addr(word) != inet_addr(gateway)) &&
 					    (inet_addr(word) & mask) != (addr & mask))
@@ -2470,9 +2472,11 @@ wan_up(const char *pwan_ifname)
 
 		putenv(env_unit);
 		if(nvram_match(strcat_r(prefix2, "act_type", tmp2), "gobi")){
+			nvram_set("freeze_duck", "5");
 			eval("/usr/sbin/modem_status.sh", "rate");
 			eval("/usr/sbin/modem_status.sh", "band");
 			eval("/usr/sbin/modem_status.sh", "operation");
+			eval("/usr/sbin/modem_status.sh", "provider");
 		}
 #if defined(RTCONFIG_JFFS2) || defined(RTCONFIG_BRCM_NAND_JFFS2) || defined(RTCONFIG_UBIFS)
 		eval("/usr/sbin/modem_status.sh", "get_dataset");
@@ -2523,15 +2527,16 @@ wan_up(const char *pwan_ifname)
 	stop_upnp();
 	start_upnp();
 
-	stop_ddns();
-	start_ddns();
-
 	/* Sync time */
 	refresh_ntpc();
 
 #ifdef RTCONFIG_OPENVPN
 	start_ovpn_eas();
 #endif
+
+	stop_ddns();
+	start_ddns();
+
 #ifdef RTCONFIG_VPNC
 #ifdef RTCONFIG_VPN_FUSION
 	set_routing_table(1, 1);
@@ -2633,6 +2638,10 @@ wan_up(const char *pwan_ifname)
 	}
 #endif
 
+#if defined(BCA_HNDROUTER) && defined(MCPD_PROXY)
+	restart_mcpd_proxy();
+#endif
+
 _dprintf("%s(%s): done.\n", __FUNCTION__, wan_ifname);
 }
 
@@ -2670,6 +2679,11 @@ wan_down(char *wan_ifname)
 		modem_unit = get_modemunit_by_type(get_dualwan_by_unit(wan_unit));
 		usb_modem_prefix(modem_unit, prefix2, sizeof(prefix2));
 
+		nvram_unset(strcat_r(prefix2, "act_tx", tmp2));
+		nvram_unset(strcat_r(prefix2, "act_rx", tmp2));
+		nvram_unset(strcat_r(prefix2, "act_band", tmp2));
+		nvram_unset(strcat_r(prefix2, "act_operation", tmp2));
+		nvram_unset(strcat_r(prefix2, "act_provider", tmp2));
 		nvram_unset(strcat_r(prefix2, "act_startsec", tmp2));
 	}
 #endif
@@ -3079,7 +3093,7 @@ start_wan(void)
 	if (!is_routing_enabled())
 		return;
 
-#if defined(MAPAC2200) || defined(MAPAC1300)
+#if defined(MAPAC2200) || defined(MAPAC1300) || defined(VRZAC1300)
 	nvram_set("start_wan", "1");
 #endif
 
@@ -3181,7 +3195,7 @@ stop_wan(void)
 {
 	int unit;
 
-#if defined(MAPAC2200) || defined(MAPAC1300)
+#if defined(MAPAC2200) || defined(MAPAC1300) || defined(VRZAC1300)
 	if (nvram_get("start_wan") == NULL)
 		return;
 	nvram_unset("start_wan");
@@ -3285,11 +3299,7 @@ void convert_wan_nvram(char *prefix, int unit)
 	else{
 		/* QTN */
 		if(strcmp(prefix, "wan1_") == 0) {
-#ifdef RTCONFIG_GMAC3
-			strcpy(hwaddr_5g, nvram_get_int("gmac3_enable")? nvram_safe_get("et2macaddr"): nvram_safe_get("et1macaddr"));
-#else
-			strcpy(hwaddr_5g, nvram_safe_get("et1macaddr"));
-#endif
+			strcpy(hwaddr_5g, get_wan_hwaddr());
 			inc_mac(hwaddr_5g, 7);
 			nvram_set(strcat_r(prefix, "hwaddr", tmp), hwaddr_5g);
 			logmessage("wan", "[%s] == [%s]\n", tmp, hwaddr_5g);

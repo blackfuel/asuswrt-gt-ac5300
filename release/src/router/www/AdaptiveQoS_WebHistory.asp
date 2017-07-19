@@ -253,6 +253,7 @@ function cal_panel_block(obj){
 <input type="hidden" name="action_wait" value="3">
 <input type="hidden" name="flag" value="">
 <input type="hidden" name="bwdpi_wh_enable" value="<% nvram_get("bwdpi_wh_enable"); %>">
+<input type="hidden" name="bwdpi_wh_stamp" value="<% nvram_get("bwdpi_wh_stamp"); %>">
 <input type="hidden" name="TM_EULA" value="<% nvram_get("TM_EULA"); %>">
 <table class="content" align="center" cellpadding="0" cellspacing="0">
 	<tr>
@@ -277,7 +278,7 @@ function cal_panel_block(obj){
 									</div>
 									<div style="margin:5px">
 										<table style="margin-left:0px;" width="95%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="FormTable">
-											<th>Enable Web History</th>
+											<th><#Adaptive_History#></th>
 											<td>
 												<div align="center" class="left" style="width:94px; float:left; cursor:pointer;" id="bwdpi_wh_enable"></div>
 															<script type="text/javascript">
@@ -301,6 +302,30 @@ function cal_panel_block(obj){
 																					adjust_TM_eula_height("agreement_panel");
 																				});
 																			}
+																			else if(document.form.preferred_lang.value == "TW"){
+																				$.get("tm_eula_TC.htm", function(data){
+																					document.getElementById('agreement_panel').innerHTML= data;
+																					adjust_TM_eula_height("agreement_panel");
+																				});
+																			}
+																			else if(document.form.preferred_lang.value == "CN"){
+																				$.get("tm_eula_SC.htm", function(data){
+																					document.getElementById('agreement_panel').innerHTML= data;
+																					adjust_TM_eula_height("agreement_panel");
+																				});
+																			}
+																			else if(document.form.preferred_lang.value == "FR"){
+																				$.get("tm_eula_FR.htm", function(data){
+																					document.getElementById('agreement_panel').innerHTML= data;
+																					adjust_TM_eula_height("agreement_panel");
+																				});
+																			}
+																			else if(document.form.preferred_lang.value == "RU"){
+																				$.get("tm_eula_RU.htm", function(data){
+																					document.getElementById('agreement_panel').innerHTML= data;
+																					adjust_TM_eula_height("agreement_panel");
+																				});
+																			}																			
 																			else{
 																				$.get("tm_eula.htm", function(data){
 																					document.getElementById('agreement_panel').innerHTML= data;
@@ -312,7 +337,10 @@ function cal_panel_block(obj){
 																			$("#agreement_panel").fadeIn(300);
 																			return false;
 																		}
-																			
+																			var t = new Date();
+																			var timestamp = t.getTime().toString().substring(0,10);
+
+																			document.form.bwdpi_wh_stamp.value = timestamp;
 																			document.form.bwdpi_wh_enable.value = 1;
 																			document.form.submit();
 																	},
@@ -328,7 +356,7 @@ function cal_panel_block(obj){
 									<div id="log_field">
 										<div style="margin:10px 5px">
 											<select id="clientListOption" class="input_option" name="clientList" onchange="getWebHistory(this.value);">
-												<option value="" selected>All client</option>
+												<option value="" selected><#All_Client#></option>
 											</select>
 											<label style="margin: 0 5px 0 20px;visibility:hidden;cursor:pointer" id="previous_button" onclick="change_page('previous');">Previous</label>
 											<input class="input_3_table" value="1" id="current_page"></input>

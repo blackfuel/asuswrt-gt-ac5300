@@ -467,7 +467,7 @@ int login_main(int argc UNUSED_PARAM, char **argv)
 			system(CMD);
 		}
 #endif
-		if (++count == 3) {
+		if (++count == 1) {
 			syslog(LOG_WARNING, "invalid password for '%s'%s",
 						username, fromhost);
 

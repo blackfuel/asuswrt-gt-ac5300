@@ -43,7 +43,7 @@
 /* NOTIFICATION DATABASE DEFINE SETTING 
 ----------------------------------------*/
 #define TYPE_SHIFT              16
-#define NOTIFY_DB_QLEN          200
+#define NOTIFY_DB_QLEN          400
 #define NOTIFY_DB_DEBUG         "/tmp/NTD_DEBUG"
 
 #ifdef ASUSWRT_SDK /* ASUSWRT SDK */

@@ -1926,7 +1926,7 @@ reset_mssid_hwaddr(int unit)
 	}
 }
 
-#if defined(RTCONFIG_BCMWL6) && defined(RTCONFIG_PROXYSTA) && (defined(RTCONFIG_BCM7) || defined(RTCONFIG_BCM_7114) || defined(HND_ROUTER))
+#if defined(RTCONFIG_BCMWL6) && defined(RTCONFIG_PROXYSTA)
 void
 reset_psr_hwaddr()
 {
@@ -2255,6 +2255,10 @@ void init_syspara(void)
 	nvram_set("buildinfo", rt_buildinfo);
 	nvram_set("swpjverno", rt_swpjverno);
 	ptr = nvram_get("regulation_domain");
+
+#ifdef HND_ROUTER
+	refresh_cfe_nvram();
+#endif
 
 	model = get_model();
 	switch(model) {
@@ -2728,11 +2732,7 @@ void generate_wl_para(char *ifname, int unit, int subunit)
 		}
 #endif
 
-		if (nvram_match("wps_enable", "1") &&
-			((unit == nvram_get_int("wps_band_x") || nvram_match("w_Setting", "0"))))
-			nvram_set(strcat_r(prefix, "wps_mode", tmp), "enabled");
-		else
-			nvram_set(strcat_r(prefix, "wps_mode", tmp), "disabled");
+		nvram_set(strcat_r(prefix, "wps_mode", tmp), nvram_match("wps_enable", "1") ? "enabled" : "disabled");
 
 #ifdef BCM_BSD
 		if (((unit == 0) && nvram_get_int("smart_connect_x") == 1) ||
@@ -3061,11 +3061,9 @@ void generate_wl_para(char *ifname, int unit, int subunit)
 		}
 		else
 #endif
-		if (nvram_match(strcat_r(prefix, "mode_x", tmp), "1"))		// wds only
+		if (nvram_match(strcat_r(prefix, "mode_x", tmp), "1") &&	// wds only
+			(is_router_mode() || access_point_mode()))
 			nvram_set(strcat_r(prefix, "mode", tmp), "wds");
-
-		else if (nvram_match(strcat_r(prefix, "mode_x", tmp), "3"))	// special defined for client
-			nvram_set(strcat_r(prefix, "mode", tmp), "wet");
 		else nvram_set(strcat_r(prefix, "mode", tmp), "ap");
 
 #if defined(RTCONFIG_BCMWL6) && defined(RTCONFIG_PROXYSTA)
@@ -3363,7 +3361,10 @@ void generate_wl_para(char *ifname, int unit, int subunit)
 
 #if defined(RTCONFIG_BCM_7114) || defined(HND_ROUTER)
 		snprintf(prefix, sizeof(prefix), "wl%d_", unit);
-		if (hw_vht_cap() &&
+		if (nvram_match(strcat_r(prefix, "nmode", tmp), "0")) {
+			nvram_set(strcat_r(prefix, "vht_features", tmp), "-1");
+			nvram_set(strcat_r(prefix, "vhtmode", tmp), "0");
+		} else if (hw_vht_cap() &&
 		   ((nvram_match(strcat_r(prefix, "nband", tmp), "1") &&
 		     nvram_match(strcat_r(prefix, "vreqd", tmp2), "1"))
 		 || (nvram_match(strcat_r(prefix, "nband", tmp), "2") &&
@@ -3507,6 +3508,11 @@ void generate_wl_para(char *ifname, int unit, int subunit)
 		nvram_set(strcat_r(prefix, "net_reauth", tmp), tmp2);
 
 		wl_dfs_support(unit);
+#if 0
+#if defined(RTCONFIG_BCM_7114) || defined(GTAC5300)
+		wl_CE_support(unit);
+#endif
+#endif
 
 #if defined(RTCONFIG_BCM7) || defined(RTCONFIG_BCM_7114) || defined(HND_ROUTER)
 		if (nvram_get_int("smart_connect_x"))

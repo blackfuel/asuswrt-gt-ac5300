@@ -687,6 +687,12 @@ start_udhcpc(char *wan_ifname, int unit, pid_t *ppid)
 	/* Stop zcip to avoid races */
 	stop_zcip(unit);
 
+#ifdef RTCONFIG_INTERNAL_GOBI
+	/* Skip dhcp for IPv6-only USB modem */
+	if (dualwan_unit__usbif(unit) && nvram_get_int("modem_pdp") == 2)
+		return start_zcip(wan_ifname, unit, ppid);
+#endif
+
 	/* Skip dhcp and start zcip for pppoe, if desired */
 	if (nvram_match(strcat_r(prefix, "proto", tmp), "pppoe") &&
 	    nvram_match(strcat_r(prefix, "vpndhcp", tmp), "0"))

@@ -1,6 +1,6 @@
 /*
  * PCIEDEV private data structures and macro definitions
- * Broadcom Proprietary and Confidential. Copyright (C) 2016,
+ * Broadcom Proprietary and Confidential. Copyright (C) 2017,
  * All Rights Reserved.
  * 
  * This is UNPUBLISHED PROPRIETARY SOURCE CODE of Broadcom;
@@ -441,6 +441,10 @@ extern const uint8 tid2AC_map[];
 #define FL_STATUS(zfl) ((zfl)->status)
 
 #define SCHEDCXT_SUM_W(zpciedev) ((zpciedev)->schedcxt_fl_sum_w)
+#ifdef FFSHCED_SATURATED_MODE
+#define SCHEDCXT_MAX_W(zpciedev) ((zpciedev)->schedcxt_fl_max_w)
+#define FFSHCED_SATURATED(zpciedev) ((zpciedev)->_ffsched_saturated == 1)
+#endif /* FFSHCED_SATURATED_MODE */
 #define SCHEDCXT_FL_MAXLFRAGS(zfl) ((zfl)->schedcxt_weighted_max_lfrags)
 #define SCHEDCXT_FL_W(zfl) ((zfl)->schedcxt_weight)
 #define FFSHCED_ENAB(zpciedev) ((zpciedev)->_ffsched)
@@ -1049,6 +1053,13 @@ struct dngl_bus {
 	uint32 flr_lfrag_txpkts_adjust;
 	uint32 flr_lfrag_txpkts_adjust_mu;
 	uint32 ffsched_flr_rst_delay;
+#ifdef FFSHCED_SATURATED_MODE
+	uint32 _ffsched_saturated; /* make sure each ring can get max lfrags */
+	uint32 schedcxt_fl_max_w; /* Max weight among tx flowring weighting */
+#endif /* FFSHCED_SATURATED_MODE */
+#ifdef BCM_DHDHDR
+	lfrag_buf_pool_t *d3_lfbufpool;
+#endif /* BCM_DHDHDR */
 };
 
 #endif /* _pciedev_priv_h */

@@ -431,7 +431,7 @@ function deleteHover(flag){
 										<table width="700px" style="margin-left:25px;">
 											<tr>
 												<td style="font-size:14px;">
-													<div>Malicious Sites Blocking restricts access to known malicious websites to prevent malware, phishing, spam, adware, hacking or ransomware from attacking your network device.</div>
+													<div><#AiProtection_sites_block_desc#></div>
 												</td>
 											</tr>									
 										</table>

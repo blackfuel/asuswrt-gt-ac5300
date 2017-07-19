@@ -28,39 +28,6 @@ p{
 	text-align: center;
 	margin-top: 4px;
 }
-.nav {
-	display:none;
-    float: left;
-    width: 107%;
-    margin-bottom: 30px;
-    margin-top: -7px;
-}
-.nav ul{
-    margin: 0;
-    padding: 0;
-    border-top:solid 2px #666;
-}
-.nav li{
-	font-family:Arial;
-    position: relative;
-    float: left;
-    color: #FFF;
-    list-style: none;
-    background:#4d595d;
-    cursor:pointer;
-    width: 100%;
-}
-.nav li:hover{
-	background-color:#77A5C6;
-}
-.nav li a {
-    display: block; 
-    padding: 6px;      
-    color: #FFF;
-    border-bottom:solid 1px #666;
-    text-decoration: none;
-    cursor:pointer;
-} 
 .ipMethod{
 	background-color: #222;
 	font-size: 10px;

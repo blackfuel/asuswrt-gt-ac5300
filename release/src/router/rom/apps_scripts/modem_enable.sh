@@ -42,11 +42,16 @@ modem_pass_v6=`nvram get modem_pass_v6`
 modem_reg_time=`nvram get modem_reg_time`
 wandog_interval=`nvram get wandog_interval`
 modem_bridge=`nvram get modem_bridge`
+modem_step_orig=`nvram get modem_step_orig`
 atcmd=`nvram get modem_atcmd`
 
 usb_gobi2=`nvram get usb_gobi2`
 Dev3G=`nvram get Dev3G`
 kernel_version=`uname -r`
+
+if [ "$modem_pdp" == "0" ] || [ "$modem_pdp" == "1" ]; then
+	modem_step_orig=1
+fi
 
 
 # $1: ifname.
@@ -330,6 +335,28 @@ if [ "$modem_type" == "tty" -o "$modem_type" == "qmi" -o "$modem_type" == "mbim"
 	if [ "$modem_enable" != "2" ]; then
 		# Set full functionality
 		at_ret=`/usr/sbin/modem_at.sh '+CFUN?' 2>&1`
+
+		if [ "$modem_type" == "gobi" ]; then
+			ret=`echo -n $at_ret |grep "+CFUN: 7" 2>/dev/null`
+			if [ -n "$ret" ]; then
+				reboot_flag=`nvram get ${prefix}act_reboot`
+				if [ "$reboot_flag" != "1" ]; then
+					logger "Detecct the gobi in phone's mode, so reboot again..."
+					nvram set ${prefix}act_reboot=1
+					nvram commit
+					sleep 2
+					reboot
+					exit 0
+				else
+					logger "Detecct the gobi in phone's mode again. Skip to reboot..."
+					exit 0
+				fi
+			else
+				nvram unset ${prefix}act_reboot
+				nvram commit
+			fi
+		fi
+
 		ret=`echo -n $at_ret |grep "+CFUN: 1" 2>/dev/null`
 		if [ -z "$ret" ]; then
 			echo "CFUN: Set full functionality."
@@ -441,11 +468,20 @@ if [ "$modem_type" == "tty" -o "$modem_type" == "qmi" -o "$modem_type" == "mbim"
 			qcqmi=`_get_qcqmi_by_usbnet $modem_dev`
 			echo "Got qcqmi: $qcqmi."
 
-			echo "Pause the connection."
+			echo "Stop the connection."
 			# WDS set the autoconnect & roaming
 			# autoconnect: 0, disable; 1, enable; 2, pause.
 			# roaming: 0, allow; 1, disable. Only be activated when autoconnect is enabled.
-			gobi_api $qcqmi SetEnhancedAutoconnect 2 1
+			if [ "$modem_step_orig" == "1" ] || [ "$modem_roaming" == "0" ]; then
+				gobi_api $qcqmi SetEnhancedAutoconnect 0 1
+			else
+				if [ "$modem_roaming_mode" == "1" ] && [ -n "$modem_roaming_isp" ]; then
+					echo "Enable the manual roaming ..."
+				else
+					echo "Enable the automatic roaming ..."
+				fi
+				gobi_api $qcqmi SetEnhancedAutoconnect 0 0
+			fi
 
 			echo "Gobi: set +COPS=2."
 			wait_time1=`expr $wandog_interval + $wandog_interval`
@@ -456,9 +492,11 @@ if [ "$modem_type" == "tty" -o "$modem_type" == "qmi" -o "$modem_type" == "mbim"
 				/usr/sbin/modem_at.sh '' # clean the output of +COPS=2.
 			fi
 
-			echo "Gobi($qcqmi): set the ISP profile."
-			# SetDefaultProfile can replace with +CGDCONT.
-			gobi_api $qcqmi SetDefaultProfile "$modem_pdp" "$modem_isp" "$modem_apn" "$modem_authmode" "$modem_user" "$modem_pass"
+			if [ "$modem_step_orig" == "1" ]; then
+				echo "Gobi($qcqmi): set the ISP profile."
+				# SetDefaultProfile can replace with +CGDCONT.
+				gobi_api $qcqmi SetDefaultProfile "$modem_pdp" "$modem_isp" "$modem_apn" "$modem_authmode" "$modem_user" "$modem_pass"
+			fi
 		fi
 
 		echo "Gobi: Successfull to set the ISP profile."
@@ -605,7 +643,7 @@ if [ "$modem_type" == "tty" -o "$modem_type" == "qmi" -o "$modem_type" == "mbim"
 			fi
 
 			# Home service.
-			if [ "$modem_roaming" != "1" ]; then
+			if [ "$modem_roaming" == "0" ]; then
 				echo "COPS: set +COPS=0."
 				wait_time1=`expr $wandog_interval + $wandog_interval`
 				wait_time=`expr $wait_time1 + $modem_reg_time`
@@ -618,20 +656,10 @@ if [ "$modem_type" == "tty" -o "$modem_type" == "qmi" -o "$modem_type" == "mbim"
 				#	echo "COPS: Can't register to network."
 				#	exit 6
 				#fi
-			elif [ "$modem_roaming_mode" == "1" ]; then
+			elif [ "$modem_roaming_mode" == "1" ] && [ -n "$modem_roaming_isp" ]; then
 				# roaming manually...
-				echo "roaming manually..."
-				if [ -n "$modem_roaming_isp" ]; then
-					/usr/sbin/modem_status.sh station "$modem_roaming_isp"
-				fi
-				# Don't need to change the modem settings.
-				#/usr/sbin/modem_autoapn.sh set $modem_roaming_imsi
-
-				#modem_isp=`nvram get modem_isp`
-				#modem_spn=`nvram get modem_spn`
-				#modem_apn=`nvram get modem_apn`
-				#modem_user=`nvram get modem_user`
-				#modem_pass=`nvram get modem_pass`
+				echo "set the roaming station..."
+				/usr/sbin/modem_status.sh station "$modem_roaming_isp"
 			else
 				# roaming automatically...
 				echo "roaming automatically..."
@@ -639,12 +667,6 @@ if [ "$modem_type" == "tty" -o "$modem_type" == "qmi" -o "$modem_type" == "mbim"
 				wait_time=`expr $wait_time1 + $modem_reg_time`
 				nvram set freeze_duck=$wait_time
 				/usr/sbin/modem_at.sh '+COPS=0' "$modem_reg_time"
-				#at_ret=`/usr/sbin/modem_at.sh '+COPS=0' "$modem_reg_time" 2>&1`
-				#ret=`echo -n $at_ret |grep "OK" 2>/dev/null`
-				#if [ -z "$ret" ]; then
-				#	echo "COPS: Fail to set +COPS=0 to roam automatically."
-				#	exit 6
-				#fi
 			fi
 		else # the result from CDMA2000 can be "COMMAND NOT SUPPORT", "ERROR".
 			echo "COPS: Don't support +COPS."
@@ -727,27 +749,43 @@ if [ "$modem_type" == "tty" -o "$modem_type" == "qmi" -o "$modem_type" == "mbim"
 
 		echo "Successfull to register network."
 	elif [ "$modem_type" == "gobi" ]; then
-		echo "Connect the line automatically."
-		if [ "$usb_gobi2" == "1" ]; then
-			at_ret=`/usr/sbin/modem_at.sh '+CAUTOCONNECT=1' 2>&1`
-			ret=`echo -n $at_ret |grep "OK" 2>/dev/null`
-			if [ -z "$ret" ]; then
-				echo "Gobi2: Fail to start the autoconnect."
-				exit 0
+		if [ "$modem_step_orig" == "1" ]; then
+			echo "Connect the line automatically."
+			if [ "$usb_gobi2" == "1" ]; then
+				at_ret=`/usr/sbin/modem_at.sh '+CAUTOCONNECT=1' 2>&1`
+				ret=`echo -n $at_ret |grep "OK" 2>/dev/null`
+				if [ -z "$ret" ]; then
+					echo "Gobi2: Fail to start the autoconnect."
+					exit 0
+				fi
+			else
+				# WDS set the autoconnect & roaming
+				# autoconnect: 0, disable; 1, enable; 2, pause.
+				# roaming: 0, allow; 1, disable. Only be activated when autoconnect is enabled.
+				if [ "$modem_roaming" == "0" ]; then
+					echo "Disable roaming..."
+					gobi_api $qcqmi SetEnhancedAutoconnect 1 1
+				else
+					if [ "$modem_roaming_mode" == "1" ] && [ -n "$modem_roaming_isp" ]; then
+						echo "Start the manual roaming ..."
+					else
+						echo "Start the automatic roaming ..."
+					fi
+					gobi_api $qcqmi SetEnhancedAutoconnect 1 0
+				fi
 			fi
 		else
-			# WDS set the autoconnect & roaming
-			# autoconnect: 0, disable; 1, enable; 2, pause.
-			# roaming: 0, allow; 1, disable. Only be activated when autoconnect is enabled.
-			if [ "$modem_roaming" != "1" ]; then
-				echo "Disable roaming..."
-				gobi_api $qcqmi SetEnhancedAutoconnect 1 1
-			elif [ "$modem_roaming_mode" == "1" ]; then
-				echo "roaming manually..."
-				gobi_api $qcqmi SetEnhancedAutoconnect 1 0
+			echo "Send +CMODEMRESET=1..."
+			modem_at.sh +CMODEMRESET=1
+			if [ "$modem_pdp" -eq "2" ]; then
+				echo "StartDataSessionWith IPv6..."
+				gobi_api qcqmi0 StartDataSessionWithIPFamily 6 "$modem_apn" "$modem_authmode" "$modem_user" "$modem_pass" &
+			elif [ "$modem_pdp" -eq "3" ]; then
+				echo "StartDataSessionWith IPv4v6..."
+				gobi_api qcqmi0 StartDataSessionV4V6 "$modem_apn" "$modem_authmode" "$modem_user" "$modem_pass" "$modem_apn" "$modem_authmode" "$modem_user" "$modem_pass" &
 			else
-				echo "roaming automatically..."
-				gobi_api $qcqmi SetEnhancedAutoconnect 1 0
+				echo "StartDataSessionWith IPv4..."
+				gobi_api qcqmi0 StartDataSessionWithIPFamily 4 "$modem_apn" "$modem_authmode" "$modem_user" "$modem_pass" &
 			fi
 		fi
 
@@ -778,13 +816,6 @@ if [ "$modem_type" == "tty" -o "$modem_type" == "qmi" -o "$modem_type" == "mbim"
 				#fi
 			fi
 		fi
-	#elif [ "$modem_type" == "qmi" ]; then
-	#	uqmi -d $wdm --set-autoconnect enabled
-	#	if [ "$?" == "0" ]; then
-	#		echo "QMI($wdm): enable autoconnect..."
-	#	else
-	#		echo "QMI($wdm): faile to enable autoconnect..."
-	#	fi
 	fi
 
 	echo "modem_enable($modem_dev): done."

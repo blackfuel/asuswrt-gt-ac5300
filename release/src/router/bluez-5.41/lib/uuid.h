@@ -106,9 +106,6 @@ extern "C" {
 #define OBEX_MNS_UUID		"00001133-0000-1000-8000-00805f9b34fb"
 #define OBEX_MAP_UUID		"00001134-0000-1000-8000-00805f9b34fb"
 
-/* GATT ASUS Characteristic Types */
-#define GATT_CHARAC_ASUS_PRODUCT			0xAB10
-
 /* GATT UUIDs section */
 #define GATT_PRIM_SVC_UUID				0x2800
 #define GATT_SND_SVC_UUID				0x2801

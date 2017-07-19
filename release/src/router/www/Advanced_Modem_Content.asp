@@ -495,6 +495,13 @@ function applyRule(){
 		document.form.modem_isp.options[0] = new Option(valueStr, valueStr, false, true);
 	}
 
+	wans_dualwan_array = document.form.wans_dualwan.value.split(" "); //update wans_dualwan_array
+	if(wans_dualwan_array.indexOf("usb") == 0 && document.form.wan0_enable.value == "0")
+		document.form.wan0_enable.value = "1";
+
+	if(wans_dualwan_array.indexOf("usb") == 1 && document.form.wan1_enable.value == "0")
+		document.form.wan1_enable.value = "1";
+
 	showLoading(); 
 	document.form.submit();
 }
@@ -716,6 +723,8 @@ function change_apn_mode(){
 <input type="hidden" name="firmver" value="<% nvram_get("firmver"); %>">
 <input type="hidden" name="modem_enable" value="<% nvram_get("modem_enable"); %>">
 <input type="hidden" name="wans_dualwan" value="<% nvram_get("wans_dualwan"); %>">
+<input type="hidden" name="wan0_enable" value="<% nvram_get("wan0_enable"); %>">
+<input type="hidden" name="wan1_enable" value="<% nvram_get("wan1_enable"); %>">
 
 <table class="content" align="center" cellpadding="0" cellspacing="0">
   <tr>
@@ -804,7 +813,7 @@ function change_apn_mode(){
 					</tr>
 
 					<tr>
-						<th width="40%">APN Configuration</th><!--untranslated-->
+						<th width="40%"><#APN_configuration#></th>
 						<td>
 							<select name="modem_autoapn" id="modem_autoapn" class="input_option" onchange="change_apn_mode();">
 								<option value="1" <% nvram_match("modem_autoapn", "1","selected"); %>>Automatic</option><!--untranslated-->

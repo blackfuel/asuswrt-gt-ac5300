@@ -84,7 +84,7 @@
 
 #define TFTP_ERR_DISKFULL	3
 
-#define TFTP_MAX_RETRIES	8
+#define TFTP_MAX_RETRIES	12
 
 #define TFTP_RRQ_TIMEOUT	1	/* seconds */
 #define TFTP_RECV_TIMEOUT	1	/* seconds */
@@ -269,7 +269,7 @@ static int _tftp_open(tftp_info_t *info,char *hostname,char *filename,int mode)
 
 #if 1
 	if (retries == 0) {
-		int wait_arp = 6; /* wait 6 seconds for the arp reply from host */
+		int wait_arp = 8; /* wait 8 seconds for the arp reply from host */
 		buf = udp_recv_with_timeout(info->tftp_socket,wait_arp);
 		if (!buf)
 			retries = wait_arp;

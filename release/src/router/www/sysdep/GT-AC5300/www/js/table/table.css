@@ -87,7 +87,7 @@
 	margin: auto;
 	right: 0;
 	left: 0;
-	width: 50%;
+	width: 535px;
 	height: auto;
 	box-shadow: 3px 3px 10px #000;
 	display: none;
@@ -148,7 +148,7 @@
 	line-height: 30px;
 }
 .actionButtonFrame {
-	float: left;
+	float: right;
 	width: 50%;
 }
 .actionButtonCancel {
@@ -326,4 +326,9 @@
 	float: right;
 	width: 15px;
 	cursor: pointer;
+}
+.tableTitleHint {
+	color: #FC0;
+	margin-left: 5px;
+	margin-bottom: 10px;
 }

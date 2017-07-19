@@ -57,13 +57,13 @@ function initial(){
 		}
 	}
 
-	if(band5g_support && band5g_11ac_support && document.form.wl_unit.value == 1){
+	if(band5g_support && band5g_11ac_support && document.form.wl_unit.value >= 1){
 		document.getElementById('wl_mode_desc').onclick=function(){return openHint(1, 5)};
-	}else if(band5g_support && document.form.wl_unit.value == 1){
+	}else if(band5g_support && document.form.wl_unit.value >= 1){
 		document.getElementById('wl_mode_desc').onclick=function(){return openHint(1, 4)};
 	}
 
-	if(!(band5g_support && band5g_11ac_support && document.form.wl_unit.value == 1)){
+	if(!(band5g_support && band5g_11ac_support && document.form.wl_unit.value >= 1)){
 		document.form.wl_nmode_x.remove(3); //remove "N/AC Mixed" for NON-AC router and NOT in 5G
 	}
 

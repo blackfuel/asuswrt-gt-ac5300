@@ -32,72 +32,195 @@
 static void
 wbd_restore_defaults(void)
 {
-        char tmp[100], prefix[] = "wlXXXXXXXXXXXXXXXXXXXXXXXXXXXX_mssid_";
-        int i, j, iter_param;
+	char tmp[100], prefix[] = "wlXXXXXXXXXXXXXXXXXXXXXXXXXXXX_mssid_";
+	int i, j, iter_param;
 
-        /* List of WBD NVRAMs */
-        char* wbd_nvrams[] = {
-                /* NVRAMs general to WBD application */
-                "wbd_ifnames",
-                "wbd_mode",
-                "wbd_msglevel",
-                "wbd_ignr_maclst",
-                /* NVRAMs for Target BSS Identification Configuration */
-                "wbd_tbss_wght_idx",
-                "wbd_tbss_wght",
-                "wbd_tbss_thld_idx",
-                "wbd_tbss_thld",
-                "wbd_tbss_algo",
-                "wbd_adv_thld",
-                "wbd_tbss_stacnt_thld",
-                /* NVRAMs for Weak Client Identification Configuration */
-                "wbd_wc_algo",
-                "wbd_wc_thld_idx",
-                "wbd_wc_thld",
-                "wbd_weak_sta_cfg",
-                "wbd_weak_sta_policy",
-                /* NVRAMs for Timeouts */
-                "wbd_tm_join",
-                "wbd_tm_keepalive",
-                "wbd_tm_wd_probe",
-                "wbd_tm_slv_inactv",
-                "wbd_tm_subscribe",
-                "wbd_tm_sta_reports",
-                "wbd_tm_blk_sta",
-                "wbd_tm_wd_weakclient",
-                "wbd_tm_evt_grace",
-                "wbd_tm_wd_tbss",
-                "wbd_tm_config",
-                "wbd_tm_actframe",
-                "wbd_bounce_detect",
-                "wbd_tm_dfs_list",
-                "bcm_stamon_get_interval"
-        };
+	/* List of WBD NVRAMs */
+	char* wbd_nvrams[] = {
+		/* NVRAMs general to WBD application */
+		"wbd_ifnames",
+		"wbd_mode",
+		"wbd_msglevel",
+		"wbd_ignr_maclst",
+		"wbd_fixed_ifnames",
+		"wbd_no_dedicated_backhaul",
+		/* NVRAMs for Target BSS Identification Configuration */
+		"wbd_tbss_wght_idx",
+		"wbd_tbss_wght",
+		"wbd_tbss_thld_idx",
+		"wbd_tbss_thld",
+		"wbd_tbss_algo",
+		"wbd_adv_thld",
+		"wbd_tbss_stacnt_thld",
+		/* NVRAMs for Weak Client Identification Configuration */
+		"wbd_wc_algo",
+		"wbd_wc_thld_idx",
+		"wbd_wc_thld",
+		"wbd_weak_sta_cfg",
+		"wbd_weak_sta_policy",
+		/* NVRAMs for Timeouts */
+		"wbd_tm_join",
+		"wbd_tm_keepalive",
+		"wbd_tm_wd_probe",
+		"wbd_tm_slv_inactv",
+		"wbd_tm_subscribe",
+		"wbd_tm_sta_reports",
+		"wbd_tm_blk_sta",
+		"wbd_tm_wd_weakclient",
+		"wbd_tm_evt_grace",
+		"wbd_tm_wd_tbss",
+		"wbd_tm_config",
+		"wbd_tm_actframe",
+		"wbd_bounce_detect",
+		"wbd_tm_dfs_list",
+		"bcm_stamon_get_interval"
+	};
 
-        /* Traverse through all WBD NVRAMs */
-        for (iter_param = 0; iter_param < ARRAYSIZE(wbd_nvrams); iter_param++) {
+	/* Traverse through all WBD NVRAMs */
+	for (iter_param = 0; iter_param < ARRAYSIZE(wbd_nvrams); iter_param++) {
 
-                /* Clear NVRAMs without Prefix */
-                nvram_unset(wbd_nvrams[iter_param]);
+		/* Clear NVRAMs without Prefix */
+		nvram_unset(wbd_nvrams[iter_param]);
 
-                /* Traverse through all Primary Prefix */
-                for (i = 0; i < MAX_NVPARSE; i++) {
-                        sprintf(prefix, "wl%d_", i);
+		/* Traverse through all Primary Prefix */
+		for (i = 0; i < MAX_NVPARSE; i++) {
+			sprintf(prefix, "wl%d_", i);
 
-                        /* Clear NVRAMs with Primary Prefix */
-                        nvram_unset(strcat_r(prefix, wbd_nvrams[iter_param], tmp));
+			/* Clear NVRAMs with Primary Prefix */
+			nvram_unset(strcat_r(prefix, wbd_nvrams[iter_param], tmp));
 
-                        /* Traverse through all Virtual Prefix */
-                        for (j = 0; j < MAX_NVPARSE; j++) {
-                                sprintf(prefix, "wl%d.%d_", i, j);
+			/* Traverse through all Virtual Prefix */
+			for (j = 0; j < MAX_NVPARSE; j++) {
+				sprintf(prefix, "wl%d.%d_", i, j);
 
-                                /* Clear NVRAMs with Virtual Prefix */
-                                nvram_unset(strcat_r(prefix, wbd_nvrams[iter_param], tmp));
-                        }
-                }
-        }
+				/* Clear NVRAMs with Virtual Prefix */
+				nvram_unset(strcat_r(prefix, wbd_nvrams[iter_param], tmp));
+			}
+		}
+	}
 }
 #endif /* __CONFIG_WBD__ */
+
+#ifdef WLHOSTFBT
+
+/* Clear FBT_APs NVRAMS based on prefix */
+static void
+fbt_aps_restore_defaults(char *prefix)
+{
+	char tmp_prefix[] = "wlXXXXXXXXXXXXXXXXXXXXXXXXXXXX_mssid_";
+	char *fbt_aps, *next;
+	char tmp[100], fbt_ap[100], tmp_fbt_ap[100];
+	int iter_param, i, j;
+
+	/* List of FBT_AP NVRAMs */
+	char* fbt_ap_nvrams[] = {
+		"addr",
+		"r1kh_id",
+		"r0kh_id",
+		"r0kh_id_len",
+		"br_addr",
+		"r0kh_key",
+		"r1kh_key",
+	};
+
+	/* Get fbt_all_gen_aps NVRAM */
+	fbt_aps = nvram_safe_get(strcat_r(prefix, "fbt_all_gen_aps", tmp));
+	/* If no values, no need to restore those */
+	if (strlen(fbt_aps) <= 0) {
+		goto fbt_all_aps;
+	}
+	/* For each fbt_all_gen_aps, clear the fbt_ap_nvrams */
+	foreach(fbt_ap, fbt_aps, next) {
+		/* Traverse through all FBT_AP NVRAMs */
+		for (iter_param = 0; iter_param < ARRAYSIZE(fbt_ap_nvrams); iter_param++) {
+			snprintf(tmp_fbt_ap, sizeof(tmp_fbt_ap), "%s_%s", fbt_ap,
+				fbt_ap_nvrams[iter_param]);
+			nvram_unset(tmp_fbt_ap);
+		}
+	}
+
+fbt_all_aps:
+	/* Get fbt_all_aps NVRAM to clear the fbt_bssid NVRAM*/
+	fbt_aps = nvram_safe_get(strcat_r(prefix, "fbt_all_aps", tmp));
+	/* If no values, no need to restore those */
+	if (strlen(fbt_aps) <= 0) {
+		return;
+	}
+
+	/* For each fbt_aps, clear the fbt_bssid nvrams */
+	foreach(fbt_ap, fbt_aps, next) {
+		/* Traverse through all Primary Prefix to restore fbt_aps NVRAMs */
+		for (i = 0; i < MAX_NVPARSE; i++) {
+			sprintf(tmp_prefix, "wl%d_", i);
+			snprintf(tmp_fbt_ap, sizeof(tmp_fbt_ap), "%s%s_fbt_bssid",
+				tmp_prefix, fbt_ap);
+			nvram_unset(tmp_fbt_ap);
+
+			/* Traverse through all Virtual Prefix */
+			for (j = 0; j < MAX_NVPARSE; j++) {
+				sprintf(tmp_prefix, "wl%d.%d_", i, j);
+				snprintf(tmp_fbt_ap, sizeof(tmp_fbt_ap), "%s%s_fbt_bssid",
+					tmp_prefix, fbt_ap);
+				nvram_unset(tmp_fbt_ap);
+			}
+		}
+	}
+}
+
+/* Clear all the FBT NVRAMs */
+static void
+fbt_restore_defaults(void)
+{
+	char tmp[100], prefix[] = "wlXXXXXXXXXXXXXXXXXXXXXXXXXXXX_mssid_";
+	int i, j, iter_param;
+
+	/* List of FBT NVRAMs */
+	char* fbt_nvrams[] = {
+		"fbt",
+		"fbt_mdid",
+		"fbtoverds",
+		"fbt_reassoc_time",
+		"fbt_ap",
+		"r0kh_id",
+		"r1kh_id",
+		"r0kh_key",
+		"fbt_aps",
+		"fbt_all_aps",
+		"fbt_all_gen_aps"
+	};
+
+	/* Traverse through all Primary Prefix to restore fbt_aps NVRAMs */
+	for (i = 0; i < MAX_NVPARSE; i++) {
+		sprintf(prefix, "wl%d_", i);
+		fbt_aps_restore_defaults(prefix);
+
+		/* Traverse through all Virtual Prefix */
+		for (j = 0; j < MAX_NVPARSE; j++) {
+			sprintf(prefix, "wl%d.%d_", i, j);
+			fbt_aps_restore_defaults(prefix);
+		}
+	}
+
+	/* Traverse through all FBT NVRAMs */
+	for (iter_param = 0; iter_param < ARRAYSIZE(fbt_nvrams); iter_param++) {
+		/* Traverse through all Primary Prefix */
+		for (i = 0; i < MAX_NVPARSE; i++) {
+			sprintf(prefix, "wl%d_", i);
+
+			/* Clear NVRAMs with Primary Prefix */
+			nvram_unset(strcat_r(prefix, fbt_nvrams[iter_param], tmp));
+
+			/* Traverse through all Virtual Prefix */
+			for (j = 0; j < MAX_NVPARSE; j++) {
+				sprintf(prefix, "wl%d.%d_", i, j);
+
+				/* Clear NVRAMs with Virtual Prefix */
+				nvram_unset(strcat_r(prefix, fbt_nvrams[iter_param], tmp));
+			}
+		}
+	}
+}
+#endif /* WLHOSTFBT */
 
 #ifdef LINUX_2_6_36
 static int
@@ -116,7 +239,7 @@ coma_uevent(void)
 				eval("wl", "-i", lan_ifname, "down");
 			}
 		}
-	
+
 		system("echo \"2\" > /proc/bcm947xx/coma");
 	}
 	return 0;
@@ -141,80 +264,80 @@ static int rctest_main(int argc, char *argv[])
 		start_dfs();
 	}
 #endif
-	else if(strcmp(argv[1], "GetPhyStatus")==0) {
+	else if (strcmp(argv[1], "GetPhyStatus")==0) {
 		printf("Get Phy status:%d\n", GetPhyStatus(0));
 	}
-	else if(strcmp(argv[1], "GetExtPhyStatus")==0) {
+	else if (strcmp(argv[1], "GetExtPhyStatus")==0) {
 		printf("Get Ext Phy status:%d\n", GetPhyStatus(atoi(argv[2])));
 	}
 #ifdef HND_ROTUER
-	else if(strcmp(argv[1], "memdw")==0) {
+	else if (strcmp(argv[1], "memdw")==0) {
 		const char *dws[]={"dw", argv[2]};
 		_memaccess(2, dws);
 	}
 #endif
-	else if(strcmp(argv[1], "get_phy_status")==0) {
+	else if (strcmp(argv[1], "get_phy_status")==0) {
 		int mask;
 		mask = atoi(argv[2]);
 		TRACE_PT("debug for phy_status %x\n", get_phy_status(mask));
 	}
-	else if(strcmp(argv[1], "get_phy_speed")==0) {
+	else if (strcmp(argv[1], "get_phy_speed")==0) {
 		int mask;
 		mask = atoi(argv[2]);
 		TRACE_PT("debug for phy_speed %x\n", get_phy_speed(mask));
 	}
 #ifdef HND_ROUTER
-	else if(strcmp(argv[1], "regr")==0) {
+	else if (strcmp(argv[1], "regr")==0) {
 		unsigned int reg;
 		sscanf(argv[2], "%x", &reg);
 		_dprintf("regaccess rd 0x%x\n", reg);
 		hnd_ethswctl(REGACCESS, reg, 2, 0, 0);
 	}
-	else if(strcmp(argv[1], "regw")==0) {
+	else if (strcmp(argv[1], "regw")==0) {
 		unsigned int reg, data;
 		sscanf(argv[2], "%x", &reg);
 		sscanf(argv[3], "%x", &data);
 		_dprintf("regaccess wr 0x%x, 0x%x\n", reg, data);
 		hnd_ethswctl(REGACCESS, reg, 2, 1, data);
 	}
-	else if(strcmp(argv[1], "pregr")==0) {
+	else if (strcmp(argv[1], "pregr")==0) {
 		unsigned int reg;
 		sscanf(argv[2], "%x", &reg);
 		_dprintf("pregaccess rd 0x%x\n", reg);
 		hnd_ethswctl(PMDIOACCESS, reg, 2, 0, 0);
 	}
-	else if(strcmp(argv[1], "pregw")==0) {
+	else if (strcmp(argv[1], "pregw")==0) {
 		unsigned int reg, data;
 		sscanf(argv[2], "%x", &reg);
 		sscanf(argv[3], "%x", &data);
 		_dprintf("pregaccess wr 0x%x, 0x%x\n", reg, data);
 		hnd_ethswctl(PMDIOACCESS, reg, 2, 1, data);
 	}
-	else if(strcmp(argv[1], "set_phy_ctrl")==0) {
+	else if (strcmp(argv[1], "set_phy_ctrl")==0) {
 		unsigned int mask, ctrl;
 		sscanf(argv[2], "%x", &mask);
 		sscanf(argv[3], "%x", &ctrl);
 		_dprintf("phy_ctrl 0x%x/%x (%d)\n", mask, ctrl, set_phy_ctrl(mask, ctrl));
 	}
-	else if(strcmp(argv[1], "set_ex53134_ctrl")==0) {
+	else if (strcmp(argv[1], "set_ex53134_ctrl")==0) {
 		unsigned int mask, ctrl;
 		sscanf(argv[2], "%x", &mask);
 		sscanf(argv[3], "%x", &ctrl);
 		_dprintf("ex53134 phy_ctrl 0x%x/%x (%d)\n", mask, ctrl, set_ex53134_ctrl(mask, ctrl));
 	}
 #endif
-	else if(strcmp(argv[1], "lanports_ctrl")==0) {
+	else if (strcmp(argv[1], "lanports_ctrl")==0) {
 		int val;
 		val = atoi(argv[2]);
 		_dprintf("lan ctrl %d\n", lanport_ctrl(val));
 	}
-	else if(strcmp(argv[1], "handle_notifications")==0) {
+	else if (strcmp(argv[1], "handle_notifications")==0) {
 		handle_notifications();
 	}
-	else if(strcmp(argv[1], "check_action")==0) {
+	else if (strcmp(argv[1], "check_action")==0) {
 		_dprintf("check: %d\n", check_action());
 	}
-	else if(strcmp(argv[1], "nvramhex")==0) {
+	else if (strcmp(argv[1], "nvramhex")==0) {
 		int i;
 		char *nv;
 
@@ -231,75 +354,75 @@ static int rctest_main(int argc, char *argv[])
 		_dprintf("%s %d\n", argv[1], on);
 
 		if (strcmp(argv[1], "vlan") == 0)
-		{	
-			if(on) start_vlan();
+		{
+			if (on) start_vlan();
 			else stop_vlan();
 		}
 		else if (strcmp(argv[1], "lan") == 0) {
-			if(on) start_lan();
+			if (on) start_lan();
 			else stop_lan();
 		}
 		else if (strcmp(argv[1], "wl") == 0) {
-			if(on) 
+			if (on)
 			{
 				start_wl();
 				lanaccess_wl();
 			}
 		}
 		else if (strcmp(argv[1], "wan") == 0) {
-			if(on) start_wan();
+			if (on) start_wan();
 			else stop_wan();
 		}
 		else if (strcmp(argv[1], "wan_port") == 0) {
-			if(on) start_wan_port();
+			if (on) start_wan_port();
 			else stop_wan_port();
 		}
 		else if (strcmp(argv[1], "firewall") == 0) {
-			//if(on) start_firewall();
+			//if (on) start_firewall();
 			//else stop_firewall();
 		}
 		else if (strcmp(argv[1], "watchdog") == 0) {
-			if(on) start_watchdog();
+			if (on) start_watchdog();
 			else stop_watchdog();
 		}
 #ifdef RTAC87U
 		else if (strcmp(argv[1], "watchdog02") == 0) {
-			if(on) start_watchdog02();
+			if (on) start_watchdog02();
 			else stop_watchdog02();
 		}
 #endif
 #ifdef SW_DEVLED
 		else if (strcmp(argv[1], "sw_devled") == 0) {
-			if(on) start_sw_devled();
+			if (on) start_sw_devled();
 			else stop_sw_devled();
 		}
 #endif
 #if defined(RTAC1200G) || defined(RTAC1200GP)
 		else if (strcmp(argv[1], "wdg_monitor") == 0) {
-			if(on) start_wdg_monitor();
+			if (on) start_wdg_monitor();
 			else stop_wdg_monitor();
 		}
 #endif
 #ifdef RTCONFIG_FANCTRL
 		else if (strcmp(argv[1], "phy_tempsense") == 0) {
-			if(on) start_phy_tempsense();
+			if (on) start_phy_tempsense();
 			else stop_phy_tempsense();
 		}
 #endif
 #if defined(RTCONFIG_BCMWL6) && defined(RTCONFIG_PROXYSTA)
 		else if (strcmp(argv[1], "psta_monitor") == 0) {
-			if(on) start_psta_monitor();
+			if (on) start_psta_monitor();
 			else stop_psta_monitor();
 		}
 #endif
 #ifdef RTCONFIG_IPERF
 		else if (strcmp(argv[1], "monitor") == 0) {
-			if(on) start_monitor();
+			if (on) start_monitor();
 			else stop_monitor();
 		}
 #endif
 		else if (strcmp(argv[1], "qos") == 0) {//qos test
-			if(on){
+			if (on) {
 #ifdef RTCONFIG_RALINK
 				if (module_loaded("hw_nat"))
 				{
@@ -319,13 +442,13 @@ static int rctest_main(int argc, char *argv[])
 #endif
 			add_iQosRules(get_wan_ifname(wan_primary_ifunit()));
 #ifdef RTCONFIG_BWDPI
-				if(nvram_get_int("qos_type") == 1)
+				if (nvram_get_int("qos_type") == 1)
 					start_dpi_engine_service();
 				else
 #endif
 				start_iQos();
 			}
-			else 
+			else
 			{
 #ifdef RTCONFIG_RALINK
 				if (nvram_get_int("hwnat") &&
@@ -360,11 +483,11 @@ static int rctest_main(int argc, char *argv[])
 #endif
 #endif
 						sleep(1);
-					}	
+					}
 				}
 #endif
 #ifdef RTCONFIG_BWDPI
-				if(nvram_get_int("qos_type") == 1){
+				if (nvram_get_int("qos_type") == 1) {
 					stop_dpi_engine_service(1);
 				}
 				else
@@ -375,25 +498,25 @@ static int rctest_main(int argc, char *argv[])
 		}
 #ifdef RTCONFIG_WEBDAV
 		else if (strcmp(argv[1], "webdav") == 0) {
-			if(on)
+			if (on)
 				start_webdav();
 		}
 #endif
 #ifdef RTCONFIG_TUNNEL
 		else if (strcmp(argv[1], "mastiff") == 0) {
-			if(on)
+			if (on)
 				start_mastiff();
 		}
 #endif
 		else if (strcmp(argv[1], "gpiow") == 0) {
-			if(argc>=4) set_gpio(atoi(argv[2]), atoi(argv[3]));
+			if (argc>=4) set_gpio(atoi(argv[2]), atoi(argv[3]));
 		}
 		else if (strcmp(argv[1], "gpior") == 0) {
 			printf("%d\n", get_gpio(atoi(argv[2])));
 		}
 #ifndef HND_ROUTER
 		else if (strcmp(argv[1], "gpiod") == 0) {
-			if(argc>=4) gpio_dir(atoi(argv[2]), atoi(argv[3]));
+			if (argc>=4) gpio_dir(atoi(argv[2]), atoi(argv[3]));
 		}
 #endif
 		else if (strcmp(argv[1], "init_switch") == 0) {
@@ -437,10 +560,10 @@ static int rctest_main(int argc, char *argv[])
 }
 #endif
 
-#if defined(RTCONFIG_SOC_IPQ8064) || defined(RTCONFIG_SOC_IPQ40XX) || defined(RTCONFIG_LANTIQ)
+#if defined(RTCONFIG_SOC_IPQ8064) || defined(RTCONFIG_SOC_IPQ40XX) || defined(RTCONFIG_LANTIQ) || defined(RPAC51)
 /* download firmware */
 #ifndef FIRMWARE_DIR
-#if defined(RTCONFIG_SOC_IPQ8064) || defined(RTCONFIG_SOC_IPQ40XX)
+#if defined(RTCONFIG_SOC_IPQ8064) || defined(RTCONFIG_SOC_IPQ40XX) || defined(RPAC51)
 #define FIRMWARE_DIR	"/lib/firmware"
 #else
 #define FIRMWARE_DIR	"/tmp"
@@ -477,7 +600,7 @@ static int hotplug_firmware(void)
 	sprintf(sysfs_path, "%s/%s/loading", sysfs_root, devpath);
 	f_loading = fopen(sysfs_path, "w");
 	if (!f_loading) {
-		_dprintf("Open %s fail\n", f_loading);
+		_dprintf("[%s] Open %s fail\n", __func__,f_loading);
 		goto err_exit1;
 	}
 	sprintf(sysfs_path, "%s/%s/data", sysfs_root, devpath);
@@ -554,7 +677,7 @@ static int hotplug_main(int argc, char *argv[])
 			return coma_uevent();
 #endif /* LINUX_2_6_36 */
 #endif
-#if defined(RTCONFIG_SOC_IPQ8064) || defined(RTCONFIG_SOC_IPQ40XX) || defined(RTCONFIG_LANTIQ)
+#if defined(RTCONFIG_SOC_IPQ8064) || defined(RTCONFIG_SOC_IPQ40XX) || defined(RTCONFIG_LANTIQ) || defined(RPAC51)
 		else if(!strcmp(argv[1], "firmware")) {
 			hotplug_firmware();
 		}
@@ -669,8 +792,8 @@ static const applets_t applets[] = {
 #if defined(RTCONFIG_RALINK) || defined(RTCONFIG_EXT_RTL8365MB) || defined(RTCONFIG_EXT_RTL8370MB)
 	{ "rtkswitch",			config_rtkswitch		},
 #if defined(RTAC53) || defined(RTAC51UP)
-	{ "mtkswitch",			config_mtkswitch		}, 
-#endif		
+	{ "mtkswitch",			config_mtkswitch		},
+#endif
 #elif defined(RTCONFIG_QCA)
 	{ "rtkswitch",			config_rtkswitch		},
 #endif
@@ -739,6 +862,9 @@ static const applets_t applets[] = {
 #if defined(MAPAC2200)
 	{ "dpdt_ant",			dpdt_ant_main		},
 #endif
+#if defined(MAPAC1300) || defined(VRZAC1300)
+	{ "thermal_txpwr",		thermal_txpwr_main		},
+#endif	/* MAPAC1300 VRZAC1300 */
 	{NULL, NULL}
 };
 
@@ -754,7 +880,7 @@ int main(int argc, char **argv)
 
 	if ((f = open("/dev/null", O_RDWR)) < 0) {
 	}
-	else if(f < 3) {
+	else if (f < 3) {
 		dup(f);
 		dup(f);
 	}
@@ -778,7 +904,7 @@ int main(int argc, char **argv)
 #endif
 
 #if !defined(CONFIG_BCMWL5)
-    if(getpid() != 1)
+    if (getpid() != 1)
     {
 #endif
 
@@ -826,7 +952,7 @@ int main(int argc, char **argv)
 	}
 
 
-#if defined(MAPAC1300) || defined(MAPAC2200)
+#if defined(MAPAC1300) || defined(MAPAC2200) || defined(VRZAC1300)
         if(!strcmp(base, "hive_cap")){
                 if(nvram_get_int("sw_mode")==SW_MODE_ROUTER) {
                         printf("start central ap...\n");
@@ -862,12 +988,43 @@ int main(int argc, char **argv)
         		printf("Error. RE should run in AP mode.\n");
                 return 0;
        }
+#ifdef RTCONFIG_ETHBACKHAUL
+        if(!strcmp(base, "hive_eth")){
+                if (nvram_get_int("sw_mode")==SW_MODE_AP) {
+			nvram_set("eth_detect_proc","1");
+                        if (argv[1] && (!strcmp(argv[1], "1")))
+                                start_eth(1);
+                        else if (argv[1] && (!strcmp(argv[1], "0")))
+			{
+				_dprintf("run when lan plugout ...RE\n");
+                                start_eth(0);
+			}
+			nvram_set("eth_detect_proc","0");
+                }
+		else if (nvram_get_int("sw_mode")==SW_MODE_ROUTER) {
+                        if (argv[1] && (!strcmp(argv[1], "0")))
+			{
+				nvram_set("eth_detect_proc","1");
+				_dprintf("run when lan plugout...CAP\n");
+				ifconfig("eth1", 0, NULL, NULL);
+				sleep(eth_down_time); 
+				ifconfig("eth1", IFUP, NULL, NULL);
+				doSystem("killall -9 hyd");
+				notify_rc("start_dnsmasq");
+				nvram_set("eth_detect_proc","0");
+			}
+		}	
+                else
+        		printf("Error command.\n");
+                return 0;
+       }
+#endif
        if(!strcmp(base, "wifimon_check")){	
 		int default_sec=0;
-                if (nvram_get_int("sw_mode")==SW_MODE_AP) {
-			if(argv[1] && strlen(argv[1]))
+		if (nvram_get_int("sw_mode")==SW_MODE_AP) {
+			if (argv[1] && strlen(argv[1]))
 			{
-                        	if(safe_atoi(argv[1])>0 && safe_atoi(argv[1])<240)
+				if (safe_atoi(argv[1])>0 && safe_atoi(argv[1])<240)
 				{
 					start_wifimon_check(safe_atoi(argv[1]));
 					return 0;
@@ -875,10 +1032,10 @@ int main(int argc, char **argv)
 			}
 			start_wifimon_check(default_sec);
 		}
-                else
-        		printf("Error. wifimon_check should run in RE.\n");
-                return 0;
-       }
+		else
+			printf("Error. wifimon_check should run in RE.\n");
+		return 0;
+	}
 #if defined(RTCONFIG_LP5523)
 /*
  * Manual setting LP5523 leds
@@ -888,7 +1045,7 @@ int main(int argc, char **argv)
  * XXX_vol:	0~255
  *
  * */
-        if (!strcmp(base, "lp55xx_set_led")){
+	if (!strcmp(base, "lp55xx_set_led")) {
 		if (argv[1] && argv[2] && argv[3] && argv[4])
 		{
 			char tmp[32];
@@ -908,7 +1065,7 @@ int main(int argc, char **argv)
 				case 1:
 					if (safe_atoi(argv[i])>LP55XX_END_BLINK || safe_atoi(argv[i])<LP55XX_ACT_NONE)
 					{
-        					printf("Error. Set LED behavior failed. [%d - %d]\n", LP55XX_ACT_NONE, LP55XX_END_BLINK);
+						printf("Error. Set LED behavior failed. [%d - %d]\n", LP55XX_ACT_NONE, LP55XX_END_BLINK);
 						return 0;
 					}
 
@@ -919,7 +1076,7 @@ int main(int argc, char **argv)
 				case 4:
 					if (safe_atoi(argv[i])>255 || safe_atoi(argv[i])<0)
 					{
-        					printf("Error. Set LED(%d) power failed. [%d - %d]\n", i-1, 0, 255);
+						printf("Error. Set LED(%d) power failed. [%d - %d]\n", i-1, 0, 255);
 						return 0;
 					}
 
@@ -938,7 +1095,7 @@ int main(int argc, char **argv)
 			lp55xx_leds_proc(LP55XX_MANUAL_COL, ptb_mode);
 		}
 		else
-        		printf("Error. Enter parameter failed.\n\n"
+			printf("Error. Enter parameter failed.\n\n"
 				"Usage: lp55xx_set_led [behavior_mode] [Blue_vol] [Green_vol] [Red_vol]\n\n"
 				"Behavior: 300~xxx(xxx please refer to lp55xx_leds_mode in shared/lp5523led.h)\n"
 				"XXX_vol:  0~255\n");
@@ -957,7 +1114,7 @@ int main(int argc, char **argv)
  * end:		0~24(schedule)/ 99(user defined led)
  *
  * */
-        if (!strcmp(base, "lp55xx_user_set")){
+	if (!strcmp(base, "lp55xx_user_set")) {
 		if (argv[1] && argv[2] && argv[3] && argv[4] && argv[5] && argv[6])
 		{
 			int i=0, prestate=0;
@@ -978,7 +1135,7 @@ int main(int argc, char **argv)
 
 					if (enable>2 || enable<0)
 					{
-        					printf("Error. Set LED enable failed. [%d - %d]\n", 0 , 1);
+						printf("Error. Set LED enable failed. [%d - %d]\n", 0 , 1);
 						return 0;
 					}
 					break;
@@ -987,7 +1144,7 @@ int main(int argc, char **argv)
 
 					if (ptc_mode>LP55XX_END_COLOR || ptc_mode<LP55XX_ALL_BREATH_LEDS)
 					{
-        					printf("Error. Set LED color failed. [%d - %d]\n", LP55XX_ALL_BREATH_LEDS, LP55XX_END_COLOR);
+						printf("Error. Set LED color failed. [%d - %d]\n", LP55XX_ALL_BREATH_LEDS, LP55XX_END_COLOR);
 						return 0;
 					}
 					break;
@@ -996,7 +1153,7 @@ int main(int argc, char **argv)
 
 					if (ptb_mode>LP55XX_END_BLINK || ptb_mode<LP55XX_ACT_NONE)
 					{
-        					printf("Error. Set LED behavior failed. [%d - %d]\n", LP55XX_ACT_NONE, LP55XX_END_BLINK);
+						printf("Error. Set LED behavior failed. [%d - %d]\n", LP55XX_ACT_NONE, LP55XX_END_BLINK);
 						return 0;
 					}
 					break;
@@ -1005,7 +1162,7 @@ int main(int argc, char **argv)
 
 					if (brightness>100 || brightness<10)
 					{
-        					printf("Error. Set LED brightness failed. [%d - %d]\n", 10 , 100);
+						printf("Error. Set LED brightness failed. [%d - %d]\n", 10 , 100);
 						return 0;
 					}
 					break;
@@ -1016,7 +1173,7 @@ int main(int argc, char **argv)
 
 					if ( sch_end>24 || sch_end<0)
 					{
-						if(sch_end!=99)
+						if (sch_end!=99)
 						{
 							printf("Error. Set LED %s time failed. [%d - %d] or %d to set user defininaton\n", i==5?"start":"end", 0, 24, 99);
 							return 0;
@@ -1065,7 +1222,7 @@ int main(int argc, char **argv)
 			nvram_commit();
 		}
 		else
-        		printf("Error. Enter parameter failed.\n\n"
+			printf("Error. Enter parameter failed.\n\n"
 				"Usage: lp55xx_user_set [enable] [color_mode] [behavior_mode] [brightness] [start time] [end time]\n\n"
 				"enable:  	0:OFF, 1:ON\n"
 				"color:  	100~xxx(xxx please refer to lp55xx_leds_mode in shared/lp5523led.h)\n"
@@ -1079,30 +1236,30 @@ int main(int argc, char **argv)
 #endif
 #endif
 
-	if(!strcmp(base, "restart_wireless")){
+	if (!strcmp(base, "restart_wireless")) {
 		printf("restart wireless...\n");
 		restart_wireless();
 		return 0;
 	}
 #ifdef RTCONFIG_BCM_7114
-	else if(!strcmp(base, "stop_wl")){
+	else if (!strcmp(base, "stop_wl")) {
 		stop_wl_bcm();
 		return 0;
 	}
 #endif
 #ifdef RTCONFIG_USB
 #ifdef RTCONFIG_ERPTEST
-	else if(!strcmp(base, "restart_usb")){
+	else if (!strcmp(base, "restart_usb")) {
 		int f_stop = 0;
-		if(argc == 2)
+		if (argc == 2)
 			f_stop = atoi(argv[1]);
 		printf("%s usb...\n", f_stop ? "stop" : "restart");
 		restart_usb(f_stop);
 		return 0;
 	}
 #endif
-	else if(!strcmp(base, "get_apps_name")){
-		if(argc != 2){
+	else if (!strcmp(base, "get_apps_name")) {
+		if (argc != 2) {
 			printf("Usage: get_apps_name [File name]\n");
 			return 0;
 		}
@@ -1110,8 +1267,8 @@ int main(int argc, char **argv)
 		return get_apps_name(argv[1]);
 	}
 #ifdef BCM_MMC
-	else if(!strcmp(base, "asus_mmc")){
-		if(argc != 3){
+	else if (!strcmp(base, "asus_mmc")) {
+		if (argc != 3) {
 			printf("Usage: asus_mmc [device_name] [action]\n");
 			return 0;
 		}
@@ -1119,56 +1276,56 @@ int main(int argc, char **argv)
 		return asus_mmc(argv[1], argv[2]);
 	}
 #endif
-	else if(!strcmp(base, "asus_sd")){
-		if(argc != 3){
+	else if (!strcmp(base, "asus_sd")) {
+		if (argc != 3) {
 			printf("Usage: asus_sd [device_name] [action]\n");
 			return 0;
 		}
 
 		return asus_sd(argv[1], argv[2]);
 	}
-	else if(!strcmp(base, "asus_lp")){
-		if(argc != 3){
+	else if (!strcmp(base, "asus_lp")) {
+		if (argc != 3) {
 			printf("Usage: asus_lp [device_name] [action]\n");
 			return 0;
 		}
 
 		return asus_lp(argv[1], argv[2]);
 	}
-	else if(!strcmp(base, "asus_sg")){
-		if(argc != 3){
+	else if (!strcmp(base, "asus_sg")) {
+		if (argc != 3) {
 			printf("Usage: asus_sg [device_name] [action]\n");
 			return 0;
 		}
 
 		return asus_sg(argv[1], argv[2]);
 	}
-	else if(!strcmp(base, "asus_sr")){
-		if(argc != 3){
+	else if (!strcmp(base, "asus_sr")) {
+		if (argc != 3) {
 			printf("Usage: asus_sr [device_name] [action]\n");
 			return 0;
 		}
 
 		return asus_sr(argv[1], argv[2]);
 	}
-	else if(!strcmp(base, "asus_tty")){
-		if(argc != 3){
+	else if (!strcmp(base, "asus_tty")) {
+		if (argc != 3) {
 			printf("Usage: asus_tty [device_name] [action]\n");
 			return 0;
 		}
 
 		return asus_tty(argv[1], argv[2]);
 	}
-	else if(!strcmp(base, "asus_usbbcm")){
-		if(argc != 3){
+	else if (!strcmp(base, "asus_usbbcm")) {
+		if (argc != 3) {
 			printf("Usage: asus_usbbcm [device_name] [action]\n");
 			return 0;
 		}
 
 		return asus_usbbcm(argv[1], argv[2]);
 	}
-	else if(!strcmp(base, "asus_usb_interface")){
-		if(argc != 3){
+	else if (!strcmp(base, "asus_usb_interface")) {
+		if (argc != 3) {
 			printf("Usage: asus_usb_interface [device_name] [action]\n");
 			return 0;
 		}
@@ -1183,13 +1340,13 @@ int main(int argc, char **argv)
 		return 0;
 	}
 #if defined(RTCONFIG_APP_PREINSTALLED) || defined(RTCONFIG_APP_NETINSTALLED)
-	else if(!strcmp(base, "run_app_script")){
-		if(argc != 3){
+	else if (!strcmp(base, "run_app_script")) {
+		if (argc != 3) {
 			printf("Usage: run_app_script [Package name | allpkg] [APP action]\n");
 			return 0;
 		}
 
-		if(!strcmp(argv[1], "allpkg"))
+		if (!strcmp(argv[1], "allpkg"))
 			return run_app_script(NULL, argv[2]);
 		else
 			return run_app_script(argv[1], argv[2]);
@@ -1199,13 +1356,13 @@ int main(int argc, char **argv)
 		FILE *fp;
 		char chk_value[4];
 
-		if(f_read_string(PID_FILE, chk_value, 4) > 0
-				&& atoi(chk_value) != getpid()){
+		if (f_read_string(PID_FILE, chk_value, 4) > 0
+				&& atoi(chk_value) != getpid()) {
 			_dprintf("Already running!\n");
 			return 0;
 		}
 
-		if((fp = fopen(PID_FILE, "w")) == NULL){
+		if ((fp = fopen(PID_FILE, "w")) == NULL) {
 			_dprintf("Can't open the pid file!\n");
 			return 0;
 		}
@@ -1214,8 +1371,8 @@ int main(int argc, char **argv)
 		fclose(fp);
 
 		strlcpy(chk_value, nvram_safe_get("apps_state_switch"), sizeof(chk_value));
-		if(strcmp(chk_value, "")){
-			if(atoi(chk_value) != APPS_SWITCH_FINISHED && !pids("app_switch.sh")){
+		if (strcmp(chk_value, "")) {
+			if (atoi(chk_value) != APPS_SWITCH_FINISHED && !pids("app_switch.sh")) {
 				_dprintf("Don't have the switch script.\n");
 				nvram_set("apps_state_switch", "");
 			}
@@ -1225,8 +1382,8 @@ int main(int argc, char **argv)
 		}
 
 		strlcpy(chk_value, nvram_safe_get("apps_state_install"), sizeof(chk_value));
-		if(strcmp(chk_value, "")){
-			if(atoi(chk_value) != APPS_INSTALL_FINISHED && !pids("app_install.sh")){
+		if (strcmp(chk_value, "")) {
+			if (atoi(chk_value) != APPS_INSTALL_FINISHED && !pids("app_install.sh")) {
 				_dprintf("Don't have the install script.\n");
 				nvram_set("apps_state_install", "");
 			}
@@ -1236,8 +1393,8 @@ int main(int argc, char **argv)
 		}
 
 		strlcpy(chk_value, nvram_safe_get("apps_state_upgrade"), sizeof(chk_value));
-		if(strcmp(chk_value, "")){
-			if(atoi(chk_value) != APPS_UPGRADE_FINISHED && !pids("app_upgrade.sh")){
+		if (strcmp(chk_value, "")) {
+			if (atoi(chk_value) != APPS_UPGRADE_FINISHED && !pids("app_upgrade.sh")) {
 				_dprintf("Don't have the upgrade script.\n");
 				nvram_set("apps_state_upgrade", "");
 			}
@@ -1247,8 +1404,8 @@ int main(int argc, char **argv)
 		}
 
 		strlcpy(chk_value, nvram_safe_get("apps_state_enable"), sizeof(chk_value));
-		if(strcmp(chk_value, "")){
-			if(atoi(chk_value) != APPS_ENABLE_FINISHED && !pids("app_set_enabled.sh")){
+		if (strcmp(chk_value, "")) {
+			if (atoi(chk_value) != APPS_ENABLE_FINISHED && !pids("app_set_enabled.sh")) {
 				_dprintf("Don't have the enable script.\n");
 				nvram_set("apps_state_enable", "");
 			}
@@ -1262,8 +1419,19 @@ int main(int argc, char **argv)
 	}
 #endif
 #endif
-	else if(!strcmp(base, "ATE")) {
-		if( argc == 2 || argc == 3 || argc == 4) {
+#ifdef RTCONFIG_LANTIQ
+	else if(!strcmp(base, "restart_bluetoothd")) {
+		system("killall bluetoothd");
+		system("hciconfig hci0 down");
+		system("hciconfig hci0 reset");
+		system("hciconfig hci0 up");
+		system("hciconfig hci0 leadv 0");
+		system("bluetoothd -n &");
+		return 0;
+	}
+#endif
+	else if (!strcmp(base, "ATE")) {
+		if ( argc == 2 || argc == 3 || argc == 4) {
 			asus_ate_command(argv[1], argv[2], argv[3]);
 		}
 		else
@@ -1271,8 +1439,8 @@ int main(int argc, char **argv)
 		return 0;
 	}
 #if defined(RTCONFIG_DSL)
-	else if(!strcmp(base, "asustest")) {
-		if( argc == 2 || argc == 3) {
+	else if (!strcmp(base, "asustest")) {
+		if ( argc == 2 || argc == 3) {
 			asustest_command(argv[1], argv[2]);
 		}
 		else
@@ -1294,12 +1462,12 @@ int main(int argc, char **argv)
 			unsigned int addr;
 			int len;
 			addr = strtoul(argv[1], NULL, 16);
-			if(argv[2][0] == '0' && argv[2][1] == 'x')
+			if (argv[2][0] == '0' && argv[2][1] == 'x')
 				len  = (int) strtoul(argv[2], NULL, 16);
 			else
 				len  = (int) strtoul(argv[2], NULL, 10);
 
-			if(len > 0)
+			if (len > 0)
 				return FREAD(addr, len);
 		}
 		printf("ATE_ERROR\n");
@@ -1330,8 +1498,8 @@ int main(int argc, char **argv)
 	}
 #endif	/* RTCONFIG_HAS_5G */
 #ifdef RTCONFIG_DSL
-	else if(!strcmp(base, "gen_ralink_config")){
-		if(argc != 3){
+	else if (!strcmp(base, "gen_ralink_config")) {
+		if (argc != 3) {
 			printf("Usage: gen_ralink_config [band] [is_iNIC]\n");
 			return 0;
 		}
@@ -1341,43 +1509,43 @@ int main(int argc, char **argv)
 #endif
 
 #if defined(CONFIG_BCMWL5) || defined(RTCONFIG_RALINK) || defined(RTCONFIG_QCA) || defined(RTCONFIG_REALTEK)
-	else if(!strcmp(base, "set_factory_mode")) {
+	else if (!strcmp(base, "set_factory_mode")) {
 		set_factory_mode();
 		return 0;
 	}
 #endif
-	else if(!strcmp(base, "run_telnetd")) {
+	else if (!strcmp(base, "run_telnetd")) {
 		_start_telnetd(1);
 		return 0;
 	}
 #ifdef RTCONFIG_SSH
-	else if(!strcmp(base, "run_sshd")) {
+	else if (!strcmp(base, "run_sshd")) {
 		start_sshd();
 		return 0;
 	}
 #endif
 #ifdef RTCONFIG_WTFAST
-	else if(!strcmp(base, "run_wtfast")) {
+	else if (!strcmp(base, "run_wtfast")) {
 		start_wtfast();
 		return 0;
 	}
 #endif
 #if defined(RTCONFIG_PPTPD) || defined(RTCONFIG_ACCEL_PPTPD)
-	else if(!strcmp(base, "run_pptpd")) {
+	else if (!strcmp(base, "run_pptpd")) {
 		start_pptpd();
 		return 0;
 	}
 #endif
 #ifdef RTCONFIG_PARENTALCTRL
-	else if(!strcmp(base, "pc")) {
+	else if (!strcmp(base, "pc")) {
 		pc_main(argc, argv);
 		return 0;
 	}
-	else if(!strcmp(base, "pc_block")) {
+	else if (!strcmp(base, "pc_block")) {
 		pc_block_main(argc, argv);
 		return 0;
 	}
-	else if(!strcmp(base, "pc_tmp")) {
+	else if (!strcmp(base, "pc_tmp")) {
 		pc_tmp_main(argc, argv);
 		return 0;
 	}
@@ -1407,13 +1575,13 @@ int main(int argc, char **argv)
 	else if (!strcmp(base, "start_qtn_stateless")) {
 		return gen_stateless_conf();
 	}
-	else if (!strcmp(base, "restart_qtn")){
+	else if (!strcmp(base, "restart_qtn")) {
 		return reset_qtn(0);
 	}
 #endif
 #endif
 #if defined(CONFIG_BCMWL5) && !defined(HND_ROUTER) && defined(RTCONFIG_DUALWAN)
-	else if (!strcmp(base, "dualwan")){
+	else if (!strcmp(base, "dualwan")) {
 		dualwan_control(argc, argv);
 	}
 #endif
@@ -1424,7 +1592,7 @@ int main(int argc, char **argv)
 #endif
 #ifdef CONFIG_BCMWL5
 	else if (!strcmp(base, "setup_dnsmq")) {
-		if(argc != 2)
+		if (argc != 2)
 			return 0;
 
 		return setup_dnsmq(atoi(argv[1]));
@@ -1454,8 +1622,12 @@ int main(int argc, char **argv)
 			return EINVAL;
 		}
 	}
+	else if (!strcmp(base, "mtd_erase_image_update")) {
+		mtd_erase_image_update();
+		return 0;
+	}
 #else
-	else if(!strcmp(base, "nvram_erase")){
+	else if (!strcmp(base, "nvram_erase")) {
 		nvram_set(ASUS_STOP_COMMIT, "1");
 		erase_nvram();
 		return 0;
@@ -1510,12 +1682,12 @@ int main(int argc, char **argv)
 #endif
 #endif
 #endif
-	else if(!strcmp(base, "test_endian")){
+	else if (!strcmp(base, "test_endian")) {
 		int num = 0x04030201;
 		char c = *(char *)(&num);
 
-		if(c == 0x04 || c == 0x01){
-			if(c == 0x04)
+		if (c == 0x04 || c == 0x01) {
+			if (c == 0x04)
 				printf("Big.\n");
 			else
 				printf("Little.\n");
@@ -1532,17 +1704,17 @@ int main(int argc, char **argv)
 		int clean_time = 1;
 		int threshold = 0;
 
-		if(argc){
-			while((c = getopt(argc, argv, "c:w:t:")) != -1){
-				switch(c){
+		if (argc) {
+			while((c = getopt(argc, argv, "c:w:t:")) != -1) {
+				switch(c) {
 					case 'c': // set the clean-cache mode: 0~3.
 						test_num = strtol(optarg, NULL, 10);
-			if(test_num == LONG_MIN || test_num == LONG_MAX){
+			if (test_num == LONG_MIN || test_num == LONG_MAX) {
 				_dprintf("ERROR: unknown value %s...\n", optarg);
 							return 0;
 						}
 
-						if(test_num < 0 || test_num > 3){
+						if (test_num < 0 || test_num > 3) {
 							_dprintf("ERROR: the value %s was over the range...\n", optarg);
 							return 0;
 						}
@@ -1552,7 +1724,7 @@ int main(int argc, char **argv)
 						break;
 					case 'w': // set the waited time for cleaning.
 						test_num = strtol(optarg, NULL, 10);
-			if(test_num < 0 || test_num == LONG_MIN || test_num == LONG_MAX){
+			if (test_num < 0 || test_num == LONG_MIN || test_num == LONG_MAX) {
 				_dprintf("ERROR: unknown value %s...\n", optarg);
 							return 0;
 						}
@@ -1562,7 +1734,7 @@ int main(int argc, char **argv)
 						break;
 					case 't': // set the waited time for cleaning.
 						test_num = strtol(optarg, NULL, 10);
-			if(test_num < 0 || test_num == LONG_MIN || test_num == LONG_MAX){
+			if (test_num < 0 || test_num == LONG_MIN || test_num == LONG_MAX) {
 				_dprintf("ERROR: unknown value %s...\n", optarg);
 							return 0;
 						}
@@ -1577,7 +1749,7 @@ int main(int argc, char **argv)
 			}
 		}
 
-		if(!set_value)
+		if (!set_value)
 			set_value = FREE_MEM_PAGE;
 
 		free_caches(set_value, clean_time, threshold);
@@ -1585,15 +1757,15 @@ int main(int argc, char **argv)
 		return 0;
 	}
 #ifdef RTCONFIG_USB_MODEM
-	else if(!strcmp(base, "write_3g_ppp_conf")){
+	else if (!strcmp(base, "write_3g_ppp_conf")) {
 		int modem_unit;
 
-		if(argc != 1 && argc != 2){
+		if (argc != 1 && argc != 2) {
 			printf("Usage: %s <modem_unit>\n", argv[0]);
 			return 0;
 		}
 
-		if(argc == 2)
+		if (argc == 2)
 			modem_unit = atoi(argv[1]);
 		else
 			modem_unit = 0;
@@ -1601,8 +1773,8 @@ int main(int argc, char **argv)
 		return write_3g_ppp_conf(modem_unit);
 	}
 #if defined(RTCONFIG_JFFS2) || defined(RTCONFIG_BRCM_NAND_JFFS2) || defined(RTCONFIG_UBIFS)
-	else if(!strcmp(base, "lplus")){
-		if(argc != 3){
+	else if (!strcmp(base, "lplus")) {
+		if (argc != 3) {
 			printf("Usage: %s <integer1> <integer2>.\n", argv[0]);
 			return 0;
 		}
@@ -1615,8 +1787,8 @@ int main(int argc, char **argv)
 
 		return 0;
 	}
-	else if(!strcmp(base, "lminus")){
-		if(argc != 3){
+	else if (!strcmp(base, "lminus")) {
+		if (argc != 3) {
 			printf("Usage: %s <integer1> <integer2>.\n", argv[0]);
 			return 0;
 		}
@@ -1650,7 +1822,7 @@ int main(int argc, char **argv)
 	}
 #endif
 #if defined(RTCONFIG_BT_CONN)
-	else if(!strcmp(base, "start_bluetooth_service")){
+	else if (!strcmp(base, "start_bluetooth_service")) {
 		start_bluetooth_service();
 		return 0;
 	}

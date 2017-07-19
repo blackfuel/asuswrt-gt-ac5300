@@ -11,6 +11,7 @@
 
 extern void cm_rcvWeventHandler();
 extern void cm_weventPacketProcess(unsigned char *data);
+extern void cm_processProbeReq(unsigned char *data);	//for test
 
 #endif /* __CFG_WEVENT_H__ */
 /* End of cfg_wevent.h */

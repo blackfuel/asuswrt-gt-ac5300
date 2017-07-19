@@ -285,7 +285,10 @@ void UnpackBLEDataToNvram(struct param_handler_svr *param_handler, unsigned char
 							notify_rc_and_wait("chpass");
  
 						memset(do_rc_service, '\0', DEF_LEN_256);
-						snprintf(do_rc_service, sizeof(do_rc_service), "%s%s%s", do_rc_service, delim, "ble_qis_done");
+						if (!strlen(do_rc_service))
+							snprintf(do_rc_service, sizeof(do_rc_service), "%s%s", do_rc_service, "ble_qis_done");
+						else
+							snprintf(do_rc_service, sizeof(do_rc_service), "%s%s%s", do_rc_service, delim, "ble_qis_done");
 					}
 					else
 						chk_service = 1;
@@ -306,6 +309,7 @@ void UnpackBLEDataToNvram(struct param_handler_svr *param_handler, unsigned char
 				{
 					if ( chk_service == 1 )
 					{
+#ifdef RTCONFIG_BWDPI
 						nvram_set("wrs_protect_enable", "1");
 						nvram_set("wrs_mals_t", "0");
 						nvram_set("wrs_cc_t", "0");
@@ -313,6 +317,7 @@ void UnpackBLEDataToNvram(struct param_handler_svr *param_handler, unsigned char
 						nvram_set("bwdpi_db_enable", "1");
 						nvram_set("apps_analysis", "1");
 						nvram_set("TM_EULA", "1");
+#endif
 					} else {
 						eval("modprobe", "-r", "shortcut_fe_cm");
 						eval("modprobe", "-r", "shortcut_fe_ipv6");
@@ -334,9 +339,11 @@ void UnpackBLEDataToNvram(struct param_handler_svr *param_handler, unsigned char
 
 					if(chk_service==1)
 					{
-						snprintf(do_rc_service, sizeof(do_rc_service), "%s%s%s", do_rc_service, delim, "restart_wrs");
-						snprintf(do_rc_service, sizeof(do_rc_service), "%s%s%s", do_rc_service, delim, "restart_firewall");
 						snprintf(do_rc_service, sizeof(do_rc_service), "%s%s%s", do_rc_service, delim, "start_hyfi_process");
+#ifdef RTCONFIG_BWDPI
+						snprintf(do_rc_service, sizeof(do_rc_service), "%s%s%s", do_rc_service, delim, "restart_wrs");
+#endif
+						snprintf(do_rc_service, sizeof(do_rc_service), "%s%s%s", do_rc_service, delim, "restart_firewall");
 					}
 					else if(chk_service==3)
 						snprintf(do_rc_service, sizeof(do_rc_service), "%s%s%s", do_rc_service, delim, "restart_allnet");
