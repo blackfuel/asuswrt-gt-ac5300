@@ -23,6 +23,7 @@ export SIZE := $(CROSS_COMPILE)size
 export CXX := $(CROSS_COMPILE)g++
 export CXXCPP := $(CROSS_COMPILE)g++ -E
 
+obj-y += mkdir
 obj-y += zlib
 obj-y += libxml2
 obj-y += openssl
@@ -40,7 +41,13 @@ clean:
 	@$(MAKE) openssl-clean
 	@$(MAKE) curl-7.21.7-clean
 	@$(MAKE) zlib-clean
+	rm -rf WebdavClient-ipk/opt/tmp/bin/*
+	rm -rf WebdavClient-ipk/opt/tmp/lib/*
 	rm -rf webdavclient*.ipk
+
+mkdir:
+	-mkdir -p WebdavClient-ipk/opt/tmp/bin/
+	-mkdir -p WebdavClient-ipk/opt/tmp/lib/
 
 neon-clean:
 	@$(MAKE) -C $(CURRENT)/neon clean
@@ -53,7 +60,7 @@ neon/stamp-h1:
 neon: neon/stamp-h1
 	cd $(CURRENT)/neon && \
 	AR=$(AR) AS=$(AS) LD=$(LD) NM=$(NM) CC=$(CC) CPP="$(CC) -E" GCC=$(CC) CXX=$(CXX) RANLIB=$(RANLIB) STRIP=$(STRIP) \
-	./configure --build=i386-pc-linux-gnu --host=arm-linux --target=arm-linux --prefix=/opt --disable-static --enable-shared --disable-nls --with-zlib --with-libxml2 --with-ssl=openssl --with-libs=$(SRCBASE)/openssl:$(SRCBASE)/libxml2 CFLAGS='-I$(SRCBASE)/zlib -I$(SRCBASE)/libxml2/include -I$(SRCBASE)/openssl/include' LDFLAGS='-L$(SRCBASE)/libxml2/.libs -L$(SRCBASE)/openssl -L$(SRCBASE)/zlib' LIBS='-lxml2 -lcrypto -lssl -lz' XML2_CONFIG='$(SRCBASE)/libxml2/xml2-config'
+	./configure --build=i386-pc-linux-gnu --host=arm-linux --target=arm-linux --prefix=/opt --disable-static --enable-shared --disable-nls --with-zlib --with-libxml2 --with-ssl=openssl --with-libs=$(SRCBASE)/openssl-ipk:$(SRCBASE)/libxml2 CFLAGS='-I$(SRCBASE)/zlib -I$(SRCBASE)/libxml2/include -I$(SRCBASE)/openssl-ipk/include' LDFLAGS='-L$(SRCBASE)/libxml2/.libs -L$(SRCBASE)/openssl-ipk -L$(SRCBASE)/zlib' LIBS='-lxml2 -lcrypto -lssl -lz' XML2_CONFIG='$(SRCBASE)/libxml2/xml2-config'
 	cp -f $(CURRENT)/neon/config.h $(CURRENT)/neon/src/config.h
 	@$(MAKE) -C $(CURRENT)/neon
 	cp -rf $(CURRENT)/neon/src/.libs/libneon.so.27.2.6 WebdavClient-ipk/opt/tmp/lib/
@@ -86,23 +93,23 @@ libxml2: libxml2/stamp-h1
 	@$(MAKE) -C $(CURRENT)/libxml2 all
 
 openssl-clean:
-	@$(MAKE) -C $(CURRENT)/openssl clean
-	rm -rf $(CURRENT)/openssl/stamp-h1
+	@$(MAKE) -C $(CURRENT)/openssl-ipk clean
+	rm -rf $(CURRENT)/openssl-ipk/stamp-h1
 
 openssl/stamp-h1:
-	cd $(CURRENT)/openssl
+	cd $(CURRENT)/openssl-ipk
 	touch stamp-h1
 
 openssl: openssl/stamp-h1
-	cd $(CURRENT)/openssl && \
+	cd $(CURRENT)/openssl-ipk && \
 	AR=$(AR) AS=$(AS) LD=$(LD) NM=$(NM) CC=$(CC) CPP="$(CC) -E" GCC=$(CC) CXX=$(CXX) RANLIB=$(RANLIB) STRIP=$(STRIP) \
 		./Configure \
 			shared no-zlib \
 			-O2   -pipe  -I$(LD_DIR)/include \
-			--openssldir=/opt/share/openssl \
+			--openssldir=$(SRCBASE)/opt/share/openssl \
 			--prefix=$(LD_DIR) \
 			linux-generic32 
-	@$(MAKE) -C $(CURRENT)/openssl \
+	@$(MAKE) -C $(CURRENT)/openssl-ipk \
 		AR=$(AR) AS=$(AS) LD=$(LD) NM=$(NM) CC=$(CC) CPP="$(CC) -E" GCC=$(CC) CXX=$(CXX) RANLIB=$(RANLIB) STRIP=$(STRIP) \
 		AR="$(TOOLCHAIN)/bin/arm-linux-ar r" \
 		\
@@ -110,7 +117,7 @@ openssl: openssl/stamp-h1
 		MANDIR=/opt/man \
 		EX_LIBS=" -L$(LD_DIR)/lib -Wl,-rpath,/opt/lib -Wl,-rpath-link,$(LD_DIR)/lib -ldl" \
 		DIRS="crypto ssl apps test"
-#	 cd $(CURRENT)/openssl && \
+#	 cd $(CURRENT)/openssl-ipk && \
 #	$(MAKE) install
 
 
@@ -125,7 +132,7 @@ curl-7.21.7/stamp-h1:
 curl-7.21.7: curl-7.21.7/stamp-h1
 	cd $(CURRENT)/curl-7.21.7 && \
 	AR=$(AR) AS=$(AS) LD=$(LD) NM=$(NM) CC=$(CC) CPP="$(CC) -E" GCC=$(CC) CXX=$(CXX) RANLIB=$(RANLIB) STRIP=$(STRIP) \
-	./configure  --prefix=$(LD_DIR) --enable-http --with-ssl=$(SRCBASE)/openssl LDFLAGS="-ldl" CFLAGS="-g3 -O2" LDFLAGS="-g3 -O2"  --host=arm-linux
+	./configure  --prefix=$(LD_DIR) --enable-http --with-ssl=$(SRCBASE)/openssl-ipk LDFLAGS="-ldl" CFLAGS="-g3 -O2" LDFLAGS="-g3 -O2"  --host=arm-linux
 	@$(MAKE) -C $(CURRENT)/curl-7.21.7 all
 
 zlib-clean:
@@ -143,6 +150,7 @@ zlib: zlib/stamp-h1
 	@$(MAKE) -C $(CURRENT)/zlib all
 
 WebDAV-ipk:
+	cp -rf AiCloud-tmp/CONTROL/control-webdav-arm WebdavClient-ipk/CONTROL/control
 	$(STRIP) WebdavClient-ipk/opt/tmp/bin/*
 	$(STRIP) WebdavClient-ipk/opt/tmp/lib/*
 	@$(IPKG_TOOLS)/ipkg-build WebdavClient-ipk ./

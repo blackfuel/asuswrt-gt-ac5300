@@ -370,16 +370,8 @@ static void __init request_standard_resources(void)
 
 u64 __cpu_logical_map[NR_CPUS] = { [0 ... NR_CPUS-1] = INVALID_HWID };
 
-#ifdef CONFIG_DUMP_PREV_OOPS_MSG
-int oops_mem = 0;
-EXPORT_SYMBOL(oops_mem);
-#endif
-
 void __init setup_arch(char **cmdline_p)
 {
-#ifdef CONFIG_DUMP_PREV_OOPS_MSG
-	int ret;
-#endif
 	setup_processor();
 
 	setup_machine_fdt(__fdt_pointer);
@@ -409,14 +401,6 @@ void __init setup_arch(char **cmdline_p)
 	acpi_boot_table_init();
 
 	paging_init();
-
-#ifdef CONFIG_DUMP_PREV_OOPS_MSG
-	ret = memblock_reserve(virt_to_phys((void *)CONFIG_DUMP_PREV_OOPS_MSG_BUF_ADDR), CONFIG_DUMP_PREV_OOPS_MSG_BUF_LEN);
-	if (!ret) oops_mem = 1;
-	printk("DUMP_PREV_OOPS_MSG memory reservation %s - "
-		"virt addr 0x%lx (phys addr 0x%llx) length 0x%x\n", (!ret) ? "succeeded" : "failed", (unsigned long)CONFIG_DUMP_PREV_OOPS_MSG_BUF_ADDR, virt_to_phys((void *)CONFIG_DUMP_PREV_OOPS_MSG_BUF_ADDR), CONFIG_DUMP_PREV_OOPS_MSG_BUF_LEN);
-#endif
-
 	request_standard_resources();
 
 	early_ioremap_reset();

@@ -2254,8 +2254,6 @@ partition_info_t *create_partition(const char *device_name, partition_info_t **n
 }
 
 extern void free_disk_data(disk_info_t **disk_info_list){
-    printf("#####free_disk_data start#####\n");
-    fprintf(stderr,"@@@@@free_disk_data start@@@@@\n");
     disk_info_t *follow_disk, *old_disk;
 
     if(disk_info_list == NULL)
@@ -2280,7 +2278,6 @@ extern void free_disk_data(disk_info_t **disk_info_list){
         follow_disk = follow_disk->next;
         free(old_disk);
     }
-    fprintf(stderr,"@@@@@free_disk_data end@@@@@\n");
 }
 
 disk_info_t *initial_disk_data(disk_info_t **disk_info_list){
@@ -2867,8 +2864,6 @@ disk_info_t *create_disk(const char *device_name, disk_info_t **new_disk_info){
 }
 
 extern disk_info_t *read_disk_data(){
-    printf("#####read_disk_data start#####\n");
-    fprintf(stderr,"@@@@@read_disk_data start@@@@@\n");
 	disk_info_t *disk_info_list = NULL, *new_disk_info, **follow_disk_info_list;
 	char *partition_info = read_whole_file(PARTITION_FILE);
 	char *follow_info;
@@ -2943,7 +2938,6 @@ extern disk_info_t *read_disk_data(){
 	}
 
 	free(partition_info);
-    fprintf(stderr,"@@@@@read_disk_data end@@@@@\n");
 	return disk_info_list;
 }
 

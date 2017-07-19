@@ -47,7 +47,7 @@ VPNC_PROFILE vpnc_profile[MAX_VPNC_PROFILE] = {0};
 
 int vpnc_profile_num = 0;
 
-static int vpnc_get_dev_policy_list(VPNC_DEV_POLICY *list, const int list_size);
+static int vpnc_get_dev_policy_list(VPNC_DEV_POLICY *list, const int list_size, const int tmp_flag);
 int vpnc_set_policy_by_ifname(const char *vpnc_ifname, const int action);
 int stop_vpnc_by_unit(const int unit);
 int set_routing_table(const int cmd, const int vpnc_id);
@@ -949,8 +949,13 @@ vpnc_dump_dev_policy_list(const VPNC_DEV_POLICY *list, const int list_size)
 	_dprintf("[%s, %d]Start to dump!\n", __FUNCTION__, __LINE__);
 	for(i = 0, policy = list; i < list_size; ++i, ++policy)
 	{
+#ifdef USE_IPTABLE_ROUTE_TARGE
 		_dprintf("[%s, %d]<%d><active:%d><mac:%s><dst_ip:%s><vpnc_idx:%d>\n", __FUNCTION__, __LINE__,
 			i, policy->active, policy->mac, policy->dst_ip, policy->vpnc_idx);
+#else
+		_dprintf("[%s, %d]<%d><active:%d><src_ip:%s><dst_ip:%s><vpnc_idx:%d>\n", __FUNCTION__, __LINE__,
+			i, policy->active, policy->src_ip, policy->dst_ip, policy->vpnc_idx);
+#endif
 	}
 	_dprintf("[%s, %d]End of dump!\n", __FUNCTION__, __LINE__);
 }
@@ -1042,11 +1047,11 @@ vpnc_set_basic_conf(const char *server, const char *username, const char *passwd
 * RETURN:  number of profiles, -1: fialed
 * NOTE:
 *******************************************************************/
-int vpnc_load_profile(VPNC_PROFILE *list, const int list_size)
+int vpnc_load_profile(VPNC_PROFILE *list, const int list_size, const int prof_ver)
 {
 	char *nv = NULL, *nvp = NULL, *b = NULL;
-	int cnt = 0, i = 0;
-	char * desc, *proto, *server, *username, *passwd, *active, *vpnc_idx, *reserved1, *reserved2;
+	int cnt = 0, i;
+	char * desc, *proto, *server, *username, *passwd, *active, *vpnc_idx;
 
 	if(!list || list_size <= 0)
 		return -1;
@@ -1057,10 +1062,26 @@ int vpnc_load_profile(VPNC_PROFILE *list, const int list_size)
 	cnt = 0;
 	memset(list, 0, sizeof(VPNC_PROFILE)*list_size);
 	while (nv && (b = strsep(&nvp, "<")) != NULL && cnt <= list_size) {
-		if (vstrsep(b, ">", &desc, &proto, &server, &username, &passwd) < 3)
+		if(VPNC_PROFILE_VER1 == prof_ver)
+		{
+			//proto, server, active and vpnc_idx are mandatory
+			if (vstrsep(b, ">", &desc, &proto, &server, &username, &passwd, &active, &vpnc_idx) < 4)
+				continue;
+
+			if(!active || !vpnc_idx)
 			continue;
 			
-		if(proto && server && username && passwd)
+			list[cnt].active = atoi(active);
+			list[cnt].vpnc_idx = atoi(vpnc_idx);		
+		}
+		else
+		{
+			//proto and server are mandatory
+			if (vstrsep(b, ">", &desc, &proto, &server, &username, &passwd) < 2)
+				continue;
+		}
+		
+		if(proto && server)
 		{
 			vpnc_set_basic_conf(server, username, passwd, &(list[cnt].basic));
 			
@@ -1081,24 +1102,6 @@ int vpnc_load_profile(VPNC_PROFILE *list, const int list_size)
 		}
 	}
 	SAFE_FREE(nv);
-
-	// load "vpnc_clientlist_ex" to set active and vpnc_idx
-	nv = nvp = strdup(nvram_safe_get("vpnc_clientlist_ex"));
-	i = 0;
-	while (nv && (b = strsep(&nvp, "<")) != NULL && i <= cnt) {
-		if (vstrsep(b, ">", &active, &vpnc_idx, &reserved1, &reserved2) < 2)
-			continue;
-
-		if(!active || !vpnc_idx)
-			continue;
-		
-		list[i].active = atoi(active);
-		list[i].vpnc_idx = atoi(vpnc_idx);		
-		++i;	
-	}
-	SAFE_FREE(nv);
-	if(i != cnt)
-		_dprintf("[%s, %d]the numbers of vpnc_clientlist(%d) and vpnc_clientlist_ex(%d) are different!\n", __FUNCTION__, __LINE__, cnt, i);
 
 	//load "vpnc_pptp_options_x_list" to set pptp option
 	nv = nvp = strdup(nvram_safe_get("vpnc_pptp_options_x_list"));
@@ -1141,13 +1144,18 @@ int vpnc_load_profile(VPNC_PROFILE *list, const int list_size)
 * NOTE:
 *******************************************************************/
 static int
-vpnc_get_dev_policy_list(VPNC_DEV_POLICY *list, const int list_size)
+vpnc_get_dev_policy_list(VPNC_DEV_POLICY *list, const int list_size, const int tmp_flag)
 {
 	int cnt;
 	VPNC_DEV_POLICY *policy = list;
 
 	char *nv, *nvp, *b;
-	char *active, *mac, *dst_ip, *vpnc_idx;
+	char *active, *dst_ip, *vpnc_idx;
+#ifdef USE_IPTABLE_ROUTE_TARGE
+	char *mac;
+#else
+	char *src_ip;
+#endif
 	
 	if(!list || list_size <= 0)
 		return 0;
@@ -1155,19 +1163,31 @@ vpnc_get_dev_policy_list(VPNC_DEV_POLICY *list, const int list_size)
 	memset(list, 0, sizeof(VPNC_DEV_POLICY) * list_size);
 	
 	/* Protection level per client */
-	nv = nvp = strdup(nvram_safe_get("vpnc_dev_policy_list"));
+	if(!tmp_flag)
+		nv = nvp = strdup(nvram_safe_get("vpnc_dev_policy_list"));
+	else
+		nv = nvp = strdup(nvram_safe_get("vpnc_dev_policy_list_tmp"));
 
 	cnt = 0;
 	while (nv && (b = strsep(&nvp, "<")) != NULL && cnt <= list_size) {
-		
+#ifdef USE_IPTABLE_ROUTE_TARGE		
 		if (vstrsep(b, ">", &active, &mac, &dst_ip, &vpnc_idx) < 3)
 			continue;
 			
 		if(!active || !mac || !vpnc_idx)
 			continue;
 
-		policy->active = atoi(active);
 		snprintf(policy->mac, sizeof(policy->mac), "%s", mac);
+#else
+		if (vstrsep(b, ">", &active, &src_ip, &dst_ip, &vpnc_idx) < 3)
+			continue;
+			
+		if(!active || !src_ip || !vpnc_idx)
+			continue;
+
+		snprintf(policy->src_ip, sizeof(policy->src_ip), "%s", src_ip);
+#endif
+		policy->active = atoi(active);
 		if(dst_ip)
 			snprintf(policy->dst_ip, sizeof(policy->dst_ip), "%s", dst_ip);
 		policy->vpnc_idx = atoi(vpnc_idx);
@@ -1230,7 +1250,7 @@ vpnc_set_policy_by_ifname(const char *vpnc_ifname, const int action)
 	char *lan_ifname = nvram_safe_get("lan_ifname");
 	VPNC_DEV_POLICY 	dev_policy[MAX_DEV_POLICY] = {0};
 
-	policy_cnt =  vpnc_get_dev_policy_list(dev_policy, MAX_DEV_POLICY);	
+	policy_cnt =  vpnc_get_dev_policy_list(dev_policy, MAX_DEV_POLICY, 0);	
 
 	if(!vpnc_ifname || !policy_cnt || !lan_ifname || lan_ifname[0] == '\0')
 		return -1;
@@ -1243,32 +1263,30 @@ vpnc_set_policy_by_ifname(const char *vpnc_ifname, const int action)
 		{
 			if(!action)	//remove rule
 			{
-#ifdef USE_IPTABLE_ROUTE_TARGE				
+#ifdef USE_MULTIPATH_ROUTE_TABLE
+				//Can not support destination ip
+				set_routing_rule(VPNC_ROUTE_DEL, policy->src_ip, policy->vpnc_idx);
+#else
 				if(policy->dst_ip[0] != '\0')	//has destination ip
 					eval("iptables", "-D", "PREROUTING", "-t", "mangle", "-i", lan_ifname, "-m", "mac", "--mac-source",
 						policy->mac, "-d", policy->dst_ip,"-j", "ROUTE", "--oif", (char*)vpnc_ifname);
 				else
 					eval("iptables", "-D", "PREROUTING", "-t", "mangle", "-i", lan_ifname, "-m", "mac", "--mac-source",
 						policy->mac, "-j", "ROUTE", "--oif", (char*)vpnc_ifname);
-#endif	
-#ifdef USE_MULTIPATH_ROUTE_TABLE
-				//Can not support destination ip
-				set_routing_rule_by_mac(VPNC_ROUTE_DEL, policy->mac, policy->vpnc_idx);
 #endif
 			}
 			else		//add value
 			{
-#ifdef USE_IPTABLE_ROUTE_TARGE				
+#ifdef USE_MULTIPATH_ROUTE_TABLE
+				//Can not support destination ip				
+				set_routing_rule(VPNC_ROUTE_ADD, policy->src_ip, policy->vpnc_idx);
+#else
 				if(policy->dst_ip[0] != '\0')	//has destination ip
 					eval("iptables", "-A", "PREROUTING", "-t", "mangle", "-i", lan_ifname, "-m", "mac", "--mac-source",
 						policy->mac, "-d", policy->dst_ip,"-j", "ROUTE", "--oif", (char*)vpnc_ifname);
 				else
 					eval("iptables", "-A", "PREROUTING", "-t", "mangle", "-i", lan_ifname, "-m", "mac", "--mac-source",
 						policy->mac, "-j", "ROUTE", "--oif", (char*)vpnc_ifname);
-#endif
-#ifdef USE_MULTIPATH_ROUTE_TABLE
-				//Can not support destination ip
-				set_routing_rule_by_mac(VPNC_ROUTE_ADD, policy->mac, policy->vpnc_idx);
 #endif
 			}
 		}
@@ -1287,7 +1305,38 @@ vpnc_set_policy_by_ifname(const char *vpnc_ifname, const int action)
 * RETURN:  0:success, -1:failed.
 * NOTE:
 *******************************************************************/
-#ifdef USE_IPTABLE_ROUTE_TARGE
+#if defined(USE_MULTIPATH_ROUTE_TABLE)
+int vpnc_handle_policy_rule(const int action, const char *src_ip, const int vpnc_idx)
+{
+	if(!src_ip)
+	{
+		_dprintf("[%s, %d] parameters error!\n", __FUNCTION__, __LINE__);
+		return -1;
+	}
+
+	if(!action)	//delete
+	{
+		_dprintf("[%s, %d]remove rule. src_ip=%s, vpnc_idx=%d\n", __FUNCTION__, __LINE__, 
+			src_ip, vpnc_idx);
+
+		if(vpnc_idx != -1)
+		{
+			set_routing_rule(VPNC_ROUTE_DEL, src_ip, vpnc_idx);
+		}
+	}
+	else	//add
+	{
+		_dprintf("[%s, %d]add rule. src_ip=%s, vpnc_idx=%d\n", __FUNCTION__, __LINE__, 
+			src_ip, vpnc_idx);
+		
+		if(vpnc_idx != -1)
+		{
+			set_routing_rule(VPNC_ROUTE_ADD, src_ip, vpnc_idx);
+		}
+	}
+	return 0;
+}
+#else
 int vpnc_handle_policy_rule(const int action, const char *lan_ifname, const char *client_mac, 
 	const char *vpnc_ifname, const char *target_ip, const int target_port)
 {
@@ -1336,38 +1385,8 @@ int vpnc_handle_policy_rule(const int action, const char *lan_ifname, const char
 	}
 	return 0;
 }
-#elif defined(USE_MULTIPATH_ROUTE_TABLE)
-int vpnc_handle_policy_rule(const int action, const char *client_mac, const int vpnc_idx)
-{
-	if(!client_mac)
-	{
-		_dprintf("[%s, %d] parameters error!\n", __FUNCTION__, __LINE__);
-		return -1;
-	}
-
-	if(!action)	//delete
-	{
-		_dprintf("[%s, %d]remove rule. client_mac=%s, vpnc_idx=%d\n", __FUNCTION__, __LINE__, 
-			client_mac, vpnc_idx);
-
-		if(vpnc_idx != -1)
-		{
-			set_routing_rule_by_mac(VPNC_ROUTE_DEL, client_mac, vpnc_idx);
-		}
-	}
-	else	//add
-	{
-		_dprintf("[%s, %d]add rule. client_mac=%s, vpnc_idx=%d\n", __FUNCTION__, __LINE__, 
-			client_mac, vpnc_idx);
-		
-		if(vpnc_idx != -1)
-		{
-			set_routing_rule_by_mac(VPNC_ROUTE_ADD, client_mac, vpnc_idx);
-		}
-	}
-	return 0;
-}
 #endif
+#ifdef USE_IPTABLE_ROUTE_TARGE
 /*******************************************************************
 * NAME: vpnc_active_dev_policy
 * AUTHOR: Andy Chiu
@@ -1388,7 +1407,7 @@ int vpnc_active_dev_policy(const int policy_idx)
 	char *vpnc_ifname = NULL, tmp[100];
 #endif
 
-	policy_cnt =  vpnc_get_dev_policy_list(dev_policy, MAX_DEV_POLICY);	
+	policy_cnt =  vpnc_get_dev_policy_list(dev_policy, MAX_DEV_POLICY, 0);	
 
 	_dprintf("[%s, %d]idx<%d> policy cnt<%d>\n", __FUNCTION__, __LINE__, policy_idx, policy_cnt);
 	
@@ -1416,11 +1435,6 @@ int vpnc_active_dev_policy(const int policy_idx)
 		vpnc_handle_policy_rule(1, lan_ifname, policy->mac, vpnc_ifname, policy->dst_ip, -1);
 	else
 		vpnc_handle_policy_rule(0, lan_ifname, policy->mac, vpnc_ifname, policy->dst_ip, -1);
-#elif defined(USE_MULTIPATH_ROUTE_TABLE)
-	if(policy->active)
-		vpnc_handle_policy_rule(1, policy->mac, policy->vpnc_idx);
-	else
-		vpnc_handle_policy_rule(0, policy->mac, policy->vpnc_idx);
 #endif
 	return 0;
 	
@@ -1480,8 +1494,6 @@ int vpnc_remove_tmp_policy_rule()
 
 		if(policy.active)
 			vpnc_handle_policy_rule(0, lan_ifname, policy.mac, vpnc_ifname, policy.dst_ip, -1);
-#elif defined(USE_MULTIPATH_ROUTE_TABLE)
-		vpnc_handle_policy_rule(0, policy.mac, policy.vpnc_idx);
 #endif
 		
 	}
@@ -1489,7 +1501,77 @@ int vpnc_remove_tmp_policy_rule()
 	free(nv);
 	return 0;
 }
+#else
+/*******************************************************************
+* NAME: vpnc_set_dev_policy_rule
+* AUTHOR: Andy Chiu
+* CREATE DATE: 2017/4/18
+* DESCRIPTION: compare vpnc_dev_policy_list_tmp and vpnc_dev_policy_list_tmp, 
+*				remove old rules and add new rules
+* INPUT:  
+* OUTPUT:  
+* RETURN:  0:success, -1:failed.
+* NOTE:
+*******************************************************************/
+int vpnc_set_dev_policy_rule()
+{
+	int policy_cnt_new, policy_cnt_old, i, j, flag;
+	VPNC_DEV_POLICY *policy_ptr;
+	VPNC_DEV_POLICY 	dev_policy_new[MAX_DEV_POLICY] = {0}, dev_policy_old[MAX_DEV_POLICY] = {0};
 
+	policy_cnt_old =  vpnc_get_dev_policy_list(dev_policy_old, MAX_DEV_POLICY, 1);	
+	policy_cnt_new =  vpnc_get_dev_policy_list(dev_policy_new, MAX_DEV_POLICY, 0);
+
+	//_dprintf("[%s, %d]old policy cnt<%d> new policy cnt<%d>\n", __FUNCTION__, __LINE__, policy_cnt_old, policy_cnt_new);
+
+	//check old policy list, if it does not exist in the new list or different, remove the old rule.
+	for(i = 0; i < policy_cnt_old; ++i)
+	{
+		policy_ptr = &dev_policy_old[i];
+		if(policy_ptr->active)
+		{
+			flag = 1;
+			for(j = 0; j < policy_cnt_new; ++j)
+			{
+				if(!memcmp(policy_ptr, &dev_policy_new[j], sizeof(VPNC_DEV_POLICY)))	//policy is not changed
+				{
+					flag = 0;
+					break;
+				}
+			}
+			if(flag)
+			{
+				vpnc_handle_policy_rule(0, policy_ptr->src_ip, policy_ptr->vpnc_idx);
+			}
+		}
+
+	}
+
+	//check new policy list, if it does not exist in the old list, add the rule.
+	for(i = 0; i < policy_cnt_new; ++i)
+	{
+		policy_ptr = &dev_policy_new[i];
+		if(policy_ptr->active)
+		{
+			flag = 1;
+			for(j = 0; j < policy_cnt_old; ++j)
+			{
+				if(!memcmp(policy_ptr, &dev_policy_old[j], sizeof(VPNC_DEV_POLICY)))	//policy is not changed
+				{
+					flag = 0;
+					break;
+				}
+			}
+			if(flag)
+			{
+				vpnc_handle_policy_rule(1, policy_ptr->src_ip, policy_ptr->vpnc_idx);
+			}
+		}
+
+	}	
+	return 0;
+}
+#endif
 /*******************************************************************
 * NAME: vpnc_init
 * AUTHOR: Andy Chiu
@@ -1504,7 +1586,7 @@ void
 vpnc_init()
 {
 	//load profile
-	vpnc_profile_num = vpnc_load_profile(vpnc_profile, MAX_VPNC_PROFILE);
+	vpnc_profile_num = vpnc_load_profile(vpnc_profile, MAX_VPNC_PROFILE, VPNC_PROFILE_VER1);
 	_dprintf("[%s, %d]vpnc_profile_num=%d\n", __FUNCTION__, __LINE__, vpnc_profile_num);
 }
 

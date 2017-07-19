@@ -252,7 +252,7 @@ ifeq ($(CONFIG_BCMWL5),y)
 ifneq ($(RTCONFIG_DSL)$(HND_ROUTER),y)
 CFLAGS += -DTRX_NEW
 endif
-OBJS	+= $(if $(wildcard sysdeps/broadcom/private.c),private.o,prebuild/private.o)
+OBJS += private.o
 OBJS += wlif_utils.o UdpLib.o bcmutils.o
 OBJS += bcmwifi_channels.o
 endif
@@ -282,10 +282,14 @@ endif
 OBJS += private.o
 vpath %.c sysdeps/ralink
 else ifeq ($(RTCONFIG_QCA),y)
+CFLAGS += $(if $(IPQ40XX),,-DTRX_NEW)
+OBJS += private.o
 vpath %.c sysdeps/qca
 else ifeq ($(RTCONFIG_ALPINE),y)
+OBJS += private.o
 vpath %.c sysdeps sysdeps/alpine
 else ifeq ($(RTCONFIG_LANTIQ),y)
+OBJS += private.o
 vpath %.c sysdeps/lantiq
 else ifeq ($(RTCONFIG_QTN),y)
 vpath %.c sysdeps sysdeps/broadcom sysdeps/qtn $(SRCBASE)/shared/ $(SRCBASE)/shared/bcmwifi/src $(WLAN_StdSrcDirsA) $(WLAN_ComponentSrcDirs) $(TOP)/libqcsapi_client/qcsapi_rpc_common/client  $(TOP)/libqcsapi_client/qcsapi_rpc_common/common
@@ -319,6 +323,11 @@ install: all
 
 clean:
 	rm -f *.o *.so *.a .*.depend *.prep sysdeps/*.o sysdeps/broadcom/*.o sysdeps/ralink/*.o sysdeps/qtn/*.o
+
+private.o:
+ifneq ($(wildcard ./prebuild/private.o),)
+	@-cp -f ./prebuild/private.o .
+endif
 
 ifeq ($(RTCONFIG_USB),y)
 vpath %.c $(sort $(dir $(ID_OBJS)))

@@ -25,7 +25,7 @@
 
 /*
  * Automatically generated make config: don't edit
- * Date: Thu Mar  9 13:23:26 2017
+ * Date: Thu Mar 30 16:39:08 2017
  */
 #ifndef __TMCFG__UDB_AUTOCONF_OUTPUT_H_
 #define __TMCFG__UDB_AUTOCONF_OUTPUT_H_
@@ -76,8 +76,8 @@
 
 #define TMCFG_BRAND_ASUS 1 // y
 #define TMCFG_BRAND "asus"
-#define TMCFG_MODEL_HIVEDOT 1 // y
-#define TMCFG_MODEL "hivedot"
+#define TMCFG_MODEL_MAP_AC1300 1 // y
+#define TMCFG_MODEL "map-ac1300"
 #define TMCFG_OEM_SRC 1 // y
 #define TMCFG_OEM_SRC_QUALCOMM_SFE 1 // y
 
@@ -147,8 +147,8 @@
 #define TMCFG_E_UDB_CORE 1 // y
 #define TMCFG_E_UDB_CORE_MAJ_VER 0
 #define TMCFG_E_UDB_CORE_MIN_VER 2
-#define TMCFG_E_UDB_CORE_REV_VER 9
-#define TMCFG_E_UDB_CORE_SHN_REV_NUM 3195211
+#define TMCFG_E_UDB_CORE_REV_VER 11
+#define TMCFG_E_UDB_CORE_SHN_REV_NUM 3239655
 #define TMCFG_E_UDB_CORE_USE_KBUILD 1 // y
 #define TMCFG_E_UDB_CORE_EXTRA_CFLAGS ""
 #define TMCFG_E_UDB_CORE_CONN_EXTRA 1 // y
@@ -181,13 +181,14 @@
 #define TMCFG_E_UDB_SHELL_IOCTL_DEV_NAME "idpfw"
 #define TMCFG_E_UDB_SHELL_IOCTL_DEV_MAJ 191
 #define TMCFG_E_UDB_SHELL_IOCTL_DEV_MIN 0
+#define TMCFG_E_UDB_SHELL_IOCTL_DEV_MAGIC 191
 #define TMCFG_E_UDB_SHELL_CT_MARK_RSV 1 // y
 #define TMCFG_E_UDB_SHELL_CT_MARK_RSV_BITS 3
 #define TMCFG_E_UDB_SHELL_PROCFS 1 // y
 #define TMCFG_E_REL_PKG_MAJ_VER 2
 #define TMCFG_E_REL_PKG_MIN_VER 0
 #define TMCFG_E_REL_PKG_REV_VER 1
-#define TMCFG_E_REL_PKG_LOCAL_VER "r3195211"
+#define TMCFG_E_REL_PKG_LOCAL_VER "r3239655"
 
 /*
  * Accompany applications or modules
@@ -295,7 +296,19 @@
 #define TMCFG_APP_U_WRED_TMUFE_LICENSE_ID "RGOM10"
 #define TMCFG_APP_U_WRED_TMUFE_VENDOR_ID "ASUS"
 #define TMCFG_APP_U_WRED_TMUFE_RS_HOST "rgom10-en.url.trendmicro.com"
-#define TMCFG_APP_U_WRED_TMUFE_CUSTOM 1 // y
+#define TMCFG_APP_U_WRED_TMUFE_CUSTOM 0 // n
+
+/*
+ * ($APP_U_WRED_TMUFE_LICENSE_ID) WRS License ID
+ */
+
+/*
+ * ($APP_U_WRED_TMUFE_VENDOR_ID) WRS Vendor ID
+ */
+
+/*
+ * ($APP_U_WRED_TMUFE_RS_HOST) WRS Query Server FQDN
+ */
 #define TMCFG_APP_U_TDTS_WRED_TMUFE21 0 // n
 #define TMCFG_APP_U_TDTS_SHNAGENT 0 // n
 #define TMCFG_APP_U_SHN_CTRL 1 // y

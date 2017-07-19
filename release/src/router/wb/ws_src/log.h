@@ -25,6 +25,8 @@
 #define WB_DEBUG_TO_SYSLOG "/tmp/WB_DEBUG_SYSLOG"
 
 void dprintf_impl(const char* file,const char* func, size_t line, int enable, const char* fmt, ...);
+void dprintf_impl2(const char* file,const char* func, size_t line, int enable, int level, const char* fmt, va_list ap);
+void dprintf_virtual(const char* file,const char* func, size_t line, int enable, int level, const char* fmt, ...);
 int open_log(const char* log_path, int stream_type);
 //void closefp(FILE* fp);
 void close_log();
@@ -40,8 +42,10 @@ extern FILE* gfp;
 
 //#define Cdbg(enable, ...) dprintf_impl(WHEREARG, enable, 0,  __VA_ARGS__)
 #define Cdbg(enable, ...) dprintf_impl(WHEREARG, enable, __VA_ARGS__)
+#define Cdbg2(enable, level, ...) dprintf_virtual(WHEREARG, enable, level, __VA_ARGS__)
 #else
 #define Cdbg(enable, ...) // define to nothing in release mode
+#define Cdbg2(enable, level, ...) // define to nothing in release mode
 #endif
 
 //#define CF(enable, path, ...) dprintf_impl(WHEREARG, enable, 1,  __VA_ARGS__)

@@ -2,7 +2,7 @@ include ../common.mak
 include $(SRCBASE)/router/.config
 
 CFLAGS += -Wall -Os $(EXTRACFLAGS)
-CFLAGS += -I. -I$(TOP)/shared -I$(SRCBASE) -I$(SRCBASE)/include -I./include -I$(TOP)/libevent-2.0.21 -I$(TOP)/libevent-2.0.21/include
+CFLAGS += -I. -I$(TOP)/shared -I$(SRCBASE) -I$(SRCBASE)/include -I./include -I$(TOP)/libevent-2.0.21 -I$(TOP)/libevent-2.0.21/include -I$(TOP)/networkmap
 CFLAGS += -I./sysdeps
 CFLAGS += -I$(TOP)/openssl/include
 CFLAGS += -I$(TOP)/json-c
@@ -25,6 +25,7 @@ ifeq ($(RTCONFIG_RALINK),y)
 COMMON_OBJS += ralink.o
 vpath %.c sysdeps/ralink
 else ifeq ($(RTCONFIG_QCA),y)
+CFLAGS += -I$(TOP)/shared/sysdeps/qca -I$(TOP)/wireless_tools
 COMMON_OBJS += qca.o
 vpath %.c sysdeps/qca
 else ifeq ($(RTCONFIG_REALTEK),y)
@@ -35,11 +36,14 @@ COMMON_OBJS += broadcom.o
 vpath %.c sysdeps/broadcom
 endif 
 
-COMMON_OBJS += encrypt.o cfg_crc.o cfg_udp.o cfg_dencrypt.o cfg_common.o cfg_ipc.o cfg_wevent.o cfg_upgrade.o
+COMMON_OBJS += encrypt.o cfg_crc.o cfg_udp.o cfg_dencrypt.o cfg_common.o cfg_ipc.o cfg_wevent.o cfg_upgrade.o cfg_clientlist.o
 SERVER_OBJS += $(COMMON_OBJS) cfg_mnt.o
 CLIENT_OBJS += $(COMMON_OBJS) cfg_client.o
 
-ifneq ($(BUILD_NAME),$(filter $(BUILD_NAME), HIVEDOT HIVESPOT))
+ifeq ($(or $(MAPAC1300),$(MAPAC2200)),y)
+CFLAGS += -DREPORT_PAP_INFO
+else
+ifneq ($(RTCONFIG_REALTEK),y)
 COMMON_OBJS += cfg_roaming.o
 CFLAGS += -DLEGACY_ROAMING
 # for wireless channel sync
@@ -47,6 +51,7 @@ CFLAGS += -DLEGACY_ROAMING
 # for roaming info for sta
 #COMMON_OBJS += cfg_roaminginfo.o
 #CFLAGS += -DROAMING_INFO
+endif
 endif
 
 ifeq ($(wildcard $(SRCBASE)/router/cfg_mnt/*.c),)
@@ -68,7 +73,7 @@ cfg_client: $(CLIENT_OBJS)
 
 libcfgmnt.so: cfg_lib.o
 	@echo " [libcfgmnt] CC $@"
-	@$(CC) -shared $(CFLAGS) -o $@ $^
+	@$(CC) -fPIC -shared $(CFLAGS) -o $@ $^
 
 install: all
 	@echo "[cfg_mnt] Installing..."

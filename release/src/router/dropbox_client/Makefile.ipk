@@ -4,11 +4,11 @@
 #
 #***********************************************************************
 
-CFLAGS = -I$(SRCBASE)/openssl/include -I$(SRCBASE)/curl-7.21.7/include
+CFLAGS = -I$(SRCBASE)/openssl-ipk/include -I$(SRCBASE)/curl-7.21.7/include
 CFLAGS += -I$(LD_DIR) -I$(LD_DIR)/include -I. 
 CFLAGS += $(if $(QCA),$(EXTRACFLAGS))
 
-LDFLAGS = -L$(SRCBASE)/curl-7.21.7/lib/.libs -L$(SRCBASE)/openssl 
+LDFLAGS = -L$(SRCBASE)/curl-7.21.7/lib/.libs -L$(SRCBASE)/openssl-ipk 
 LDFLAGS += -Wl,-rpath,/opt/lib -Wl,-rpath-link,$(SRCBASE)/opt/lib
 LIBS = -lpthread   -lcrypto -lssl -lcurl -lm
 

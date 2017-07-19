@@ -35,6 +35,10 @@ if [ "$QCA" = "y" ]; then
 	EXTRA_LDFLAGS="-L$LIBDIR -L$LIBDIR/gcc/mips-openwrt-linux-uclibc/4.6.3 -lc -lm -ldl -lgcc_s"
 fi
 
+if [ "$BLUECAVE" != "" ]; then
+	EXTRA_LDFLAGS="-L$LIBDIR  -ldl -lc -lgcc_s"
+fi
+
 GDB_CFLAGS=-g
 export LIBS="$LIBS $OPENSSL_LDLIBS $UMEM_LDLIBS $SHARED_LIBS $NVRAM_LIBS -lstdc++"
 export CFLAGS="$OPENSSL_CFLAGS $UMEM_CFLAGS $GDB_CFLAGS -O2 -fPIC -DROUTER=1 $EXTRA_CFLAGS"

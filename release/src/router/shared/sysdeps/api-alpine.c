@@ -13,6 +13,8 @@
 #include "utils.h"
 #include "shutils.h"
 #include <shared.h>
+#include <trxhdr.h>
+#include <bcmutils.h>
 #include <sys/mman.h>
 #include <sys/ioctl.h>
 #include <iwlib.h>
@@ -157,19 +159,46 @@ int get_switch_model(void)
 	return SWITCH_UNKNOWN;
 }
 
-uint32_t get_phy_status(uint32_t portmask)
+uint32_t get_phy_status(int wan_unit)
 {
-	// TODO
-	return 1;		/* FIXME */
+	char tmp[100], prefix[] = "wanXXXXXXXXXX_";
+	char *wan_ifname;
+	char buf[32];
+
+	snprintf(prefix, sizeof(prefix), "wan%d_", wan_unit);
+	wan_ifname = nvram_safe_get(strcat_r(prefix, "ifname", tmp));
+
+	if(strlen(wan_ifname) <= 0)
+		return 0;
+
+	snprintf(tmp, sizeof(tmp), "/sys/class/net/%s/operstate", wan_ifname);
+
+	f_read_string(tmp, buf, sizeof(buf));
+	if(!strncmp(buf, "up", 2))
+		return 1;
+	else
+		return 0;
 }
 
-uint32_t get_phy_speed(uint32_t portmask)
+uint32_t get_phy_speed(int wan_unit)
 {
-	// TODO
-	return 1;		/* FIXME */
+	char tmp[100], prefix[] = "wanXXXXXXXXXX_";
+	char *wan_ifname;
+	char buf[32];
+
+	snprintf(prefix, sizeof(prefix), "wan%d_", wan_unit);
+	wan_ifname = nvram_safe_get(strcat_r(prefix, "ifname", tmp));
+
+	if(strlen(wan_ifname) <= 0)
+		return 0;
+
+	snprintf(tmp, sizeof(tmp), "/sys/class/net/%s/speed", wan_ifname);
+
+	f_read_string(tmp, buf, sizeof(buf));
+	return strtoul(buf, NULL, 10);
 }
 
-uint32_t set_phy_ctrl(uint32_t portmask, int ctrl)
+uint32_t set_phy_ctrl(int wan_unit, int ctrl)
 {
 	// TODO
 	return 1;		/* FIXME */
@@ -180,128 +209,137 @@ uint32_t set_phy_ctrl(uint32_t portmask, int ctrl)
  */
 int check_imageheader(char *buf, long *filelen)
 {
-	uint32_t checksum;
-	image_header_t header2;
-	image_header_t *hdr, *hdr2;
+	long aligned;
 
-	hdr = (image_header_t *) buf;
-	hdr2 = &header2;
-
-	/* check header magic */
-	if (ntohl(hdr->ih_magic) != IH_MAGIC) {
-		_dprintf("Bad Magic Number\n");
-		return 0;
-	}
-
-	/* check header crc */
-	memcpy(hdr2, hdr, sizeof(image_header_t));
-	hdr2->ih_hcrc = 0;
-	checksum = crc_calc(0, (const char *)hdr2, sizeof(image_header_t));
-	_dprintf("header crc: %X\n", checksum);
-	_dprintf("org header crc: %X\n", ntohl(hdr->ih_hcrc));
-	if (checksum != ntohl(hdr->ih_hcrc)) {
-		_dprintf("Bad Header Checksum\n");
-		return 0;
-	}
-
-	if (!strcmp(buf + 36, nvram_safe_get("productid"))) {
-		*filelen = ntohl(hdr->ih_size);
-		*filelen += sizeof(image_header_t);
-		_dprintf("image len: %x\n", *filelen);
+#ifdef HND_ROUTER
+	return 1;
+#endif
+	if (strncmp(buf, IMAGE_HEADER, sizeof(IMAGE_HEADER) - 1) == 0)
+	{
+		memcpy(&aligned, buf + sizeof(IMAGE_HEADER) - 1, sizeof(aligned));
+		*filelen = aligned;
+#ifdef RTCONFIG_DSL_TCLINUX
+		*filelen+=0x790000;
+#endif
+		_dprintf("image len: %x[%08X]\n", aligned, aligned);
 		return 1;
 	}
-	return 0;
+	else return 0;
 }
 
-int checkcrc(char *fname)
-{
-	int ifd = -1;
-	uint32_t checksum;
-	struct stat sbuf;
-	unsigned char *ptr = NULL;
-	image_header_t *hdr;
-	char *imagefile;
-	int ret = -1;
-	int len;
-
-	imagefile = fname;
-	ifd = open(imagefile, O_RDONLY | O_BINARY);
-	if (ifd < 0) {
-		_dprintf("Can't open %s: %s\n", imagefile, strerror(errno));
-		goto checkcrc_end;
-	}
-
-	/* We're a bit of paranoid */
-#if defined(_POSIX_SYNCHRONIZED_IO) && !defined(__sun__) && !defined(__FreeBSD__)
-	(void)fdatasync(ifd);
-#else
-	(void)fsync(ifd);
-#endif
-	if (fstat(ifd, &sbuf) < 0) {
-		_dprintf("Can't stat %s: %s\n", imagefile, strerror(errno));
-		goto checkcrc_fail;
-	}
-
-	ptr = (unsigned char *)mmap(0, sbuf.st_size,
-				    PROT_READ, MAP_SHARED, ifd, 0);
-	if (ptr == (unsigned char *)MAP_FAILED) {
-		_dprintf("Can't map %s: %s\n", imagefile, strerror(errno));
-		goto checkcrc_fail;
-	}
-	hdr = (image_header_t *) ptr;
-
-	/* check image header */
-	if (check_imageheader((char *)hdr, (long *)&len) == 0) {
-		_dprintf("Check image heaer fail !!!\n");
-		goto checkcrc_fail;
-	}
-
-	len = ntohl(hdr->ih_size);
-	if (sbuf.st_size < (len + sizeof(image_header_t))) {
-		_dprintf("Size mismatch %lx/%lx !!!\n", sbuf.st_size, len + sizeof(image_header_t));
-		goto checkcrc_fail;
-	}
-
-	/* check body crc */
-	_dprintf("Verifying Checksum ... ");
-	checksum = crc_calc(0, (const char *)ptr + sizeof(image_header_t), len);
-	if (checksum != ntohl(hdr->ih_dcrc)) {
-		_dprintf("Bad Data CRC\n");
-		goto checkcrc_fail;
-	}
-	_dprintf("OK\n");
-
-	ret = 0;
-
-	/* We're a bit of paranoid */
-checkcrc_fail:
-	if (ptr != NULL)
-		munmap(ptr, sbuf.st_size);
-#if defined(_POSIX_SYNCHRONIZED_IO) && !defined(__sun__) && !defined(__FreeBSD__)
-	(void)fdatasync(ifd);
-#else
-	(void)fsync(ifd);
-#endif
-	if (close(ifd)) {
-		_dprintf("Read error on %s: %s\n", imagefile, strerror(errno));
-		ret = -1;
-	}
-
-checkcrc_end:
-	return ret;
-}
-
-/* 
+/*
  * 0: legal image
  * 1: illegal image
+ * 2: new trx format validation failure
  *
  * check product id, crc ..
  */
 
 int check_imagefile(char *fname)
 {
-	if (!checkcrc(fname))
+	FILE *fp;
+	struct tail_t {
+		version_t kernel;		/* Kernel version */
+		version_t fs;			/* Filsystem version */
+#ifdef HND_ROUTER
+		uint16_t  sn;
+		uint16_t  en;
+		char pid[MAX_PID_LEN];
+		uint8_t pad[36];
+#else
+		uint8_t pid[MAX_PID_LEN];	/* Product Id */
+		uint8_t hw[MAX_HW_COUNT][4];	/* Compatible hw list lo maj.min, hi maj.min */
+#ifdef TRX_NEW
+		uint16_t sn;
+		uint16_t en;
+		uint8_t key;
+#endif
+		uint8_t	pad[27];		/* Padding up to MAX_TAIL_LEN */
+#endif
+	} tail;
+#ifdef HND_ROUTER
+	WFI_TAG wt;
+#endif
+	int i, model = get_model();
+
+	fp = fopen(fname, "r");
+	if (fp == NULL)
+		return 1;
+
+#ifdef HND_ROUTER
+	fseek(fp, -(MAX_TAIL_LEN + TOKEN_LEN), SEEK_END);
+#else
+	fseek(fp, -MAX_TAIL_LEN, SEEK_END);
+#endif
+	fread(&tail, 1, MAX_TAIL_LEN, fp);
+#ifdef HND_ROUTER
+	fread(&wt, 1, TOKEN_LEN, fp);
+#endif
+	fclose(fp);
+
+	_dprintf("productid field in image: %.12s\n", tail.pid);
+
+	for (i = 0; i < sizeof(tail); i++)
+		_dprintf("%02x ", ((uint8_t *)&tail)[i]);
+	_dprintf("\n");
+
+	/* safe strip trailing spaces */
+	for (i = 0; i < MAX_PID_LEN && tail.pid[i] != '\0'; i++);
+	for (i--; i >= 0 && tail.pid[i] == '\x20'; i--)
+		tail.pid[i] = '\0';
+
+#ifdef HND_ROUTER
+	dumpWfiTag(&wt);
+
+	if (wt.wfiCrc != img_crc_hnd(fname)) {
+		_dprintf("check crc error!!!\n");
+		return 1;
+	}
+#else
+	if (!checkcrc(fname)) {
+		_dprintf("check crc error!!!\n");
+		return 1;
+	}
+#endif
+
+#ifdef TRX_NEW
+	if (!check_trx(fname, tail.key))
+		return 2;
+
+#ifdef RTCONFIG_BCMARM
+	doSystem("nvram set cpurev=`cat /dev/mtd0 | grep cpurev | cut -d \"=\" -f 2`");
+	if (nvram_match("cpurev", "c0") &&
+	   (!tail.sn ||
+	    !tail.en ||
+	     tail.sn < 380 ||
+	    (tail.sn == 380 && tail.en < 738)))
+	{
+		dbg("version check fail!\n");
+		return 2;
+	}
+#endif
+#endif
+
+	/* compare up to the first \0 or MAX_PID_LEN
+	 * nvram productid or hw model's original productid */
+	if (strncmp(nvram_safe_get("productid"), (char *) tail.pid, MAX_PID_LEN) == 0
+#ifndef RTCONFIG_NONASUS
+	 || strncmp(get_modelid(model), (char *) tail.pid, MAX_PID_LEN) == 0
+#elif defined(RTCONFIG_ODMPID)
+	 && strcmp(nvram_safe_get("odmpid"), "") == 0
+#endif
+	)
+	{
+		_dprintf("correct model name\n");
 		return 0;
+	}
+
+	/* common RT-N12 productid FW image */
+	if ((model == MODEL_RTN12B1 || model == MODEL_RTN12C1 ||
+	     model == MODEL_RTN12D1 || model == MODEL_RTN12VP || model == MODEL_RTN12HP || model == MODEL_RTN12HP_B1 ||model == MODEL_APN12HP) &&
+	     strncmp(get_modelid(MODEL_RTN12), (char *) tail.pid, MAX_PID_LEN) == 0)
+		return 0;
+
 	return 1;
 }
 
@@ -329,7 +367,7 @@ int wl_ioctl(const char *ifname, int cmd, struct iwreq *pwrq)
 char *wl_vifname_qtn(int unit, int subunit)
 {
 	static char tmp[128];
-	int qtn_unit;
+	int qtn_unit = 0; // by default
 
 	if(unit == 0)
 		qtn_unit=2;	/* 2G */
@@ -1125,23 +1163,23 @@ void set_power_save_mode(void)
 }
 #endif	/* RTCONFIG_POWER_SAVE */
 
-/* Return nvram variable name, e.g. et1macaddr, which is used to repented as LAN MAC.
+/* Return nvram variable name, e.g. et0macaddr, which is used to repented as LAN MAC.
  * @return:
  */
 char *get_lan_mac_name(void)
 {
 	int model = get_model();
-	char *mac_name = "et1macaddr";
+	char *mac_name = "et0macaddr";
 
 	/* Check below configuration in convert_wan_nvram() too. */
 	switch (model) {
 	case MODEL_GTAC9600:	/* fall-through */
 		/* Use 5G MAC address as LAN MAC address. */
-		mac_name = "et1macaddr";
+		mac_name = "et0macaddr";
 		break;
 	default:
 		dbg("%s: Define LAN MAC address for model %d\n", __func__, model);
-		mac_name = "et1macaddr";
+		mac_name = "et0macaddr";
 		break;
 	};
 

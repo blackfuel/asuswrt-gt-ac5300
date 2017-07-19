@@ -126,8 +126,7 @@ function initial_landing_setting() {
 		$("input[name=brand_name]").val(captive_portal_array[setting_profile_id][0]);
 		$("#splash_template_brand_name").html(captive_portal_array[setting_profile_id][0]);
 		$("input[name=session_length]").val(captive_portal_array[setting_profile_id][1]);
-		var landingPage = captive_portal_array[setting_profile_id][3].replace("http://", "");
-		$("input[name=internet_website]").val(landingPage);
+		$("input[name=internet_website]").val(captive_portal_array[setting_profile_id][3]);
 		if(captive_portal_array[setting_profile_id][5] == "1") {
 			$("#cb_terms_service").prop("checked", true);
 		}
@@ -506,7 +505,7 @@ function gen_splash_page() {
 		code += "<div class='splash_item_content'>";
 			code += "<div class='splash_item_title'>Landing Page (Redirect to your website)</div>";/*untranslated*/
 			code += "<input name='internet_website' class='input_32_table' value='' type='text' maxlength='64' autocorrect='off' autocapitalize='off'>";
-			code += "<span class='splash_item_hint'>ex. www.asus.com</span>";
+			code += "<span class='splash_item_hint'>ex. http or https ://www.asus.com</span>";
 		code += "</div>";
 	code += "</div>";
 
@@ -639,7 +638,7 @@ function apply() {
 
 			//combine landing page none and internet
 			if($("input[name=internet_website]").val().trim() != "") {
-				var landingPage = "http://" + $("input[name=internet_website]").val().trim();
+				var landingPage = $("input[name=internet_website]").val().trim();
 				if(!validator.isValidURL(landingPage)) {
 					$("input[name=internet_website]").focus();
 					return false;
@@ -747,7 +746,7 @@ function call_back_to_save_config(_splash_page_status) {
 				landing_type_value = "";
 				break;
 			case "1" :
-				landing_type_value = "http://" + $("input[name=internet_website]").val().trim();
+				landing_type_value = $("input[name=internet_website]").val().trim();
 				break;
 		}
 
@@ -1099,7 +1098,7 @@ function save_splash_page_content() {
 
 			html_landing += "control_bt_status();\n";
 		}
-			html_landing += "resize_component();\n";
+		html_landing += "resize_component();\n";
 		html_landing += "}\n";
 		html_landing += "function resize_component() {\n";
 		html_landing += "var _ratio = 0;\n";

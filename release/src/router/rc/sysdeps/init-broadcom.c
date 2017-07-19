@@ -1520,6 +1520,7 @@ void enable_jumbo_frame(void)
 	if (!nvram_contains_word("rc_support", "switchctrl"))
 		return;
 
+#ifndef HND_ROUTER
 	switch (get_switch()) {
 	case SWITCH_BCM53115:
 	case SWITCH_BCM53125:
@@ -1527,19 +1528,17 @@ void enable_jumbo_frame(void)
 		break;
 	case SWITCH_BCM5301x:
 #ifdef RTCONFIG_BCMARM
-#ifndef HND_ROUTER
 		eval("et", "-i", "eth0", "robowr", "0x40", "0x01", enable ? "0x010001ff" : "0x00", "4");
-#else
-		eval("ethswctl", "-c", "regaccess", "-v", "0x4001", "-l", "4", "-d", enable ? "0x010001ff" : "0x00000000");
-#endif
 #else
 		eval("et", "robowr", "0x40", "0x01", enable ? "0x010001ff" : "0x00");
 #endif
 		break;
 	}
-
-#if defined(HND_ROUTER) && defined(RTCONFIG_EXT_BCM53134)
+#else
+#ifdef RTCONFIG_EXT_BCM53134
 	eval("ethswctl", "-c", "pmdioaccess", "-x", "0x4001", "-l", "4", "-d", enable ? "0x010001ff" : "0x00000000");
+#endif
+	eval("ethswctl", "-c", "regaccess", "-v", "0x4001", "-l", "4", "-d", enable ? "0x010001ff" : "0x00000000");
 #endif
 }
 
@@ -1591,6 +1590,8 @@ void init_switch()
 #endif
 
 	hnd_nat_ac_init(1);
+
+	enable_jumbo_frame();
 
 #ifdef RTCONFIG_LACP
 	config_lacp();
@@ -2205,7 +2206,7 @@ void fini_wl(void)
 {
 	int model = get_model();
 
-#if (defined(RTAC3200) || defined(HND_ROUTER))
+#if (defined(RTAC3200) || defined(HND_ROUTER) || defined(RTCONFIG_BCM9))
 	return;
 #endif
 
@@ -2817,7 +2818,7 @@ void generate_wl_para(char *ifname, int unit, int subunit)
 #ifndef RTCONFIG_DPSTA
 			nvram_set(strcat_r(prefix, "bss_enabled", tmp), "1");
 #else
-			nvram_set(strcat_r(prefix, "bss_enabled", tmp), (!dpsta_mode() || is_dpsta(unit)) ? "1" : "0");
+			nvram_set(strcat_r(prefix, "bss_enabled", tmp), (!dpsta_mode() || is_dpsta(unit) || is_dpsr(unit)) ? "1" : "0");
 #endif
 
 			/* Set the wl mode for the virtual interface */
@@ -2867,7 +2868,7 @@ void generate_wl_para(char *ifname, int unit, int subunit)
 #ifndef RTCONFIG_DPSTA
 				nvram_set(strcat_r(prefix, "bss_enabled", tmp), "1");
 #else
-				nvram_set(strcat_r(prefix, "bss_enabled", tmp), (!dpsta_mode() || is_dpsta(unit)) ? "1" : "0");
+				nvram_set(strcat_r(prefix, "bss_enabled", tmp), (!dpsta_mode() || is_dpsta(unit) || is_dpsr(unit)) ? "1" : "0");
 #endif
 			else
 				nvram_set(strcat_r(prefix, "bss_enabled", tmp), "0");
@@ -2917,8 +2918,11 @@ void generate_wl_para(char *ifname, int unit, int subunit)
 	if (is_psta(unit) || is_psr(unit)) {
 		if (subunit == -1) {
 			nvram_set("ure_disable", "1");
+			if (
 #ifdef RTCONFIG_DPSTA
-			if (is_dpsta(unit)) {
+				is_dpsta(unit) ||
+#endif
+				is_dpsr(unit)) {
 				snprintf(prefix2, sizeof(prefix2), "wlc%d_", unit ? 1 : 0);
 				nvram_set(strcat_r(prefix, "ssid", tmp), nvram_safe_get(strcat_r(prefix2, "ssid", tmp2)));
 				nvram_set(strcat_r(prefix, "auth_mode_x", tmp), nvram_safe_get(strcat_r(prefix2, "auth_mode", tmp2)));
@@ -2931,7 +2935,9 @@ void generate_wl_para(char *ifname, int unit, int subunit)
 				nvram_set(strcat_r(prefix, "crypto", tmp), nvram_safe_get(strcat_r(prefix2, "crypto", tmp2)));
 				nvram_set(strcat_r(prefix, "wpa_psk", tmp), nvram_safe_get(strcat_r(prefix2, "wpa_psk", tmp2)));
 			}
-			else if (!dpsta_mode())
+			else
+#ifdef RTCONFIG_DPSTA
+			if (!dpsta_mode())
 #endif
 			{
 				nvram_set(strcat_r(prefix, "ssid", tmp), nvram_safe_get("wlc_ssid"));
@@ -3062,8 +3068,12 @@ void generate_wl_para(char *ifname, int unit, int subunit)
 			nvram_set(strcat_r(prefix, "mode", tmp), "wet");
 		else nvram_set(strcat_r(prefix, "mode", tmp), "ap");
 
-#if defined(RTCONFIG_BCMARM) && defined(RTCONFIG_PROXYSTA)
+#if defined(RTCONFIG_BCMWL6) && defined(RTCONFIG_PROXYSTA)
+#ifndef HND_ROUTER
 		nvram_set(strcat_r(prefix, "psr_mrpt", tmp), is_psr(unit) ? "1" : "0");
+#else
+		nvram_set(strcat_r(prefix, "psr_mrpt", tmp), "0");
+#endif
 #endif
 
 		// TODO use lazwds directly
@@ -4721,7 +4731,7 @@ _dprintf("*** Multicast IPTV: config Singtel TR069 on wan port ***\n");
 				eval("brctl", "addif", "br1", vlanDev2);
 			}
 		}
-		else if (nvram_match("switch_stb_x", "4")) { 
+		else if (nvram_match("switch_stb_x", "4")) {
 			/* config ethPort1 = IPTV */
 			if (nvram_match("switch_wantag", "meo")) {
 				/* Just forward wan vid packets between wan & vlanDev1, without untag */
@@ -6897,10 +6907,15 @@ void hnd_nat_ac_init(int bootup)
 {
 	int qos_en = nvram_match("qos_enable", "1");
 	int routing_mode = is_routing_enabled();
+	char word[256], *next;
+	int psr = 0, unit = 0;
+
+	foreach (word, nvram_safe_get("wl_ifnames"), next)
+		psr |= is_psr(unit++);
 
 	// traditional qos / bandwidth limter: disable fc
-	nvram_set_int("fc_disable", nvram_get_int("fc_disable_force") || (routing_mode && qos_en && (nvram_get_int("qos_type") != 1)) ? 1 : 0);
-	nvram_set_int("runner_disable", nvram_get_int("runner_disable_force") || (routing_mode && qos_en) ? 1 : 0);
+	nvram_set_int("fc_disable", nvram_get_int("fc_disable_force") || (routing_mode && qos_en && (nvram_get_int("qos_type") != 1)) || psr ? 1 : 0);
+	nvram_set_int("runner_disable", nvram_get_int("runner_disable_force") || (routing_mode && qos_en) || psr ? 1 : 0);
 
 	if (nvram_match("fc_disable", "1"))
 		fc_fini();

@@ -7,7 +7,6 @@ PLATFORM := i686-cm-linux
 CROSS_COMPILE := i686-cm-linux-
 CONFIGURE := ./configure --host=i686-cm-linux --build=$(BUILD)
 export TOOLCHAIN := $(shell cd $(dir $(shell which $(CROSS_COMPILE)gcc))/../../../.. && pwd)
-export IPKG_TOOLS := /home/magic/optware/mbwe-bluering/toolchain/ipkg-utils-1.7
 #export LD_DIR := $(shell cd $(dir $(shell which $(CROSS_COMPILE)gcc))/../../../../../staging && pwd)
 export LD_DIR := $(TOOLCHAIN)
 
@@ -28,7 +27,7 @@ WSLIB=libws.so
 
 CURL_DIR=../curl-7.21.7
 XML2_DIR=../libxml2
-OPENSSL_DIR=../openssl
+OPENSSL_DIR=../openssl-ipk
 
 WS_SRC=ws_src
 OUTPUT=output

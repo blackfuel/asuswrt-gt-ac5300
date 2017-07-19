@@ -32,5 +32,8 @@ all: btconfig
 
 btconfig: btconfig.c
 	$(CC) -Wall -g btconfig.c $(CFLAGS) $(LDFLAGS)  -o btconfig
+
+install:
+
 clean:
 	rm btconfig

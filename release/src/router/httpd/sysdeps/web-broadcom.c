@@ -2011,7 +2011,7 @@ static int ej_wl_rssi(int eid, webs_t wp, int argc, char_t **argv, int unit)
 #endif
 	char *mode = NULL;
 	int sta = 0, wet = 0, psta = 0, psr = 0;
-	int rssi = WL_IW_RSSI_NO_SIGNAL, ret;
+	int rssi = WL_IW_RSSI_NO_SIGNAL;
 
 	memset(rssi_buf, 0, sizeof(rssi_buf));
 
@@ -2045,12 +2045,6 @@ static int ej_wl_rssi(int eid, webs_t wp, int argc, char_t **argv, int unit)
 	wet = !strcmp(mode, "wet");
 	psta = !strcmp(mode, "psta");
 	psr = !strcmp(mode, "psr");
-
-	if (wet || sta || psta || psr) {
-		ret = wl_ioctl(name, WLC_GET_RSSI, &rssi, sizeof(rssi));
-		if (ret < 0)
-			dbg("Err: reading intf:%s RSSI\n", name);
-	}
 
 	wl_ioctl(name, WLC_GET_INSTANCE, &unit_cur, sizeof(unit_cur));
 	if (unit != unit_cur)

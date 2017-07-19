@@ -35,7 +35,6 @@ ifeq ($(RTCONFIG_ALPINE),y)
 CFLAGS += -DALPINE_WPS
 CFLAGS += -I$(TOP)/httpd/sysdeps -I$(TOP)/shared/sysdeps/alpine -I$(TOP)/wireless_tools
 endif
-
 ifeq ($(RTCONFIG_LANTIQ),y)
 CFLAGS += -DLANTIQ_WPS
 CFLAGS += -I$(TOP)/shared/sysdeps/lantiq -I$(TOP)/wireless_tools
@@ -221,6 +220,10 @@ endif
 
 CFLAGS += -I$(TOP)/libpasswd
 LIBS += -L$(TOP)/libpasswd -lpasswd
+
+ifeq ($(RTCONFIG_LANTIQ),y)
+LIBS += -L$(TOP)/fapi_wlan_common-1.0.0.1 -lfapiwlancommon -L$(TOP)/libhelper-1.4.0.2 -lhelper -L$(TOP)/libfapi-0.1 -lfapi
+endif
 
 all: httpd #test_apps
 

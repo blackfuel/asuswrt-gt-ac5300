@@ -1034,15 +1034,76 @@ void stop_iQos(void)
 	eval((char *)qosfn, "stop");
 }
 
+#define TYPE_UNKNOWN -1
 #define TYPE_IP 0
 #define TYPE_MAC 1
 #define TYPE_IPRANGE 2
+
+static int is_IPnum(char *ip)
+{
+	int sum = 0;
+	int finish = 0;
+
+	if (ip == NULL || *ip == '\0')
+		goto final;
+
+	while (*ip != '\0')
+	{
+		/* character : 0~9 */
+		if (*ip < '0' || *ip > '9')
+			goto final;
+
+		/* sum : 0~255 */
+		sum = (sum * 10 + (*ip - '0'));
+		if (sum > 255)
+			goto final;
+
+		ip++;
+	}
+
+	finish = 1;
+
+final:
+	return finish;
+}
+
+static void protect_unknown_format(int *addr_type, char *addr)
+{
+	char *g, *buf;
+	char *head, *last;
+	int head_c = -1, last_c = 0;
+
+	g = buf = strdup(addr);
+	if ((vstrsep(g, "-", &head, &last)) == 2) {
+		head_c = illegal_ipv4_address(head);
+		last_c = is_IPnum(last);
+
+		if (head_c != 0 || last_c != 1)
+			*addr_type = TYPE_UNKNOWN;
+
+		//_dprintf("[%s] addr_type=%d, head_c=%d, last_c=%d\n", __FUNCTION__, *addr_type, head_c, last_c);
+	}
+	if (buf) free(buf);
+}
 
 static void address_checker(int *addr_type, char *addr_old, char *addr_new, int len)
 {
 	char *second, *last_dot;
 	int len_to_minus, len_to_dot;
 
+	/* initial */
+	*addr_type = TYPE_MAC;
+
+	/* add protection for checking format */
+	protect_unknown_format(addr_type, addr_old);
+
+	/* force to return if it's wrong format */
+	if (*addr_type == TYPE_UNKNOWN) {
+		strncpy(addr_new, "", len);
+		return;
+	}
+
+	/* normal flow to parse format */
 	second = strchr(addr_old, '-');
 	if (second != NULL)
 	{

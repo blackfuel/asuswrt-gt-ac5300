@@ -121,34 +121,31 @@ char *conv_mac2(char *mac, char *buf)
 	return(buf);
 }
 
-
 /* convert mac address format from XXXXXXXXXXXX to XX:XX:XX:XX:XX:XX */
 char *mac_conv(char *mac_name, int idx, char *buf)
 {
-	char *mac, name[32];
+	char mac[32], name[32];
 	int i, j;
 
-	if (idx!=-1)	
-		sprintf(name, "%s%d", mac_name, idx);
-	else sprintf(name, "%s", mac_name);
-
-	mac = nvram_safe_get(name);
-
-	if (strlen(mac)==0) 
-	{
-		buf[0] = 0;
-	}
+	if(idx != -1)
+		snprintf(name, sizeof(name), "%s%d", mac_name, idx);
 	else
-	{
-		j=0;	
-		for (i=0; i<12; i++)
-		{		
-			if (i!=0&&i%2==0) buf[j++] = ':';
+		snprintf(name, sizeof(name), "%s", mac_name);
+
+	snprintf(mac, sizeof(mac), "%s", nvram_safe_get(name));
+
+	if(strlen(mac) <= 0 || strlen(mac) != 12)
+		buf[0] = 0;
+	else{
+		for(i = 0, j = 0; i < 12; ++i){
+			if(i != 0 && i%2 == 0)
+				buf[j++] = ':';
+
 			buf[j++] = mac[i];
 		}
+
 		buf[j] = 0;	// oleg patch
 	}
-	//buf[j] = 0;
 
 	_dprintf("mac: %s\n", buf);
 
@@ -159,24 +156,22 @@ char *mac_conv(char *mac_name, int idx, char *buf)
 /* convert mac address format from XX:XX:XX:XX:XX:XX to XXXXXXXXXXXX */
 char *mac_conv2(char *mac_name, int idx, char *buf)
 {
-	char *mac, name[32];
+	char mac[32], name[32];
 	int i, j;
 
-	if(idx != -1)	
-		sprintf(name, "%s%d", mac_name, idx);
+	if(idx != -1)
+		snprintf(name, sizeof(name), "%s%d", mac_name, idx);
 	else
-		sprintf(name, "%s", mac_name);
+		snprintf(name, sizeof(name), "%s", mac_name);
 
-	mac = nvram_safe_get(name);
+	snprintf(mac, sizeof(mac), "%s", nvram_safe_get(name));
 
-	if(strlen(mac) == 0 || strlen(mac) != 17)
+	if(strlen(mac) <= 0 || strlen(mac) != 17)
 		buf[0] = 0;
 	else{
 		for(i = 0, j = 0; i < 17; ++i){
-			if(i%3 != 2){
-				buf[j] = mac[i];
-				++j;
-			}
+			if(i%3 != 2)
+				buf[j++] = mac[i];
 
 			buf[j] = 0;
 		}
@@ -487,7 +482,7 @@ User scripts -- no directories are searched.  One parameter.
 void run_nvscript(const char *nv, const char *arg1, int wtime)
 {
 	FILE *f;
-	char *script;
+	char script[PATH_MAX];
 	char s[PATH_MAX + 1];
 	char *argv[] = { s, (char *)arg1, NULL };
 	int check_dirs = 1;
@@ -496,10 +491,10 @@ void run_nvscript(const char *nv, const char *arg1, int wtime)
 		strcpy(s, nv);
 	}
 	else {
-		script = nvram_get(nv);
+		snprintf(script, sizeof(script), "%s", nvram_safe_get(nv));
 
-		if ((script) && (*script != 0)) {
-			sprintf(s, "/tmp/%s.sh", nv);
+		if(strlen(script) > 0){
+			snprintf(s, sizeof(s), "/tmp/%s.sh", nv);
 			if ((f = fopen(s, "w")) != NULL) {
 				fputs("#!/bin/sh\n", f);
 				fputs(script, f);
@@ -514,7 +509,7 @@ void run_nvscript(const char *nv, const char *arg1, int wtime)
 			}
 		}
 
-		sprintf(s, ".%s", nv);
+		snprintf(s, sizeof(s), ".%s", nv);
 		if (strncmp("sch_c", nv, 5) == 0) {
 			check_dirs = 0;
 		}
@@ -603,7 +598,7 @@ void setup_ftp_conntrack(int port)
 void setup_udp_timeout(int connflag)
 {
 	unsigned int v[10];
-	const char *p;
+	char p[32];
 	char buf[70];
 
 	if (connflag
@@ -611,7 +606,7 @@ void setup_udp_timeout(int connflag)
 			&& sw_mode()!=SW_MODE_REPEATER
 #endif
 	) {
-		p = nvram_safe_get("ct_udp_timeout");
+		snprintf(p, sizeof(p), "%s", nvram_safe_get("ct_udp_timeout"));
 		if (sscanf(p, "%u%u", &v[0], &v[1]) == 2) {
 			write_udp_timeout(NULL, v[0]);
 			write_udp_timeout("stream", v[1]);
@@ -619,7 +614,7 @@ void setup_udp_timeout(int connflag)
 		else {
 			v[0] = read_udp_timeout(NULL);
 			v[1] = read_udp_timeout("stream");
-			sprintf(buf, "%u %u", v[0], v[1]);
+			snprintf(buf, sizeof(buf), "%u %u", v[0], v[1]);
 			nvram_set("ct_udp_timeout", buf);
 		}
 	}
@@ -662,7 +657,7 @@ int scan_icmp_unreplied_conntrack()
 void setup_ct_timeout(int connflag)
 {
 	unsigned int v[10];
-	const char *p;
+	char p[32];
 	char buf[70];
 	int i;
 
@@ -671,7 +666,7 @@ void setup_ct_timeout(int connflag)
 			&& sw_mode()!=SW_MODE_REPEATER
 #endif
 	) {
-		p = nvram_safe_get("ct_timeout");
+		snprintf(p, sizeof(p), "%s", nvram_safe_get("ct_timeout"));
 		if (sscanf(p, "%u%u", &v[0], &v[1]) == 2) {
 //			write_ct_timeout("generic", NULL, v[0]);
 			write_ct_timeout("icmp", NULL, v[1]);
@@ -680,7 +675,7 @@ void setup_ct_timeout(int connflag)
 			v[0] = read_ct_timeout("generic", NULL);
 			v[1] = read_ct_timeout("icmp", NULL);
 
-			sprintf(buf, "%u %u", v[0], v[1]);
+			snprintf(buf, sizeof(buf), "%u %u", v[0], v[1]);
 			nvram_set("ct_timeout", buf);
 		}
 	}
@@ -700,7 +695,7 @@ void setup_ct_timeout(int connflag)
 void setup_conntrack(void)
 {
 	unsigned int v[10];
-	const char *p;
+	char p[32];
 	char buf[70];
 	int i;
 
@@ -708,7 +703,7 @@ void setup_conntrack(void)
 	return;		/* don't need it for concurrent repeater */
 #endif
 
-	p = nvram_safe_get("ct_tcp_timeout");
+	snprintf(p, sizeof(p), "%s", nvram_safe_get("ct_tcp_timeout"));
 	if (sscanf(p, "%u%u%u%u%u%u%u%u%u%u",
 		&v[0], &v[1], &v[2], &v[3], &v[4], &v[5], &v[6], &v[7], &v[8], &v[9]) == 10) {	// lightly verify
 		write_tcp_timeout("established", v[1]);
@@ -729,14 +724,14 @@ void setup_conntrack(void)
 		v[6] = read_tcp_timeout("close");
 		v[7] = read_tcp_timeout("close_wait");
 		v[8] = read_tcp_timeout("last_ack");
-		sprintf(buf, "0 %u %u %u %u %u %u %u %u 0",
+		snprintf(buf, sizeof(buf), "0 %u %u %u %u %u %u %u %u 0",
 			v[1], v[2], v[3], v[4], v[5], v[6], v[7], v[8]);
 		nvram_set("ct_tcp_timeout", buf);
 	}
 
 	setup_udp_timeout(FALSE);
 
-	p = nvram_safe_get("ct_timeout");
+	snprintf(p, sizeof(p), "%s", nvram_safe_get("ct_timeout"));
 	if (sscanf(p, "%u%u", &v[0], &v[1]) == 2) {
 //		write_ct_timeout("generic", NULL, v[0]);
 		write_ct_timeout("icmp", NULL, v[1]);
@@ -744,12 +739,12 @@ void setup_conntrack(void)
 	else {
 		v[0] = read_ct_timeout("generic", NULL);
 		v[1] = read_ct_timeout("icmp", NULL);
-		sprintf(buf, "%u %u", v[0], v[1]);
+		snprintf(buf, sizeof(buf), "%u %u", v[0], v[1]);
 		nvram_set("ct_timeout", buf);
 	}
 
 #ifdef LINUX26
-	p = nvram_safe_get("ct_hashsize");
+	snprintf(p, sizeof(p), "%s", nvram_safe_get("ct_hashsize"));
 	i = atoi(p);
 	if (i >= 127) {
 		f_write_string("/sys/module/nf_conntrack/parameters/hashsize", p, 0, 0);
@@ -760,7 +755,7 @@ void setup_conntrack(void)
 	}
 #endif
 #ifdef LINUX26
-	p = nvram_safe_get("ct_max");
+	snprintf(p, sizeof(p), "%s", nvram_safe_get("ct_max"));
 	i = atoi(p);
 	if (i >= 128) {
 		f_write_string("/proc/sys/net/nf_conntrack_max", p, 0, 0);
@@ -769,7 +764,7 @@ void setup_conntrack(void)
 		if (atoi(buf) > 0) nvram_set("ct_max", buf);
 	}
 #else
-	p = nvram_safe_get("ct_max");
+	snprintf(p, sizeof(p), "%s", nvram_safe_get("ct_max"));
 	i = atoi(p);
 	if (i >= 128) {
 		f_write_string("/proc/sys/net/ipv4/netfilter/ip_conntrack_max", p, 0, 0);
@@ -809,7 +804,7 @@ void setup_conntrack(void)
 	{
 		char ports[32];
 
-		sprintf(ports, "ports=21,%d", i);
+		snprintf(ports, sizeof(ports), "ports=21,%d", i);
 		ct_modprobe("ftp", ports);
 	}
 	else 
@@ -896,7 +891,7 @@ void set_mac(const char *ifname, const char *nvname, int plus)
 	struct ifreq ifr;
 	int up;
 	int j;
-	char *et_hwaddr = NULL;
+	char et_hwaddr[32];
 
 	if ((sfd = socket(AF_INET, SOCK_RAW, IPPROTO_RAW)) < 0) {
 		_dprintf("%s: %s %d\n", ifname, __FUNCTION__, __LINE__);
@@ -918,14 +913,14 @@ void set_mac(const char *ifname, const char *nvname, int plus)
 		_dprintf("%s: %s %d\n", ifname, __FUNCTION__, __LINE__);
 	}
 #ifdef RTCONFIG_RGMII_BRCM5301X
-	et_hwaddr = nvram_safe_get("lan_hwaddr");
+	snprintf(et_hwaddr, sizeof(et_hwaddr), "%s", nvram_safe_get("lan_hwaddr"));
 #elif defined(RTCONFIG_GMAC3)
 	if (nvram_match("gmac3_enable", "1"))
-		et_hwaddr = nvram_safe_get("et2macaddr");
+		snprintf(et_hwaddr, sizeof(et_hwaddr), "%s", nvram_safe_get("et2macaddr"));
 	else
-		et_hwaddr = nvram_safe_get("et0macaddr");
+		snprintf(et_hwaddr, sizeof(et_hwaddr), "%s", nvram_safe_get("et0macaddr"));
 #else
-	et_hwaddr = get_lan_hwaddr();
+	snprintf(et_hwaddr, sizeof(et_hwaddr), "%s", get_lan_hwaddr());
 #endif
 
 	if (!ether_atoe(nvram_safe_get(nvname), (unsigned char *)&ifr.ifr_hwaddr.sa_data)) {
@@ -1363,7 +1358,7 @@ void restart_lfp()
 }
 #endif
 
-#if defined(CONFIG_BCMWL5) || defined(RTCONFIG_WIRELESSREPEATER) 
+#if defined(CONFIG_BCMWL5) || defined(RTCONFIG_WIRELESSREPEATER)
 int setup_dnsmq(int mode)
 {
 	char v[32];

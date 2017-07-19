@@ -53,7 +53,7 @@ ifeq ($(MTK_NAND),y)
 UBI_BINS += ubiattach ubimkvol
 endif
 ifeq ($(ALPINE)$(LANTIQ),y)
-UBI_BINS += ubiformat ubiattach ubimkvol ubidetach
+UBI_BINS += ubiformat ubiattach ubimkvol ubidetach ubiupdatevol ubirmvol
 endif
 BINS += $(addprefix ubi-utils/,$(UBI_BINS))
 endif

@@ -965,9 +965,7 @@ ej_wl_channel_list_2g(int eid, webs_t wp, int argc, char_t **argv)
 	static char list_40m[1024] = {0};
 	int retval;
 
-	_dprintf("httpd: dp-01\n");
 	if(strlen(list_40m) == 0) get_wl_channel_list_by_bw_core(0, list_40m, 40);
-	_dprintf("httpd: dp-02:[%s]\n", list_40m);
 	retval = websWrite(wp, "%s", list_40m);
 	return retval;
 }
@@ -977,10 +975,8 @@ int ej_wl_channel_list_5g_20m(int eid, webs_t wp, int argc, char_t **argv)
 	static char list_20m[1024] = {0};
 	int retval;
 
-	_dprintf("Raymond: [%s][%d]\n", __func__, __LINE__);
 	if(strlen(list_20m) == 0) retval = get_wl_channel_list_by_bw_core(1, list_20m, 20);
 	retval = websWrite(wp, "%s", list_20m);
-	_dprintf("Raymond: [%s][%d]\n", __func__, __LINE__);
 	return retval;
 }
 
@@ -1218,18 +1214,12 @@ ej_wl_sta_list_qtn_core(int eid, webs_t wp, int argc, char_t **argv, int unit)
 
 	snprintf(ifname, sizeof(ifname), "%s", wl_vifname_qtn(unit, 0));
 
-	_dprintf("Raymond: dp-[%s][%d], unit=[%d], ifname[%s]\n",
-			__func__, __LINE__, unit, ifname);
 	if (strArgs(argc, argv, "%s", &name_t) < 1) {
 		//_dprintf("name_t = NULL\n");
 	} else if (!strncmp(name_t, "appobj", 6))
 		from_app = 1;
 
-	_dprintf("Raymond: dp-[%s][%d], unit=[%d], ifname[%s]\n",
-			__func__, __LINE__, unit, ifname);
 	sscanf(ifname, "wifi%d_0", &index);
-	_dprintf("Raymond: dp-[%s][%d], unit=[%d], ifname[%s], index[%d]\n",
-			__func__, __LINE__, unit, ifname, index);
 #if 0
 	if (index == -1) return retval;
 	else if (index == 0)
@@ -1239,8 +1229,6 @@ ej_wl_sta_list_qtn_core(int eid, webs_t wp, int argc, char_t **argv, int unit)
 #else
 		sprintf(prefix, "wl%d_", unit);
 #endif
-	_dprintf("Raymond: dp-[%s][%d], unit=[%d], ifname[%s]\n",
-			__func__, __LINE__, unit, ifname);
 
 	// ret = qcsapi_wifi_get_count_associations((const char *)ifname, &association_count);
 	ret = qcsapi_wifi_get_count_associations(ifname, &association_count);
@@ -1380,20 +1368,15 @@ ej_wl_sta_list_qtn(int eid, webs_t wp, int argc, char_t **argv, int unit)
 	int i;
 	char prefix[] = "wlXXXXXXXXXX_", tmp[128];
 
-	_dprintf("Raymond: dp-[%s][%d], unit=[%d]\n", __func__, __LINE__, unit);
 	if (!rpc_qtn_ready())
 		return retval;
 
-	_dprintf("Raymond: dp-[%s][%d], unit=[%d]\n", __func__, __LINE__, unit);
 	ret += ej_wl_sta_list_qtn_core(eid, wp, argc, argv, unit);
-	_dprintf("Raymond: dp-[%s][%d], unit=[%d]\n", __func__, __LINE__, unit);
 
 	if (nvram_get_int("sw_mode") == SW_MODE_REPEATER && nvram_get_int("wlc_band"))
 		return ret;
 
-	_dprintf("Raymond: dp-[%s][%d], unit=[%d]\n", __func__, __LINE__, unit);
 	for (i = 1; i < 4; i++) {
-		_dprintf("Raymond: dp-[%s][%d], unit=[%d]\n", __func__, __LINE__, unit);
 		sprintf(prefix, "wl%d.%d_", unit, i);
 		if (nvram_match(strcat_r(prefix, "bss_enabled", tmp), "1")){
 			if (ret_t != ret)
@@ -1403,7 +1386,6 @@ ej_wl_sta_list_qtn(int eid, webs_t wp, int argc, char_t **argv, int unit)
 		}
 	}
 
-	_dprintf("Raymond: dp-[%s][%d], unit=[%d]\n", __func__, __LINE__, unit);
 	return retval;
 }
 
@@ -1708,7 +1690,7 @@ ej_wl_status(int eid, webs_t wp, int argc, char_t **argv, int unit)
 		dbG("rpc_qcsapi_get_channel error, return: %d\n", ret);
 
 	snprintf(prefix, sizeof(prefix), "wl%d_", unit);
-#ifdef RTCONFIG_PROXYSTA
+#if defined(RTCONFIG_BCMWL6) && defined(RTCONFIG_PROXYSTA)
 	if (psta_exist_except(unit))
 	{
 		ret += websWrite(wp, "%s radio is disabled\n",
@@ -2038,7 +2020,6 @@ int ej_wl_auth_list(int eid, webs_t wp, int argc, char_t **argv)
 	char word[256], *next;
 	int ret = 0;
 
-	_dprintf("Raymond: dp-[%s][%d]\n", __func__, __LINE__);
 	/* buffers and length */
 	mac_list_size = sizeof(auth->count) + MAX_STA_COUNT * sizeof(struct ether_addr);
 	auth = malloc(mac_list_size);
@@ -2049,15 +2030,12 @@ int ej_wl_auth_list(int eid, webs_t wp, int argc, char_t **argv)
 		goto exit;
 
 	foreach (word, nvram_safe_get("wl_ifnames"), next) {
-		_dprintf("Raymond: dp-[%s][%d], word:[%s]\n", __func__, __LINE__, word);
 		if (rpc_qtn_ready()) {
-			_dprintf("Raymond: dp-[%s][%d], word:[%s]\n", __func__, __LINE__, word);
 			if (firstRow == 1){
 				firstRow = 0;
 			}else{
 				ret += websWrite(wp, ", ");
 			}
-			_dprintf("Raymond: dp-[%s][%d], word:[%s]\n", __func__, __LINE__, word);
 			ret += ej_wl_sta_list_qtn(eid, wp, argc, argv, unit);
 		}
 		unit++;
@@ -2128,4 +2106,66 @@ ej_wl_auth_psta(int eid, webs_t wp, int argc, char_t **argv)
 	return ej_wl_auth_psta_qtn(eid, wp, argc, argv, unit);
 }
 #endif	/* RTCONFIG_PROXYSTA */
+
+static int ej_wl_rate(int eid, webs_t wp, int argc, char_t **argv, int unit)
+{
+	int retval = 0;
+	char tmp[256], prefix[] = "wlXXXXXXXXXX_";
+	char *name;
+	char word[256], *next;
+	int unit_max = 0, unit_cur = -1;
+	int rate = 0;
+	char rate_buf[32];
+	struct ether_addr bssid;
+	unsigned char bssid_null[6] = {0x0,0x0,0x0,0x0,0x0,0x0};
+	int sta_rate;
+	int from_app = 0;
+	char ifname[10] = "wifi0_0";
+	uint32_t count = 0, speed;
+
+	from_app = check_user_agent(user_agent);
+
+	if(unit == 0)	snprintf(ifname, sizeof(ifname), "wifi2_0");
+	else if(unit == 1)	snprintf(ifname, sizeof(ifname), "wifi0_0");
+	else snprintf(ifname, sizeof(ifname), "wifi0_0");
+
+	sprintf(rate_buf, "0 Mbps");
+
+	if (!rpc_qtn_ready()) {
+		goto ERROR;
+	}
+	// if ssid associated, check associations
+	if (qcsapi_wifi_get_link_quality(ifname, count, &speed) < 0) {
+		// dbg("fail to get link status index %d\n", (int)count);
+	} else {
+		speed = speed ;  /* 4 antenna? */
+		if ((int)speed < 1) {
+			sprintf(rate_buf, "auto");
+		} else {
+			sprintf(rate_buf, "%d Mbps", (int)speed);
+		}
+	}
+
+	retval += websWrite(wp, "%s", rate_buf);
+	return retval;
+
+ERROR:
+	if(from_app == 0)
+		retval += websWrite(wp, "%s", rate_buf);
+	else
+		retval += websWrite(wp, "\"%s\"", rate_buf);
+	return retval;
+}
+
+int
+ej_wl_rate_2g(int eid, webs_t wp, int argc, char_t **argv)
+{
+	return ej_wl_rate(eid, wp, argc, argv, 0);
+}
+
+int
+ej_wl_rate_5g(int eid, webs_t wp, int argc, char_t **argv)
+{
+	return ej_wl_rate(eid, wp, argc, argv, 1);
+}
 

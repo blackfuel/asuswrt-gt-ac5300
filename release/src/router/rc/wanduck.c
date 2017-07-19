@@ -672,15 +672,12 @@ int do_dns_detect(int wan_unit)
 		struct in_addr in;
 		struct in6_addr in6;
 	} *addr, target;
-	sigset_t set, sigmask;
-	sighandler_t chld;
-	char word[64], *next, *host, *content;
-	int timeout, size, ret, sig, status;
+	char word[64], *next, host[PATH_MAX], content[PATH_MAX];
+	int timeout, size, ret, status, pipefd[2];
 	int debug = nvram_get_int("dns_probe_debug");
-	pid_t pid;
 
-	host = nvram_safe_get("dns_probe_host");
-	content = nvram_safe_get("dns_probe_content");
+	snprintf(host, sizeof(host), "%s", nvram_safe_get("dns_probe_host"));
+	snprintf(content, sizeof(content), "%s", nvram_safe_get("dns_probe_content"));
 	if (debug)
 		_dprintf("%s: %s %s %s\n", __FUNCTION__, "check", host, content);
 
@@ -697,46 +694,49 @@ int do_dns_detect(int wan_unit)
 	hints.ai_socktype = SOCK_STREAM;
 	timeout = nvram_get_int("dns_probe_timeout") ? : 2;
 
-	/* block SIGCHLD */
-	sigemptyset(&set);
-	sigaddset(&set, SIGCHLD);
-	sigprocmask(SIG_BLOCK, &set, &sigmask);
-	chld = signal(SIGCHLD, SIG_DFL);
+	ret = -1;
+	if (pipe(pipefd) < 0)
+		goto error;
 
-	switch ((pid = fork())) {
+	switch (fork()) {
 	case -1:
-		ret = -1;
+		close(pipefd[1]);
 		goto error;
 	case 0:
 		/* child */
+		close(pipefd[0]);
 		break;
 	default:
 		/* parent */
+		close(pipefd[1]);
 		do {
-			ret = waitpid(pid, &status, 0);
+			ret = read(pipefd[0], &status, sizeof(status));
 		} while (ret < 0 && errno == EINTR);
-		ret = (ret > 0 && WIFEXITED(status)) ? WEXITSTATUS(status) : 0;
+		ret = (ret == sizeof(status)) ? status : -1;
 	error:
-		/* restore SIGCHLD */
-		signal(SIGCHLD, chld);
-		sigprocmask(SIG_SETMASK, &sigmask, NULL);
-		chld_reap(0);
+		close(pipefd[0]);
 
 		if (debug)
-			_dprintf("%s: %s %s\n", __FUNCTION__, host, ret ? "ok" : "fail");
+			_dprintf("%s: %s ret %d\n", __FUNCTION__, host, ret);
+
 		//if (ret == 0)
 		//	logmessage("WAN Connection", "DNS probe failed");
 		return ret;
 	}
 
-	for (sig = 0; sig < (_NSIG - 1); sig++)
-		signal(sig, SIG_DFL);
-	sigemptyset(&set);
-	sigprocmask(SIG_SETMASK, &set, NULL);
-
+	/* Restore signals */
+	signal(SIGTERM, SIG_DFL);
+	signal(SIGCHLD, SIG_DFL);
+	signal(SIGUSR1, SIG_DFL);
+	signal(SIGUSR2, SIG_DFL);
+	signal(SIGALRM, SIG_DFL);
 	alarm(timeout);
 
+	status = 0;
+
+	/* keep using libc's resolver state
 	res_init();
+	*/
 	if (getaddrinfo(host, NULL, &hints, &res) == 0) {
 		for (ai = res; ai; ai = ai->ai_next) {
 			if (ai->ai_family == AF_INET) {
@@ -758,14 +758,20 @@ int do_dns_detect(int wan_unit)
 			foreach(word, content, next) {
 				if ((strcmp(word, "*") == 0) ||
 				    (inet_pton(ai->ai_family, word, &target) > 0 && memcmp(addr, &target, size) == 0)) {
-					freeaddrinfo(res);
-					exit(1);
+					status = 1;
+					goto done;
 				}
 			}
 		}
+	done:
+		freeaddrinfo(res);
 	}
 
-	exit(0);
+	do {
+		ret = write(pipefd[1], &status, sizeof(status));
+	} while (ret < 0 && errno == EINTR);
+
+	_exit(ret != sizeof(status));
 }
 
 int delay_dns_response(int wan_unit)
@@ -1201,7 +1207,7 @@ int chk_proto(int wan_unit){
 }
 
 int if_wan_phyconnected(int wan_unit){
-	char wired_link_nvram[16];
+	char *ptr, wired_link_nvram[16];
 #ifdef RTCONFIG_WIRELESSREPEATER
 	int link_ap = 0;
 #endif
@@ -1352,7 +1358,7 @@ if(test_log)
 _dprintf("# wanduck: if_wan_phyconnected: x_Setting=%d, link_modem=%d, sim_state=%d.\n", !isFirstUse, link_wan[other_wan_unit], sim_state);
 
 		link_wan_nvname(other_wan_unit, wired_link_nvram, sizeof(wired_link_nvram));
-		if(link_wan[other_wan_unit] != nvram_get_int(wired_link_nvram)){
+		if((ptr = nvram_get(wired_link_nvram)) == NULL || strlen(ptr) <= 0 || link_wan[other_wan_unit] != atoi(ptr)){
 			nvram_set_int(wired_link_nvram, link_wan[other_wan_unit]);
 			if(link_wan[other_wan_unit] != 0)
 				record_wan_state_nvram(other_wan_unit, -1, -1, WAN_AUXSTATE_NONE);
@@ -1527,7 +1533,7 @@ _dprintf("# wanduck(%d): if_wan_phyconnected: x_Setting=%d, link_modem=%d, sim_s
 		update_wan_leds(wan_unit);
 
 		link_wan_nvname(wan_unit, wired_link_nvram, sizeof(wired_link_nvram));
-		if(link_wan[wan_unit] != nvram_get_int(wired_link_nvram)){
+		if((ptr = nvram_get(wired_link_nvram)) == NULL || strlen(ptr) <= 0 || link_wan[wan_unit] != atoi(ptr)){
 			nvram_set_int(wired_link_nvram, link_wan[wan_unit]);
 			if(link_wan[wan_unit] != 0)
 				record_wan_state_nvram(wan_unit, -1, -1, WAN_AUXSTATE_NONE);
@@ -1582,7 +1588,7 @@ _dprintf("# wanduck(%d): if_wan_phyconnected: x_Setting=%d, link_modem=%d, sim_s
 		}
 
 		link_wan_nvname(wan_unit, wired_link_nvram, sizeof(wired_link_nvram));
-		if(link_wan[wan_unit] != nvram_get_int(wired_link_nvram)){
+		if((ptr = nvram_get(wired_link_nvram)) == NULL || strlen(ptr) <= 0 || link_wan[wan_unit] != atoi(ptr)){
 			if(link_wan[wan_unit]){
 				nvram_set_int(wired_link_nvram, CONNED);
 				record_wan_state_nvram(wan_unit, -1, -1, WAN_AUXSTATE_NONE);
@@ -1656,7 +1662,7 @@ _dprintf("# wanduck(%d): if_wan_phyconnected: x_Setting=%d, link_modem=%d, sim_s
 					return PHY_RECONN;
 				}
 				else{
-					record_wan_state_nvram(wan_unit, WAN_STATE_STOPPED, -1, WAN_AUXSTATE_NOPHY);
+					record_wan_state_nvram(wan_unit, -1, -1, WAN_AUXSTATE_NOPHY);
 					_dprintf("wanduck(%d): SIM or modem is pulled off.\n", wan_unit);
 
 #if defined(RTCONFIG_NOTIFICATION_CENTER)
@@ -3567,7 +3573,7 @@ _dprintf("wanduck(%d): detect the modem to be reset...\n", current_wan_unit);
 //#if defined(RTAC58U)
 //				update_wan_leds(current_wan_unit);
 // mark here, because had executed if_wan_phyconnected() before.
-//#elif !defined(RTN14U) && !defined(RTAC1200GP) && !defined(RTAC1200) && !defined(RTAC82U) && !defined(HIVEDOT) && !defined(HIVESPOT)
+//#elif !defined(RTN14U) && !defined(RTAC1200GP) && !defined(RTAC1200) && !defined(RTAC82U) && !defined(MAPAC1300) && !defined(MAPAC2200)
 //				conn_state[current_wan_unit] = if_wan_phyconnected(current_wan_unit);
 //#endif
 				if(conn_state[current_wan_unit] == CONNED){

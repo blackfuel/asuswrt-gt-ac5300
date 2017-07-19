@@ -52,6 +52,7 @@ fi
 forsq=`nvram get apps_sq`
 urlpath=`nvram get webs_state_url`
 echo 3 > /proc/sys/vm/drop_caches
+nvram set cfg_fwstatus=6
 if [ "$update_url" != "" ]; then
 	echo "---- wget fw nvram webs_state_url ----" > /tmp/webs_upgrade.log
 	wget $wget_options ${update_url}/$firmware_file -O $firmware_path
@@ -101,14 +102,14 @@ else
 	fi
 
 
-#	if [ "$firmware_check_ret" == "1" ] && [ "$rsasign_check_ret" == "1" ]; then
-#		echo "---- fw check OK ----" >> /tmp/webs_upgrade.log
+	if [ "$firmware_check_ret" == "1" ] && [ "$rsasign_check_ret" == "1" ]; then
+		echo "---- fw check OK ----" >> /tmp/webs_upgrade.log
 #		/sbin/ejusb -1 0
 #		rc rc_service restart_upgrade
-#	else
-#		echo "---- fw check error ----" >> /tmp/webs_upgrade.log
-#		nvram set webs_state_error=3	# wrong fw
-#	fi
+	else
+		echo "---- fw check error ----" >> /tmp/webs_upgrade.log
+		nvram set webs_state_error=3	# wrong fw
+	fi
 fi
 
 rm -f /tmp/rsasign.bin

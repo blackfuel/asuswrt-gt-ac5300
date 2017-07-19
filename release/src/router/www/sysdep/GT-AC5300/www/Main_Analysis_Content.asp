@@ -120,7 +120,7 @@ function initial(){
 
 function controlClickEvent(_$this) {
 	var idx = parseInt(_$this.closest("*[row_tr_idx]").attr( "row_tr_idx" ));
-	var thisTarget = $("tr[row_tr_idx='" + idx + "']").find($(".Target")).find($(".static-text"))[0].innerHTML;
+	var thisTarget = htmlEnDeCode.htmlDecode($("tr[row_tr_idx='" + idx + "']").find($(".Target")).find($(".static-text"))[0].innerHTML);
 	if(thisTarget == "-")
 		return false;
 
@@ -371,6 +371,30 @@ function pullLANIPList(obj){
 		hideClients_Block();
 	}
 }
+
+validator.targetDomainName = function($o){
+	var str = $o.val();
+
+	if(str == ""){
+		$o.val("www.google.com");
+	}
+
+	if (!validator.string($o[0])){
+		return false;
+	}
+		
+	for(i=0;i<str.length;i++){
+		c = str.charCodeAt(i);
+		
+		if (!validator.hostNameChar(c)){
+			$("#alert_block").html("<#LANHostConfig_x_DDNS_alarm_13#> '" + str.charAt(i) +"' !").show();
+			return false;
+		}
+	}
+		
+	$("#alert_block").hide();
+	return true;
+}
 </script>
 </head>
 <body onload="initial();">
@@ -427,6 +451,8 @@ function pullLANIPList(obj){
 												<input type="text" class="input_32_table" id="destIP" name="destIP" maxlength="100" value="" placeholder="ex: www.google.com" autocorrect="off" autocapitalize="off">
 												<img id="pull_arrow" height="14px;" src="/images/arrow-down.gif" style="position:absolute;*margin-left:-3px;*margin-top:1px;" onclick="pullLANIPList(this);" title="<#select_network_host#>" onmouseover="over_var=1;" onmouseout="over_var=0;">
 												<div id="ClientList_Block_PC" class="ClientList_Block_PC"></div>
+												<br/>
+												<span id="alert_block" style="color:#FC0;display:none"></span>
 											</td>
 										</tr>
 										<tr id="pingCNT_tr" style="display:none">
@@ -442,8 +468,10 @@ function pullLANIPList(obj){
 										<script>
 											$("#cmdBtn")
 												.click(function(){
-													if($("#destIP").val() == "") $("#destIP").val("www.google.com");
-													
+													if(!validator.targetDomainName($("#destIP"))){
+														return false;
+													}
+
 													var targetObj = {
 														"type": $("#cmdMethod").val(), 
 														"target": $("#destIP").val(),

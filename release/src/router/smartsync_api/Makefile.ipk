@@ -1,9 +1,9 @@
 
-CFLAGS = -I$(SRCBASE)/openssl/include -I$(SRCBASE)/curl-7.21.7/include -I$(SRCBASE)/libxml2/include 
+CFLAGS = -I$(SRCBASE)/openssl-ipk/include -I$(SRCBASE)/curl-7.21.7/include -I$(SRCBASE)/libxml2/include 
 CFLAGS += -I$(LD_DIR) -I$(LD_DIR)/include -I. -I$(SRCBASE)/shared -D_FILE_OFFSET_BITS=64 
 CFLAGS += $(if $(QCA),$(EXTRACFLAGS))
 
-LDFLAGS = -L$(SRCBASE)/curl-7.21.7/lib/.libs -L$(SRCBASE)/openssl -L$(SRCBASE)/nvram${BCMEX} -L$(SRCBASE)/shared -L$(SRCBASE)/libxml2/.libs
+LDFLAGS = -L$(SRCBASE)/curl-7.21.7/lib/.libs -L$(SRCBASE)/openssl-ipk -L$(SRCBASE)/nvram${BCMEX} -L$(SRCBASE)/shared -L$(SRCBASE)/libxml2/.libs
 LDFLAGS += -Wl,-rpath,/opt/lib -Wl,-rpath-link,$(SRCBASE)/opt/lib
 LIBS = -lcrypto -lssl -lcurl  -lxml2
 

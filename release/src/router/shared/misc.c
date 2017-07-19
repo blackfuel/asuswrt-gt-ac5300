@@ -44,11 +44,10 @@
 #else
 #include <wlioctl.h>
 #endif
-#ifdef RTCONFIG_COOVACHILLI
+#if defined(RTCONFIG_COOVACHILLI)
 #define MAC_FMT "%.2X:%.2X:%.2X:%.2X:%.2X:%.2X"
 #define MAC_ARG(x) (x)[0],(x)[1],(x)[2],(x)[3],(x)[4],(x)[5]
 #endif
-
 
 extern char *read_whole_file(const char *target){
 	FILE *fp;
@@ -413,6 +412,879 @@ int illegal_ipv4_netmask(char *netmask)
 	}
 
 	return 0;
+}
+
+#if defined(RTCONFIG_PORT_BASED_VLAN) || defined(RTCONFIG_TAGGED_BASED_VLAN)
+/**
+ * Get all vlan rules.
+ * @return:	pointer to vlan_rules_s structure.
+ *  NULL:	vlan_rule_list nvram variable is not set or allocate memory error.
+ *  otherwise:	Success, even none of any legal vlan rule exist.
+ * 		Caller is incharge of release returned pointer!
+ */
+struct vlan_rules_s *get_vlan_rules(void)
+{
+	int br_index = VLAN_START_IFNAMES_INDEX;
+	char *nv, *nvp, *b;
+	struct vlan_rules_s *vlan_rules;
+	struct vlan_rule_s *r;
+#if defined(RTCONFIG_PORT_BASED_VLAN)
+	char *enable, *desc, *portset, *wlmap, *subnet_name, *intranet;
+#elif defined(RTCONFIG_TAGGED_BASED_VLAN)
+	char *enable, *vid, *prio, *wanportset, *lanportset, *wl2gset;
+	char *wl5gset, *subnet_name, *internet, *public_vlan;
+#endif
+
+	nv = nvp = strdup(nvram_safe_get("vlan_rulelist"));
+	if (!nv)
+		return NULL;
+
+	vlan_rules = malloc(sizeof(struct vlan_rules_s));
+	if (!vlan_rules)
+		return NULL;
+
+	r = &vlan_rules->rules[0];
+	memset(vlan_rules, 0, sizeof(struct vlan_rules_s));
+	while ((b = strsep(&nvp, "<")) != NULL && vlan_rules->nr_rules < ARRAY_SIZE(vlan_rules->rules)) {
+#if defined(RTCONFIG_PORT_BASED_VLAN)
+		if ((vstrsep(b, ">", &enable, &desc, &portset, &wlmap, &subnet_name, &intranet) != 6))
+			continue;
+
+		r->enable = safe_atoi(enable);
+		strlcpy(r->desc, desc, sizeof(r->desc));
+		strlcpy(r->portset, portset, sizeof(r->portset));
+		strlcpy(r->wlmap, wlmap, sizeof(r->wlmap));
+		strlcpy(r->subnet_name, subnet_name, sizeof(r->subnet_name));
+		strlcpy(r->intranet, intranet, sizeof(r->intranet));
+#elif defined(RTCONFIG_TAGGED_BASED_VLAN)
+		if ((vstrsep(b, ">", &enable, &vid, &prio, &wanportset,
+		     &lanportset, &wl2gset, &wl5gset, &subnet_name,
+		     &internet, &public_vlan ) != 10))
+			continue;
+
+		r->enable = safe_atoi(enable);
+		strlcpy(r->vid, vid, sizeof(r->vid));
+		strlcpy(r->prio, prio, sizeof(r->prio));
+		strlcpy(r->wanportset, wanportset, sizeof(r->wanportset));
+		strlcpy(r->lanportset, lanportset, sizeof(r->lanportset));
+		strlcpy(r->wl2gset, wl2gset, sizeof(r->wl2gset));
+		strlcpy(r->wl5gset, wl5gset, sizeof(r->wl5gset));
+		strlcpy(r->subnet_name, subnet_name, sizeof(r->subnet_name));
+		strlcpy(r->internet, internet, sizeof(r->internet));
+		strlcpy(r->public_vlan, public_vlan, sizeof(r->public_vlan));
+#endif
+		if (r->enable) {
+			if (safe_atoi(r->vid) == 1 || !strcmp(r->subnet_name, "default"))
+				strlcpy(r->br_if, nvram_get("lan_ifname")? : nvram_default_get("lan_ifname"), sizeof(r->br_if));
+			else
+				snprintf(r->br_if, sizeof(r->br_if), "br%d", br_index++);
+		}
+
+		vlan_rules->nr_rules++;
+		r++;
+	}
+	free(nv);
+
+	return vlan_rules;
+}
+#endif
+
+#if defined(RTCONFIG_COOVACHILLI) || \
+    defined(RTCONFIG_PORT_BASED_VLAN) || defined(RTCONFIG_TAGGED_BASED_VLAN)
+/* Don't leave { 0,0 } at end */
+static const struct ip_mask_s private_network_tbl[] = {
+	{ IP2UINT(192,168,0,0),	16 },
+	{ IP2UINT(172,16,0,0),	12 },
+	{ IP2UINT(10,0,0,0),	8 },
+};
+
+/**
+ * Get netmask of specified @cidr
+ * @cidr:	CIDR
+ * @return:	netmask of specified @cidr.
+ * NOTE:	This function doesn't validate input parameter, @cidr.
+ */
+static inline uint32_t get_netmask(int cidr)
+{
+	int host_bits;
+	uint32_t m;
+
+	host_bits = 32 - cidr;
+	m = (((~0U) >> host_bits) << host_bits);
+
+	return m;
+}
+
+/**
+ * Test specified network in one class specified by @pt.
+ * @pt:		Scan target class. Pointer to ip_mask_s structure.
+ * 		@exp_ip/@exp_cidr MUST BELONGS TO THIS CLASS!
+ * @pk_tbl:	Known networks. Pointer to ip_mask_s structure array.
+ * 		ALL ELEMENTS OF LAST ITEM MUST BE ZERO!
+ * @exp_ip:	Pointer to expected IP integer, host-endian.
+ * 		Highest bytes is first number in IP, Second one is 2-nd number in IP, etc.
+ * @exp_cidr:	Expected cidr integer.
+ * @return:
+ *     >0:	Specified network conflicts with known network in the class and new
+ *     		network is suggested in @exp_ip/@exp_cidr.
+ * 	0:	Specified network is not conflicts with any known network in the class.
+ *     -1:	Invalid parameter.
+ *     -12:	@exp_ip/@exp_cidr is not belongs to scan target class.
+ *     -13:	@exp_ip/@exp_cidr is larger than specified class.
+ *     -14:	One or more known networks is larger than specified class.
+ *     -15:	Can't find available network in specified class.
+ *     <0:	Another error.
+ */
+static int test_one_class(const struct ip_mask_s *pt, const struct ip_mask_s *pk_tbl, uint32_t *exp_ip, uint32_t exp_cidr)
+{
+	int i, c, found, s_cidr = 30, max_cidr;
+	uint32_t start_net, s, next_s, d, delta, class_mask, m, mask, new_ip = 0;
+	const struct ip_mask_s *p;
+
+	if (!pt || !pt->ip || !pt->cidr || pt->cidr > 30 || !pk_tbl ||
+	    !exp_ip || exp_cidr <= 0 || exp_cidr > 30)
+		return -1;
+
+	/* Is exp_ip/exp_cidr belongs this private IP network? */
+	mask = get_netmask(pt->cidr);
+	if ((*exp_ip & mask) != (pt->ip & mask)) {
+		dbg("%08x/%d is not belongs to %08x/%d, mask %08x\n",
+			*exp_ip, exp_cidr, pt->ip, pt->cidr, mask);
+		return -12;
+	}
+
+	if (exp_cidr < pt->cidr)
+		return -13;
+
+	for (p = pk_tbl; p->ip && p->cidr; ++p) {
+		/* Ignore wrong cidr.
+		 * For example, cidr of 192.168.x.x is lower than or equal to 16.
+		 */
+		if (p->cidr <= pt->cidr) {
+			dbg("Ignore %08x/%d due to cidr lower than %08x/%d\n",
+				p->ip, p->cidr, pt->ip, pt->cidr);
+			continue;
+		}
+
+		/* Skip different class. */
+		mask = get_netmask(pt->cidr);
+		if ((p->ip & mask) != (pt->ip & mask))
+			continue;
+
+		if (p->cidr < pt->cidr)
+			return -14;
+	}
+
+	/* Find first not conflicts network. */
+	class_mask = get_netmask(pt->cidr);
+	for (i = min(s_cidr, exp_cidr), found = 0; !found && i >= pt->cidr; i--) {
+		m = mask = get_netmask(i);
+		delta = ~mask + 1;
+		s = start_net = *exp_ip & mask;
+		dbg("Exp %08x/%d, test %08x/%d, delta 0x%x mask 0x%x, loop %d\n",
+			*exp_ip, exp_cidr, s, i, delta, mask, 1U << (i - pt->cidr));
+		next_s = 0;
+		while (!found && ((next_s & mask) != (start_net & mask))) {
+			// dbg("\t%08x/%08x,%08x\n", s, mask, m);
+			for (c = 0, p = pk_tbl, max_cidr = i; p->ip && p->cidr; ++p) {
+				m = get_netmask(min(i, p->cidr));
+				if ((s & m) == (p->ip & m)) {
+					if (p->cidr < max_cidr)
+						max_cidr = p->cidr;
+					dbg("\t%08x/%d conflicts, max_cidr %d.\n", p->ip, p->cidr, max_cidr);
+					c++;
+				}
+			}
+
+			if (c == 0) {
+				dbg("Find non-conflicts network %08x/%d for %08x/%d\n",
+					s, i, *exp_ip, exp_cidr);
+				new_ip = s;
+				found = 1;
+				break;
+			}
+			m = get_netmask(max_cidr);
+			d = ~m + 1;
+			s = (s + d) & m;
+			if ((s & class_mask) != (pt->ip & class_mask))
+				s = pt->ip & class_mask;
+#if 0
+			if (m != mask) {
+				dbg("\tnext %08x/%d, max_cidr %d, d %x delta %x m %x mask %x\n", s, i, max_cidr, d, delta, m, mask);
+			}
+#endif
+			next_s = s;
+		}
+	}
+
+	if (found) {
+		m = get_netmask(exp_cidr);
+		if ((new_ip & m) == (*exp_ip & m))
+			return 0;
+		else {
+			// dbg("New IP/mask %08x/%d\n", new_ip, exp_cidr);
+			*exp_ip = new_ip;
+			return 1;
+		}
+	}
+
+	return -15;
+}
+
+/**
+ * Append an character format IP/mask to an ip_mask_s structure to an array,
+ * if IPv4 address and netmask is valid and array is not full.
+ * @nr:		Number of available items in an array specified by @p.
+ * @p:		Pointer to an ip_mask_s array.
+ * @ip_cidr_str:IPv4 address and netmask in X.X.X.X/Y
+ * @return:
+ * 	0:	OK
+ *     -1:	Invalid parameter.
+ *     -2:	Out of array space.
+ *     -3:	Netmask absent.
+ *     -4:	Invalid IPv4 address or netmask.
+ */
+static int fill_char_ip_cidr_to_ip_mask_s(unsigned int *nr, struct ip_mask_s **p, char *ip_cidr_str)
+{
+	int r, ip[4], mask[4];
+	uint32_t cidr, m;
+	char ip_mask[sizeof("192.168.100.200/255.255.255.255XXX")], *pc;
+	char ip_str[sizeof("192.168.100.200XXX")], cidr_str[sizeof("255.255.255.255XXX")];
+
+	if (!nr || !p || !ip_cidr_str) {
+		dbg("%s: invalid parameter. nr %p p %p ip_cidr_str %p\n", __func__, nr, p, ip_cidr_str);
+		return -1;
+	}
+	if (*nr <= 0) {
+		dbg("%s: Out of array. (ip_cidr %s)\n", __func__, ip_cidr_str);
+		return -2;
+	}
+
+	strlcpy(ip_mask, ip_cidr_str, sizeof(ip_mask));
+	if ((pc = strchr(ip_mask, '/')) == NULL) 
+		return -3;
+
+	strlcpy(ip_str, ip_mask, min(pc - ip_mask + 1, sizeof(ip_str)));
+	strlcpy(cidr_str, pc + 1, sizeof(cidr_str));
+	if (illegal_ipv4_address(ip_str) || illegal_ipv4_netmask(cidr_str))
+		return -4;
+
+	if ((r = sscanf(ip_str, "%d.%d.%d.%d", &ip[0], &ip[1], &ip[2], &ip[3])) != 4)
+		return -5;
+
+	if ((r = sscanf(cidr_str, "%d.%d.%d.%d", &mask[0], &mask[1], &mask[2], &mask[3])) == 4) {
+		/* convert x.x.x.x netmask to cidr. */
+		m = ((mask[0] & 0xFF) << 24) | ((mask[1] & 0xFF) << 16) |
+		    ((mask[2] & 0xFF) & 8) | (mask[3] & 0xFF);
+		cidr = 0;
+		while (m > 0) {
+			cidr++;
+			m <<= 1;
+		}
+	} else {
+		cidr = safe_atoi(cidr_str);
+	}
+
+	(*p)->ip = ((ip[0] & 0xFF) << 24) | ((ip[1] & 0xFF) << 16) |
+	        ((ip[2] & 0xFF) << 8) | (ip[3] & 0xFF);
+	(*p)->cidr = cidr;
+	(*nr)--;
+	(*p)++;
+
+	return 0;
+}
+
+/**
+ * Append an character format IP/mask to an ip_mask_s structure to an array,
+ * if IPv4 address and netmask is valid and array is not full.
+ * @nr:		Number of available items in an array specified by @p.
+ * @p:		Pointer to an ip_mask_s array.
+ * @ip_str:	IPv4 address
+ * @mask_str:	IPv4 netmask in X.X.X.X or CIDR format.
+ * @return:
+ * 	0:	OK
+ *     -1:	Invalid parameter.
+ *     -2:	Out of array space.
+ *     -3:	Invalid IPv4 address or netmask.
+ *     -4:	Invalid IPv4 address format
+ *     -5:	First byte of IPv4 address is zero.
+ *     -6:	Mask is zero or greater than 32.
+ */
+static int fill_char_ip_mask_to_ip_mask_s(unsigned int *nr, struct ip_mask_s **p, char *ip_str, char *mask_str)
+{
+	int r, ip[4], mask[4];
+	uint32_t cidr, m;
+
+	if (!nr || !p || !ip_str || !mask_str) {
+		dbg("%s: invalid parameter. nr %p p %p ip_str %p mask_str %p\n", __func__, nr, p, ip_str, mask_str);
+		return -1;
+	}
+	if (*nr <= 0) {
+		dbg("%s: Out of array. (ip/cidr %s/%s)\n", __func__, ip_str, mask_str);
+		return -2;
+	}
+
+	if (illegal_ipv4_address(ip_str) || illegal_ipv4_netmask(mask_str))
+		return -3;
+
+	if ((r = sscanf(ip_str, "%d.%d.%d.%d", &ip[0], &ip[1], &ip[2], &ip[3])) != 4)
+		return -4;
+
+	if (!ip[0])
+		return -5;
+
+	if ((r = sscanf(mask_str, "%d.%d.%d.%d", &mask[0], &mask[1], &mask[2], &mask[3])) == 4) {
+		/* convert x.x.x.x netmask to cidr. */
+		m = ((mask[0] & 0xFF) << 24) | ((mask[1] & 0xFF) << 16) |
+		    ((mask[2] & 0xFF) << 8) | (mask[3] & 0xFF);
+		cidr = 0;
+		while (m > 0) {
+			cidr++;
+			m <<= 1;
+		}
+	} else {
+		cidr = safe_atoi(mask_str);
+	}
+
+	if (!cidr || cidr > 32)
+		return -6;
+
+	(*p)->ip = ((ip[0] & 0xFF) << 24) | ((ip[1] & 0xFF) << 16) |
+	        ((ip[2] & 0xFF) << 8) | (ip[3] & 0xFF);
+	(*p)->cidr = cidr;
+	(*nr)--;
+	(*p)++;
+
+	return 0;
+}
+
+/**
+ * Append an unsigned integer format IP/mask to an ip_mask_s structure to an array,
+ * if IPv4 address and netmask is valid and array is not full.
+ * @nr:		Number of available items in an array specified by @p.
+ * @p:		Pointer to an ip_mask_s pointer.
+ * @ip:		IPv4 address
+ * @cidr:	IPv4 netmask in X.X.X.X or CIDR format.
+ * @return:
+ * 	0:	OK
+ *     -1:	Invalid parameter.
+ *     -2:	Out of array space.
+ */
+static int fill_uint_to_ip_mask_s(unsigned int *nr, struct ip_mask_s **p, unsigned int ip, unsigned int cidr)
+{
+	if (!nr || !p || !*p || !ip || !cidr || cidr > 32) {
+		dbg("%s: invalid parameter. nr %p p %p ip %x cidr %d\n", __func__, nr, p, ip, cidr);
+		return -1;
+	}
+	if (*nr <= 0) {
+		dbg("%s: Out of array. (ip/cidr 0x%x/%d)\n", __func__, ip, cidr);
+		return -2;
+	}
+
+	(*p)->ip = ip;
+	(*p)->cidr = cidr;
+	(*nr)--;
+	(*p)++;
+
+	return 0;
+}
+
+#if defined(RTCONFIG_IPSEC)
+/**
+ * Helper function to fill known IPSec server networks.
+ * @nr:
+ * @p:
+ * @excl:	Bitmask combination of EXCLUDE_NET_XXX.
+ * @return:
+ * 	1:	Don't add IPSec server networks to list due to excl is ipsec_profile_
+ * 	0:	success
+ *    < 0:	Number of fail added networks.
+ */
+static int _get_ipsec_server_networks(unsigned int *nr, struct ip_mask_s **p, uint32_t excl)
+{
+	int i, j, fail = 0, r;
+	char *nv, *nvp, *now, *next;
+	char n[sizeof("ipsec_profile_1XXX")], *a[38];
+
+	if (!(excl & EXCLUDE_NET_IPSEC_SERVER))
+		return 1;
+
+	/* Exclude IPSec VPN Server, ipsec_profile_1~5
+	 * Host to net example:
+	 * 4>test1>null>null>wan>>1>abcdekeyword>null>null>null>null>null>1>10.10.10.0/24>null>1>null>null>0>null>null>null>0>>>eap-md5>1>500>4500>10>1>null>null>null>null><10.10.10.1<10.10.10.2<10.10.10.3<10.10.10.4>0
+	 * 	0:	type
+	 * 	14:	Virtual IP
+	 * Net to net example:
+	 * 1>test2>null>null>wan>>1>QQKKABCD><10.100.200.0/24<10.100.201.0/24<10.100.202.0/24>0><10.200.100.0/24<10.200.101.0/24<10.200.102.0/24>0>tunnel>null>null>null>1>auto>auto>0>lident>ridenty>172800>0>null>null>eap-md5>1>500>4500>10>1>auto>auto>3600>3>null>0
+	 * 	0:	type
+	 *	8:	Local private subnets, '<' is seperate char if two or more subnet exist.
+	 *	10:	Remote private subnets, '<' is seperate char if two or more subnet exist.
+	 */
+	for (i = 1; i <= 5; ++i) {
+		snprintf(n, sizeof(n), "ipsec_profile_%d", i);
+
+		nv = nvp = strdup(nvram_safe_get(n));
+		if (!nv)
+			continue;
+		if (*nv == '\0') {
+			free(nv);
+			continue;
+		}
+
+		if ((r = vstrsep(nv, ">", a, a + 1, a + 2, a + 3, a + 4,
+		    a + 5, a + 6, a + 7, a + 8, a + 9, a + 10,
+		    a + 11, a + 12, a + 13, a + 14, a + 15, a + 16,
+		    a + 17, a + 18, a + 19, a + 20, a + 21, a + 22,
+		    a + 23, a + 24, a + 25, a + 26, a + 27, a + 28,
+		    a + 29, a + 30, a + 31, a + 32, a + 33, a + 34,
+		    a + 35, a + 36, a + 37)) != 38) {
+			dbg("%s: Parse IPSec server profile%d [%s] fail, r %d\n", __func__, i, nv, r);
+			free(nv);
+			continue;
+		}
+
+		switch (safe_atoi(a[0])) {
+		case 4:
+			/* Host to net, Virtual IP is saved at a[14] */
+			r = fill_char_ip_cidr_to_ip_mask_s(nr, p, a[14]);
+			if (r < 0) {
+				dbg("%s: Add %s of %s failed, return %d\n", __func__, a[14], n, r);
+				fail++;
+			}
+			break;
+		case 1:
+			/* Net to net,
+			 * local private subnets are saved at a[8],
+			 * remote private subnets are saved at a[11]
+			 */
+			for (j = 0; j < 2; ++j) {
+				now = next = (j == 0)? a[8] : a[10];
+				while ((now = strsep(&next, "<")) != NULL) {
+					if (*now == '\0')
+						continue;
+					r = fill_char_ip_cidr_to_ip_mask_s(nr, p, now);
+					if (r < 0) {
+						dbg("%s: Add %s of %s failed, return %d\n", __func__, now, n, r);
+						fail++;
+					}
+				}
+			}
+			break;
+		default:
+			dbg("%s: Unknown IPSec profile type %s\n", __func__, a[0]? : "<NULL>");
+			break;
+		}
+		free(nv);
+	}
+
+	return -fail;
+}
+
+/**
+ * Helper function to fill known IPSec client networks.
+ * @nr:
+ * @p:
+ * @excl:	Bitmask combination of EXCLUDE_NET_XXX.
+ * @return:
+ * 	1:	Don't add IPSec client networks to list due to excl is ipsec_profile_client_
+ * 	0:	success
+ *    < 0:	Number of fail added networks.
+ */
+static int _get_ipsec_client_networks(unsigned int *nr, struct ip_mask_s **p, uint32_t excl)
+{
+	int i, j, fail = 0, r;
+	char *nv, *nvp, *now, *next;
+	char n[sizeof("ipsec_profile_client_1XXX")], *a[38];
+
+	if (!(excl & EXCLUDE_NET_IPSEC_CLIENT))
+		return 1;
+
+	/* Exclude IPSec VPN Client, ipsec_profile_client_1~5
+	 * example:
+	 * ipsec_profile_client_1=2>vpn_profile_1_c1>0>192.168.100.1>wan>192.168.1.90>1>ABCDEKEY><10.20.30.0/24>0><10.20.40.0/24>0>tunnel>null>null>null>1>auto>auto>0>LIDENTY>RIDENTY>172800>0>>>eap-md5>1>500>4500>10>1>auto>auto>3600>3>null>0
+	 * ipsec_profile_client_2=2>vpn_profile_2_c2>0>192.168.200.1>wan2>10.2.2.168>1>QWERTYUI><10.30.0.0/24>0><10.40.0.0/24>0>tunnel>null>null>null>1>auto>auto>0>l2identy>r2identy>172800>0>>>eap-md5>1>500>4500>10>1>auto>auto>3600>3>null>0
+	 * 	3:	gateway
+	 *	5:	WAN IP, skip
+	 *	8:	local private subnet
+	 *	10:	remote private subnet
+	 */
+	for (i = 1; i <= 5; ++i) {
+		snprintf(n, sizeof(n), "ipsec_profile_client_%d", i);
+
+		nv = nvp = strdup(nvram_safe_get(n));
+		if (!nv)
+			continue;
+		if (*nv == '\0') {
+			free(nv);
+			continue;
+		}
+
+		if ((r = vstrsep(nv, ">", a, a + 1, a + 2, a + 3, a + 4,
+		    a + 5, a + 6, a + 7, a + 8, a + 9, a + 10,
+		    a + 11, a + 12, a + 13, a + 14, a + 15, a + 16,
+		    a + 17, a + 18, a + 19, a + 20, a + 21, a + 22,
+		    a + 23, a + 24, a + 25, a + 26, a + 27, a + 28,
+		    a + 29, a + 30, a + 31, a + 32, a + 33, a + 34,
+		    a + 35, a + 36, a + 37)) != 38) {
+			dbg("%s: Parse IPSec client profile%d [%s] fail, r %d\n", __func__, i, nv, r);
+			free(nv);
+			continue;
+		}
+
+		for (j = 0; j < 2; ++j) {
+			now = next = (j == 0)? a[8] : a[10];
+			while ((now = strsep(&next, "<")) != NULL) {
+				if (*now == '\0')
+					continue;
+				r = fill_char_ip_cidr_to_ip_mask_s(nr, p, now);
+				if (r < 0) {
+					dbg("%s: Add %s of %s failed, return %d\n", __func__, now, n, r);
+					fail++;
+				}
+			}
+		}
+		free(nv);
+	}
+
+	return -fail;
+}
+#else
+static inline int _get_ipsec_server_networks(unsigned int *nr, struct ip_mask_s **p, uint32_t excl) { return 0; }
+static inline int _get_ipsec_client_networks(unsigned int *nr, struct ip_mask_s **p, uint32_t excl) { return 0; }
+#endif
+
+/**
+ * Get known networks used by another feature or some USB modem.
+ * @nr:		Number of elements of @tbl array.
+ * @tbl:	Pointer to ip_mask_s structure array.
+ * @excl:	Bitmask combination of EXCLUDE_NET_XXX.
+ * 		If not zero, exclude network of specified feature(s).
+ * @return:
+ * 	>= 0:	Number of filled ip_mask_s structure.
+ * 	< 0:	Error
+ */
+static int get_known_networks(unsigned int nr, struct ip_mask_s *tbl, uint32_t excl)
+{
+	int i, r;
+	char prefix[20];
+	unsigned nr_orig = nr;
+	struct ip_mask_s *p = tbl, *q;
+
+	if (nr <= 0 || !tbl)
+		return -1;
+
+	/* Exclude network used by USB modem. */
+	if (!(excl & EXCLUDE_NET_USB_MODEM)) {
+		fill_uint_to_ip_mask_s(&nr, &p, IP2UINT(192,168,0,0), 24);
+		fill_uint_to_ip_mask_s(&nr, &p, IP2UINT(192,168,100,0), 24);
+	}
+
+	/* Exclude LAN */
+	if (!(excl & EXCLUDE_NET_LAN)) {
+		fill_char_ip_mask_to_ip_mask_s(&nr, &p, nvram_get("lan_ipaddr"), nvram_get("lan_netmask"));
+	}
+
+	/* Exclude all Static/DHCP WAN */
+	if (!(excl & EXCLUDE_NET_WAN)) {
+		for (i = WAN_UNIT_FIRST; i < WAN_UNIT_MAX; ++i) {
+			snprintf(prefix, sizeof(prefix), "wan%d_", i);
+			fill_char_ip_mask_to_ip_mask_s(&nr, &p, nvram_pf_get(prefix, "ipaddr"), nvram_pf_get(prefix, "netmask"));
+		}
+	}
+
+	/* Exclude PPTP VPN Server */
+	if (!(excl & EXCLUDE_NET_PPTP_SERVER)) {
+		char ip_range[sizeof("192.168.100.200-255XXX")], *c;	/* e.g. 192.168.10.2.11 */
+
+		strlcpy(ip_range, nvram_safe_get("pptpd_clients"), sizeof(ip_range));
+		c = strchr(ip_range, '-');
+		if (c != NULL)
+			*c = '\0';
+		r = fill_char_ip_mask_to_ip_mask_s(&nr, &p, ip_range, "24");
+		if (r < 0) {
+			dbg("%s: Add PPTP VPN Server %s to known networks list failed, return %d\n",
+				__func__, ip_range, r);
+		}
+	}
+
+#if defined(RTCONFIG_OPENVPN)
+	/* Exclude OpenVPN Server */
+	if (!(excl & EXCLUDE_NET_OPENVPN_SERVER)) {
+		r = fill_char_ip_mask_to_ip_mask_s(&nr, &p, nvram_get("vpn_server_sn"), nvram_get("vpn_server_nm"));
+		if (r < 0) {
+			dbg("%s: Add OpenVPN Server %s/%s to known networks list failed, return %d\n",
+				__func__, nvram_safe_get("vpn_server_sn"), nvram_safe_get("vpn_server_nm"), r);
+		}
+	}
+#endif
+
+	/* Exclude IPSec server/client */
+	_get_ipsec_server_networks(&nr, &p, excl);
+	_get_ipsec_client_networks(&nr, &p, excl);
+
+#if defined(RTCONFIG_PORT_BASED_VLAN) || defined(RTCONFIG_TAGGED_BASED_VLAN)
+	/* Exclude port/tagged based VLAN */
+	if (!(excl & EXCLUDE_NET_VLAN)) {
+		char *nv, *nvp, *b;
+#if defined(RTCONFIG_PORT_BASED_VLAN)
+		char *enable, *desc, *portset, *wlmap, *subnet_name, *intranet;
+#elif defined(RTCONFIG_TAGGED_BASED_VLAN)
+		char *enable, *vid, *prio, *wanportset, *lanportset, *wl2gset;
+		char *wl5gset, *subnet_name, *internet, *public_vlan;
+#endif
+
+		nv = nvp = strdup(nvram_safe_get("vlan_rulelist"));
+		while (nv != NULL && (b = strsep(&nvp, "<")) != NULL) {
+#if defined(RTCONFIG_PORT_BASED_VLAN)
+			if ((vstrsep(b, ">", &enable, &desc, &portset, &wlmap,
+			     &subnet_name, &intranet) != 6))
+#elif defined(RTCONFIG_TAGGED_BASED_VLAN)
+			if ((vstrsep(b, ">", &enable, &vid, &prio, &wanportset,
+			     &lanportset, &wl2gset, &wl5gset, &subnet_name,
+			     &internet, &public_vlan ) != 10))
+#endif
+				continue;
+
+			if (!strcmp(subnet_name, "default"))
+				continue;
+			r = fill_char_ip_cidr_to_ip_mask_s(&nr, &p, subnet_name);
+			if (r < 0) {
+				dbg("%s: Add VLAN %s to known networks list failed, return %d\n",
+					__func__, subnet_name);
+			}
+		}
+		if (nv != NULL)
+			free(nv);
+	}
+#endif
+
+#if defined(RTCONFIG_COOVACHILLI)
+	/* Exclude Free Wi-Fi */
+	if (!(excl & EXCLUDE_NET_FREE_WIFI)) {
+		r = fill_char_ip_cidr_to_ip_mask_s(&nr, &p, nvram_get("chilli_net"));
+		if (r < 0) {
+			dbg("%s: Add Free Wi-Fi %s to known networks list failed, return %d\n",
+				__func__, nvram_safe_get("chilli_net"));
+		}
+	}
+
+	/* Exclude Captive Portal */
+	if (!(excl & EXCLUDE_NET_CAPTIVE_PORTAL)) {
+		r = fill_char_ip_cidr_to_ip_mask_s(&nr, &p, nvram_get("cp_net"));
+		if (r < 0) {
+			dbg("%s: Add Captive Portal %s to known networks list failed, return %d\n",
+				__func__, nvram_safe_get("cp_net"));
+		}
+	}
+#endif
+
+	_dprintf("%s: %d known networks. excl %08x\n", __func__, nr_orig - nr, excl);
+	for (q = tbl; q < p; ++q) {
+		_dprintf("\t%08X/%d  (%d.%d.%d.%d/%d)\n", q->ip, q->cidr,
+			(q->ip >> 24) & 0xFF, (q->ip >> 16) & 0xFF,
+			(q->ip >> 8) & 0xFF, q->ip & 0xFF, q->cidr);
+	}
+
+	return nr_orig - nr;
+}
+
+/**
+ * Test specified network with another known networks.
+ * If conflicts with any known network, find alternate network in all scan target class.
+ * @t_class:	Bitmasp of scan target classes.
+ *  bit0:	Scan first class of private_network_tbl. (Class C private IP)
+ *  bit1:	Scan second class of private_network_tbl. (Class B private IP)
+ *  bit2:	Scan third class of private_network_tbl. (Class A private IP)
+ * @exp_ip:	Pointer to expected IP integer, host-endian.
+ * 		Highest bytes is first number in IP, Second one is 2-nd number in IP, etc.
+ * @exp_cidr:	Expected cidr integer.
+ * @excl:	Bitmask combination of EXCLUDE_NET_XXX.
+ * 		If not zero, exclude network of specified feature(s).
+ * @return:
+ * 	 1:	Input @exp_ip/@exp_cidr is conflicts to at lease one known network and
+ * 	 	new network is suggested in same parameters.
+ *     		New cidr may smaller, larger network, than original value.  It's safe to use original cidr.
+ * 	 0:	@exp_ip/@exp_cidr is not conflicts with any known networks.
+ * 	-1:	Invalid parameter.
+ *      <0:	Another error, come from test_one_class().
+ */
+int test_and_get_free_uint_network(int t_class, uint32_t *exp_ip, uint32_t exp_cidr, uint32_t excl)
+{
+	int i, exp_class_idx, r = -1, nr;
+	uint32_t m, ip, cidr;
+	const struct ip_mask_s *pv;
+	struct ip_mask_s known_network_tbl[50];
+
+	if (!exp_ip || exp_cidr <= 0 || exp_cidr > 30)
+		return -1;
+
+	if ((t_class >> ARRAY_SIZE(private_network_tbl)) > 0)
+		return -1;
+
+	/* Is exp_ip/exp_cidr belongs to one private IP network and will be scanned? */
+	for (i = 0, exp_class_idx = -1, pv = private_network_tbl;
+	     exp_class_idx < 0 && i < ARRAY_SIZE(private_network_tbl);
+	     ++i, ++pv)
+	{
+		if (!((t_class >> i) & 1))
+			continue;
+
+		m = get_netmask(pv->cidr);
+		if ((*exp_ip & m) != (pv->ip & m))
+			continue;
+
+		exp_class_idx = i;
+	}
+
+	/* TODO: Get known networks of another features. */
+	nr = ARRAY_SIZE(known_network_tbl);
+	memset(known_network_tbl, 0, nr);
+	get_known_networks(--nr, known_network_tbl, excl);   /* leave last elements */
+
+	/* Try class own @exp_ip/@exp_cidr. */
+	if (exp_class_idx >= 0 && exp_class_idx < ARRAY_SIZE(private_network_tbl)) {
+		r = test_one_class(&private_network_tbl[exp_class_idx], known_network_tbl, exp_ip, exp_cidr);
+		if (r >= 0)
+			return r;
+	}
+
+	/* Try another scan target class. */
+	for (i = 0, pv = private_network_tbl; i < ARRAY_SIZE(private_network_tbl); ++i, ++pv) {
+		if (i == exp_class_idx || !((t_class >> i) & 1))
+			continue;
+
+		ip = pv->ip;
+		cidr = 24;	/* Always start from class C level */
+		dbg("Try %08x/%d for %08x/%d\n", ip, cidr, *exp_ip, exp_cidr);
+		r = test_one_class(pv, known_network_tbl, &ip, cidr);
+		if (r >= 0) {
+			*exp_ip = ip;
+			break;
+		}
+	}
+
+	return r;
+}
+
+/**
+ * Test specified network with another known networks.
+ * If conflicts with any known network, find alternate network in all scan target class.
+ * @t_class:	Bitmasp of scan target classes.
+ *  bit0:	Scan first class of private_network_tbl. (Class C private IP)
+ *  bit1:	Scan second class of private_network_tbl. (Class B private IP)
+ *  bit2:	Scan third class of private_network_tbl. (Class A private IP)
+ * @ip_cidr_str:Pointer to IP/mask string, at least 32 bytes.
+ * 		If new network is suggested, @ip_cidr_str will have new value.
+ * @exp_ip:	Pointer to expected IP integer, host-endian.
+ * 		Highest bytes is first number in IP, Second one is 2-nd number in IP, etc.
+ * @excl:	Bitmask combination of EXCLUDE_NET_XXX.
+ * 		If not zero, exclude network of specified feature(s).
+ * @return:
+ * 	 1:	Input @exp_ip/@exp_cidr is conflicts to at lease one known network and
+ * 	 	new network is suggested in same parameters.
+ *     		New cidr may smaller, larger network, than original value.  It's safe to use original cidr.
+ * 	 0:	@exp_ip/@exp_cidr is not conflicts with any known networks.
+ * 	-1:	Invalid parameter.
+ * 	-2:	'/' absent.
+ * 	-3:	illegal IPv4 address or illegal mask\
+ * 	-4:	Can't parse IPv4 address
+ * 	-5:	Can't parse netmask
+ *      <0:	Another error, come from test_one_class().
+ */
+int test_and_get_free_char_network(int t_class, char *ip_cidr_str, uint32_t excl)
+{
+	int r, v[4], c;
+	in_addr_t mask, mask_type = 0;
+	uint32_t exp_ip, exp_cidr;
+	char *p, ip_str[sizeof("192.168.100.200XXX")], mask_str[sizeof("255.255.255.255XXX")];
+
+	if (!ip_cidr_str)
+		return -1;
+
+	/* Convert char IP/mask to uint32 */
+	if (!(p = strchr(ip_cidr_str, '/')))
+		return -2;
+
+	strlcpy(ip_str, ip_cidr_str, min(p - ip_cidr_str + 1, sizeof(ip_str)));
+	strlcpy(mask_str, p + 1, sizeof(mask_str));
+	if (illegal_ipv4_address(ip_str) || illegal_ipv4_netmask(mask_str))
+		return -3;
+
+	if ((r = sscanf(ip_str, "%d.%d.%d.%d", &v[0], &v[1], &v[2], &v[3])) != 4)
+		return -4;
+
+	exp_ip = (v[0] << 24) | (v[1] << 16) | (v[2] << 8) | v[3];
+	if ((strchr(mask_str, '.')) != NULL) {
+		/* A.B.C.D */
+		if ((mask = inet_network(mask_str)) == -1)
+			return -5;
+		c = 0;
+		while (!(mask & 1)) {
+			c++;
+			mask >>= 1;
+		}
+		exp_cidr = 32 - c;
+		if (exp_cidr <= 0 || exp_cidr > 32)
+			return -5;
+		mask_type = 1;
+	} else {
+		exp_cidr = safe_atoi(mask_str);
+	}
+	r = test_and_get_free_uint_network(t_class, &exp_ip, exp_cidr, excl);
+
+	/* Convert uint32 to char if new network is suggested. */
+	if (r == 1) {
+		if (!mask_type) {
+			/* Report netmask in CIDR format. */
+			snprintf(ip_cidr_str, 32, "%d.%d.%d.%d/%d",
+				(exp_ip >> 24) & 0xFF, (exp_ip >> 16) & 0xFF,
+				(exp_ip >> 8) & 0xFF, exp_ip & 0xFF, exp_cidr);
+		} else {
+			/* Report netmask in A.B.C.D format. */
+			mask = get_netmask(exp_cidr);
+			snprintf(ip_cidr_str, 32, "%d.%d.%d.%d/%d.%d.%d.%d",
+				(exp_ip >> 24) & 0xFF, (exp_ip >> 16) & 0xFF,
+				(exp_ip >> 8) & 0xFF, exp_ip & 0xFF,
+				(mask >> 24) & 0xFF, (mask >> 16) & 0xFF,
+				(mask >> 8) & 0xFF, mask & 0xFF);
+		}
+	}
+
+	return r;
+}
+
+#endif /* RTCONFIG_COOVACHILLI || RTCONFIG_PORT_BASED_VLAN || RTCONFIG_TAGGED_BASED_VLAN */
+
+/**
+ * Return first/lowest configured and connected WAN unit.
+ * @return:	WAN_UNIT_FIRST ~ WAN_UNIT_MAX
+ */
+enum wan_unit_e get_first_configured_connected_wan_unit(void)
+{
+	int i, wan_unit = WAN_UNIT_MAX;
+	char prefix[sizeof("wanXXXXXX_")], link[sizeof("link_wanXXXXXX")];
+
+	for (i = WAN_UNIT_FIRST; i < WAN_UNIT_MAX; ++i) {
+		if (get_dualwan_by_unit(i) == WANS_DUALWAN_IF_NONE ||
+		    !is_wan_connect(i))
+			continue;
+
+		/* If the WAN unit is configured as static IP, check link status too. */
+		snprintf(prefix, sizeof(prefix), "wan%d_", i);
+		if (nvram_pf_match(prefix, "proto", "static")) {
+			if (!i)
+				strlcpy(link, "link_wan", sizeof(link));
+			else
+				snprintf(link, sizeof(link), "link_wan%d", i);
+			if (!nvram_get_int(link))
+				continue;
+		}
+
+		wan_unit = i;
+		break;
+	}
+
+	return wan_unit;
 }
 
 #ifdef RTCONFIG_IPV6
@@ -1098,7 +1970,8 @@ char *nvram_pf_get(char *prefix, const char *name)
 		return NULL;
 
 	if (!isprint(*prefix) || !isprint(*name)) {
-		dbg("%s: Invalid prefix 0x%x or name 0x%x?\n", __func__, *prefix, *name);
+		dbg("%s: Invalid prefix 0x%x [%s] or name 0x%x [%s]?\n",
+			__func__, *prefix, prefix, *name, name);
 		return NULL;
 	}
 
@@ -1343,12 +2216,16 @@ static uint32 crc_table[256]={ 0x00000000,0x77073096,0xEE0E612C,0x990951BA,
 
 uint32_t crc_calc(uint32_t crc, const char *buf, int len)
 {
+#if !defined(RTCONFIG_LANTIQ) && !defined(RTCONFIG_ALPINE)
 	crc = crc ^ 0xffffffff;
+#endif
 	while (len-- > 0) {
 		crc = crc_table[(crc ^ *((unsigned char *)buf)) & 0xFF] ^ (crc >> 8);
 		buf++;
 	}
+#if !defined(RTCONFIG_LANTIQ) && !defined(RTCONFIG_ALPINE)
 	crc = crc ^ 0xffffffff;
+#endif
 	return crc;
 }
 
@@ -1763,7 +2640,7 @@ int is_dpsta(int unit)
 	char ifname[80], name[80], *next;
 	int idx = 0;
 
-	if (nvram_get_int("wlc_dpsta")) {
+	if (nvram_get_int("wlc_dpsta") == 1) {
 		foreach (ifname, nvram_safe_get("wl_ifnames"), next) {
 			if (idx == unit) break;
 			idx++;
@@ -1778,6 +2655,16 @@ int is_dpsta(int unit)
 	return 0;
 }
 #endif
+
+int is_dpsr(int unit)
+{
+	if (nvram_get_int("wlc_dpsta") == 2) {
+		if ((num_of_wl_if() == 2) || !unit || unit == nvram_get_int("dpsta_band"))
+			return 1;
+	}
+
+	return 0;
+}
 
 int is_psta(int unit)
 {
@@ -1811,6 +2698,7 @@ int is_psr(int unit)
 		dpsta_mode() ||
 #endif
 #endif
+		is_dpsr(unit) ||
 		(nvram_get_int("wlc_band") == unit)
 		))
 		return 1;
@@ -1818,7 +2706,7 @@ int is_psr(int unit)
 	return 0;
 }
 
-int psta_exist()
+int psta_exist(void)
 {
 	char word[256], *next;
 	int idx = 0;
@@ -1847,7 +2735,7 @@ END:
 	return 0;
 }
 
-int psr_exist()
+int psr_exist(void)
 {
 	char word[256], *next;
 	int idx = 0;
@@ -1874,6 +2762,57 @@ END:
 	}
 
 	return 0;
+}
+#endif
+
+#if defined(RTCONFIG_OPENVPN) || defined(RTCONFIG_IPSEC)
+int set_crt_parsed(const char *name, char *file_path)
+{
+#if defined(RTCONFIG_JFFS2) || defined(RTCONFIG_BRCM_NAND_JFFS2) || defined(RTCONFIG_UBIFS)
+	char target_file_path[128] ={0};
+
+	if(!check_if_dir_exist(OVPN_FS_PATH))
+		mkdir(OVPN_FS_PATH, S_IRWXU);
+
+	if(check_if_file_exist(file_path)) {
+		snprintf(target_file_path, sizeof(target_file_path) -1, "%s/%s", OVPN_FS_PATH, name);
+		return eval("cp", file_path, target_file_path);
+	}
+	else {
+		return -1;
+	}
+#else
+	FILE *fp=fopen(file_path, "r");
+	char buffer[4000] = {0};
+	char buffer2[256] = {0};
+	char *p = buffer;
+
+	if(fp) {
+		while(fgets(buffer, sizeof(buffer), fp)) {
+			if(!strncmp(buffer, "-----BEGIN", 10))
+				break;
+		}
+		if(feof(fp)) {
+			fclose(fp);
+			return -EINVAL;
+		}
+		p += strlen(buffer);
+		//if( *(p-1) == '\n' )
+			//*(p-1) = '>';
+		while(fgets(buffer2, sizeof(buffer2), fp)) {
+			strncpy(p, buffer2, strlen(buffer2));
+			p += strlen(buffer2);
+			//if( *(p-1) == '\n' )
+				//*(p-1) = '>';
+		}
+		*p = '\0';
+		nvram_set(name, buffer);
+		fclose(fp);
+		return 0;
+	}
+	else
+		return -ENOENT;
+#endif
 }
 #endif
 
@@ -2165,7 +3104,7 @@ int ctrl_gro(char *iface, int onoff)
  * 	 0:	success
  * 	-1:	invalid wan_unit
  * 	-2:	not supported WAN type
- * 	-3:	Can't enable GRO on WAN interface if PPPoE/PPTP/L2TP is chosed.
+ * 	-3:	Can't enable GRO on WAN interface.
  * 	-4:	ctrl_gro() fail
  */
 int ctrl_wan_gro(int wan_unit, int onoff)
@@ -2182,11 +3121,11 @@ int ctrl_wan_gro(int wan_unit, int onoff)
 	    type != WANS_DUALWAN_IF_LAN)
 		return -2;
 
+	snprintf(prefix, sizeof(prefix), "wan%d_", wan_unit);
 	if (!strncmp(nvram_pf_safe_get(prefix, "ifname"), "vlan", 4))
 		return -2;
 
-	snprintf(prefix, sizeof(prefix), "wan%d_", wan_unit);
-	if (onoff && !(nvram_pf_match(prefix, "proto", "static") || nvram_pf_match(prefix, "proto", "dhcp")))
+	if (onoff)
 		return -3;
 
 	r = ctrl_gro(nvram_pf_safe_get(prefix, "ifname"), onoff);
@@ -2297,16 +3236,7 @@ char *get_qos_prefix(int unit, char *buf)
 	if (buf)
 		r = buf;
 
-#if defined(RTCONFIG_MULTIWAN_CFG)
-	if (unit < 0 || unit >= WAN_UNIT_MAX) {
-		dbg("%s: Unknown wan_unit %d\n", __func__, unit);
-		unit = 0;
-	}
-
-	sprintf(r, "qos%d_", unit);
-#else
 	strcpy(r, "qos_");
-#endif
 
 	return r;
 }
@@ -2383,15 +3313,17 @@ int FindBrifByWlif(char *wl_ifname, char *brif_name, int size)
 	if (nvram_match("chilli_enable", "1")){
 		foreach(word, nvram_safe_get("chilli_interface"), next){
 			if(!strncmp(word, wl_ifname, strlen(word))){
+				memset(brif_name, 0, strlen(brif_name));
 				strncpy(brif_name, "br1", 3);
-			}
+			}	
 		}
 	}
 	if (nvram_match("cp_enable", "1")){
 		foreach(word, nvram_safe_get("cp_interface"), next){
-			if(!strncmp(word, wl_ifname, strlen(word))){
+			if(!strncmp(word, wl_ifname, strlen(word))){ 
+				memset(brif_name, 0, strlen(brif_name));
 				strncpy(brif_name, "br2", 3);
-			}
+			}	
 
 		}
 	}

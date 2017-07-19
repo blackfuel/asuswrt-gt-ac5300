@@ -24,6 +24,7 @@ var g_current_locktoken = "";
 var g_mouse_x = 0;
 var g_mouse_y = 0;
 var g_fileview_only = 0;
+var g_query_type = 0;
 
 var g_webdav_client = new davlib.DavClient();
 g_webdav_client.initialize();
@@ -107,7 +108,8 @@ function openLoginWindow(open_url){
 	login_html += '</table>';
 	
 	$('#jqmContent').empty();
-	$(login_html).appendTo($('#jqmContent'));
+	
+	$('#jqmContent').html(encodeSafeString(login_html));
 	
 	$('#table_login input#password').keydown(function(e){
 		if(e.keyCode==13){
@@ -631,8 +633,9 @@ function parserPropfindXML(xmlDoc, open_url, append_result){
 								
 				var cur_host = "";
 							
-				if(this_href.match(/^http/))						
-					cur_host = window.location.protocol + "//" + window.location.host;	
+				if(this_href.match(/^http/)){						
+					cur_host = g_storage.get('request_host_url');
+				}
 									
 				var cururl = cur_host + addPathSlash(open_url);
 																
@@ -670,7 +673,7 @@ function parserPropfindXML(xmlDoc, open_url, append_result){
 		if(this_href!=""){							
 			if( this_contenttype=="httpd/unix-directory" ){									
 				g_folder_array.push({ contenttype: this_contenttype, 
-					                  href: this_href,
+					                  furl: this_href,
 					                  name: this_name,
 					                  uname: this_uncode_name,
 					                  shortname: this_short_name,
@@ -689,7 +692,7 @@ function parserPropfindXML(xmlDoc, open_url, append_result){
 			}
 			else{
 				g_file_array.push({ contenttype: this_contenttype, 
-					                href: this_href, 
+					                furl: this_href, 
 					                name: this_name,
 					                uname: this_uncode_name,
 					                shortname: this_short_name,
@@ -762,6 +765,8 @@ function doPROPFIND(open_url, complete_handler, auth){
 						var this_computer_name = xmlDoc.documentElement.getAttribute('computername');
 						var this_isusb = xmlDoc.documentElement.getAttribute('isusb'); 
 						
+						g_query_type = this_query_type;
+						
 						parserPropfindXML(xmlDoc, open_url, false);
 						
 						//- Sort By Name
@@ -792,7 +797,7 @@ function doPROPFIND(open_url, complete_handler, auth){
 						var list_type = (g_list_view.get()==1) ? "listview" : "thumbview";
 						create_ui_view( list_type, $("#main_right_container #fileview"), 
 						            	this_query_type, parent_url, g_folder_array, g_file_array, onMouseDownListDIVHandler );
-												
+                        
 						g_thumb_loader.init($("#main_right_container #fileview"));
 						g_thumb_loader.start();
 						
@@ -877,22 +882,6 @@ function doPROPFIND(open_url, complete_handler, auth){
 		//Handle errors here
 	  alert('catch error: '+ err);
 	}
-}
-
-function registerPage(open_url){
-	
-	if( open_url != "/" || isPrivateIP( g_storage.get('wan_ip') ) )
-		return;
-	
-	var ddns_name = g_storage.get('ddns_host_name');
-	
-	if(ddns_name==""){
-		alert("start ddns process");
-		return;
-	}
-	
-	var alcloud_url = "https://" + ddns_name;	
-	window.location = "http://140.130.25.39/aicloud?v=" + alcloud_url;
 }
 
 function doLOGIN(path, auth){
@@ -1028,12 +1017,13 @@ function refreshHostList(){
 								//alert(this_href);
 								var cur_host = "";
 								
-								if(this_href.match(/^http/))						
-									cur_host = window.location.protocol + "//" + window.location.host;	
+								if(this_href.match(/^http/)){						
+									cur_host = g_storage.get('request_host_url');
+								}
 								
 								var open_url = "/";
 								var cururl = cur_host + addPathSlash(open_url);
-																
+                                								
 								if(this_href!=cururl){
 									var o_url = open_url;								
 									
@@ -1262,7 +1252,12 @@ function openSelItem(item){
 					this_file_name = myencodeURI(this_file_name);		
 					this_url = this_full_url.substring(0, this_full_url.lastIndexOf('/'));
 						
-					var media_hostName = window.location.host;					
+					var media_hostName = g_storage.get('request_host_url');
+					
+					if(media_hostName.indexOf("://")!=-1){
+					   media_hostName = media_hostName.substr(media_hostName.indexOf("://")+3);	
+					}
+					
 					if(media_hostName.indexOf(":")!=-1){
 						media_hostName = media_hostName.substring(0, media_hostName.indexOf(":"));
 					}
@@ -1337,8 +1332,6 @@ function openSelItem(item){
 	    fileExt=="xls" || fileExt=="xlsx" || 
 	    fileExt=="pdf") {
 		
-		var location_host = window.location.host;
-		
 		//- It will open with google doc viewer when OS is window or mac and using public ip.
 		if( ( isWinOS() || isMacOS() ) && !isPrivateIP() ){
 			
@@ -1348,11 +1341,12 @@ function openSelItem(item){
 			g_webdav_client.GSL(this_url, this_url, this_file_name, 0, 0, function(error, content, statusstring){
 				if(error==200){
 					var data = parseXml(statusstring);
-					var share_link = $(data).find('sharelink').text();
+					var share_link = decodeURI($(data).find('sharelink').text());
 					var open_url = "";
+					var host_url = g_storage.get('request_host_url');
 								
-					share_link = window.location.protocol + "//" + window.location.host+ "/" + share_link;
-					open_url = 'https://docs.google.com/viewer?url=' + share_link;
+					share_link = host_url + "/" + share_link;
+					open_url = 'https://docs.google.com/viewer?url=' + encodeURI(share_link);
 					
 					window.open(open_url);
 				}
@@ -1368,6 +1362,7 @@ function openSelItem(item){
 	    fileExt=="gif" ){
 		
 		var page_size = getPageSize();
+		
 		g_image_player.show(loc, page_size[0], page_size[1], g_file_array);
 
 		return;
@@ -1384,7 +1379,7 @@ function addtoFavorite(){
     var isMSIE = isIE();
     
 	if(ddns==""){		
-		favorite_url = window.location.href;
+		favorite_url = g_storage.get('request_host_url');//window.location.href;
 	}
 		
 	if ((typeof window.sidebar == "object") && (typeof window.sidebar.addPanel == "function")) {
@@ -1541,6 +1536,8 @@ $(document).ready(function(){
 	}
 	
 	initAudioPlayer();
+	
+	g_window_height = $(window).height();
 	///////////////////////////////////////////////////////////////////////////////
 	
 	function closeModal(hash){
@@ -1674,6 +1671,7 @@ $(document).ready(function(){
 				var data = parseXml(content);
 				var x = $(data);
 				
+				g_storage.set('request_host_url', x.find("request_host_url").text());
     			g_storage.set('webdav_mode', x.find("webdav_mode").text());
     			g_storage.set('http_port', x.find("http_port").text());
     			g_storage.set('https_port', x.find("https_port").text());
@@ -1739,8 +1737,8 @@ $(document).ready(function(){
 		g_selected_files = null;
 		g_selected_files = new Array();
 		
-		for(var i=0; i<g_select_array.length;i++){			
-			g_selected_files.push( g_select_array[i].uhref );
+        for(var i=0; i<g_select_array.length;i++){
+            g_selected_files.push( g_select_array[i].uhref );
 		}
 		
 		var r;
@@ -1803,11 +1801,10 @@ $(document).ready(function(){
 			var this_file_name = g_select_array[i].title;
 			var this_full_url = g_select_array[i].uhref;
 			var this_isdir = g_select_array[i].isdir;
-			var this_url = window.location.href;
+			var this_url = g_storage.get('request_host_url');
 			
-			this_url = this_full_url.substring(0, this_full_url.lastIndexOf('/'));	
 			var full_url = this_url + "/" + this_file_name;	
-				
+            	
 			if(this_isdir==1){
 				array_download_folder.push(full_url);
 				continue;
@@ -1846,10 +1843,7 @@ $(document).ready(function(){
 		var this_file_name = g_select_array[0].title;
 		var this_full_url = g_select_array[0].uhref;
 		var this_isdir = g_select_array[0].isdir;
-		//var owner = "https://" + window.location.host + this_full_url;
-		//var owner = "https://" + window.location.host;
 		var owner = "http://johnnydebris.net/";
-		//alert("Lock: " + this_full_url + ", " + owner);
 		
 		g_webdav_client.LOCK(this_full_url, '', function(status, statusstring, content, headers){
 			if (status != '201') {
@@ -1858,8 +1852,7 @@ $(document).ready(function(){
       		}
       
       		g_current_locktoken = getLockToken(content);
-      		alert("locktoken: " + g_current_locktoken);
-		//}, null, 'exclusive', 'write', 0, 60, 'opaquelocktoken:e71d4fae-5dec-22d6-fea5-00a0c91e6be4');
+      		alert("locktoken: " + g_current_locktoken);		
 		}, null, 'exclusive', 'write', 0, 3);
 				
 	});
@@ -2093,7 +2086,7 @@ $(document).ready(function(){
 			doLOGOUT();
 		}
 		else if(func=="mobile"){
-			var url = window.location.href;
+			var url = g_storage.get('request_host_url');
 			url = url.substr(0, url.lastIndexOf("?"));
 			window.location = url + '?mobile=1';
 		}
@@ -2106,10 +2099,14 @@ $(document).ready(function(){
 	    	var misc_http_port = g_storage.get('misc_http_port');
 	    	var misc_https_port = g_storage.get('misc_https_port');
 	    	var lan_https_port = g_storage.get('lan_https_port');
-	    	var location_host = window.location.host;
+	    	var location_host = g_storage.get('request_host_url');//window.location.host;
 	    	var misc_protocol = "http";
 	    	var misc_port = misc_http_port;
 	    
+	        if(location_host.indexOf("://")!=-1){
+                location_host = location_host.substr(location_host.indexOf("://")+3); 
+            }
+                            
 	    	if(misc_http_enable==0){
 	    		if( !isPrivateIP() ){
 	    			alert(m.getString('msg_no_config'));    	
@@ -2140,7 +2137,7 @@ $(document).ready(function(){
 	  			if(misc_port!="")
 	  				url += ":" + misc_port; 
 	  		}
-	  	
+	  	    
 	  		window.location = url;
 		}
 		else if(func=="rescan_samba"){
@@ -2766,7 +2763,7 @@ $(document).ready(function(){
         selector: '.item-menu', 
 		trigger: 'left',
 		events: {
-			show: function(opt){				
+			show: function(opt){
 			},
   			hide: function(opt){ 
    				$(this).removeClass("x-view-menu-popup");
@@ -2854,7 +2851,8 @@ $(document).ready(function(){
 				disabled: function(){
 					if(g_storage.get('aimode')==1||
 					   g_storage.get('aimode')==2||
-					   g_storage.get('aimode')==3)
+					   g_storage.get('aimode')==3||
+					   g_query_type!=0)
 					   return true;
 				}
 			},
@@ -2874,7 +2872,8 @@ $(document).ready(function(){
 				disabled: function(){
 					if(g_storage.get('aimode')==1||
 					   g_storage.get('aimode')==2||
-					   g_storage.get('aimode')==3)
+					   g_storage.get('aimode')==3||
+                       g_query_type!=0)
 					   return true;
 				}
 			},

@@ -3,9 +3,9 @@ include ../common.mak
 ASUSWRTTOOLSDIR = $(SRCBASE)/router/tools/Lnx_AsusWrtDictPrep
 ASUSWRTTOOLSDIR2 = $(SRCBASE)/router/tools/Lnx_ToolHelp
 
-MODELS_HAVE_USB3 = "DSL-AC68U RT-AC3200 RT-AC87U RT-AC68U RT-AC68A 4G-AC68U RT-AC56S RT-AC56U RT-AC55U RT-AC55UHP RT-N18U RT-N65U RT-AC88U RT-AC3100 RT-AC5300 GT-AC5300 RT-AC86U AC2900 RT-AC58U RT-AC82U RP-AC68U RT-AC85U RT-AC65U"
+MODELS_HAVE_USB3 = "DSL-AC68U RT-AC3200 RT-AC87U RT-AC68U RT-AC68A 4G-AC68U RT-AC56S RT-AC56U RT-AC55U RT-AC55UHP RT-N18U RT-N65U RT-AC88U RT-AC3100 RT-AC5300 GT-AC5300 GT-AC9600 RT-AC86U AC2900 RT-AC58U RT-AC82U RP-AC68U RT-AC85U RT-AC65U"
 
-MODELS_HAVE_TRAFFIC_ANALYZER = RT-AC3200 RT-AC87U RT-AC88U RT-AC86U RT-AC3100 RT-AC5300 GT-AC5300 DSL-AC68U RT-AC68U \
+MODELS_HAVE_TRAFFIC_ANALYZER = RT-AC3200 RT-AC87U RT-AC88U RT-AC86U RT-AC3100 RT-AC5300 GT-AC5300 GT-AC9600 DSL-AC68U RT-AC68U \
 	4G-AC68U RT-AC68R RT-AC68W RT-AC68RW RT-AC1900P RT-AC67U RT-AC56U RT-AC56R RT-AC85U BRT-AC828
 
 all:
@@ -433,7 +433,7 @@ ifneq ($(RTCONFIG_SNMPD), y)
 	rm -rf $(INSTALLDIR)/www/Advanced_SNMP_Content.asp
 endif
 
-ifneq ($(BUILD_NAME),$(filter $(BUILD_NAME), RT-AC3200 RT-AC5300 GT-AC5300 RT-AC86U AC2900 RT-AC88U RT-AC3100))
+ifneq ($(BUILD_NAME),$(filter $(BUILD_NAME), RT-AC3200 RT-AC5300 GT-AC5300 GT-AC9600 RT-AC86U AC2900 RT-AC88U RT-AC3100))
 	rm -rf $(INSTALLDIR)/www/Advanced_Smart_Connect.asp
 	rm -rf $(INSTALLDIR)/www/images/New_ui/smart_connect.png
 	rm -rf $(INSTALLDIR)/www/images/New_ui/smart_connect_concept.gif
@@ -474,7 +474,7 @@ ifeq ($(BUILD_NAME),$(filter $(BUILD_NAME), 4G-AC55U 4G-AC68U))
 	rm -rf $(INSTALLDIR)/www/Advanced_Modem_Content.asp
 endif
 
-ifneq ($(BUILD_NAME),$(filter $(BUILD_NAME), RT-AC88U RT-AC3100 RT-AC5300 GT-AC5300 RT-AC86U AC2900 RT-AC3200))
+ifneq ($(BUILD_NAME),$(filter $(BUILD_NAME), RT-AC88U RT-AC3100 RT-AC5300 GT-AC5300 GT-AC9600 RT-AC86U AC2900 RT-AC3200))
 	rm -rf $(INSTALLDIR)/www/QIS_wizard_m.htm
 	rm -rf $(INSTALLDIR)/www/css/effect.css
 	rm -rf $(INSTALLDIR)/www/qis_m
@@ -578,6 +578,10 @@ endif
 
 ifneq ($(RTCONFIG_IFTTT), y)
 	rm -rf $(INSTALLDIR)/www/Advanced_IFTTT_Pincode.asp
+	rm -rf $(INSTALLDIR)/www/Advanced_Smart_Control_Alexa.asp
+	rm -rf $(INSTALLDIR)/www/Advanced_Smart_Control_IFTTT.asp
+	rm -rf $(INSTALLDIR)/www/images/New_ui/icon_alexa.jpg
+	rm -rf $(INSTALLDIR)/www/images/New_ui/icon_ifttt.png
 endif
 
 ifneq ($(RTCONFIG_PORT_BASED_VLAN), y)
@@ -591,7 +595,7 @@ ifneq ($(RTCONFIG_FBWIFI), y)
 	rm -rf $(INSTALLDIR)/www/fbwifi
 endif
 ifeq ($(RTCONFIG_NOTIFICATION_CENTER), y)
-ifeq ($(BUILD_NAME),$(filter $(BUILD_NAME), GT-AC5300 RT-AC65U RP-AC87 RT-AC85U))
+ifneq ($(BUILD_NAME),$(filter $(BUILD_NAME), ))
 	rm -rf $(INSTALLDIR)/www/images/New_ui/nt_center
 	rm -rf $(INSTALLDIR)/www/notification_center
 	rm -rf $(INSTALLDIR)/www/nt_content.json
@@ -613,10 +617,10 @@ else ifeq ($(BUILD_NAME),RT-AC85U)
 	cd $(INSTALLDIR)/www/require && mv menuTrees/menuTree_RT-AC85U.js modules/menuTree.js
 else ifeq ($(BUILD_NAME),RT-AC65U)
 	cd $(INSTALLDIR)/www/require && mv menuTrees/menuTree_RT-AC65U.js modules/menuTree.js
-else ifeq ($(BUILD_NAME),GT-AC5300)
+else ifeq ($(BUILD_NAME),$(filter $(BUILD_NAME), GT-AC5300 GT-AC9600))
 	cd $(INSTALLDIR)/www/require && mv menuTrees/menuTree_ROG.js modules/menuTree.js
 else ifeq ($(BUILD_NAME),BRT-AC828)
-        cd $(INSTALLDIR)/www/require && mv menuTrees/menuTree_BRTAC828.js modules/menuTree.js
+	cd $(INSTALLDIR)/www/require && mv menuTrees/menuTree_BRTAC828.js modules/menuTree.js
 else ifeq ($(RTCONFIG_BWDPI),y)
 ifeq ($(findstring $(BUILD_NAME),$(MODELS_HAVE_TRAFFIC_ANALYZER)),)
 	cd $(INSTALLDIR)/www/require && mv menuTrees/menuTree_bwdpi_no_traffic_analyzer.js modules/menuTree.js
@@ -633,6 +637,14 @@ ifneq ($(BUILD_NAME),$(filter $(BUILD_NAME), BRT-AC828))
 	rm -rf $(INSTALLDIR)/www/images/New_ui/networkmap/M2_default.png
 endif
 
-ifeq ($(RTCONFIG_ROG), y)
+ifeq ($(BUILD_NAME),$(filter $(BUILD_NAME), GT-AC5300 GT-AC9600))
 	rm -rf $(INSTALLDIR)/www/images/New_ui/networkmap/white_04.gif
+endif
+
+ifneq ($(RTCONFIG_VPN_FUSION), y)
+	rm -rf $(INSTALLDIR)/www/images/New_ui/vpn_illustration.png
+	rm -rf $(INSTALLDIR)/www/ajax_vpn_fusion.asp
+	rm -rf $(INSTALLDIR)/www/Advanced_VPNClientFusion_Content.asp
+else
+	cd $(INSTALLDIR)/www/ && mv Advanced_VPNClientFusion_Content.asp Advanced_VPNClient_Content.asp
 endif

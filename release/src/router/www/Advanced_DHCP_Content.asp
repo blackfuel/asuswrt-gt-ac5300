@@ -21,6 +21,9 @@
 <script language="JavaScript" type="text/javascript" src="/client_function.js"></script>
 <script type="text/javascript" src="/js/jquery.js"></script>
 <script>
+var vpnc_dev_policy_list_array = []
+var vpnc_dev_policy_list_array_ori = [];
+
 var dhcp_staticlist_array = '<% nvram_get("dhcp_staticlist"); %>';
 var manually_dhcp_list_array = new Array();
 Object.prototype.getKey = function(value) {
@@ -106,6 +109,12 @@ function initial(){
 	//}
 
 	addOnlineHelp(document.getElementById("faq"), ["set", "up", "specific", "IP", "address"]);
+
+	if(vpn_fusion_support) {
+		vpnc_dev_policy_list_array = parse_vpnc_dev_policy_list('<% nvram_char_to_ascii("","vpnc_dev_policy_list"); %>');
+		vpnc_dev_policy_list_array_ori = vpnc_dev_policy_list_array.slice();
+	}
+
 }
 
 function addRow_Group(upper){
@@ -153,6 +162,15 @@ function addRow_Group(upper){
 			}
 		}
 		manually_dhcp_list_array[document.form.dhcp_staticip_x_0.value.toUpperCase()] = document.form.dhcp_staticmac_x_0.value.toUpperCase();
+
+		if(vpn_fusion_support) {
+			var newRuleArray = new Array();
+			newRuleArray.push(document.form.dhcp_staticip_x_0.value);
+			newRuleArray.push("0");
+			newRuleArray.push("0");
+			vpnc_dev_policy_list_array.push(newRuleArray);
+		}
+
 		document.form.dhcp_staticip_x_0.value = "";
 		document.form.dhcp_staticmac_x_0.value = "";
 		showdhcp_staticlist();		
@@ -170,6 +188,21 @@ function del_Row(r){
 
 	if(Object.keys(manually_dhcp_list_array).length == 0)
 		showdhcp_staticlist();
+
+	if(vpn_fusion_support) {
+		for(var i = 0; i < vpnc_dev_policy_list_array.length; i += 1) {
+			var tmp_array = [];
+			for(var i in vpnc_dev_policy_list_array){
+				if (vpnc_dev_policy_list_array.hasOwnProperty(i)) {
+					if(vpnc_dev_policy_list_array[i][0] != delIP) {
+						tmp_array.push(vpnc_dev_policy_list_array[i]);
+					}
+				}
+			}
+			vpnc_dev_policy_list_array = tmp_array;
+		}
+	}
+
 }
 
 function edit_Row(r){ 	
@@ -248,6 +281,36 @@ function applyRule(){
 			dhcp_staticlist_array += "<" + manually_dhcp_list_array[key] + ">"  + key;
 		});
 		document.form.dhcp_staticlist.value = dhcp_staticlist_array;
+
+		if(vpn_fusion_support) {
+			if(vpnc_dev_policy_list_array.toString() != vpnc_dev_policy_list_array_ori.toString()) {
+				var action_script_tmp = "restart_vpnc_dev_policy;" + document.form.action_script.value;
+				document.form.action_script.value = action_script_tmp;
+
+				var parseArrayToStr_vpnc_dev_policy_list = function(_array) {
+					var vpnc_dev_policy_list = "";
+					for(var i = 0; i < _array.length; i += 1) {
+						if(_array[i].length != 0) {
+							if(i != 0)
+								vpnc_dev_policy_list += "<";
+
+							var temp_ipaddr = _array[i][0];
+							var temp_vpnc_idx = _array[i][1];
+							var temp_active = _array[i][2];
+							var temp_destination_ip = "";
+							vpnc_dev_policy_list += temp_active + ">" + temp_ipaddr + ">" + temp_destination_ip + ">" + temp_vpnc_idx;
+						}
+					}
+					return vpnc_dev_policy_list;
+				};
+
+				document.form.vpnc_dev_policy_list.disabled = false;
+				document.form.vpnc_dev_policy_list_tmp.disabled = false;
+				document.form.vpnc_dev_policy_list_tmp.value = parseArrayToStr_vpnc_dev_policy_list(vpnc_dev_policy_list_array_ori);
+				document.form.vpnc_dev_policy_list.value = parseArrayToStr_vpnc_dev_policy_list(vpnc_dev_policy_list_array);
+			}
+		}
+
 		showLoading();
 		document.form.submit();
 	}
@@ -460,6 +523,26 @@ function check_vpn(){		//true: (DHCP ip pool & static ip ) conflict with VPN cli
 
 	return false;	
 }
+function parse_vpnc_dev_policy_list(_oriNvram) {
+	var parseArray = [];
+	var oriNvramRow = decodeURIComponent(_oriNvram).split('<');
+	for(var i = 0; i < oriNvramRow.length; i += 1) {
+		if(oriNvramRow[i] != "") {
+			var oriNvramCol = oriNvramRow[i].split('>');
+			var eachRuleArray = new Array();
+			if(oriNvramCol.length == 4) {
+				var temp_ipaddr = oriNvramCol[1];
+				var temp_vpnc_idx =  oriNvramCol[3];
+				var temp_active = oriNvramCol[0];
+				eachRuleArray.push(temp_ipaddr);
+				eachRuleArray.push(temp_vpnc_idx);
+				eachRuleArray.push(temp_active);
+			}
+			parseArray.push(eachRuleArray);
+		}
+	}
+	return parseArray;
+}
 </script>
 </head>
 
@@ -484,6 +567,8 @@ function check_vpn(){		//true: (DHCP ip pool & static ip ) conflict with VPN cli
 <input type="hidden" name="lan_ipaddr" value="<% nvram_get("lan_ipaddr"); %>">
 <input type="hidden" name="lan_netmask" value="<% nvram_get("lan_netmask"); %>">
 <input type="hidden" name="dhcp_staticlist" value="">
+<input type="hidden" name="vpnc_dev_policy_list" value="" disabled>
+<input type="hidden" name="vpnc_dev_policy_list_tmp" value="" disabled>
 
 <table class="content" align="center" cellpadding="0" cellspacing="0">
   <tr>

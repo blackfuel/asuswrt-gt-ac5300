@@ -365,7 +365,7 @@ function restartService(){
 	if(parent.sysReboot){
 		document.restartForm.action_wait.value = parent.rebootTime;
 		document.restartForm.action_script.value = "reboot";
-		if(!parent.based_modelid == "GT-AC5300")
+		if(!parent.based_modelid == "GT-AC5300" && !parent.based_modelid == "GT-AC9600")
 			document.getElementById('loadingIcon').style.display = '';
 	}
 	else{
@@ -420,7 +420,7 @@ function checkIsNewFirmware(){
 
 		document.getElementById("QISmain").style.display = "none";
 		document.getElementById("liveUpdate_div").style.display = "";
-		if(parent.based_modelid == "GT-AC5300"){
+		if(parent.based_modelid == "GT-AC5300" || parent.based_modelid == "GT-AC9600"){
 			$("#rog_feature_field").hide();
 		}
 
@@ -437,7 +437,7 @@ function checkIsNewFirmware(){
 		}
 
 		if(parent.sysReboot){
-			if(parent.based_modelid == "GT-AC5300"){
+			if(parent.based_modelid == "GT-AC5300" || parent.based_modelid == "GT-AC9600"){
 				$("#rog_next_btn").css("display", "none");
 				document.getElementById('loadingIcon_ROG').style.display = '';
 			}
@@ -449,7 +449,7 @@ function checkIsNewFirmware(){
 		else if(parent.changeSubnet){
 			document.restartForm.action_wait.value = 10;
 			document.restartForm.action_script.value = "restart_subnet";
-			if(parent.based_modelid == "GT-AC5300"){
+			if(parent.based_modelid == "GT-AC5300" || parent.based_modelid == "GT-AC9600"){
 				$("#rog_next_btn").css("display", "none");
 				document.getElementById('loadingIcon_ROG').style.display = '';
 			}
@@ -466,7 +466,7 @@ function checkIsNewFirmware(){
 		}
 	}
 
-	if(parent.based_modelid == "GT-AC5300" && intro_flag == 0){
+	if((parent.based_modelid == "GT-AC5300" || parent.based_modelid == "GT-AC9600") && intro_flag == 0){
 		show_rog_feature();
 	}
 }
@@ -1389,7 +1389,7 @@ function QKfinish_load_body(){
 		parent.document.getElementById("LoadingBar").style.visibility = 'hidden';
 	}
 	
-	if(parent.based_modelid == "GT-AC5300"){
+	if(parent.based_modelid == "GT-AC5300" || parent.based_modelid == "GT-AC9600"){
 		show_rog_feature();
 	}
 	else{
@@ -1917,9 +1917,9 @@ function cancel(){
 		<div style="font-size: 32px;color:rgb(207,10,44); margin: 60px 0 0 70px;"><#AiProtection_title#></div>
 		<div style="display:inline-flex;margin:280px 0 0 70px;">
 			<div style="font-size: 18px;width:500px;">
-				<div>Game IPS is a dedicate gaming networking protection system of ROG <#Web_Title2#>, in order to protect your gaming network form outside attacks and backdoor daemons.</div>
+				<div><#AiProtection_GameISP_desc#></div>
 				<div>
-					<input id="enable_bwdpi" type="checkbox" onchange="check_eula(this);" <% nvram_match("wrs_protect_enable", "1", "checked"); %>/>Enable Game IPS
+					<input id="enable_bwdpi" type="checkbox" onchange="check_eula(this);" <% nvram_match("wrs_protect_enable", "1", "checked"); %>><#AiProtection_GameISP_enable#>
 				</div>				
 			</div>
 			<div style="margin:30px 0;">
@@ -1930,9 +1930,9 @@ function cancel(){
 	<!-- END Stage Game Protection -->	
 	<!-- Stage VR -->
 	<div id="vr_field" style="display:none">
-		<div style="font-size: 32px;color:rgb(207,10,44); margin: 60px 0 0 70px;">Best for VR Gaming</div>
+		<div style="font-size: 32px;color:rgb(207,10,44); margin: 60px 0 0 70px;"><#AiProtection_title_VR#></div>
 		<div style="display:inline-flex;margin:310px 0 0 70px;">
-			<div style="font-size: 18px;width:500px;">ROG <#Web_Title2#> is best design for online, VR gaming and 4K video streaming smoothly and reliably! At the same time!</div>
+			<div style="font-size: 18px;width:500px;"><#AiProtection_title_VR_desc#></div>
 			<div>
 				<div class="qis_button" style="text-align: center;width:150px;height:36px;line-height: 36px;font-size: 16px;margin: 0 auto;border-radius:4px;cursor:pointer;" onclick="vr_next();"><#CTL_next#></div>
 			</div>			
@@ -1941,9 +1941,9 @@ function cancel(){
 	<!-- END Stage VR -->
 	<!-- Stage Dashboard -->
 	<div id="dashboard_field" style="display:none">
-		<div style="font-size: 32px;color:rgb(207,10,44); margin: 60px 0 0 70px;">Game Dashboard</div>
+		<div style="font-size: 32px;color:rgb(207,10,44); margin: 60px 0 0 70px;"><#AiProtection_title_Dashboard#></div>
 		<div style="display:inline-flex;margin:280px 0 0 70px;">
-			<div style="font-size: 18px;width:500px;">ROG <#Web_Title2#> Dashboard is design for gamers to monitor the real-time gaming network, and guide you to make best settings for gaming network.</div>
+			<div style="font-size: 18px;width:500px;"><#AiProtection_title_Dashboard_desc#></div>
 			<div style="margin:30px 0;">
 				<div class="qis_button" style="text-align: center;width:150px;height:36px;line-height: 36px;font-size: 16px;margin: 0 auto;border-radius:4px;cursor:pointer;" onclick="dashboard_next();"><#CTL_next#></div>
 			</div>
@@ -1952,9 +1952,9 @@ function cancel(){
 	<!-- END Stage Dashboard -->
 	<!-- Stage Game Radar -->
 	<div id="radar_field" style="display:none">
-		<div style="font-size: 32px;color:rgb(207,10,44); margin: 60px 0 0 70px;">Game Radar</div>
+		<div style="font-size: 32px;color:rgb(207,10,44); margin: 60px 0 0 70px;"><#AiProtection_title_Radar#></div>
 		<div style="display:inline-flex;margin:280px 0 0 70px;">
-			<div style="font-size: 18px;width:500px;">ROG <#Web_Title2#> Game Radar is designed for gamers to discover which might be the best game server for specific games, the Game Radar will locate your location and ISP(Internet Service Provider), then scan all game servers of the selected game, then turns out a geography map for you.</div>
+			<div style="font-size: 18px;width:500px;"><#AiProtection_title_Radar_desc#></div>
 			<div style="margin:30px 0;">
 				<div class="qis_button" style="text-align: center;width:150px;height:36px;line-height: 36px;font-size: 16px;margin: 0 auto;border-radius:4px;cursor:pointer;" onclick="game_radar_next();"><#CTL_next#></div>
 			</div>
@@ -1963,11 +1963,11 @@ function cancel(){
 	<!-- END Stage Game Radar -->
 	<!-- Stage Game WiFi -->
 	<div id="game_wifi_field" style="display:none">
-		<div style="font-size: 32px;color:rgb(207,10,44); margin: 60px 0 0 70px;">Dedicated Gaming WiFi</div>
+		<div style="font-size: 32px;color:rgb(207,10,44); margin: 60px 0 0 70px;"><#AiProtection_title_GameWiFi#></div>
 		<div style="display:inline-flex;margin:280px 0 0 70px;">
 			<div style="font-size: 18px;width:500px;">
-				<div style="padding-bottom:10px;">Connect your gaming laptop, PCs and consoles to dedicated ROG LAN port now! Dedicated ROG LAN port is designed for all gaming devices to have best gaming network.</div>
-				<div>ROG <#Web_Title2#> provides a dedicated WiFi network for handheld gaming devices, connect your tablet or smartphone to this dedicated WiFi network when playing games.</div>
+				<div style="padding-bottom:10px;"><#AiProtection_title_GameWiFi_desc1#></div>
+				<div><#AiProtection_title_GameWiFi_desc2#></div>
 			</div>
 			<div style="margin:30px 0;">
 				<div class="qis_button" style="text-align: center;width:150px;height:36px;line-height: 36px;font-size: 16px;margin: 0 auto;border-radius:4px;cursor:pointer;" onclick="game_wifi_next();"><#CTL_next#></div>
@@ -1977,10 +1977,10 @@ function cancel(){
 	<!-- Emd Stage Game WiFi -->
 	<!-- Stage Bandwidth Utilization -->
 	<div id="bandwidth_util_field" style="display:none">
-		<div style="font-size: 32px;color:rgb(207,10,44); margin: 60px 0 0 70px;">Bandwidth Utilization</div>
+		<div style="font-size: 32px;color:rgb(207,10,44); margin: 60px 0 0 70px;"><#AiProtection_title_BandwidthUtil#></div>
 		<div style="display:inline-flex;margin:280px 0 0 70px;">
 			<div style="font-size: 18px;width:500px;">
-				<div>Please enter your upload and download bandwidth of your Internet, why this is important? ROG <#Web_Title2#> will use this to arrange best traffic for your gaming devices.</div>
+				<div><#AiProtection_title_BandwidthUtil_desc1#> <#AiProtection_title_BandwidthUtil_desc2#></div>
 			</div>
 			<div style="margin:30px 0;">
 				<div class="qis_button" style="text-align: center;width:150px;height:36px;line-height: 36px;font-size: 16px;margin: 0 auto;border-radius:4px;cursor:pointer;" onclick="bandwidth_utilzation_next();"><#CTL_next#></div>
@@ -1990,26 +1990,26 @@ function cancel(){
 	<!-- END Stage Bandwidth Utilization  -->
 	<!-- ROG Finish state -->
 	<div id="rog_finish" style="display:none">
-		<div style="font-size: 32px;color:rgb(207,10,44); margin: 60px 0 0 70px;">Congratulation!</div>
-		<div style="margin: 5px 0 10px 70px;font-size:18px;">You can now follow information below and connect to the Wi-Fi network</div>
+		<div style="font-size: 32px;color:rgb(207,10,44); margin: 60px 0 0 70px;"><#Congratulations#></div>
+		<div style="margin: 5px 0 10px 70px;font-size:18px;"><#ROG_finish_info#></div>
 		<div style="margin: 10px 0 10px 70px;font-size:14px;">
 			<div style="padding: 2px 0">2.4 GHz</div>
 			<div style="padding: 2px 0">SSID: <span id="rog_ssid_0" style="font-size:14px;color:#FC0;"></span></div>
-			<div style="padding: 2px 0">Password: <span id="rog_password_0" style="font-size:14px;color:#FC0;"></span></div>
+			<div style="padding: 2px 0"><#Network_key#>: <span id="rog_password_0" style="font-size:14px;color:#FC0;"></span></div>
 		</div>
 		<div style="margin: 10px 0 10px 70px;font-size:14px;">
 			<div style="padding: 2px 0">5 GHz-1</div>
 			<div style="padding: 2px 0">SSID: <span id="rog_ssid_1" style="font-size:14px;color:#FC0;"></span></div>
-			<div style="padding: 2px 0">Password: <span id="rog_password_1" style="font-size:14px;color:#FC0;"></span></div>
+			<div style="padding: 2px 0"><#Network_key#>: <span id="rog_password_1" style="font-size:14px;color:#FC0;"></span></div>
 		</div>
 		<div style="margin: 10px 0 10px 70px;font-size:14px;">
 			<div style="padding: 2px 0">5 GHz-2</div>
 			<div style="padding: 2px 0">SSID: <span id="rog_ssid_2" style="font-size:14px;color:#FC0;"></span></div>
-			<div style="padding: 2px 0">Password: <span id="rog_password_2" style="font-size:14px;color:#FC0;"></span></div>
+			<div style="padding: 2px 0"><#Network_key#>: <span id="rog_password_2" style="font-size:14px;color:#FC0;"></span></div>
 		</div>				
 		<div style="display:inline-flex;margin:50px 0 0 70px;">
 			<div style="font-size: 18px;width:500px;">
-				<div>Use <a href='http://router.asus.com' target='_blank' style='text-decoration:underline'>router.asus.com</a> to login the device</div>
+				<div><#ROG_finish_login_info#></div>
 			</div>
 			<div style="margin:30px 0;">
 				<div id="rog_next_btn" class="qis_button" style="text-align: center;width:150px;height:36px;line-height: 36px;font-size: 16px;margin: 0 auto;border-radius:4px;cursor:pointer;" onclick="rog_finish_next();"><#CTL_next#></div>

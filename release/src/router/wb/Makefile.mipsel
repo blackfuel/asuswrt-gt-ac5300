@@ -1,23 +1,32 @@
 #include ../common.mak
 
-export LD :=/home/alan/oleg/optware/toolchain/mipsel-linux-uclibc/gcc-4.1.1-uclibc-0.9.28/bin/mipsel-linux-uclibc-ld
-export EXTRACFLAGS := -DBCMWPA2 -fno-delete-null-pointer-checks -mips32 -mtune=mips32
-export CC := /home/alan/oleg/optware/toolchain/mipsel-linux-uclibc/gcc-4.1.1-uclibc-0.9.28/bin/mipsel-linux-uclibc-gcc
-export AR := /home/alan/oleg/optware/toolchain/mipsel-linux-uclibc/gcc-4.1.1-uclibc-0.9.28/bin/mipsel-linux-uclibc-ar
+export SRCBASE := $(shell pwd)
+export BUILD := $(shell (gcc -dumpmachine))
+export HOSTCC := gcc
+export PLATFORM := mipsel-uclibc
+CROSS_COMPILE := mipsel-linux-
+export CROSS_COMPILER := $(CROSS_COMPILE)
+export CONFIGURE := ./configure --host=mipsel-linux --build=$(BUILD)
+export TOOLCHAIN := $(shell cd $(dir $(shell which $(CROSS_COMPILE)gcc))/.. && pwd)
+export IPKG_TOOLS := $(shell cd $(dir $(shell which $(CROSS_COMPILE)gcc))../../../ipkg-utils-1.7 && pwd)
+#export LD_DIR := $(shell cd $(dir $(shell which $(CROSS_COMPILE)gcc))/../../../../staging && pwd)
+
+export CC := $(CROSS_COMPILE)gcc
+export AR := $(CROSS_COMPILE)ar
+export AS := $(CROSS_COMPILE)as
+export LD := $(CROSS_COMPILE)ld
+export NM := $(CROSS_COMPILE)nm
+export RANLIB := $(CROSS_COMPILE)ranlib
+export STRIP := $(CROSS_COMPILE)strip
+export SIZE := $(CROSS_COMPILE)size
 export INSTALLDIR := /WorkSpace_oleg/AiCloud/shared
-export STRIP := /home/alan/oleg/optware/toolchain/mipsel-linux-uclibc/gcc-4.1.1-uclibc-0.9.28/bin/mipsel-linux-uclibc-strip
-export SIZE := /home/alan/oleg/optware/toolchain/mipsel-linux-uclibc/gcc-4.1.1-uclibc-0.9.28/bin/mipsel-linux-size
-export AS:=/home/alan/oleg/optware/toolchain/mipsel-linux-uclibc/gcc-4.1.1-uclibc-0.9.28/bin/mipsel-linux-uclibc-as 
-export NM:=/home/alan/oleg/optware/toolchain/mipsel-linux-uclibc/gcc-4.1.1-uclibc-0.9.28/bin/mipsel-linux-uclibc-nm 
-export CPP:="/home/alan/oleg/optware/toolchain/mipsel-linux-uclibc/gcc-4.1.1-uclibc-0.9.28/bin/mipsel-linux-uclibc-gcc -E" 
-export GCC:=/home/alan/oleg/optware/toolchain/mipsel-linux-uclibc/gcc-4.1.1-uclibc-0.9.28/bin/mipsel-linux-uclibc-gcc 
-export CXX:=/home/alan/oleg/optware/toolchain/mipsel-linux-uclibc/gcc-4.1.1-uclibc-0.9.28/bin/mipsel-linux-uclibc-g++ 
+
 
 WSLIB=libws.so
 
 CURL_DIR=../curl-7.21.7
 XML2_DIR=../libxml2
-OPENSSL_DIR=../openssl
+OPENSSL_DIR=../openssl-ipk
 
 WS_SRC=ws_src
 OUTPUT=output

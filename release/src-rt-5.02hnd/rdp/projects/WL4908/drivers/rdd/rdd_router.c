@@ -127,6 +127,11 @@ BL_LILAC_RDD_ERROR_DTE f_rdd_connection_table_initialize ( void )
     uint32_t  *context_cont_table_config_ptr;
     uint32_t  context_cont_table_address;
     uint32_t  i;
+    RUNNER_REGS_CFG_CAM_CFG   runner_cam_configuration_register;
+
+    runner_cam_configuration_register.stop_value = 0xFFFF;
+    RUNNER_REGS_0_CFG_CAM_CFG_WRITE ( runner_cam_configuration_register );
+    RUNNER_REGS_1_CFG_CAM_CFG_WRITE ( runner_cam_configuration_register );
 
     result_regs_addr[0] = NATCACHE_RDP_NAT0_KEY_RESULT_0_17;
     result_regs_addr[1] = NATCACHE_RDP_NAT1_KEY_RESULT_0_17;

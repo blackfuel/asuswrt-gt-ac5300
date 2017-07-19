@@ -242,17 +242,17 @@ function check_weakness(){
 	if(danger_count != 0){
 		$("#router_scan_count").html(danger_count);
 		$("#router_scan_count").css("backgroundColor", "#ED1C24");
-		$("#router_scan_state").html("Danger");
+		$("#router_scan_state").html("<#AiProtection_scan_rDanger#>");
 	}
 	else if(risk_count != 0){
 		$("#router_scan_count").html(risk_count);
 		$("#router_scan_count").css("backgroundColor", "#EF9800");
-		$("#router_scan_state").html("Risk");
+		$("#router_scan_state").html("<#AiProtection_scan_rRisk#>");
 	}
 	else if(safe_count != 0){
 		$("#router_scan_count").html(safe_count);
 		$("#router_scan_count").css("backgroundColor", "#24A628");
-		$("#router_scan_state").html("Safe");
+		$("#router_scan_state").html("<#AiProtection_scan_rSafe#>");
 	}
 }
 
@@ -1129,7 +1129,7 @@ function shadeHandle(flag){
 													<table>
 														<tr>
 															<td>
-																<div style="width:430px">Game IPS with Trend Micro protects against network exploit to secure your network from malicious access, ransomware or cybercriminal attakcs.</div>
+																<div style="width:430px"><#AiProtection_HomeDesc2#></div>
 																<div style="width:430px"><a style="text-decoration:underline;" href="http://www.asus.com/support/FAQ/1008719/" target="_blank"><#AiProtection_title#> FAQ</a></div>
 															</td>
 															<td>
@@ -1222,7 +1222,7 @@ function shadeHandle(flag){
 												<td style="padding:10px;cursor:pointer;" onclick="location.href='AiProtection_MaliciousSitesBlocking.asp'">
 													<div>
 														<div style="font-size:18px;text-shadow:1px 1px 0px black;"><#AiProtection_sites_blocking#></div>
-														<div style="font-style: italic;font-size: 14px;color:#FC0;height:auto;padding-top:5px;">Malicious Sites Blocking restricts access to known malicious websites to prevent malware, phishing, spam, adware, hacking or ransomware from attacking your network device.</div>
+														<div style="font-style: italic;font-size: 14px;color:#FC0;height:auto;padding-top:5px;"><#AiProtection_sites_block_desc#></div>
 													</div>								
 												</td>
 												 <td width="6px">
@@ -1256,7 +1256,7 @@ function shadeHandle(flag){
 														<div id="mals_count_shade" style="position:absolute;width:140px;height:115px;background-color:#505050;opacity:0.6;z-index:5;margin-top:-25px;display:none"></div>
 														<div style="text-align:center;">
 															<div id="mali_count" style="width:45px;height:45px;margin:0 auto;line-height: 45px;font-size:38px;color:#FC0;text-shadow:1px 1px 0px black"></div>
-															<div style="font-size: 16px;">Hits</div>
+															<div style="font-size: 16px;"><#AiProtection_scan_rHits#></div>
 															<div id="mali_time" style="color:#A1A7A8"></div>
 														</div>
 													</div>
@@ -1309,7 +1309,7 @@ function shadeHandle(flag){
 														<div id="vp_count_shade" style="position:absolute;width:140px;height:115px;background-color:#505050;opacity:0.6;z-index:5;margin-top:-25px;display:none"></div>
 														<div style="text-align:center;">
 															<div id="vp_count" style="width:45px;height:45px;margin:0 auto;line-height: 45px;font-size:38px;color:#FC0;text-shadow:1px 1px 0px black"></div>
-															<div style="font-size: 16px;">Hits</div>
+															<div style="font-size: 16px;"><#AiProtection_scan_rHits#></div>
 															<div id="vp_time" style="color:#A1A7A8"></div>
 														</div>
 													</div>
@@ -1359,7 +1359,7 @@ function shadeHandle(flag){
 														<div id="infected_count_shade" style="position:absolute;width:140px;height:115px;background-color:#505050;opacity:0.6;z-index:5;margin-top:-25px;display:none"></div>
 														<div style="text-align:center;">
 															<div id="infected_count" style="width:45px;height:45px;margin:0 auto;line-height: 45px;font-size:38px;color:#FC0;text-shadow:1px 1px 0px black"></div>
-															<div style="font-size: 16px;">Hits</div>
+															<div style="font-size: 16px;"><#AiProtection_scan_rHits#></div>
 															<div id="infected_time" style="color:#A1A7A8"></div>
 														</div>
 													</div>

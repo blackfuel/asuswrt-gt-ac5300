@@ -175,6 +175,24 @@ void set_country_code()
 #endif
 }
 
+#ifdef RTCONFIG_TCODE
+void set_territory_code()
+{
+	unsigned char tc_buf[6];
+	int tc_offset = HW_SETTING_OFFSET;
+
+	memset(tc_buf, 0, sizeof(tc_buf));
+	tc_offset += sizeof(PARAM_HEADER_T);
+	tc_offset += (int)(&((struct hw_setting *)0)->territoryCode);
+
+	rtk_flash_read(tc_buf, tc_offset, 5);
+	if ((unsigned char)tc_buf[0] != 0x0)
+		nvram_set("territory_code", tc_buf);
+	else
+		nvram_unset("territory_code");
+}
+#endif
+
 void set_txpwr_lmt_index(char *wl_ifname)
 {
 	char *country_code = NULL;
@@ -2990,6 +3008,18 @@ if(is_root)
 			doSystem("iwpriv wl%d set_mib mc2u_disable=1", band);
 	}
 
+	/* WiFi proxy */
+	NVRAM_GET(str, "wifipxy") {
+		if (atoi(str) == 1) /* WiFi proxy is enabled */
+			pmib->ethBrExtInfo.macclone_enable = 1;
+		else
+			pmib->ethBrExtInfo.macclone_enable = 0;
+	} else {
+		printf("NVRAM: %s%s not set!! using 0\n", prefix, suf);
+		pmib->ethBrExtInfo.macclone_enable = 0;
+
+	}
+
 	//set realtek default wlan mib value that nvram setting don't defined.
 	{
 		pmib->dot11OperationEntry.dot11ShortRetryLimit = 0;
@@ -3002,7 +3032,7 @@ if(is_root)
 		pmib->dot11OperationEntry.iapp_enable = 1;
 		//pmib->dot11RFEntry.txbf = 1;
 		pmib->dot11OperationEntry.wifi_specific = 2;
-		pmib->ethBrExtInfo.macclone_enable = 0;
+		//pmib->ethBrExtInfo.macclone_enable = 0;
 		pmib->wscEntry.wsc_enable = 0;
 		pmib->dot11StationConfigEntry.autoRate = 1;
 		//pmib->dot11RFEntry.phyBandSelect = 0;

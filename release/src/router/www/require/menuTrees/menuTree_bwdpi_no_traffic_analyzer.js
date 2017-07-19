@@ -1,4 +1,5 @@
-﻿define(function(){
+﻿/* menuTree_bwdpi_no_traffic_analyzer.js */
+define(function(){
 	var menuTree = {
 		list: [
 			/*
@@ -81,7 +82,6 @@
 					{url: "Advanced_QOSUserPrio_Content.asp", tabName: "__INHERIT__"},
 					{url: "Advanced_QOSUserRules_Content.asp", tabName: "__INHERIT__"},
 					{url: "AdaptiveQoS_Adaptive.asp", tabName: "__INHERIT__"},
-					{url: "Bandwidth_Limiter.asp", tabName: "__INHERIT__"},
 					{url: "Main_TrafficMonitor_realtime.asp", tabName: "<#traffic_monitor#>"},
 					{url: "Main_TrafficMonitor_last24.asp", tabName: "__INHERIT__"},
 					{url: "Main_TrafficMonitor_daily.asp", tabName: "__INHERIT__"},
@@ -394,7 +394,7 @@
 					retArray.push("Advanced_VPN_OpenVPN.asp");
 				}	
 
-				if(!ipsec_support){
+				if(!ipsec_srv_support){
 					retArray.push("Advanced_VPN_IPSec.asp");
 				}	
 
@@ -514,7 +514,7 @@
 				else
 					retArray.push("Advanced_DHCP_Content.asp");
 
-				if(!Rawifi_support || !concurrep_support || !isSwMode("re")){
+				if((!Rawifi_support && !Rtkwifi_support) || !concurrep_support || !isSwMode("re")){
 					retArray.push("Advanced_WProxy_Content.asp");
 				}
 				

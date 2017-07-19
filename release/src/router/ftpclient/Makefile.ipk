@@ -8,11 +8,11 @@
 #TOP = $(TOP)
 
 #CC = mipsel-uclibc-g++
-CPPFLAGS = -I$(SRCBASE)/libiconv-1.14/include -I$(SRCBASE)/curl-7.21.7/include -I$(SRCBASE)/openssl/include -I$(SRCBASE)/libxml2/include
+CPPFLAGS = -I$(SRCBASE)/libiconv-1.14/include -I$(SRCBASE)/curl-7.21.7/include -I$(SRCBASE)/openssl-ipk/include -I$(SRCBASE)/libxml2/include
 CPPFLAGS += -I$(LD_DIR) -I$(LD_DIR)/include -I. -I$(SRCBASE)/shared
 CPPFLAGS += $(if $(QCA),$(EXTRACFLAGS))
 
-LDFLAGS = -L$(SRCBASE)/curl-7.21.7/lib/.libs -L$(SRCBASE)/libxml2/.libs -L$(SRCBASE)/libiconv-1.14/lib/.libs -L$(SRCBASE)/openssl
+LDFLAGS = -L$(SRCBASE)/curl-7.21.7/lib/.libs -L$(SRCBASE)/libxml2/.libs -L$(SRCBASE)/libiconv-1.14/lib/.libs -L$(SRCBASE)/openssl-ipk
 LDFLAGS += -Wl,-rpath,/opt/lib -Wl,-rpath-link,$(SRCBASE)/opt/lib
 LIBS = -lpthread -liconv -lcurl -lcrypto -lssl -lxml2
 

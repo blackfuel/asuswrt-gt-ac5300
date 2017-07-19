@@ -362,7 +362,7 @@ function applyRule(){
 		document.form.wl_wpa_psk.value = "";
 
 	if(validForm()){
-        if(document.form.wl_closed[0].checked && document.form.wps_enable.value == 1){ 
+        if(document.form.wl_closed[0].checked && document.form.wps_enable.value == 1 && (isSwMode("rt") || isSwMode("ap"))){ 
             if(!confirm("<#wireless_JS_Hide_SSID#>")){
                 return false;           
             }

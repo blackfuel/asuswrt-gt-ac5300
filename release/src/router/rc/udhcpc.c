@@ -177,7 +177,7 @@ opt_get(const void *buf, size_t size, unsigned char id)
 static char
 *stropt(const struct opt_hdr *opt, char *buf)
 {
-	*stpncpy(buf, opt->data, opt->len) = '\0';
+	*stpncpy(buf, (char *)opt->data, opt->len) = '\0';
 	return buf;
 }
 
@@ -399,30 +399,33 @@ bound(void)
 	if ((value = getenv("opt43")) && nvram_get_int("tr_discovery") &&
 			(value = hex2bin(value, &size))) {
 		struct opt_hdr *opt;
-		char buf[256], *url = NULL, *userinfo, *host, *path, *ptr;
+		char buf[256], *url = NULL, *userinfo, *host, *path, *ptr, *user, *pass;
 		if ((opt = opt_get(value, size, 1)) &&
 		    (ptr = strstr(stropt(opt, buf), "://")) && ptr > buf)
-			url = buf;
+			url = trim_r(buf);
 		else if ((ptr = strstr(value, "://")) && ptr > value)
 			url = trim_r(value);
 		if (url && (
 		    strncmp(url, "http://", sizeof("http://") - 1) == 0 ||
 		    strncmp(url, "https://", sizeof("https://") - 1) == 0)) {
-			host = ptr + 3;
+			host = strtok_r(ptr + 3, " ", &userinfo);
 			path = strchrnul(host, '/');
 			if ((ptr = strchr(host, '@')) && ptr < path) {
 				ptr = strsep(&host, "@");
-				userinfo = strdup(ptr);
+				if ((userinfo = user = pass = strdup(ptr)))
+					strsep(&pass, ":");
 				url = memmove(host - (ptr - url), url, ptr - url);
-			} else
+			} else {
+				user = strtok_r(NULL, " ", &userinfo);
+				pass = strtok_r(NULL, " ", &userinfo);
 				userinfo = NULL;
+			}
 			if (host < path) {
-				if ((ptr = userinfo)) {
-					strsep(&ptr, ":");
-					//nvram_set(strcat_r(wanprefix, "tr_username", tmp), userinfo ? : "");
-					//nvram_set(strcat_r(wanprefix, "tr_passwd", tmp), ptr ? : "");
-					nvram_set("tr_username", userinfo ? : "");
-					nvram_set("tr_passwd", ptr ? : "");
+				if (user || pass) {
+					//nvram_set(strcat_r(wanprefix, "tr_username", tmp), user ? : "");
+					//nvram_set(strcat_r(wanprefix, "tr_passwd", tmp), pass ? : "");
+					nvram_set("tr_username", user ? : "");
+					nvram_set("tr_passwd", pass ? : "");
 				}
 				//nvram_set(strcat_r(wanprefix, "tr_acs_url", tmp), url);
 				nvram_set("tr_acs_url", url);

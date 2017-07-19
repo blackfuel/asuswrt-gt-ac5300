@@ -204,7 +204,7 @@ function showautofw_rulelist(){
 				{
 					"editMode" : "text",
 					"maxlength" : "11",
-					"validator" : "portRange",
+					"validator" : "portRange"
 				},
 				{
 					"editMode" : "select",

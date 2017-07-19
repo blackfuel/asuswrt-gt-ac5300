@@ -648,8 +648,7 @@ wps_osl_validate_default()
 	if (!value) {
 		if (b_wps_version2) {
 			config_method = (WPS_CONFMET_VIRT_PBC | WPS_CONFMET_PHY_PBC |
-				WPS_CONFMET_VIRT_DISPLAY | WPS_CONFMET_PBC |
-				WPS_CONFMET_DISPLAY);
+				WPS_CONFMET_PBC | WPS_CONFMET_KEYPAD | WPS_CONFMET_LABEL);
 		}
 		else {
 			/* For DTM 1.1 test */

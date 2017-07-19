@@ -68,7 +68,11 @@ typedef struct _vpnc_profile{
 
 typedef struct _vpnc_dev_policy{
 	int active;	// 0:disable ; 1:enable
+#ifdef USE_IPTABLE_ROUTE_TARGE
 	char mac[20];	//mac address of client
+#else
+	char src_ip[16];	//ip address of client
+#endif
 	char dst_ip[16];	//ip address of destinaction
 	int vpnc_idx;	//vpn client index
 }VPNC_DEV_POLICY;
@@ -81,4 +85,8 @@ typedef enum{
 #endif
 
 #define VPNC_UNIT_BASIC 5
+
+#define VPNC_PROFILE_VER_OLD	0
+#define VPNC_PROFILE_VER1		1
+
 #endif

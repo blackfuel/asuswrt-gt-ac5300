@@ -101,6 +101,7 @@ typedef union {
 #ifdef RTCONFIG_IFTTT
 #define IFTTTUSERAGENT	"asusrouter-Windows-IFTTT-1.0"
 #define GETIFTTTCGI	"get_IFTTTPincode.cgi"
+#define GETIFTTTOKEN "get_IFTTTtoken.cgi"
 #endif
 
 typedef struct conn_item {
@@ -124,6 +125,7 @@ char referer_host[64];
 char current_page_name[128];
 char user_agent[1024];
 char gen_token[32]={0};
+char last_fail_token[32]={0};
 
 asus_token_t *head;
 asus_token_t *curr;
@@ -232,7 +234,7 @@ static char *get_referrer(char *referer);
 char *generate_token(void);
 static void send_error( int status, char* title, char* extra_header, char* text );
 //#ifdef RTCONFIG_CLOUDSYNC
-static void send_page( int status, char* title, char* extra_header, char* text , int fromapp);
+void send_page( int status, char* title, char* extra_header, char* text , int fromapp);
 //#endif
 static void send_headers( int status, char* title, char* extra_header, char* mime_type, int fromapp);
 static void send_token_headers( int status, char* title, char* extra_header, char* mime_type, int fromapp);
@@ -262,6 +264,7 @@ time_t login_dt=0;
 char login_url[128];
 int login_error_status = 0;
 char cloud_file[128];
+
 
 /* Added by Joey for handle one people at the same time */
 unsigned int login_ip=0; // the logined ip
@@ -638,10 +641,14 @@ auth_check( char* dirname, char* authorization, char* url, char* file, char* coo
 	}
 	/* form based authorization info? */
 
-	if(search_token_in_list(asustoken, NULL) != NULL){
+	if(search_token_in_list(asustoken, NULL) != NULL
+#ifdef RTCONFIG_IFTTT
+	 || check_ifttt_token(asustoken)
+#endif
+	){
 		//_dprintf("asus token auth_check: the right user and password\n");
 #ifdef RTCONFIG_IFTTT
-		if(strncmp(url, GETIFTTTCGI, strlen(GETIFTTTCGI))==0) add_ifttt_flag();
+		if(strncmp(url, GETIFTTTCGI, strlen(GETIFTTTCGI))==0 || strncmp(url, GETIFTTTOKEN, strlen(GETIFTTTOKEN))==0) add_ifttt_flag();
 #endif
 		if(!cur_login_ip_type)
 		{
@@ -662,7 +669,13 @@ auth_check( char* dirname, char* authorization, char* url, char* file, char* coo
 			page_default_redirect(fromapp_flag, url);
 			return 0;
 		}else{
-			__send_login_page(fromapp_flag, AUTHFAIL, url, file, dt);
+			if(!strcmp(last_fail_token, asustoken))
+				send_login_page(fromapp_flag, AUTHFAIL, url, file, dt);
+			else{
+				strlcpy(last_fail_token, asustoken, sizeof(last_fail_token));
+				__send_login_page(fromapp_flag, AUTHFAIL, url, file, dt);
+			}
+
 			return AUTHFAIL;
 		}
 	}
@@ -688,7 +701,6 @@ char *generate_token(void){
 	c=rand();
 	d=rand();
 	snprintf(gen_token, sizeof(gen_token),"%d%d%d%d", a, b, c, d);
-
 	return gen_token;
 }
 
@@ -703,7 +715,7 @@ send_error( int status, char* title, char* extra_header, char* text )
 }
 
 //#ifdef RTCONFIG_CLOUDSYNC
-static void
+void
 send_page( int status, char* title, char* extra_header, char* text , int fromapp){
     if(fromapp == 0){
 	send_headers( status, title, extra_header, "text/html", fromapp);
@@ -999,6 +1011,7 @@ handle_request(void)
 	int i, isDeviceDiscovery=0;
 	char id_local[32],prouduct_id[32];
 #endif
+	char inviteCode[256];
 
 	/* Initialize the request variables. */
 	authorization = boundary = cookies = referer = useragent = NULL;
@@ -1247,7 +1260,7 @@ handle_request(void)
 		memset(current_page_name, 0, sizeof(current_page_name));
 		snprintf(current_page_name, sizeof(current_page_name), "%s", url);
 	}
-	
+
 	if(strncmp(url, APPLYAPPSTR, strlen(APPLYAPPSTR))==0 
 #ifdef RTCONFIG_ROG
 		|| strncmp(url, APPLYROGSTR, strlen(APPLYROGSTR))==0
@@ -1267,6 +1280,10 @@ handle_request(void)
 		strcpy(user_agent, "");
 
 	fromapp = check_user_agent(useragent);
+
+#ifdef RTCONFIG_IFTTT
+	ifttt_log(url, file);
+#endif
 
 #ifdef RTCONFIG_UIDEBUG
         char sysdepPath[128];
@@ -1337,13 +1354,9 @@ handle_request(void)
 				break;
 			}
 		}
+	}
+	x_Setting = nvram_get_int("x_Setting");
 
-		x_Setting = nvram_get_int("x_Setting");
-	}
-	else { // Jerry5 fix AiCloud login issue. 20120815
-		x_Setting = nvram_get_int("x_Setting");
-		//skip_auth = 0;
-	}
 	for (handler = &mime_handlers[0]; handler->pattern; handler++) {
 		if (match(handler->pattern, url))
 		{
@@ -1364,6 +1377,14 @@ handle_request(void)
 				if ((mime_exception&MIME_EXCEPTION_NOAUTH_FIRST)&&!x_Setting) {
 					//skip_auth=1;
 				}
+#if defined(MAPAC1300) || defined(MAPAC2200)
+				else if ((mime_exception&MIME_EXCEPTION_NOAUTH_FIRST)&&nvram_match("qis_Setting", "0")) {
+					// pass
+				}else if(!fromapp && !strcmp(nvram_safe_get("hive_ui"), "")){
+					snprintf(inviteCode, sizeof(inviteCode), "<script>top.location.href='/message.htm';</script>");
+					send_page( 200, "OK", (char*) 0, inviteCode, 0);
+				}
+#endif
 				else if((mime_exception&MIME_EXCEPTION_NOAUTH_ALL)) {
 				}
 				else {
@@ -1464,6 +1485,9 @@ handle_request(void)
 #ifdef RTCONFIG_DSL_TCLINUX
 					&& !strstr(file, "TCC.log")
 #endif
+#ifdef RTCONFIG_IFTTT
+					&& !strstr(file, "asustitle.png")
+#endif
 					){
 				send_error( 404, "Not Found", (char*) 0, "File not found." );
 				return;
@@ -1475,18 +1499,15 @@ handle_request(void)
 			}else if(strncmp(url, "login.cgi", strlen(url))!=0){
 				send_headers( 200, "Ok", handler->extra_header, handler->mime_type, fromapp);
 			}
-
 			if (strcasecmp(method, "head") != 0 && handler->output) {
 				handler->output(file, conn_fp);
 			}
-
 			break;
 		}
 	}
 
 	if (!handler->pattern){
 		if(strlen(file) > 50 && !(strstr(file, "findasus")) && !(strstr(file, "acme-challenge"))){
-			char inviteCode[256];
 			memset(cloud_file, 0, sizeof(cloud_file));
 			if(!check_xss_blacklist(file, 0))
 				strlcpy(cloud_file, file, sizeof(cloud_file));

@@ -109,12 +109,12 @@ URL: http://www.asusnetwork.net/cloud_sync.asp
 
 
 Package: asusopenssl
-Version: 9.1.0.2j
+Version: 9.1.0.2j.v001
 Section: libs
 Architecture: arm
 Maintainer: NSLU2 Linux <nslu2-linux@yahoogroups.com>
-Size: 1103772
-Filename: asusopenssl_9.1.0.2j_arm.ipk
+Size: 1103464 
+Filename: asusopenssl_9.1.0.2j.v001_arm.ipk
 Source: http://www.openssl.org/source/openssl-0.9.8v.tar.gz
 Description: Openssl provides the ssl implementation in libraries libcrypto and libssl, and is needed by many other applications and libraries.
 

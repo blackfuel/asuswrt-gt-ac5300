@@ -831,5 +831,4 @@ static inline void ftrace_dump(enum ftrace_dump_mode oops_dump_mode) { }
 
 #ifdef CONFIG_DUMP_PREV_OOPS_MSG
 extern void enable_oopsbuf(int onoff);
-extern int prepare_and_dump_previous_oops(void);
 #endif

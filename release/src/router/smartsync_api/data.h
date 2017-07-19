@@ -39,3 +39,5 @@
 #define S_DOWNLOAD		74
 #define S_STOP			75
 #define S_ERROR			76
+
+#define CA_INFO_FILE "/tmp/smartsync/google/cert/GeoTrustGlobalCA.crt"

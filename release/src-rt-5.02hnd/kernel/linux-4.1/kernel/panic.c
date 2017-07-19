@@ -110,11 +110,8 @@ void panic(const char *fmt, ...)
 	va_start(args, fmt);
 	vsnprintf(buf, sizeof(buf), fmt, args);
 	va_end(args);
-
-#ifndef CATHY_TRACE
 #ifdef CONFIG_DUMP_PREV_OOPS_MSG
 	enable_oopsbuf(1);
-#endif
 #endif
 	pr_emerg("Kernel panic - not syncing: %s\n", buf);
 #ifdef CONFIG_DEBUG_BUGVERBOSE
@@ -403,10 +400,8 @@ void oops_enter(void)
 	/* can't trust the integrity of the kernel anymore: */
 	debug_locks_off();
 	do_oops_enter_exit();
-#ifndef CATHY_TRACE
 #ifdef CONFIG_DUMP_PREV_OOPS_MSG
 	enable_oopsbuf(1);
-#endif
 #endif
 }
 

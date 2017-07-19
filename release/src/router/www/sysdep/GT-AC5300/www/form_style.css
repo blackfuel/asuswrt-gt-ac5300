@@ -978,31 +978,31 @@ form{
 
 /* btns in table */
 .add_btn{
- 	background: transparent url(images/New_ui/accountadd.png) no-repeat scroll center top;
- 	border:0;
-	height:34px;
- 	width:35px;
- 	cursor:pointer;
+	background: transparent url(images/New_ui/accountadd.png) no-repeat scroll center top;
+	border:0;
+	height:32px;
+	width:32px;
+	cursor:pointer;
 }
 .add_btn:hover, .add_btn:active{
- 	border:0;
-	height:34px;
- 	width:35px;
- 	cursor:pointer;
+	border:0;
+	height:32px;
+	width:32px;
+	cursor:pointer;
 }
 
 .remove_btn{
- 	background: transparent url(images/New_ui/accountdelete.png) no-repeat scroll center top;
+	background: transparent url(images/New_ui/accountdelete.png) no-repeat scroll center top;
 	border:0;
-	height:30px;
- 	width:35px;
- 	cursor:pointer;
+	height:32px;
+	width:32px;
+	cursor:pointer;
 }
 .remove_btn:hover, .remove_btn:active{
 	border:0;
-	height:30px;
- 	width:35px;
- 	cursor:pointer;
+	height:32px;
+	width:32px;
+	cursor:pointer;
 }
 .remove_btn_NM{
  	background: transparent url(images/zoomout.png) no-repeat scroll center top;
@@ -1016,14 +1016,14 @@ form{
 .edit_btn{
   background: transparent url(images/New_ui/accountedit.png) no-repeat scroll center top;
   border:0;
-	height:34px;
- 	width:35px;
+	height:32px;
+	width:32px;
  	cursor:pointer;
 }
 .edit_btn:hover, .edit_btn:active{
  	border:0;
-	height:34px;
- 	width:35px;
+	height:32px;
+	width:32px;
  	cursor:pointer;
 }
 /* btns in table */

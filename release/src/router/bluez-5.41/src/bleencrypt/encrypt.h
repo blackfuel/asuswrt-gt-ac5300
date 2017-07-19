@@ -6,6 +6,20 @@
 */
 #ifndef __ENCRYPTh__
 #define __ENCRYPTh__
+
+#ifdef __WIN32__
+#if _MSC_VER < 1900
+#ifndef snprintf
+#define snprintf _snprintf
+#endif
+#endif	/* _MSC_VER < 1900 */
+#endif  /* __WIN32__ */
+
+#ifdef __WIN32__
+#define __func__ __FUNCTION__
+#include <Winsock2.h>
+#endif	/* __WIN32__ */
+
 #include <stdio.h>
 #include <string.h>
 #include <time.h>

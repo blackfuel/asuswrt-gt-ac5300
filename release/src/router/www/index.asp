@@ -2323,6 +2323,7 @@ function closeClientDetailView() {
 		<div id="NM_shift" style="margin-top:-140px;"></div>
 		<div id="NM_table" class="NM_table" >
 		<div id="NM_table_div">
+			<div style="width:50%;float:left;">
 			<table id="_NM_table" border="0" cellpadding="0" cellspacing="0" height="720" style="opacity:.95;" >
 				<tr>
 					<td width="40px" rowspan="11" valign="center"></td>
@@ -2379,31 +2380,7 @@ function closeClientDetailView() {
 							<strong id="rssi_status" class="index_status" style="font-size:14px;"></strong>
 						</div>
 					</td>
-					<td width="40px" rowspan="11" valign="top">
-						<div class="statusTitle" id="statusTitle_NM">
-							<div id="helpname" style="padding-top:10px;font-size:16px;"></div>
-						</div>							
-						<div class="NM_radius_bottom_container">
-							<iframe id="statusframe" class="NM_radius_bottom" style="display:none;margin-left:0px\9" name="statusframe" width="320px" height="735px" frameborder="0"></iframe>
-						</div>
-				
-						<script>
-							(function(){
-								setTimeout(function(){
-									document.getElementById("statusframe").src = "/device-map/router.asp";	
-								}, 1);
-								
-								var $iframe = $("#statusframe");
-								$iframe.on("load", function(){
-									$iframe.show();
-									document.getElementById("statusframe").contentWindow.onbeforeunload = function(){
-										$iframe.hide();
-									};
-								});
-							})()
-						</script>
-
-					</td>	
+						
 				</tr>			
 				<tr>
 					<!--==line of dual wan==-->
@@ -2496,6 +2473,39 @@ function closeClientDetailView() {
 					</td>
 				</tr>
 			</table>
+			</div>
+			<div style="width:50%;float:left;">
+			<table id="_NM_table" border="0" cellpadding="0" cellspacing="0" style="opacity:.95;">
+				<tr>
+					<td valign="top">
+						<div class="statusTitle" id="statusTitle_NM">
+							<div id="helpname" style="padding-top:10px;font-size:16px;"></div>
+						</div>							
+						<div class="NM_radius_bottom_container">
+							<iframe id="statusframe" class="NM_radius_bottom" style="display:none;margin-left:0px\9" name="statusframe" width="320px" height="735px" frameborder="0"></iframe>
+						</div>
+				
+						<script>
+							(function(){
+								setTimeout(function(){
+									document.getElementById("statusframe").src = "/device-map/router.asp";	
+								}, 1);
+								
+								var $iframe = $("#statusframe");
+								$iframe.on("load", function(){
+									$iframe.show();
+									document.getElementById("statusframe").contentWindow.onbeforeunload = function(){
+										$iframe.hide();
+									};
+								});
+							})()
+						</script>
+
+					</td>	
+				</tr>
+			</table>
+			</div>
+			<div style="clear:both;"></div>
 		</div>
 	</div>
 <!--==============Ending of hint content=============-->

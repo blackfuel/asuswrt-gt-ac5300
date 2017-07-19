@@ -10,11 +10,9 @@ CFLAGS += -I$(TOP)/shared #Just For rtconfig.h , do not include share library.
 CFLAGS += -I$(TOP)/json-c
 CFLAGS += -DASUSWRT_SDK
 
-ifeq ($(or $(CONFIG_LINUX3_14),$(HND_ROUTER)),y)
+# NOTE : Kernel 3.x upper will show one pthread (even if you create more than one)
+ifeq ($(CONFIG_KERNEL_PTHREAD_ONE),y)
 CFLAGS += -DCONFIG_LINUX3X_OR_4X
-endif
-ifeq ($(HND_ROUTER),y)
-CFLAGS += -DNON_P_THREAD
 endif
 
 LDFLAGS = -L$(TOP)/nt_center/lib/ -lnt
@@ -38,7 +36,7 @@ endif
 MDIRS = lib actMail
 
 ifeq ($(wildcard $(SRCBASE)/router/nt_center/*.c),)
-all: 
+all:
 	-cp -f prebuilt/Notify_Event2NC Notify_Event2NC
 	-cp -f prebuilt/nt_center nt_center
 	-cp -f actMail/prebuilt/nt_actMail actMail

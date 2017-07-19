@@ -52,7 +52,6 @@ function initial(){
 	if(lacp_support){
 		document.getElementById("lacp_tr").style.display = "";
 		if(lacp_enabled && bonding_policy_support){
-			document.getElementById("lacp_policy_tr").style.display = "";
 			document.form.bonding_policy.value = bonding_policy_value;
 			check_bonding_policy(document.form.lacp_enabled);
 			document.getElementById("lacp_desc").style.display = "";
@@ -64,11 +63,15 @@ function initial(){
 		document.form.lacp_enabled.disabled = true;
 	}
 
+	//MODELDEP
 	if(based_modelid == "GT-AC5300"){
 		document.getElementById("ctf_tr").style.display = "none";
 		var new_str = "";
 		new_str = document.getElementById("lacp_note").innerHTML.replace(/LAN1/g, "LAN5");
 		document.getElementById("lacp_note").innerHTML = new_str.replace(/LAN2/g, "LAN6");
+	}
+	else if(based_modelid == "RT-AC86U" || based_modelid == "AC2900"){
+		document.getElementById("ctf_tr").style.display = "none";
 	}
 
 	if(lacp_support && wans_dualwan_array.indexOf("lan") != -1){
@@ -131,12 +134,18 @@ function applyRule(){
 
 function check_bonding_policy(obj){
 	if(obj.value == "1"){
-		document.getElementById("lacp_policy_tr").style.display = "";
+		if(based_modelid == "GT-AC5300" || based_modelid == "RT-AC86U"){
+			document.getElementById("lacp_policy_tr").style.display = "";
+		}
+		
 		document.form.bonding_policy.disabled = false;
 		document.getElementById("lacp_desc").style.display = "";
 	}
 	else{
-		document.getElementById("lacp_policy_tr").style.display = "none";
+		if(based_modelid == "GT-AC5300" || based_modelid == "RT-AC86U"){
+			document.getElementById("lacp_policy_tr").style.display = "none";
+		}
+		
 		document.form.bonding_policy.disabled = true;
 		document.getElementById("lacp_desc").style.display = "none";
 	}

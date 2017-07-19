@@ -56,7 +56,7 @@ var enable_samba = '<% nvram_get("enable_samba"); %>';
 
 var max_shift = "";	/*MODELDEP (include dict #PPTP_desc2# #vpn_max_clients# #vpn_maximum_clients#) : 
 				RT-AC5300/GT-AC5300/RT-AC86U/AC2900/RT-AC3200/RT-AC3100/RT-AC88U/RT-AC87U/RT-AC68U/RT-AC66U/RT-AC56U/RT-N66U/RT-N18U */
-if(based_modelid == "RT-AC5300" || based_modelid == "GT-AC5300" || based_modelid == "RT-AC3200" || based_modelid == "RT-AC3100" ||
+if(based_modelid == "RT-AC5300" || based_modelid == "GT-AC5300" || based_modelid == "GT-AC9600" || based_modelid == "RT-AC3200" || based_modelid == "RT-AC3100" ||
 		based_modelid == "RT-AC88U" || based_modelid == "RT-AC86U" || based_modelid == "AC2900" || based_modelid == "RT-AC87U" || based_modelid == "RT-AC68U" ||
 		based_modelid == "RT-AC66U" || based_modelid == "RT-AC56U" ||
 		based_modelid == "RT-N66U" || based_modelid == "RT-N18U"){
@@ -169,7 +169,7 @@ function initial(){
 	if(!openvpnd_support) {
 		delete vpn_server_array.OpenVPN;
 	}
-	if(!ipsec_support) {
+	if(!ipsec_srv_support) {
 		delete vpn_server_array.IPSEC;
 	}
 	$('#divSwitchMenu').html(gen_switch_menu(vpn_server_array, "PPTP"));
@@ -989,7 +989,7 @@ function update_pptp_client_status(){
 											<td>
 												<input type="radio" value="1" name="pptpd_broadcast_option" onClick="setBroadcast(this);"/><#checkbox_Yes#>
 												<input type="radio" value="0" name="pptpd_broadcast_option" onClick="setBroadcast(this);"/><#checkbox_No#>
-												<span id="pptpd_broadcast_hint" style="font-family: Lucida Console;color: #FFCC00;display: none;">When Network Place enabled, this must be enabled</span>
+												<span id="pptpd_broadcast_hint" style="font-family: Lucida Console;color: #FFCC00;display: none;"><#PPTP_broadcast_hint#></span>
 											</td>
 										</tr>
 										<tr>

@@ -6,8 +6,8 @@
 #define MAX_EVENT_INFO_LEN    512
 #define WCLIENT_LIST_JSON_PATH	"/tmp/wclientlist.json"
 #define WEVENT_FILE_LOCK	"wevent"
-#define WEVENT_STA_NAME		"STA"
-#define	WEVENT_EVENT_NAME	"EVENT"
+#define WEVENT_TIMESTAMP	"ts"
+#define WEVENT_EVENT		"event"
 
 extern void cm_rcvWeventHandler();
 extern void cm_weventPacketProcess(unsigned char *data);

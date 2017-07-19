@@ -11,6 +11,7 @@ rm -rf $APPS_INSTALL_PATH/lib/libsmbclient.*
 rm -rf $APPS_INSTALL_PATH/lib/liblightsql.so
 rm -rf $APPS_INSTALL_PATH/lib/aicloud_mod*
 rm -rf $APPS_INSTALL_PATH/lib/mod_aicloud_auth.so
+rm -rf $APPS_INSTALL_PATH/lib/mod_aicloud_invite.so
 rm -rf $APPS_INSTALL_PATH/lib/libws.so
 rm -rf $APPS_INSTALL_PATH/lib/libpush_log.so
 rm -rf $APPS_INSTALL_PATH/etc/apps_asus_script/gencert.sh

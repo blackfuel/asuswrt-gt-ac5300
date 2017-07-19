@@ -16,6 +16,11 @@ LDFLAGS += -L$(TOP)/sqlite/.libs -lsqlite3
 LDFLAGS += -lpthread #Depend on sqlite
 endif
 
+ifeq ($(RTCONFIG_QTN),y)
+CFLAGS += -I$(TOP)/libqcsapi_client -I$(TOP)/httpd -I./sysdeps/qtn
+LDFLAGS += -L$(TOP)/libqcsapi_client -lqcsapi_client
+endif
+
 ifeq ($(CONFIG_KERNEL_PTHREAD_ONE),y)
 CFLAGS += -DCONFIG_LINUX3X_OR_4X
 endif
@@ -36,7 +41,6 @@ all:
 	-cp -f prebuilt/protect_srv protect_srv
 	-cp -f prebuilt/Send_Event2ptcsrv Send_Event2ptcsrv
 	-cp -f lib/prebuilt/libptcsrv.so lib
-	-cp -f lib/prebuilt/*.h lib
 
 else
 all: ptcsrvdir Send_Event2ptcsrv protect_srv
@@ -64,10 +68,18 @@ MAKE = make
 CFLAGS = -Wall -O2 -g 
 CFLAGS += $(TC_CFLAGS) -I.
 CFLAGS += -I$(APP_PROTECTION_SERVER_DIR)/include/
+CFLAGS += -I. -I$(APP_SHARED_DIR) -I$(APP_TCAPILIB_DIR) $(TC_CFLAGS)
 
-LDFLAGS = -lm
+LDFLAGS = -L$(APP_SHARED_DIR) -lshared -L$(APP_TCAPILIB_DIR) -ltcapi
 LDFLAGS += -L$(APP_PROTECTION_SERVER_DIR)/lib/ -lptcsrv
 LDFLAGS += -lpthread
+
+ifneq ($(strip $(RTCONFIG_NOTIFICATION_CENTER)),)
+CFLAGS += -I$(APP_NOTIFICATION_CENTER_DIR) -I$(APP_NOTIFICATION_CENTER_DIR)/lib/
+CFLAGS += -I$(APP_SQLITE_DIR)/
+LDFLAGS += -L$(APP_NOTIFICATION_CENTER_DIR)/lib -lnt -lm
+LDFLAGS += -L$(APP_SQLITE_DIR)/.libs -lsqlite3
+endif
 LIBS =
 
 MDIRS+= lib

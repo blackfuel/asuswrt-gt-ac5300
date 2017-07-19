@@ -1010,7 +1010,7 @@ function handle_value(){
 				<tr>
 					<td bgcolor="#4D595D" valign="top">
 					<div style="display:table;width:100%;">
-						<div style="display:table-cell;font-size:14px;font-weight:bolder;text-shadow:1px 1px 0px #000;padding:10px;width:85%">Traffic Analyzer - Traffic Limiter</div>
+						<div style="display:table-cell;font-size:14px;font-weight:bolder;text-shadow:1px 1px 0px #000;padding:10px;width:85%"><#Traffic_Analyzer#> - Traffic Limiter</div>
 						<div style="display:table-cell">
 							<input class="button_gen_long" type="button" onclick="show_alert_preference();" value="Notification">
 						</div>

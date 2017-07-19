@@ -104,7 +104,7 @@ void svr_auth_password() {
 #ifdef RTCONFIG_PROTECTION_SERVER
 		char ip[64];
 		char *addr;
-		strncpy(ip, svr_ses.addrstring, sizeof(ip));
+		strncpy(ip, svr_ses.addrstring, sizeof(ip)-1);
 		addr = strrchr(ip, ':');
 		*addr = '\0';
 		SEND_PTCSRV_EVENT(PROTECTION_SERVICE_SSH, RPT_SUCCESS, ip, "From dropbear , LOGIN SUCCESS(authpasswd)");
@@ -115,7 +115,7 @@ void svr_auth_password() {
 #ifdef RTCONFIG_PROTECTION_SERVER
 		char ip[64];
 		char *addr;
-		strncpy(ip, svr_ses.addrstring, sizeof(ip));
+		strncpy(ip, svr_ses.addrstring, sizeof(ip)-1);
 		addr = strrchr(ip, ':');
 		*addr = '\0';
 		SEND_PTCSRV_EVENT(PROTECTION_SERVICE_SSH, RPT_FAIL, ip, "From dropbear , LOGIN FAIL(authpasswd)");

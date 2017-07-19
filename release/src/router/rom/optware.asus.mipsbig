@@ -338,12 +338,12 @@ Description: Openssl provides the ssl implementation in libraries libcrypto and 
 
 
 Package: asusopenssl
-Version: 1.0.2j
+Version: 1.0.2j.v001
 Section: libs
 Architecture: mipsbig
 Maintainer: NSLU2 Linux <nslu2-linux@yahoogroups.com>
-Size: 1165241
-Filename: asusopenssl_1.0.2j_mipsbig.ipk
+Size: 1164205
+Filename: asusopenssl_1.0.2j.v001_mipsbig.ipk
 Source: http://www.openssl.org/source/openssl-0.9.7m.tar.gz
 Description: Openssl provides the ssl implementation in libraries libcrypto and libssl, and is needed by many other applications and libraries.
 

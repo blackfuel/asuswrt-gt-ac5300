@@ -490,7 +490,7 @@ var netoolApi = {
 								<div>
 									<div style="width:99%;height:300px;margin: 10px auto;">
 										<div style="">
-											<div style="font-size: 18px;margin: 45px 20px -20px 100px;color:#BFBFBF">Network Traffic</div>
+											<div style="font-size: 18px;margin: 45px 20px -20px 100px;color:#BFBFBF"><#ROG_Network_Traffic#></div>
 										</div>
 										<div style="width:100%;">
 											<div id="area_chart" style="width: 600px; height: 310px;margin: 0 auto;display:inline-block;"></div>
@@ -521,7 +521,7 @@ var netoolApi = {
 										<div style="display: inline-block;width:240px;vertical-align: top;">
 											
 											<div style="margin: 10px 0 0 30px;">
-												<div style="font-size: 18px;color:#BFBFBF">WIRELESS STATE</div>
+												<div style="font-size: 18px;color:#BFBFBF"><#ROG_WIRELESS_STATE#></div>
 												<div style="text-align: right;margin-right:20px;">
 													<div id="wl0_icon" class="wl_icon"></div>
 													<div id="wl1_icon" class="wl_icon"></div>
@@ -530,7 +530,7 @@ var netoolApi = {
 
 											</div>
 											<div style="margin: 25px 0 0 90px;text-align: center;">
-												<div style="font-size: 18px;color:#BFBFBF">WAN STATE</div>
+												<div style="font-size: 18px;color:#BFBFBF"><#ROG_WAN_STATE#></div>
 												<div id="wan_state" style="font-size: 18px;margin-top:10px;color:#57BDBA"></div>		
 											</div>
 										</div>
@@ -556,7 +556,7 @@ var netoolApi = {
 									</div>
 
 									<div style="width:99%;height:300px;margin: 10px auto;">
-										<div style="font-size:18px;margin:45px 120px;position:absolute;width:200px;color:#BFBFBF">NETWORK PING</div>
+										<div style="font-size:18px;margin:45px 120px;position:absolute;width:200px;color:#BFBFBF"><#ROG_Network_PING#></div>
 										<div id="svgPingContainer" style="margin:85px 0px 0px 20px;position:absolute;background-color:#221712;">
 											<svg width="340px" height="170px">
 												<g>
@@ -580,7 +580,7 @@ var netoolApi = {
 										</div>
 										<div style="font-size:12px;margin:255px 250px;position:absolute;width:200px;color:#BFBFBF"><#Average_value#> : <span id="pingAvg">0 ms</span></div>
 
-										<div style="font-size:18px;margin:45px 500px;position:absolute;width:200px;color:#BFBFBF">PING DEVIATION</div>
+										<div style="font-size:18px;margin:45px 500px;position:absolute;width:200px;color:#BFBFBF"><#ROG_PING_DEVIATION#></div>
 										<div id="svgJitterContainer" style="margin:85px 0px 0px 400px;position:absolute;background-color:#221712;"> 
 											<svg width="340px" height="170px">
 												<g>

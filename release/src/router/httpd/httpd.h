@@ -266,6 +266,7 @@ extern int is_firsttime(void);
 extern char *generate_token(void);
 extern int match( const char* pattern, const char* string );
 extern int match_one( const char* pattern, int patternlen, const char* string );
+extern void send_page( int status, char* title, char* extra_header, char* text , int fromapp);
 
 /* web.c */
 extern int ej_lan_leases(int eid, webs_t wp, int argc, char_t **argv);
@@ -285,6 +286,9 @@ extern asus_token_t* add_token_to_list(char *token, int add_to_end);
 extern asus_token_t* create_list(char *token);
 extern void set_referer_host(void);
 extern int check_xss_blacklist(char* para, int check_www);
+extern int check_cmd_whitelist(char* para);
+extern int useful_redirect_page(char *next_page);
+extern char* reverse_str( char *str );
 
 /* web-*.c */
 extern int ej_wl_status(int eid, webs_t wp, int argc, char_t **argv, int unit);
@@ -302,6 +306,17 @@ extern void add_ifttt_flag(void);
 #ifdef RTCONFIG_HTTPS
 extern char *pwenc(const char *input);
 extern int check_model_name(void);
+#endif
+
+#ifdef RTCONFIG_IFTTT
+extern char ifttt_stoken[128];
+extern char ifttt_query_string[2048];
+extern time_t ifttt_timestamp;
+extern char *gen_IFTTTPincode(char *pincode);
+extern char *gen_IFTTTtoken(char* stoken, char* token);
+extern char* gen_IFTTT_inviteCode(char* inviteCode);
+extern int check_ifttt_token(char* asus_token);
+extern void ifttt_log(char* url, char* file);
 #endif
 
 #endif /* _httpd_h_ */

@@ -11,23 +11,23 @@ ifeq ($(RTCONFIG_NEW_APP_ARM),y)
 	pkg_type=arm
 	DM_VERSION=9.1.0.101
 	HTTP_VERSION=9.1.0.97
-	OPENSSL_VERSION=9.1.0.2j
+	OPENSSL_VERSION=9.1.0.2j.v001
 else
 	pkg_type=arm
 	DM_VERSION=3.1.0.101
 	HTTP_VERSION=3.1.0.97
-	OPENSSL_VERSION=1.0.2j
+	OPENSSL_VERSION=1.0.2j.v001
 endif
 else ifeq ($(or $(RTCONFIG_QCA),$(RTCONFIG_REALTEK)),y)
 	pkg_type=mipsbig
 	DM_VERSION=3.1.0.101
 	HTTP_VERSION=3.1.0.97
-	OPENSSL_VERSION=1.0.2j
+	OPENSSL_VERSION=1.0.2j.v001
 else
 	pkg_type=mipsel
 	DM_VERSION=3.1.0.101
 	HTTP_VERSION=3.1.0.97
-	OPENSSL_VERSION=1.0.2j
+	OPENSSL_VERSION=1.0.2j.v001
 endif
 
 PKG_LIST := readline wxbase expat zlib libevent ncurses libxml2 pcre spawn-fcgi asuslibcurl
@@ -106,6 +106,9 @@ ifneq ($(APP),none)
 	install -m 0755 apps_scripts/asusrouter $(INSTALLDIR)/rom/.asusrouter
 	install -m 0755 apps_scripts/app_*.sh $(INSTALLDIR)/usr/sbin
 	install -m 0755 apps_scripts/check_spectrum.sh $(INSTALLDIR)/usr/sbin
+ifeq ($(RTCONFIG_USB_SWAP),y)
+	install -m 0755 apps_scripts/usb_swap.sh $(INSTALLDIR)/usr/sbin
+endif
 else
 ifeq ($(RTCONFIG_DISK_MONITOR),y)
 	install -m 0755 apps_scripts/app_fsck*.sh $(INSTALLDIR)/usr/sbin
@@ -154,6 +157,9 @@ else
 endif
 ifeq ($(RTAC68A),y)
 	cp -f webs_scripts/force_webs_update.sh $(INSTALLDIR)/usr/sbin/webs_update.sh
+endif
+ifeq ($(AC2900),y)
+	cp -f webs_scripts/verizon_webs_update.sh $(INSTALLDIR)/usr/sbin/webs_update.sh
 endif
 
 ifeq ($(RTCONFIG_BWDPI),y)

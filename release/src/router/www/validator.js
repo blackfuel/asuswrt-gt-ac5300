@@ -302,6 +302,16 @@ var validator = {
 		return false;
 	},
 
+	domainName: function (obj) { //support a-z, 0-9, "-", "_" , "."", The first character cannot be dash "-" or under line "_"
+		var re = new RegExp(/^(?:[a-z0-9](?:[a-z0-9-_]{0,61}[a-z0-9])?\.)+[a-z0-9][a-z0-9-_]{0,61}[a-z0-9]$/);
+		if(re.test(obj.value)){
+			return "";
+		}
+		else{
+			return "<#JS_validhostname#>";
+		}
+	},
+
 	requireWANIP: function(v){
 		if(v == 'wan_ipaddr_x' || v == 'wan_netmask_x' ||
 				v == 'lan_ipaddr' || v == 'lan_netmask' ||
@@ -907,7 +917,7 @@ var validator = {
 		if (urlregex.test(value)) {
 			return true;
 		}
-		alert("It is invalid URL.");
+		alert("It is invalid URL."); /*untranslated*/
 		return false;
 	},
 
@@ -1621,13 +1631,6 @@ var validator = {
 			return v.substring(i);
 		};
 
-		if(isNaN(o.value)){
-			alert('<#JS_validrange#> ' + _min + ' <#JS_validrange_to#> ' + _max);
-			o.focus();
-			o.select();
-			return false;
-		}
-
 		if(_min > _max){
 			var tmpNum = "";
 		
@@ -1636,7 +1639,7 @@ var validator = {
 			_max = tmpNum;
 		}
 
-		if(o.value < _min || o.value > _max) {
+		if(isNaN(o.value) || o.value < _min || o.value > _max) {
 			alert('<#JS_validrange#> ' + _min + ' <#JS_validrange_to#> ' + _max);
 			o.focus();
 			o.select();
@@ -1654,7 +1657,7 @@ var validator = {
 	rangeNull: function(o, min, max, def) {		//Viz add 2013.03 allow to set null
 		if (o.value=="") return true;
 		
-		if(o.value<min || o.value>max) {
+		if(isNaN(o.value) || o.value < min || o.value > max) {
 			alert('<#JS_validrange#> ' + min + ' <#JS_validrange_to#> ' + max + '.');
 			o.value = def;
 			o.focus();
@@ -1676,16 +1679,7 @@ var validator = {
 
 		if (o.value==0) return true;
 
-		for(var i=0; i<o.value.length; i++){		//is_number
-			if (o.value.charAt(i)<'0' || o.value.charAt(i)>'9'){			
-				alert('<#JS_validrange#> ' + min + ' <#JS_validrange_to#> ' + max);
-				o.focus();
-				o.select();
-				return false;
-			}
-		}
-
-		if(o.value<min || o.value>max) {
+		if(isNaN(o.value) || o.value < min || o.value > max) {
 			alert('<#JS_validrange#> ' + min + ' <#JS_validrange_to#> ' + max + '.');
 			o.value = def;
 			o.focus();
@@ -1698,6 +1692,19 @@ var validator = {
 				o.value="0";
 			return true;
 		}
+	},
+
+	rangeFloat: function(o, _min, _max, def){
+
+                if(isNaN(o.value) || o.value <= _min || o.value > _max) {
+                        alert('<#JS_validrange#> ' + min + ' <#JS_validrange_to#> ' + max + '.');
+			o.value = def;
+			o.focus();
+			o.select();
+			return false;
+		}
+
+                return true;
 	},
 
 	ssidChar: function(ch){

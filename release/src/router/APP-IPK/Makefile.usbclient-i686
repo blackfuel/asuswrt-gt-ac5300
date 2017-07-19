@@ -33,10 +33,11 @@ all: $(obj-y)
 
 clean:
 	@$(MAKE) -C $(CURRENT)/usbclient clean -f Makefile.ipk
-	@rm -rf Usbclient-ipk/opt/tmp/lib/*
 	@rm -rf Usbclient-ipk/opt/tmp/bin/*
 	rm -rf usbclient_*.ipk
 
+mkdir:
+	-mkdir -p Usbclient-ipk/opt/tmp/bin/
 
 usbclient-clean:
 	@$(MAKE) -C $(CURRENT)/usbclient clean -f Makefile.ipk
@@ -53,5 +54,6 @@ usbclient: usbclient/stamp-h1
 
 
 usbclient-ipk:
+	cp -rf AiCloud-tmp/CONTROL/control-usb-i686 Usbclient-ipk/CONTROL/control
 	$(STRIP) Usbclient-ipk/opt/tmp/bin/*
 	@$(IPKG_TOOLS)/ipkg-build Usbclient-ipk ./

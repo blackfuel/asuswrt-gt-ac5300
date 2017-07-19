@@ -363,6 +363,7 @@ handler_t ntlm_authentication_handler(server *srv, connection *con, plugin_data 
 			break;
 		}
 		}
+
 		if( res == NT_STATUS_V(NT_STATUS_LOGON_FAILURE) ||
 			res == NT_STATUS_V(NT_STATUS_ACCESS_DENIED) ) 
 		{

@@ -50,7 +50,7 @@ enum {
 	LAN4_PORT=4,
 	WAN_PORT=5,
 	P6_PORT=5,
-#elif defined(HIVEDOT) || defined(HIVESPOT)
+#elif defined(MAPAC1300) || defined(MAPAC2200)
 	CPU_PORT=0,
 	LAN1_PORT=4,
 	LAN2_PORT=3,
@@ -323,14 +323,6 @@ static void build_wan_lan_mask(int stb)
 	else
 		f_write_string("/proc/sys/net/edma/merge_wan_into_lan", "0", 0, 0);
 
-#ifdef RTCONFIG_DETWAN
-	if(nvram_get_int("x_Setting") && sw_mode() == SW_MODE_ROUTER)
-	{
-		wan_mask = nvram_get_int("wanports_mask");
-		lan_mask = nvram_get_int("lanports_mask");
-		return;
-	}
-#endif	/* RTCONFIG_DETWAN */
 #if 0	/* TODO: no WAN port */
 	if ((get_wans_dualwan() & (WANSCAP_LAN | WANSCAP_WAN)) == 0)
 		stb = 7; // no WAN?
@@ -362,6 +354,7 @@ static void build_wan_lan_mask(int stb)
 		lan_mask &= ~wans_lan_mask;
 	}
 
+#if ! defined(RTCONFIG_DETWAN)	// not to overwrite wanports_mask and lanports_mask
 	for (unit = WAN_UNIT_FIRST; unit < WAN_UNIT_MAX; ++unit) {
 		sprintf(prefix, "%d", unit);
 		sprintf(nvram_ports, "wan%sports_mask", (unit == WAN_UNIT_FIRST)?"":prefix);
@@ -376,6 +369,7 @@ static void build_wan_lan_mask(int stb)
 			nvram_unset(nvram_ports);
 	}
 	nvram_set_int("lanports_mask", lan_mask);
+#endif	/* RTCONFIG_DETWAN */
 }
 
 /**

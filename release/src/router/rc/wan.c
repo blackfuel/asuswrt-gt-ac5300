@@ -216,10 +216,12 @@ add_routes(char *prefix, char *var, char *ifname)
 {
 	char word[80], *next;
 	char *ipaddr, *netmask, *gateway, *metric;
-	char tmp[100];
+	char xgateway[16];
+	char tmp[100], buf[100];
 
-	foreach(word, nvram_safe_get(strcat_r(prefix, var, tmp)), next) {
+	snprintf(buf, sizeof(buf), "%s", nvram_safe_get(strcat_r(prefix, var, tmp)));
 
+	foreach(word, buf, next){
 		netmask = word;
 		ipaddr = strsep(&netmask, ":");
 		if (!ipaddr || !netmask)
@@ -235,10 +237,12 @@ add_routes(char *prefix, char *var, char *ifname)
 
 		/* Incorrect, empty and 0.0.0.0
 		 * probably need to allow empty gateway to set on-link route */
-		if (inet_addr_(gateway) == INADDR_ANY)
-			gateway = nvram_safe_get(strcat_r(prefix, "xgateway", tmp));
-
-		route_add(ifname, atoi(metric) + 1, ipaddr, gateway, netmask);
+		if(inet_addr_(gateway) == INADDR_ANY){
+			snprintf(xgateway, sizeof(xgateway), "%s", nvram_safe_get(strcat_r(prefix, "xgateway", tmp)));
+			route_add(ifname, atoi(metric) + 1, ipaddr, xgateway, netmask);
+		}
+		else
+			route_add(ifname, atoi(metric) + 1, ipaddr, gateway, netmask);
 	}
 
 	return 0;
@@ -321,9 +325,9 @@ del_routes(char *prefix, char *var, char *ifname)
 			continue;
 
 		if (inet_addr_(gateway) == INADDR_ANY) 	// oleg patch
-			gateway = nvram_safe_get("wan0_xgateway");
-
-		route_del(ifname, atoi(metric) + 1, ipaddr, gateway, netmask);
+			route_del(ifname, atoi(metric) + 1, ipaddr, nvram_safe_get("wan0_xgateway"), netmask);
+		else
+			route_del(ifname, atoi(metric) + 1, ipaddr, gateway, netmask);
 	}
 
 	return 0;
@@ -386,7 +390,7 @@ start_igmpproxy(char *wan_ifname)
 #if !(defined(HND_ROUTER) && defined(MCPD_PROXY))
 	FILE *fp;
 	static char *igmpproxy_conf = "/tmp/igmpproxy.conf";
-	char *altnet;
+	char *altnet, buf[32];
 #endif
 
 #ifdef RTCONFIG_DSL
@@ -432,7 +436,8 @@ start_igmpproxy(char *wan_ifname)
 		return;
 	}
 
-	altnet = nvram_safe_get("mr_altnet_x");
+	snprintf(buf, sizeof(buf), "%s", nvram_safe_get("mr_altnet_x"));
+	altnet = buf;
 
 	if (nvram_get_int("mr_qleave_x"))
 		fprintf(fp, "quickleave\n");
@@ -487,7 +492,7 @@ del_wan_routes(char *wan_ifname)
 #if 0
 		return -1;
 #else
-		sprintf(prefix, "wan%d_", WAN_UNIT_FIRST);
+		snprintf(prefix, sizeof(prefix), "wan%d_", WAN_UNIT_FIRST);
 #endif
 
 	return del_routes(prefix, "route", wan_ifname);
@@ -561,7 +566,7 @@ int enable_qos()
 
 void update_wan_state(char *prefix, int state, int reason)
 {
-	char tmp[100], tmp1[100], *ptr;
+	char tmp[100], tmp1[100], buf[PATH_MAX], *ptr;
 	int unit = -1;
 
 	_dprintf("%s(%s, %d, %d)\n", __FUNCTION__, prefix, state, reason);
@@ -613,12 +618,12 @@ void update_wan_state(char *prefix, int state, int reason)
 
 		/* reset wanX* dns variables */
 		strcpy(tmp1, "");
-		ptr = nvram_safe_get(strcat_r(prefix, "dns1_x", tmp));
-		if (*ptr && inet_addr_(ptr) != INADDR_ANY)
-			sprintf(tmp1, "%s", ptr);
-		ptr = nvram_safe_get(strcat_r(prefix, "dns2_x", tmp));
-		if (*ptr && inet_addr_(ptr) != INADDR_ANY)
-			sprintf(tmp1 + strlen(tmp1), "%s%s", *tmp1 ? " " : "", ptr);
+		snprintf(buf, sizeof(buf), "%s", nvram_safe_get(strcat_r(prefix, "dns1_x", tmp)));
+		if(strlen(buf) > 0 && inet_addr_(buf) != INADDR_ANY)
+			snprintf(tmp1, sizeof(tmp1), "%s", buf);
+		snprintf(buf, sizeof(buf), "%s", nvram_safe_get(strcat_r(prefix, "dns2_x", tmp)));
+		if(strlen(buf) > 0 && inet_addr_(buf) != INADDR_ANY)
+			sprintf(tmp1 + strlen(tmp1), "%s%s", *tmp1 ? " " : "", buf);
 
 		/* reset wanX_dns */
 		ptr = !nvram_get_int(strcat_r(prefix, "dnsenable_x", tmp)) ? tmp1 : "";
@@ -788,7 +793,7 @@ static int start_ipoa()
 	// add neighbor hosts
 	for (i=0; i<NeighborIpNum; i++)
 	{
-		sprintf(CmdBuf,"%s.%d",NeighborIpPrefix,i+NeiBaseIpNum);
+		snprintf(CmdBuf, sizeof(CmdBuf), "%s.%d", NeighborIpPrefix, i+NeiBaseIpNum);
 #ifdef RTCONFIG_DSL_TCLINUX
 		eval("arp","-i",nvram_safe_get("wan0_ifname"),"-a",CmdBuf,"-s",tc_mac);
 #else
@@ -872,8 +877,8 @@ static int stop_ipoa()
 	// delete neighbor hosts
 	for (i=0; i<NeighborIpNum; i++)
 	{
-		sprintf(CmdBuf,"%s.%d",NeighborIpPrefix,i+NeiBaseIpNum);
-		eval("arp","-d",CmdBuf);
+		snprintf(CmdBuf, sizeof(CmdBuf), "%s.%d", NeighborIpPrefix, i+NeiBaseIpNum);
+		eval("arp", "-d", CmdBuf);
 	}
 
 	return 0;
@@ -905,6 +910,7 @@ int check_wan_if(int unit)
 			char buf[32], wan[32];
 			const int ports[] = { 0, 1, 2, 3, 4, 5 };
 			int wan1cfg = nvram_get_int("wans_lanport") + WAN1PORT1 - 1;
+
 			snprintf(buf, sizeof(buf), "vlan%dports", cur_ewan_vid);
 			nvram_unset(buf);
 			switch_gen_config(wan, ports, wan1cfg, 1, "t");
@@ -919,12 +925,14 @@ int check_wan_if(int unit)
 
 			//generate vlan interfaces
 			char cur_vif[16], new_vif[16];
-			sprintf(cur_vif, "vlan%d", cur_ewan_vid);
-			sprintf(new_vif, "vlan%d", new_vid);
+
+			snprintf(cur_vif, sizeof(cur_vif), "vlan%d", cur_ewan_vid);
+			snprintf(new_vif, sizeof(new_vif), "vlan%d", new_vid);
 
 			dbG("cur_vif=%s, new_vif=%s\n", cur_vif, new_vif);
 			
 			char word[256], *next, tmp[256];
+
 			//replace old vlan interface by new vlan interface
 			memset(tmp, 0, 256);
 			foreach(word, nvram_safe_get("wandevs"), next)
@@ -954,7 +962,7 @@ int check_wan_if(int unit)
 					nvram_set(buf, new_vif);
 				}
 
-				sprintf(buf, "wan%d_gw_ifname", unit);
+				snprintf(buf, sizeof(buf), "wan%d_gw_ifname", unit);
 				if(nvram_match(buf, cur_vif))
 				{
 					dbG("%s=%s\n", buf, new_vif);
@@ -989,12 +997,8 @@ start_wan_if(int unit)
 #ifdef RTCONFIG_DUALWAN
 	int pppoerelay_unit;
 #endif
-	char *wan_ifname;
-	char *wan_proto;
-#ifdef BLUECAVE
-	char wan_ifname_local[32] = {0};
-	char wan_proto_local[32] = {0};
-#endif
+	char wan_ifname[16];
+	char wan_proto[16];
 	char tmp[100], prefix[32];
 	char eabuf[32];
 	int s;
@@ -1131,7 +1135,6 @@ _dprintf("start_wan_if: USB modem is scanning...\n");
 		}
 		else if(strcmp(modem_type, "wimax")){
 			char *modem_argv[] = {"/usr/sbin/modem_enable.sh", NULL};
-			char *ptr;
 			int sim_state;
 
 			putenv(env_unit);
@@ -1144,9 +1147,9 @@ _dprintf("start_wan_if: USB modem is scanning...\n");
 				return;
 			}
 
-			ptr = nvram_safe_get(strcat_r(prefix2, "act_sim", tmp2));
-			if(strlen(ptr) > 0){
-				sim_state = atoi(ptr);
+			snprintf(tmp, sizeof(tmp), "%s", nvram_safe_get(strcat_r(prefix2, "act_sim", tmp2)));
+			if(strlen(tmp) > 0){
+				sim_state = atoi(tmp);
 				if(sim_state == 2 || sim_state == 3){
 					TRACE_PT("3g end: Need to input PIN or PUK.\n");
 					update_wan_state(prefix, WAN_STATE_STOPPED, WAN_STOPPED_REASON_PINCODE_ERR);
@@ -1182,12 +1185,8 @@ _dprintf("start_wan_if: USB modem is scanning...\n");
 		}
 		// RNDIS, QMI interface: usbX, Beceem interface: usbbcm -> ethX, gct(mad)wimax: wimaxX.
 		else{
-			wan_ifname = nvram_safe_get(strcat_r(prefix, "ifname", tmp));
-#ifdef BLUECAVE
-			snprintf(wan_ifname_local, sizeof(wan_ifname_local),
-				"%s", wan_ifname);
-			wan_ifname = wan_ifname_local;
-#endif
+			snprintf(wan_ifname, sizeof(wan_ifname), "%s", nvram_safe_get(strcat_r(prefix, "ifname", tmp)));
+TRACE_PT("3g begin with %s.\n", wan_ifname);
 
 			if(strlen(wan_ifname) <= 0){
 #ifdef RTCONFIG_USB_BECEEM
@@ -1256,7 +1255,7 @@ _dprintf("start_wan_if: USB modem is scanning...\n");
 					TRACE_PT("%s: wait %s(%s) be up, %d second...!\n", __FUNCTION__, modem_type, wan_ifname, i);
 					sleep(1);
 				}
-			};
+			}
 
 			if (!(ifr.ifr_flags & IFF_UP)) {
 				TRACE_PT("Interface %s couldn't be up!\n", wan_ifname);
@@ -1343,24 +1342,14 @@ _dprintf("start_wan_if: USB modem is scanning...\n");
 		convert_wan_nvram(prefix, unit);
 
 		/* make sure the connection exists and is enabled */
-		wan_ifname = nvram_safe_get(strcat_r(prefix, "ifname", tmp));
-#ifdef BLUECAVE
-			snprintf(wan_ifname_local, sizeof(wan_ifname_local),
-				"%s", wan_ifname);
-			wan_ifname = wan_ifname_local;
-#endif
+		snprintf(wan_ifname, sizeof(wan_ifname), "%s", nvram_safe_get(strcat_r(prefix, "ifname", tmp)));
 
 		if(strlen(wan_ifname) <= 0)
 			return;
 
-		wan_proto = nvram_get(strcat_r(prefix, "proto", tmp));
-#ifdef BLUECAVE
-			snprintf(wan_proto_local, sizeof(wan_proto_local),
-				"%s", wan_proto);
-			wan_proto = wan_proto_local;
-#endif
+		snprintf(wan_proto, sizeof(wan_proto), "%s", nvram_safe_get(strcat_r(prefix, "proto", tmp)));
 
-		if (!wan_proto || !strcmp(wan_proto, "disabled")) {
+		if(!strcmp(wan_proto, "disabled")){
 			update_wan_state(prefix, WAN_STATE_DISABLED, 0);
 			return;
 		}
@@ -1493,11 +1482,14 @@ _dprintf("start_wan_if: USB modem is scanning...\n");
 		    strcmp(wan_proto, "pptp") == 0 ||
 		    strcmp(wan_proto, "l2tp") == 0) 	// oleg patch
 		{
-			char *ipaddr = nvram_safe_get(strcat_r(prefix, "xipaddr", tmp));
-			char *netmask = nvram_safe_get(strcat_r(prefix, "xnetmask", tmp));
+			char ipaddr[16];
+			char netmask[16];
 			int dhcpenable = nvram_get_int(strcat_r(prefix, "dhcpenable_x", tmp));
 			int demand = nvram_get_int(strcat_r(prefix, "pppoe_idletime", tmp)) &&
 					strcmp(wan_proto, "l2tp");	/* L2TP does not support idling */
+
+			snprintf(ipaddr, sizeof(ipaddr), "%s", nvram_safe_get(strcat_r(prefix, "xipaddr", tmp)));
+			snprintf(netmask, sizeof(netmask), "%s", nvram_safe_get(strcat_r(prefix, "xnetmask", tmp)));
 
 			/* update demand option */
 			nvram_set_int(strcat_r(prefix, "pppoe_demand", tmp), demand);
@@ -1517,7 +1509,9 @@ _dprintf("start_wan_if: USB modem is scanning...\n");
 				start_udhcpc(wan_ifname, unit,
 					(strcmp(wan_proto, "pppoe") == 0) ? &pid : NULL);
 			} else {
-				char *gateway = nvram_safe_get(strcat_r(prefix, "xgateway", tmp));
+				char gateway[16];
+
+				snprintf(gateway, sizeof(gateway), "%s", nvram_safe_get(strcat_r(prefix, "xgateway", tmp)));
 
 				/* start firewall */
 // TODO: handle different lan_ifname
@@ -1557,13 +1551,7 @@ _dprintf("start_wan_if: USB modem is scanning...\n");
 
 			/* ppp interface name is referenced from this point
 			 * after pppd start before ip-pre-up it will be empty */
-			wan_ifname = nvram_safe_get(strcat_r(prefix, "pppoe_ifname", tmp));
-
-#ifdef BLUECAVE
-			snprintf(wan_ifname_local, sizeof(wan_ifname_local),
-				"%s", wan_ifname);
-			wan_ifname = wan_ifname_local;
-#endif
+			snprintf(wan_ifname, sizeof(wan_ifname), "%s", nvram_safe_get(strcat_r(prefix, "pppoe_ifname", tmp)));
 
 			/* Pretend that the WAN interface is up */
 			if (demand) {
@@ -1572,20 +1560,15 @@ _dprintf("start_wan_if: USB modem is scanning...\n");
 				/* Wait for pppx to be created */
 				while (timeout--) {
 					/* ppp interface name is re-referenced from this point */
-					wan_ifname = nvram_safe_get(strcat_r(prefix, "pppoe_ifname", tmp));
-#ifdef BLUECAVE
-					snprintf(wan_ifname_local, sizeof(wan_ifname_local),
-						"%s", wan_ifname);
-					wan_ifname = wan_ifname_local;
-#endif
+					snprintf(wan_ifname, sizeof(wan_ifname), "%s", nvram_safe_get(strcat_r(prefix, "pppoe_ifname", tmp)));
 
-					if (*wan_ifname && ifconfig(wan_ifname, IFUP, NULL, NULL) == 0)
+					if(strlen(wan_ifname) > 0 && ifconfig(wan_ifname, IFUP, NULL, NULL) == 0)
 						break;
 					_dprintf("%s: wait interface %s up at %d seconds...\n", __FUNCTION__, wan_ifname, timeout);
 					sleep(1);
 				}
 
-				if (!*wan_ifname) {
+				if(strlen(wan_ifname) <= 0){
 					_dprintf("%s: no interface of wan_unit %d.\n", __FUNCTION__, unit);
 					return;
 				}
@@ -1691,9 +1674,9 @@ stop_wan_if(int unit)
 #if defined(RTCONFIG_DSL) && defined(RTCONFIG_DUALWAN)
 	int wan_type;
 #endif
-	char *wan_ifname;
+	char wan_ifname[16];
 	char tmp[100], prefix[32];
-	char *wan_proto, active_proto[32];
+	char wan_proto[16], active_proto[16];
 #ifdef RTCONFIG_USB_BECEEM
 	int i;
 	unsigned int uvid, upid;
@@ -1716,13 +1699,11 @@ stop_wan_if(int unit)
 	update_wan_state(prefix, WAN_STATE_STOPPING, end_wan_sbstate);
 
 	/* Backup active wan_proto for later restore, if it have been updated by ui */
-	wan_proto = nvram_safe_get(strcat_r(prefix, "proto", tmp));
-	strncpy(active_proto, wan_proto, sizeof(active_proto));
+	snprintf(active_proto, sizeof(active_proto), "%s", nvram_safe_get(strcat_r(prefix, "proto", tmp)));
 
 	/* Set previous wan_proto as active */
-	wan_proto = nvram_safe_get(strcat_r(prefix, "proto_t", tmp));
-	if (*wan_proto && strcmp(active_proto, wan_proto) != 0)
-	{
+	snprintf(wan_proto, sizeof(wan_proto), "%s", nvram_safe_get(strcat_r(prefix, "proto_t", tmp)));
+	if(strlen(wan_proto) > 0 && strcmp(active_proto, wan_proto) != 0){
 		stop_iQos(); // clean all tc rules
 		_dprintf("%s %sproto_t=%s\n", __FUNCTION__, prefix, wan_proto);
 		nvram_set(strcat_r(prefix, "proto", tmp), wan_proto);
@@ -1778,7 +1759,7 @@ stop_wan_if(int unit)
 
 	/* Bring down WAN interfaces */
 	// Does it have to?
-	wan_ifname = nvram_safe_get(strcat_r(prefix, "ifname", tmp));
+	snprintf(wan_ifname, sizeof(wan_ifname), "%s", nvram_safe_get(strcat_r(prefix, "ifname", tmp)));
 #ifdef RTCONFIG_USB_MODEM
 	if(strncmp(wan_ifname, "/dev/tty", 8))
 #endif
@@ -1823,8 +1804,8 @@ stop_wan_if(int unit)
 			killall("wimaxd", SIGUSR1);
 		}
 
-		uvid = atoi(nvram_safe_get("usb_modem_act_vid"));
-		upid = atoi(nvram_safe_get("usb_modem_act_pid"));
+		uvid = nvram_get_int("usb_modem_act_vid");
+		upid = nvram_get_int("usb_modem_act_pid");
 
 		if(is_samsung_dongle(1, uvid, upid)){
 			i = 0;
@@ -1876,6 +1857,16 @@ stop_wan_if(int unit)
 #endif
 	}
 
+#ifdef RTCONFIG_GETREALIP
+#ifdef RTCONFIG_DUALWAN
+	if(nvram_invmatch("wans_mode", "lb"))
+#endif
+	{
+		nvram_set(strcat_r(prefix, "realip_state", tmp), "0");
+		nvram_set(strcat_r(prefix, "realip_ip", tmp), "");
+	}
+#endif
+
 	if(dualwan_unit__usbif(unit))
 		update_wan_state(prefix, WAN_STATE_INITIALIZING, end_wan_sbstate);
 	else
@@ -1895,7 +1886,8 @@ int update_resolvconf(void)
 {
 	FILE *fp, *fp_servers;
 	char tmp[100], prefix[sizeof("wanXXXXXXXXXX_")];
-	char *wan_dns, *wan_domain, *next;
+	char wan_dns[PATH_MAX], wan_domain[128], *next;
+	char wan_xdns[PATH_MAX], wan_xdomain[128];
 	char domain[64], *next_domain;
 	int unit, lock;
 #ifdef RTCONFIG_YANDEXDNS
@@ -1919,8 +1911,6 @@ int update_resolvconf(void)
 #endif
 	{
 		for(unit = WAN_UNIT_FIRST; unit < WAN_UNIT_MAX; unit++){
-			char *wan_xdns, *wan_xdomain;
-
 			if(unit != wan_primary_ifunit() && nvram_invmatch("wans_mode", "lb"))
 				continue;
 
@@ -1928,16 +1918,16 @@ int update_resolvconf(void)
 				continue;
 
 			snprintf(prefix, sizeof(prefix), "wan%d_", unit);
-			wan_dns = nvram_safe_get(strcat_r(prefix, "dns", tmp));
-			wan_xdns = nvram_safe_get(strcat_r(prefix, "xdns", tmp));
+			snprintf(wan_dns, sizeof(wan_dns), "%s", nvram_safe_get(strcat_r(prefix, "dns", tmp)));
+			snprintf(wan_xdns, sizeof(wan_xdns), "%s", nvram_safe_get(strcat_r(prefix, "xdns", tmp)));
 
-			if(!*wan_dns && !*wan_xdns)
+			if(strlen(wan_dns) <= 0 && strlen(wan_xdns) <= 0)
 				continue;
 
 			foreach(tmp, (*wan_dns ? wan_dns : wan_xdns), next)
 				fprintf(fp, "nameserver %s\n", tmp);
 
-			wan_domain = nvram_safe_get(strcat_r(prefix, "domain", tmp));
+			snprintf(wan_domain, sizeof(wan_domain), "%s", nvram_safe_get(strcat_r(prefix, "domain", tmp)));
 			foreach(tmp, wan_dns, next){
 				foreach(domain, wan_domain, next_domain)
 					fprintf(fp_servers, "server=/%s/%s\n", domain, tmp);
@@ -1947,7 +1937,7 @@ int update_resolvconf(void)
 #endif
 			}
 
-			wan_xdomain = nvram_safe_get(strcat_r(prefix, "xdomain", tmp));
+			snprintf(wan_xdomain, sizeof(wan_xdomain), "%s", nvram_safe_get(strcat_r(prefix, "xdomain", tmp)));
 			foreach(tmp, wan_xdns, next){
 				int new = (find_word(wan_dns, tmp) == NULL);
 				foreach(domain, wan_xdomain, next_domain){
@@ -1986,8 +1976,8 @@ int update_resolvconf(void)
 		case IPV6_PASSTHROUGH:
 #endif
 			if (nvram_get_int(ipv6_nvname("ipv6_dnsenable"))) {
-				wan_dns = nvram_safe_get(ipv6_nvname("ipv6_get_dns"));
-				wan_domain = nvram_safe_get(ipv6_nvname("ipv6_get_domain"));
+				snprintf(wan_dns, sizeof(wan_dns), "%s", nvram_safe_get(strcat_r(prefix, "ipv6_get_dns", tmp)));
+				snprintf(wan_domain, sizeof(wan_domain), "%s", nvram_safe_get(strcat_r(prefix, "ipv6_get_domain", tmp)));
 				break;
 			}
 			/* fall through */
@@ -1998,8 +1988,8 @@ int update_resolvconf(void)
 				next += snprintf(next, sizeof(dnsbuf) + dnsbuf - next,
 					    *dnsbuf ? " %s" : "%s", nvram_safe_get(ipv6_nvname(tmp)));
 			}
-			wan_dns = dnsbuf;
-			wan_domain = "";
+			snprintf(wan_dns, sizeof(wan_dns), "%s", dnsbuf);
+			memset(wan_domain, 0, sizeof(wan_domain));
 		}
 
 		foreach(tmp, wan_dns, next) {
@@ -2048,7 +2038,7 @@ void wan6_up(const char *wan_ifname)
 	char addr6[INET6_ADDRSTRLEN + 4];
 	struct in_addr addr4;
 	struct in6_addr addr;
-	char *gateway;
+	char gateway[INET6_ADDRSTRLEN+4];
 	int mtu, service = get_ipv6_service();
 
 	if (!wan_ifname || (strlen(wan_ifname) <= 0) ||
@@ -2092,8 +2082,8 @@ void wan6_up(const char *wan_ifname)
 		eval("ip", "-6", "addr", "add", addr6, "dev", (char *)wan_ifname);
 		eval("ip", "-6", "route", "del", "::/0");
 
-		gateway = nvram_safe_get(ipv6_nvname("ipv6_gateway"));
-		if (gateway && gateway) {
+		snprintf(gateway, sizeof(gateway), "%s", nvram_safe_get(ipv6_nvname("ipv6_gateway")));
+		if(strlen(gateway) >= 0){
 			eval("ip", "-6", "route", "add", gateway, "dev", (char *)wan_ifname, "metric", "1");
 			eval("ip", "-6", "route", "add", "::/0", "via", gateway, "dev", (char *)wan_ifname, "metric", "1");
 		} else	eval("ip", "-6", "route", "add", "::/0", "dev", (char *)wan_ifname, "metric", "1");
@@ -2104,7 +2094,7 @@ void wan6_up(const char *wan_ifname)
 			ipv6_sysconf(nvram_safe_get("lan_ifname"), "mtu", mtu);
 		/* workaround to update ndp entry for now */
 		char *ping6_argv[] = {"ping6", "-c", "2", "-I", (char *)wan_ifname, "ff02::1", NULL};
-		char *ping6_argv2[] = {"ping6", "-c", "2", nvram_safe_get(ipv6_nvname("ipv6_gateway")), NULL};
+		char *ping6_argv2[] = {"ping6", "-c", "2", gateway, NULL};
 		pid_t pid;
 		_eval(ping6_argv, NULL, 0, &pid);
 		_eval(ping6_argv2, NULL, 0, &pid);
@@ -2192,10 +2182,10 @@ void start_wan6(void)
 	// call wan6_up directly
 	char tmp[100];
 	char prefix[] = "wanXXXXXXXXXX_";
-	char *wan_proto;
+	char wan_proto[16];
 
 	snprintf(prefix, sizeof(prefix), "wan%d_", wan_primary_ifunit_ipv6());
-	wan_proto = nvram_get(strcat_r(prefix, "proto", tmp));
+	snprintf(wan_proto, sizeof(wan_proto), "%s", nvram_safe_get(strcat_r(prefix, "proto", tmp)));
 
 	switch (get_ipv6_service()) {
 	case IPV6_NATIVE_DHCP:
@@ -2271,7 +2261,7 @@ wan_up(const char *pwan_ifname)
 	char tmp[100], prefix[sizeof("wanXXXXXXXXXX_")];
 	char prefix_x[sizeof("wanXXXXXXXXX_")];
 	char wan_ifname[16];
-	char *wan_proto, *gateway;
+	char wan_proto[16], gateway[16], dns[PATH_MAX];
 	int wan_unit;
 #if defined(RTCONFIG_USB_MODEM) && defined(RTCONFIG_INTERNAL_GOBI)
 	int modem_unit;
@@ -2294,7 +2284,7 @@ wan_up(const char *pwan_ifname)
 		snprintf(prefix_x, sizeof(prefix_x), "wan%d_x", wan_unit);
 
 #ifdef RTCONFIG_IPV6
-		wan_proto = nvram_safe_get(strcat_r(prefix, "proto", tmp));
+		snprintf(wan_proto, sizeof(wan_proto), "%s", nvram_safe_get(strcat_r(prefix, "proto", tmp)));
 		if (wan_unit == wan_primary_ifunit_ipv6()) {
 			switch (get_ipv6_service()) {
 			case IPV6_NATIVE_DHCP:
@@ -2322,7 +2312,7 @@ wan_up(const char *pwan_ifname)
 		add_dhcp_routes(prefix_x, wan_ifname, 1);
 
 		/* and default route with metric 1 */
-		gateway = nvram_safe_get(strcat_r(prefix_x, "gateway", tmp));
+		snprintf(gateway, sizeof(gateway), "%s", nvram_safe_get(strcat_r(prefix, "gateway", tmp)));
 		if (inet_addr_(gateway) != INADDR_ANY) {
 			char word[100], *next;
 			in_addr_t addr = inet_addr(nvram_safe_get(strcat_r(prefix_x, "ipaddr", tmp)));
@@ -2337,7 +2327,8 @@ wan_up(const char *pwan_ifname)
 
 			/* ... and to dns servers as well for demand ppp to work */
 			if (nvram_get_int(strcat_r(prefix, "dnsenable_x", tmp))) {
-				foreach(word, nvram_safe_get(strcat_r(prefix_x, "dns", tmp)), next) {
+				snprintf(dns, sizeof(dns), "%s", nvram_safe_get(strcat_r(prefix, "dns", tmp)));
+				foreach(word, dns, next) {
 					if ((inet_addr(word) != inet_addr(gateway)) &&
 					    (inet_addr(word) & mask) != (addr & mask))
 						route_add(wan_ifname, 2, word, gateway, "255.255.255.255");
@@ -2356,15 +2347,15 @@ wan_up(const char *pwan_ifname)
 
 	snprintf(prefix, sizeof(prefix), "wan%d_", wan_unit);
 
-	wan_proto = nvram_safe_get(strcat_r(prefix, "proto", tmp));
-	gateway = nvram_safe_get(strcat_r(prefix, "gateway", tmp));
+	snprintf(wan_proto, sizeof(wan_proto), "%s", nvram_safe_get(strcat_r(prefix, "proto", tmp)));
+	snprintf(gateway, sizeof(gateway), "%s", nvram_safe_get(strcat_r(prefix, "gateway", tmp)));
 	if (inet_addr_(gateway) == INADDR_ANY)
-		gateway = NULL;
+		memset(gateway, 0, sizeof(gateway));
 
 	/* Set default route to gateway if specified */
 	if (strcmp(wan_proto, "dhcp") == 0 || strcmp(wan_proto, "static") == 0) {
 		/* the gateway is in the local network */
-		if (gateway &&
+		if (strlen(gateway) > 0 &&
 		    inet_addr_(gateway) != inet_addr_(nvram_safe_get(strcat_r(prefix, "ipaddr", tmp)))) {
 #ifdef RTCONFIG_MULTICAST_IPTV
 			/* Rawny: delete gateway route in IPTV(movistar) case to enable QUAGGA */
@@ -2380,7 +2371,7 @@ wan_up(const char *pwan_ifname)
 	/* hack: avoid routing cycles, when both peer and server has the same IP */
 	if (strcmp(wan_proto, "pptp") == 0 || strcmp(wan_proto, "l2tp") == 0) {
 		/* delete gateway route as it's no longer needed */
-		if (gateway)
+		if (strlen(gateway) > 0)
 			route_del(wan_ifname, 0, gateway, "0.0.0.0", "255.255.255.255");
 	}
 
@@ -2391,7 +2382,7 @@ wan_up(const char *pwan_ifname)
 
 	/* setup static wan routes via physical device */
 	if (strcmp(wan_proto, "dhcp") == 0 || strcmp(wan_proto, "static") == 0) {
-		nvram_set(strcat_r(prefix, "xgateway", tmp), gateway ? : "0.0.0.0");
+		nvram_set(strcat_r(prefix, "xgateway", tmp), strlen(gateway) > 0 ? gateway : "0.0.0.0");
 		add_routes(prefix, "mroute", wan_ifname);
 	}
 
@@ -2543,6 +2534,7 @@ wan_up(const char *pwan_ifname)
 #endif
 #ifdef RTCONFIG_VPNC
 #ifdef RTCONFIG_VPN_FUSION
+	set_routing_table(1, 1);
 	start_vpnc();
 	if(nvram_invmatch("vpnc_default_wan", "0"))
 		set_internet_as_default_wan(0);
@@ -2649,7 +2641,7 @@ wan_down(char *wan_ifname)
 {
 	int wan_unit;
 	char tmp[100], prefix[] = "wanXXXXXXXXXX_";
-	char *wan_proto, *gateway;
+	char wan_proto[16], gateway[16];
 	int end_wan_sbstate = WAN_STOPPED_REASON_NONE;
 #ifdef RTCONFIG_INTERNAL_GOBI
 	int modem_unit;
@@ -2689,7 +2681,7 @@ wan_down(char *wan_ifname)
 	/* Stop post-authenticator */
 	stop_auth(wan_unit, 1);
 
-	wan_proto = nvram_safe_get(strcat_r(prefix, "proto", tmp));
+	snprintf(wan_proto, sizeof(wan_proto), "%s", nvram_safe_get(strcat_r(prefix, "proto", tmp)));
 
 	if (wan_unit == wan_primary_ifunit()) {
 		/* Stop multicast router when not VPN */
@@ -2703,9 +2695,9 @@ wan_down(char *wan_ifname)
 		}
 
 		/* Remove default route to gateway if specified */
-		gateway = nvram_safe_get(strcat_r(prefix, "gateway", tmp));
+		snprintf(gateway, sizeof(gateway), "%s", nvram_safe_get(strcat_r(prefix, "gateway", tmp)));
 		if (inet_addr_(gateway) == INADDR_ANY)
-			gateway = NULL;
+			memset(gateway, 0, sizeof(gateway));
 		route_del(wan_ifname, 0, "0.0.0.0", gateway, "0.0.0.0");
 	}
 
@@ -3087,7 +3079,7 @@ start_wan(void)
 	if (!is_routing_enabled())
 		return;
 
-#if defined(HIVESPOT) || defined(HIVEDOT)
+#if defined(MAPAC2200) || defined(MAPAC1300)
 	nvram_set("start_wan", "1");
 #endif
 
@@ -3189,7 +3181,7 @@ stop_wan(void)
 {
 	int unit;
 
-#if defined(HIVESPOT) || defined(HIVEDOT)
+#if defined(MAPAC2200) || defined(MAPAC1300)
 	if (nvram_get("start_wan") == NULL)
 		return;
 	nvram_unset("start_wan");
@@ -3396,7 +3388,7 @@ int autodet_plc_main(int argc, char *argv[]){
 	strlcpy(ifname, nvram_safe_get("lan_ifname"), sizeof(ifname));
 	strlcpy(plc_mac, nvram_safe_get("plc_macaddr"), sizeof(plc_mac));
 
-	sprintf(buf, "/usr/local/bin/plctool -i %s -m -e > %s", ifname, PLCTOOL_M);
+	snprintf(buf, sizeof(buf), "/usr/local/bin/plctool -i %s -m -e > %s", ifname, PLCTOOL_M);
 	system(buf);
 
 	if ((fd = fopen(PLCTOOL_M, "r")) < 0) {
@@ -3523,13 +3515,10 @@ int autodet_main(int argc, char *argv[]){
 		strcpy(hwaddr_x, nvram_safe_get(strcat_r(prefix, "hwaddr_x", tmp)));
 		//nvram_set(strcat_r(prefix, "hwaddr_x", tmp), "");
 
-		char *ptr = nvram_safe_get(strcat_r(prefix2, "waitsec", tmp2));
-		int waitsec = 0;
+		int waitsec = nvram_get_int(strcat_r(prefix2, "waitsec", tmp2));
 
-		if(ptr == NULL || strlen(ptr) <= 0)
+		if(waitsec <= 0)
 			waitsec = 5;
-		else
-			waitsec = atoi(ptr);
 
 		i = 0;
 		while(i < mac_num && (!is_wan_connect(unit) && !is_ip_conflict(unit))){
@@ -3569,160 +3558,280 @@ int autodet_main(int argc, char *argv[]){
 }
 
 #ifdef RTCONFIG_DETWAN
-int detwan_main(int argc, char *argv[]){
-	int idx;
-	int max_inf;
-	unsigned int allmask;
-	int state;
-
-	char var_name[32];
-	char *var_value;
-	char wan0_ifname[32];
-	int value;
-	int phy;
-	int inf_count;
-#define MAX_DETWAN 4
-	char inf_names_buf[MAX_DETWAN][32];
-	char *inf_names[MAX_DETWAN];
-	int inf_mask[MAX_DETWAN];
-	int got_inf;
-	int count = 0;
 #define RETRY_COUNT	3
-#define SLEEP_SHORT	1
-#define SLEEP_LONG	3
-	int sleep_time = SLEEP_SHORT;
-	int old_x_Setting, x_Setting;
+#define MAX_DETWAN 4
+
+int string_remove(char *string, const char *match)
+{
+	char *p;
+	int len;
+	if(string == NULL || match == NULL)
+		return 0;
+	if((p = strstr(string, match)) == NULL)
+		return 0;
+
+	len = strlen(match);
+	while(isspace(*(p+len)))
+		len++;
+	memmove(p, p + len, strlen(p)+1 - len); //including '\0'
+	return 1;
+}
+
+int string_add(char *string, const char *match, int at_head)
+{
+	char *p;
+	int len;
+	if(string == NULL || match == NULL)
+		return 0;
+	if(strstr(string, match) != NULL)
+		return 0;
+
+	len = strlen(match);
+	if(at_head) {
+		memmove(string+len+1, string, strlen(string)+1);
+		memcpy(string, match, len);
+		string[len] = ' ';
+	} else {
+		p = string + strlen(string);
+		sprintf(p, " %s", match);
+	}
+	return 1;
+}
+
+void detwan_set_net_block(int add)
+{
+	char *block_dhcp_argv[] = {"ebtables", "-A", "FORWARD", "-p", "IPV4", "--ip-protocol", "UDP", "--ip-dport", "67", "-j", "DROP", NULL};
+	char *block_nonarp_argv[] = {"ebtables", "-A", "FORWARD", "-d", "Broadcast", "-p", "!", "ARP", "-i", "eth+", "-j", "DROP", NULL};
+
+	if(add == 0)
+	{
+		block_dhcp_argv[1] = "-D";
+		block_nonarp_argv[1] = "-D";
+	}
+
+	_eval(block_dhcp_argv, NULL, 0, NULL);
+	_eval(block_nonarp_argv, NULL, 0, NULL);
+}
+
+void detwan_apply_wan(const char *wan_ifname, unsigned int wan_mask, unsigned int lan_mask)
+{
+	char lan[128];
+	int max_inf;
+	int modify = 0;
 
 	max_inf = nvram_get_int("detwan_max");
-	old_x_Setting = nvram_get_int("x_Setting");
+	if(max_inf <= 0)
+		return;
 
+	if(nvram_match("detwan_apply", "yes"))
+	{
+		int retry = 20;
+		while(retry-- > 0 && nvram_safe_get("rc_service")[0] != '\0')
+		{
+			sleep(1);
+		}
+		if(retry == 0)
+		{
+			logmessage(__func__, "1: SKIP");
+			return;	//skip this result
+		}
+	}
+	{
+		int idx;
+		char var_name[32];
+		char ifname[32];
+
+		strcpy(lan, nvram_safe_get("lan_ifnames"));
+		for(idx = 0; idx < max_inf; idx++) {
+			snprintf(var_name, sizeof(var_name), "detwan_name_%d", idx);
+			snprintf(ifname, sizeof(ifname), "%s", nvram_safe_get(var_name));
+			if(strlen(ifname) <= 0)
+				break;
+
+			if(strcmp(ifname, wan_ifname) == 0) {
+				if(string_remove(lan, ifname)) {
+					modify++;
+					eval("brctl", "delif", "br0", ifname);
+					eval("ifconfig", ifname, "down");
+					eval("ifconfig", ifname, "hw", "ether", get_wan_hwaddr());
+					eval("ifconfig", ifname, "up");
+				}
+			} else {
+				if(string_add(lan, ifname, 1)) {
+					modify++;
+					eval("ifconfig", ifname, "down");
+					eval("ifconfig", ifname, "hw", "ether", get_lan_hwaddr());
+					eval("ifconfig", ifname, "0.0.0.0");
+					eval("brctl", "addif", "br0", ifname);
+					eval("ifconfig", ifname, "up");
+				}
+			}
+		}
+	}
+
+	logmessage(__func__, "2: wan(%s) lan(%s) modify(%d)\n", wan_ifname, lan, modify);
+
+	if(modify == 0 && nvram_match("wan0_ifname", wan_ifname))
+		return;	// skip, when the same interface
+
+	nvram_set_int("wanports_mask", wan_mask);
+	nvram_set_int("lanports_mask", lan_mask);
+	nvram_set("lan_ifnames", lan);
+	nvram_set("wan_ifnames", wan_ifname);
+	nvram_set("wan0_ifname", wan_ifname);
+	nvram_set("wan0_gw_ifname", wan_ifname);
+	nvram_commit();
+
+	if(nvram_match("detwan_apply", "yes"))
+	{
+		int retry = RETRY_COUNT;
+		char buf[32];
+		snprintf(buf, sizeof(buf), "restart_wan_if %d", 0);
+		while(retry-- > 0 && notify_rc_and_wait(buf) != 0);
+		logmessage(__func__, "3: 'restart_wan_if 0' finish\n");
+	}
+}
+
+int detwan_allmask(void)
+{
+	char var_name[32];
+	int allmask;
+	int idx, max_inf;
+	int value;
+
+	max_inf = nvram_get_int("detwan_max");
 	allmask = 0;
+
 	for(idx = 0; idx < max_inf; idx++){
-		sprintf(var_name, "detwan_mask_%d", idx);
+		snprintf(var_name, sizeof(var_name), "detwan_mask_%d", idx);
 		if((value = nvram_get_int(var_name)) != 0)
 			allmask |= value;
 		else
 			break;
 	}
 
-	logmessage("detwan", "0: max_inf(%d) sw_mode(%s) wan0_ifname(%s) allmask(%08x)\n", max_inf, nvram_get("sw_mode"), nvram_get("wan0_ifname"), allmask);
-	while(1){
-		value = nvram_get_int("sw_mode");
-		if (value != SW_MODE_ROUTER 
-			|| nvram_safe_get("rc_service")[0] != '\0'
-		   )
-		{
-			sleep(SLEEP_LONG);
-			continue;
-		}
-		strncpy(wan0_ifname, nvram_safe_get("wan0_ifname"), sizeof(wan0_ifname)-1);
-		wan0_ifname[sizeof(wan0_ifname)-1] = '\0';
-		inf_count = 0;
-		got_inf = -1;
-		for(idx = 0; idx < max_inf; idx++){
-			sprintf(var_name, "detwan_mask_%d", idx);
-			if((value = nvram_get_int(var_name)) != 0) {
-				phy = get_ports_status((unsigned int)value);
-				sprintf(var_name, "detwan_name_%d", idx);
-				var_value = nvram_get(var_name);
-				if(wan0_ifname == NULL || wan0_ifname[0] == '\0')
-				{ //No WAN
-					if ((phy > 0 && inf_count < MAX_DETWAN && var_value && var_value[0] != '\0')
-					   ) {
-						strncpy(inf_names_buf[inf_count], var_value, sizeof(inf_names_buf[0])-1);
-						inf_names_buf[inf_count][sizeof(inf_names_buf[0])-1] = '\0';
-						inf_names[inf_count] = inf_names_buf[inf_count];
-						inf_mask[inf_count] = value;
-						inf_count++;
-					}
+	return allmask;
+}
+
+int detwan_check(char *ifname, unsigned int *wan_mask)
+{
+	int idx;
+	int max_inf;
+	int state = -1;
+	char var_name[32];
+	char var_value[PATH_MAX];
+	char wan0_ifname[32];
+	int value;
+	int phy;
+	int inf_count;
+	char inf_names_buf[MAX_DETWAN][32];
+	char *inf_names[MAX_DETWAN];
+	int inf_mask[MAX_DETWAN];
+	int got_inf;
+
+	if(ifname == NULL || wan_mask == NULL)
+		return -1;
+
+	max_inf = nvram_get_int("detwan_max");
+	strncpy(wan0_ifname, nvram_safe_get("wan0_ifname"), sizeof(wan0_ifname)-1);
+	wan0_ifname[sizeof(wan0_ifname)-1] = '\0';
+
+	logmessage(__func__, "0: max_inf(%d) wan0_ifname(%s)\n", max_inf, wan0_ifname);
+	inf_count = 0;
+	got_inf = -1;
+	for(idx = 0; idx < max_inf; idx++){
+		snprintf(var_name, sizeof(var_name), "detwan_mask_%d", idx);
+		if((value = nvram_get_int(var_name)) != 0) {
+			phy = get_ports_status((unsigned int)value);
+			snprintf(var_name, sizeof(var_name), "detwan_name_%d", idx);
+			snprintf(var_value, sizeof(var_value), "%s", nvram_safe_get(var_name));
+
+//			if(wan0_ifname == NULL || wan0_ifname[0] == '\0')
+			{ //No WAN
+				if(phy > 0 && inf_count < MAX_DETWAN && strlen(var_value) > 0) {
+					strncpy(inf_names_buf[inf_count], var_value, sizeof(inf_names_buf[0])-1);
+					inf_names_buf[inf_count][sizeof(inf_names_buf[0])-1] = '\0';
+					inf_names[inf_count] = inf_names_buf[inf_count];
+					inf_mask[inf_count] = value;
+					inf_count++;
 				}
-				else
-				{
+			}
 #if 0
-					if(var_value != NULL && strcmp(wan0_ifname, var_value) == 0)
-					{ //Is WAN
-					}
-					else if(var_value != NULL)
-					{ //Not WAN
-					}
-#else
-					sleep_time = SLEEP_LONG;
-#endif
-				}
-			}
-		}
-		if(inf_count) {
-			char *lan;
-			time_t now = time(NULL);
-			extern int discover_interfaces(int num, const char **current_wan_ifnames, int dhcp_det, int *got_inf);
-			if(inf_count == 1 && old_x_Setting == 0 && (x_Setting = nvram_get_int("x_Setting")))
+			else
 			{
-				state = 0;
-				got_inf = 0;
-				old_x_Setting = x_Setting;
+				if(strlen(var_value) > 0 && strcmp(wan0_ifname, var_value) == 0)
+				{ //Is WAN
+				}
+				else if(strlen(var_value) > 0)
+				{ //Not WAN
+				}
 			}
-			else
-			state = discover_interfaces(inf_count, (const char **) inf_names, nvram_match("wan0_proto", "dhcp"), &got_inf);
-			logmessage("detwan", "1: wan0_ifname(%s) inf_count(%d) state(%d) got_inf(%d) %s", wan0_ifname, inf_count, state, got_inf, ctime(&now));
-			nvram_set_int("detwan_proto", state);
-			if(state >= 0 && got_inf >= 0) {
-				{
-					int retry = 20;
-					while(retry-- > 0 && nvram_safe_get("rc_service")[0] != '\0')
-					{
-						sleep(1);
-					}
-					if(retry == 0)
-					{
-						logmessage("detwan", "1: SKIP");
-						continue;	//skip this result
-					}
-				}
-				if((lan = strdup(nvram_get("lan_ifnames"))) != NULL) {
-					char *p;
-					if((p = strstr(lan, inf_names[got_inf])) != NULL) {
-						int len = strlen(inf_names[got_inf]);
-						while(isspace(*(p+len)))
-							len++;
-						memmove(p, p + len, strlen(p)+1 - len); //including '\0'
-						nvram_set("lan_ifnames", lan);
-					}
-					logmessage("detwan", "2: wan(%s) lan(%s)\n", inf_names[got_inf], lan);
-					free(lan);
-				}
-				nvram_set_int("wanports_mask", inf_mask[got_inf]);
-				nvram_set_int("lanports_mask", allmask & ~inf_mask[got_inf]);
-				nvram_set("wan_ifnames", inf_names[got_inf]);
-				nvram_set("wan0_ifname", inf_names[got_inf]);
-				nvram_set("wan0_gw_ifname", inf_names[got_inf]);
-				eval("brctl", "delif", "br0", inf_names[got_inf]);
-				eval("ifconfig", inf_names[got_inf], "down");
-				eval("ifconfig", inf_names[got_inf], "hw", "ether", get_wan_hwaddr());
-				eval("ifconfig", inf_names[got_inf], "up");
-				nvram_commit();
-				{
-					int retry = RETRY_COUNT;
-					char buf[32];
-					snprintf(buf, sizeof(buf), "restart_wan_if %d", 0);
-					while(retry-- > 0 && notify_rc_and_wait(buf) != 0);
-				}
-				logmessage("detwan", "3: 'restart_wan_if 0' finish\n");
-				count = 0;
-				sleep_time = SLEEP_LONG;
-			}
-			else
-				sleep_time = SLEEP_SHORT;
+#endif
 		}
-		count++;
-		if(((wan0_ifname == NULL || wan0_ifname[0] == '\0') && count >= 10) || count >= 1000)
+	}
+	if(inf_count) {
+		time_t now;
+		extern int discover_interfaces(int num, const char **current_wan_ifnames, int dhcp_det, int *got_inf);
+		state = discover_interfaces(inf_count, (const char **) inf_names, nvram_match("wan0_proto", "dhcp"), &got_inf);
+		now = time(NULL);
+		logmessage(__func__, "1: wan0_ifname(%s) inf_count(%d) state(%d) got_inf(%d) %s", wan0_ifname, inf_count, state, got_inf, ctime(&now));
+		if(state <= 0 && inf_count == 1)
 		{
-			time_t now = time(NULL);
-			logmessage("detwan", "-: wan0_ifname(%s) inf_count(%d) %s", wan0_ifname, inf_count, ctime(&now));
-			count = 0;
+			state = 0;
+			got_inf = 0;
 		}
-		sleep(sleep_time);
+		nvram_set_int("detwan_proto", state);
+		nvram_set("detwan_phy", inf_names[got_inf]);
+		strcpy(ifname, inf_names[got_inf]);
+		*wan_mask = inf_mask[got_inf];
+	}
+	else {
+		time_t now = time(NULL);
+		logmessage(__func__, "2: NO phy is linked %s", ctime(&now));
+		nvram_set_int("detwan_proto", -1);
+		nvram_unset("detwan_phy");
+		ifname[0] = '\0';
+		*wan_mask = 0;
 	}
 	return state;
+}
+
+int detwan_main(int argc, char *argv[]){
+	int max_inf;
+	unsigned int allmask;
+	int state = -1;
+	int sw_mode;
+	char ifname[32];
+	unsigned int wan_mask;
+
+	sw_mode = nvram_get_int("sw_mode");
+	allmask = detwan_allmask();
+
+	logmessage(__func__, "0: sw_mode(%d) wan0_ifname(%s) allmask(%08x)", sw_mode, nvram_get("wan0_ifname"), allmask);
+	if (sw_mode != SW_MODE_ROUTER || allmask == 0)
+		return -1;
+
+	if(nvram_match("detwan_apply", "yes"))
+	{
+		int retry = 20;
+		while(retry-- > 0 && nvram_safe_get("rc_service")[0] != '\0')
+		{
+			sleep(1);
+		}
+		if(retry <= 0)
+		{
+			logmessage(__func__, "1: rc_service(%s) block !!", nvram_safe_get("rc_service"));
+			return -1;
+		}
+	}
+
+	state = detwan_check(ifname, &wan_mask);
+	if(state >= 0 && ifname[0] != '\0') {
+		detwan_apply_wan(ifname, wan_mask, allmask & ~wan_mask);
+	}
+
+	logmessage(__func__, "9: finish !!");
+	return 0;
 }
 #endif	/* RTCONFIG_DETWAN */
 

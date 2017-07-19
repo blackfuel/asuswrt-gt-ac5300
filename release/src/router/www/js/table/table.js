@@ -33,6 +33,7 @@ var tableStruct = {
 		del: Optional, whether to allow delete the rule, value is true/false
 		clickEdit: Optional, data raw click will change edit mode, value is true/false
 		hover: Optional, data raw hover will change color, value is true/false
+		del_callBackFun : Optional, delete call back function
 	},
 
 	// header block
@@ -67,6 +68,7 @@ var tableStruct = {
 	createPanel : {
 		inputs : [], each item json array
 		maximum: Optional, The number of table allowed to be added, defalut is 16
+		callBackFun : Optional, call back function when created rule
 	}
 	The inputs json have there item as below
 	1.	text :
@@ -80,6 +82,8 @@ var tableStruct = {
 		editMode : Necessary, edit type is select
 		title : Necessary, title text
 		option : Necessary, the select option, value format is {"text" : "value", ... }
+	3.	hidden : Item will not display but need default value
+		value : Create new rule default value
 	ex: 
 	createPanel: {
 		inputs : [
@@ -100,15 +104,21 @@ var tableStruct = {
 				"editMode" : "select",
 				"title" : Protocol,
 				"option" : {"TCP" : "TCP", "UDP" : "UDP"}
+			},
+			{
+				"editMode" : "hidden",
+				"value" : "0"
 			}
 		],
-		maximum: 32
+		maximum: 32,
+		callBackFun : function name
 	}
 	
 	// click raw edit rule block
 	clickRawEditPanel : Optional, edit rule item json array
 	clickRawEditPanel : {
 		inputs : [], each item json array
+		callBackFun : Optional, call back function when edited rule
 	}
 	The json have there item as below
 	1.text : edit input
@@ -123,6 +133,9 @@ var tableStruct = {
 		callBackFun : Call back function name
 	4.pureText : only change edit mode
 		editMode : Necessary, edit type is pureText
+	5.activateIcon : activate and deactivate icon
+		editMode : Necessary, edit item activate or deactivate
+		callBackFun : Call back function name
 	Common attribute :
 		className : Assign specific class, ex. PingStatus
 		styleList : Assign specific style list,  {"cursor":"pointer", "font-size":"20px"}
@@ -159,6 +172,10 @@ var tableStruct = {
 				"editMode" : "pureText",
 				"className" : "PingStatus",
 				"styleList" : {"cursor":"pointer", "font-size":"20px"}
+			},
+			{
+				"editMode" : "activateIcon",
+				"callBackFun" : call back function name
 			}
 		]
 	}
@@ -252,7 +269,7 @@ var tableApi = {
 		},
 
 		// click raw edit rule block
-		"createPanel" : {
+		"clickRawEditPanel" : {
 			inputs : "" //edit rule item
 		},
 		
@@ -432,11 +449,25 @@ var tableApi = {
 					case "select" :
 						$newItemEditHtml = tableApi.genCreateRuleSelect(newItemObj);
 						break;
-					case "textAndClientList" :
+					case "clientList_showName_setMac" :
 						$newItemEditHtml = tableApi.genCreateRuleTextAndClientList(newItemObj);
+						break;
+					case "text_auto_set_client_ip" :
+						$newItemEditHtml = tableApi.genCreateRuleTextAndAutoSetIP(newItemObj);
+						break;
+					case "hidden" :
+						$newItemEditHtml = tableApi.genCreateRuleHiddenItem(newItemObj);
 						break;
 				}
 				$newItemEditHtml.appendTo($newItemframe);
+
+				switch(newItemObj.editMode) {
+					case "clientList_showName_setMac" :
+						var $newItemClientHtml = "";
+						$newItemClientHtml = tableApi.genCreateRuleClientList(newItemObj);
+						$newItemClientHtml.appendTo($newItemframe);
+						break;
+				}
 			}
 
 			$newItemframe.appendTo($divHtml);
@@ -475,9 +506,13 @@ var tableApi = {
 							return false;
 						}
 					}
-					newRuleArray.push($(this).val());
-				});
 
+					var _itemValue = $(this).val().trim();
+					if($(this).hasClass("setMac"))
+						_itemValue = _itemValue.toUpperCase();
+
+					newRuleArray.push(_itemValue);
+				});
 				
 				if($(".createNewRule").children().find(".hint").length == 0) {
 					var validDuplicateFlag = true;
@@ -509,6 +544,11 @@ var tableApi = {
 							tableSorter.drawBorder(tableSorter.indexFlag);
 						tableApi.closeRuleFrame();
 					}
+
+					if(tableApi._attr.createPanel.hasOwnProperty("callBackFun")) {
+						var _callBackFun = tableApi._attr.createPanel.callBackFun;
+						_callBackFun();
+					}
 				}
 			}
 		);
@@ -522,14 +562,8 @@ var tableApi = {
 	},
 
 	closeRuleFrame : function() {
-		$("body").find(".fullScreen").fadeOut();
-		$("body").find(".createNewRule").fadeOut();
-		setTimeout( 
-			function() {
-				tableApi.removeElement("createNewRule");
-				tableApi.removeElement("fullScreen");
-			}, 1000
-		);
+		$("body").find(".fullScreen").fadeOut(function() { tableApi.removeElement("fullScreen"); });
+		$("body").find(".createNewRule").fadeOut(function() { tableApi.removeElement("createNewRule"); });
 	},
 
 	genCreateRuleText : function(_itemObj) {
@@ -587,23 +621,180 @@ var tableApi = {
 	genCreateRuleTextAndClientList : function(_itemObj) {
 		var $newItemFrameHtml = $('<div>');
 		$newItemFrameHtml.addClass("editFrame");
-		var $newItemHtml = tableApi.genCreateRuleText(_itemObj);
 		
+		var $newItemHtml = tableApi.genCreateRuleText(_itemObj);
+		$newItemHtml.addClass("setMac");
 
 		$newItemHtml.appendTo($newItemFrameHtml);
 
-		var $newPullArrowHtml = $("<img>");
-		$newPullArrowHtml.addClass("pullArrow");
-		$newPullArrowHtml.attr({
-			src: "/images/arrow-down.gif",
-			title: "jQuery",
-			alt: "jQuery Logo"
-		});
+		var $newPullArrowHtml = $("<div>");
+		$newPullArrowHtml.addClass("pullDownbg");
+		$newPullArrowHtml.click(
+			function() {
+				event.stopPropagation();
+				if($(this).closest(".editFrame").siblings('.table_clientlist_dropdown').length) {
+					if($(this).closest(".editFrame").siblings('.table_clientlist_dropdown').css("display") == "none") {
+						$(this).children('.triangle').addClass("arrowUp");
+						$(this).children('.triangle').removeClass("arrowDown");
+						$(this).closest(".editFrame").siblings('.table_clientlist_dropdown').css("display", "block");
+						$(this).closest(".editFrame").siblings('.table_clientlist_dropdown').css("width", $(this).siblings('.inputText').css("width"));
+						$(this).closest(".editFrame").siblings('.table_clientlist_dropdown').children(".clientList_offline_expand").html("<#Offline_client_show#>");
+						$(this).closest(".editFrame").siblings('.table_clientlist_dropdown').children(".clientList_offline").css("display", "none");
+					}
+					else {
+						$(this).children('.triangle').addClass("arrowDown");
+						$(this).children('.triangle').removeClass("arrowUp");
+						$(this).closest(".editFrame").siblings('.table_clientlist_dropdown').css("display", "none");
+					}
+				}
+			}
+		);
 
+		var $newTriangleHtml = $("<div>");
+		$newTriangleHtml.addClass("triangle arrowDown");
+
+		$newTriangleHtml.appendTo($newPullArrowHtml);
 
 		$newPullArrowHtml.appendTo($newItemFrameHtml);
+		return $newItemFrameHtml;
+	},
+
+	genCreateRuleTextAndAutoSetIP : function(_itemObj) {
+		var $newItemHtml = tableApi.genCreateRuleText(_itemObj);
+		$newItemHtml.addClass("setIP");
+		return $newItemHtml;
+	},
+
+	genCreateRuleClientList : function(_itemObj) {
+		var genClientItem = function(_clientObj, _state) {
+			var $clientHtml = $('<div>');
+			$clientHtml.click(
+				function(){
+					event.stopPropagation();
+					$(this).closest(".table_clientlist_dropdown").siblings(".editFrame").children(".setMac").val(_clientObj.mac);
+					$(this).closest(".table_clientlist_dropdown").css("display", "none");
+					$(this).closest(".table_clientlist_dropdown").siblings(".editFrame").children().find(".triangle").addClass("arrowDown");
+					$(this).closest(".table_clientlist_dropdown").siblings(".editFrame").children().find(".triangle").removeClass("arrowUp");
+
+					if($(this).closest(".createNewRule").find(".setIP").length > 0) {
+						if(_clientObj.ip != "offline")
+							$(this).closest(".createNewRule").find(".setIP").val(_clientObj.ip);
+						else
+							$(this).closest(".createNewRule").find(".setIP").val("");
+					}
+				}
+			);
+			$clientHtml.addClass("table_clientlist_item");
+			if(_state == "online" && _clientObj.isOnline) {
+				var clientName = (_clientObj.nickName == "") ? _clientObj.name : _clientObj.nickName;
+				$clientHtml.html(clientName);
+				$clientHtml.attr({"title" : _clientObj.mac});
+				$clientHtml.addClass("");
+			}
+			else if(_state == "offline" && !_clientObj.isOnline) {
+				var clientName = (_clientObj.nickName == "") ? _clientObj.name : _clientObj.nickName;
+				$clientHtml.html(clientName);
+				$clientHtml.attr({"title" : _clientObj.mac});
+				$clientHtml.addClass("table_clientlist_item_offline");
+				var $offlineDel = $('<strong>');
+				$offlineDel.html("x");
+				$offlineDel.addClass("offlineClientDel");
+				$offlineDel.appendTo($clientHtml);
+				 $offlineDel.click(
+				 	function() {
+				 		event.stopPropagation();
+				 		if($("#remove_nmpclientlist_form").length) {
+				 			$("#remove_nmpclientlist_form").remove();
+				 		}
+				 		var $formHtml = $('<form>');
+				 		$formHtml.attr({"method" : "POST", "id" : "remove_nmpclientlist_form", "name" : "remove_nmpclientlist_form", 
+				 						"action" : "/deleteOfflineClient.cgi", "target" : "hidden_frame"});
+				 		var formChildHtml = "";
+				 		formChildHtml += '<input type="hidden" name="modified" value="0">';
+						formChildHtml += '<input type="hidden" name="flag" value="">';
+						formChildHtml += '<input type="hidden" name="action_mode" value="">';
+						formChildHtml += '<input type="hidden" name="action_script" value="">';
+						formChildHtml += '<input type="hidden" name="action_wait" value="1">';
+						formChildHtml += '<input type="hidden" id="delete_offline_client" name="delete_offline_client" value="' + _clientObj.mac + '">';
+						$formHtml.html(formChildHtml);
+				 		$('body').append($formHtml);	
+
+				 		//remove offline title and content	 		
+				 		if(($(this).closest(".clientList_offline").children().length - 1) == "0") {
+				 			$(this).closest(".clientList_offline").siblings(".clientList_offline_expand").remove();
+							$(this).closest(".clientList_offline").remove();
+						}
+						$(this).closest(".table_clientlist_item_offline").remove();
+						$("#remove_nmpclientlist_form")[0].submit();
+						delete clientList[_clientObj.mac];
+				 	}
+				 );
+			}
+
+			return  $clientHtml;
+		};
+
+		var $newItemFrameHtml = $('<div>');
+		$newItemFrameHtml.addClass("table_clientlist_dropdown");
+		
+		var $onlineClientHtml = $('<div>');
+		$onlineClientHtml.addClass("clientList_online");
+		$onlineClientHtml.appendTo($newItemFrameHtml);
+
+		var $offlineExpandHtml = $('<div>');
+		$offlineExpandHtml.addClass("clientList_offline_expand");
+		$offlineExpandHtml.appendTo($newItemFrameHtml);
+		$offlineExpandHtml.html("<#Offline_client_show#>");
+		$offlineExpandHtml.click(
+			function() {
+				event.stopPropagation();
+				var display_state = $(this).siblings(".clientList_offline").css("display");
+				if(display_state == "none") {
+					$(this).siblings(".clientList_offline").slideDown();
+					$(this).html("<#Offline_client_hide#>");
+				}
+				else {
+					$(this).siblings(".clientList_offline").slideUp();
+					$(this).html("<#Offline_client_show#>");
+				}
+			}
+		);
+
+		var $offlineClientHtml = $('<div>');
+		$offlineClientHtml.css("display", "none");
+		$offlineClientHtml.addClass("clientList_offline");
+		$offlineClientHtml.appendTo($newItemFrameHtml);
+
+		for(var i = 0; i < clientList.length; i +=1 ) {
+			var clientObj = clientList[clientList[i]];
+			if(clientObj != undefined) {
+				if(clientObj.isOnline) {
+					$onlineClientHtml.append(genClientItem(clientObj, "online"));
+				}
+				else if(clientObj.from == "nmpClient") {
+					$offlineClientHtml.append(genClientItem(clientObj, "offline"));
+				}
+			}
+		}
+
+		if($offlineClientHtml.children().length == 0) {
+			$newItemFrameHtml.children(".clientList_offline_expand").remove();
+			$newItemFrameHtml.children(".clientList_offline").remove();
+		}
 
 		return $newItemFrameHtml;
+	},
+
+	genCreateRuleHiddenItem : function(_itemObj) {
+		var $newItemHtml = "";
+		$newItemHtml = $('<input/>');
+		$newItemHtml.addClass("saveRule");
+		$newItemHtml.css("display", "none");
+		$newItemHtml.attr({"type" : "text", "autocorrect" : "off", "autocapitalize" : "off", "disabled" : "true" });
+		if(_itemObj.hasOwnProperty("value")) {
+			$newItemHtml.attr({"value" : _itemObj.value});
+		}
+		return $newItemHtml;
 	},
 	//Create new Rule end
 
@@ -718,25 +909,38 @@ var tableApi = {
 						var _dataItemText = currRow[k];
 						if(_obj_attr.clickRawEditPanel.inputs != "") {
 							if(_obj_attr.clickRawEditPanel.inputs[k] != undefined) {
-								if(_obj_attr.clickRawEditPanel.inputs[k].editMode == "select") {
-									_dataItemText = tableApi.transformSelectOptionToText(_obj_attr.clickRawEditPanel.inputs[k].option, _dataItemText);
+								switch(_obj_attr.clickRawEditPanel.inputs[k].editMode) {
+									case "select" :
+										_dataItemText = tableApi.transformSelectOptionToText(_obj_attr.clickRawEditPanel.inputs[k].option, _dataItemText);
+										break;
+									case "activateIcon" :
+										_dataItemText = tableApi.transformValueToActivateIcon(_dataItemText);
+										break;
+									case "macShowClientName" :
+										_dataItemText = tableApi.transformMacToClientName(_dataItemText);
+										break;
+									default :
+										_dataItemText = htmlEnDeCode.htmlEncode(_dataItemText);
+										break;
 								}
 							}
 						}
 						var dataRawClass = "";
 						var dataRawStyleList = "";
-						if (_obj_attr.clickRawEditPanel.inputs[k].hasOwnProperty("className")) {
-							dataRawClass = _obj_attr.clickRawEditPanel.inputs[k].className;
-						}
-						if (_obj_attr.clickRawEditPanel.inputs[k].hasOwnProperty("styleList")) {
-							dataRawStyleList = _obj_attr.clickRawEditPanel.inputs[k].styleList;
+						if(_obj_attr.clickRawEditPanel.inputs[k] != undefined) {
+							if (_obj_attr.clickRawEditPanel.inputs[k].hasOwnProperty("className")) {
+								dataRawClass = _obj_attr.clickRawEditPanel.inputs[k].className;
+							}
+							if (_obj_attr.clickRawEditPanel.inputs[k].hasOwnProperty("styleList")) {
+								dataRawStyleList = _obj_attr.clickRawEditPanel.inputs[k].styleList;
+							}
 						}
 						var dataRawStyleListJson = {};
-						Object.keys(dataRawStyleList).forEach(function(key) {
-							if (dataRawStyleList.hasOwnProperty(key)) {
-								dataRawStyleListJson[key] =dataRawStyleList[key];
+						for (var prop in dataRawStyleList) {
+							if (dataRawStyleList.hasOwnProperty(prop)) {
+								dataRawStyleListJson[prop] = dataRawStyleList[prop];
 							}
-						});
+						}
 						$("<td>")
 							.addClass("row_td")
 							.css(dataRawStyleListJson)
@@ -782,7 +986,12 @@ var tableApi = {
 				if($(".row_tr").children().find(".hint").length != 0) {
 					return false;
 				}
-				if($('body').find('.row_tr').hasClass("data_raw_editing")) {	
+				if($(".table_clientlist_dropdown").css("display") == "block") {
+					$(".table_clientlist_dropdown").css("display", "none");
+					$(".triangle ").addClass("arrowDown");
+					$(".triangle ").removeClass("arrowUp");
+				}
+				if($('body').find('.row_tr').hasClass("data_raw_editing")) {
 					$('body').find('.row_tr').removeClass("data_raw_editing");
 					$('body').find('.row_tr').find('.edit-mode').css({"display" : 'none'});
 					$('body').find('.row_tr').find('.static-text').css({"display" : ''});
@@ -818,10 +1027,16 @@ var tableApi = {
 						$editItemHtml = tableApi.genEditRuleSelect(_dataItemObj[j], _dataArray, i, j);
 						break;
 					case "pureText" :
-						$editItemHtml = $("<div>").html(_dataArray[i][j]);
+						$editItemHtml = $("<div>").html(htmlEnDeCode.htmlEncode(_dataArray[i][j]));
 						break;
 					case "callBack" :
-						$editItemHtml = $("<div>").html(_dataArray[i][j]);
+						$editItemHtml = $("<div>").html(htmlEnDeCode.htmlEncode(_dataArray[i][j]));
+						break;
+					case "activateIcon" :
+						$editItemHtml = tableApi.transformValueToActivateIcon(_dataArray[i][j]);
+						break;
+					case "macShowClientName" :
+						$editItemHtml = tableApi.transformMacToClientName(_dataArray[i][j]);
 						break;
 				}
 				$editItemHtml.appendTo($editFrameHtml);
@@ -861,6 +1076,7 @@ var tableApi = {
 						);
 						break;
 					case "callBack" : 
+					case "activateIcon" :
 						var _callBackFun = _dataItemObj[j].callBackFun;
 						$("tr[row_tr_idx='" + i + "']").find($("td[row_td_idx='" + j + "']")).click(
 							function() {
@@ -903,10 +1119,10 @@ var tableApi = {
 			}
 			if(tableValidator[_dataObj.validator]["blur"]) {
 				$editItemHtml.blur(
-					 function() {
-					 	var validFlag = tableValidator[_dataObj.validator]["blur"]($(this));
-					 	if(validFlag) {
-					 		var validDuplicateFlag = true;
+					function() {
+						var validFlag = tableValidator[_dataObj.validator]["blur"]($(this));
+						if(validFlag) {
+							var validDuplicateFlag = true;
 							if(tableApi._attr.hasOwnProperty("ruleDuplicateValidation") && (tableApi._attr.ruleDuplicateValidation != "")) {
 								var currentEditRuleArray = tableValid_getCurrentEditRuleArray($(this),  tableApi._attr.data);
 								var filterCurrentEditRuleArray = tableValid_getFilterCurrentEditRuleArray($(this),  tableApi._attr.data);
@@ -926,8 +1142,13 @@ var tableApi = {
 									return false;
 								}
 							}
-					 		tableApi.updateData($(this));
-					 	}
+							tableApi.updateData($(this));
+							if(tableApi._attr.clickRawEditPanel.hasOwnProperty("callBackFun")) {
+								var _callBackFun = tableApi._attr.clickRawEditPanel.callBackFun;
+								var currentEditRuleArray = tableValid_getCurrentEditRuleArray($(this),  tableApi._attr.data);
+								_callBackFun(currentEditRuleArray);
+							}
+						}
 					}
 				);
 			}
@@ -954,9 +1175,15 @@ var tableApi = {
 		$editItemHtml.change(
 			function() {
 				var validDuplicateFlag = true;
+				var originalEditRuleArray = [];
+				var currentEditRuleArray = [];
+				var filterCurrentEditRuleArray = [];
+				var eleID = $(this).attr('id');
+				var dataIdx = eleID.replace("edit_item_", "").split("_")[0];
 				if(tableApi._attr.hasOwnProperty("ruleDuplicateValidation") && (tableApi._attr.ruleDuplicateValidation != "")) {
-					var currentEditRuleArray = tableValid_getCurrentEditRuleArray($(this),  tableApi._attr.data);
-					var filterCurrentEditRuleArray = tableValid_getFilterCurrentEditRuleArray($(this),  tableApi._attr.data);
+					originalEditRuleArray = tableValid_getOriginalEditRuleArray($(this),  tableApi._attr.data);
+					currentEditRuleArray = tableValid_getCurrentEditRuleArray($(this),  tableApi._attr.data);
+					filterCurrentEditRuleArray = tableValid_getFilterCurrentEditRuleArray($(this),  tableApi._attr.data);
 
 					validDuplicateFlag = tableRuleDuplicateValidation[tableApi._attr.ruleDuplicateValidation](currentEditRuleArray, filterCurrentEditRuleArray);
 					if(!validDuplicateFlag) {
@@ -965,9 +1192,22 @@ var tableApi = {
 					}
 				}
 				tableApi.updateData($(this));
+				if(tableApi._attr.clickRawEditPanel.hasOwnProperty("callBackFun")) {
+					var _callBackFun = tableApi._attr.clickRawEditPanel.callBackFun;
+					var _parArray = [originalEditRuleArray, currentEditRuleArray, dataIdx];
+
+					_callBackFun(_parArray);
+				}
 			}
 		);
 		return $editItemHtml
+	},
+
+	genEditActivateIcon : function(_dataObj, _dataArray, _colIdx, _rowIdx) {
+		var $editItemHtml = "";
+		$editItemHtml = $('<div>');
+		$editItemHtml.attr({"id" : "edit_item_" + _colIdx + "_" + _rowIdx});
+		return $editItemHtml;
 	},
 
 	updateData : function($obj) {
@@ -976,10 +1216,9 @@ var tableApi = {
 		var colIdx = eleID.replace("edit_item_", "").split("_")[0];
 		var rowIdx = eleID.replace("edit_item_", "").split("_")[1];
 
-
 		tableApi._attr.data[colIdx][rowIdx] = eleValue;
 
-		$("#" + eleID).parent().prev().html(eleValue)
+		$("#" + eleID).parent().prev().html(htmlEnDeCode.htmlEncode(eleValue));
 	},
 
 	genDataRawDel : function() {
@@ -996,6 +1235,7 @@ var tableApi = {
 				function() {
 					event.stopPropagation();
 					var delRawIdx = $(this).closest("*[row_tr_idx]").attr( "row_tr_idx" );
+					var delRawArray = tableApi._attr.data.slice(delRawIdx, (delRawIdx + 1))[0];
 					tableApi._attr.data.splice(delRawIdx,1);
 					if(tableSorter.sortFlag)
 						tableSorter.sortData(tableSorter.indexFlag, tableSorter.sortingType, "tableApi._jsonObj.data");
@@ -1004,6 +1244,10 @@ var tableApi = {
 
 					if(tableSorter.sortFlag)
 						tableSorter.drawBorder(tableSorter.indexFlag);
+
+					if(tableApi._attr.capability.hasOwnProperty("del_callBackFun")) {
+						tableApi._attr.capability.del_callBackFun(delRawArray);
+					}
 				}
 			);
 			$editHtml.appendTo($dataHtml);
@@ -1077,6 +1321,35 @@ var tableApi = {
 		}
 		return transformText;
 	},
+
+	transformValueToActivateIcon : function(_value) {
+		var $divHtml = $("<div>");
+		var className = "";
+		switch(_value) {
+			case "0" :
+				className = "deactivate_icon";
+				break
+			case "1" :
+				className = "activate_icon";
+				break;
+		}
+		$divHtml.addClass(className);
+		return $divHtml;
+	},
+	transformMacToClientName : function(_value) {
+		_value = _value.toUpperCase();
+		var $divHtml = $("<div>");
+		if(clientList[_value] == undefined) {
+			$divHtml.html(htmlEnDeCode.htmlEncode(_value));
+		}
+		else {
+			var clientName = (clientList[_value].nickName == "") ? clientList[_value].name : clientList[_value].nickName;
+			$divHtml.html(clientName);
+			$divHtml.attr({"title" : _value});
+		}
+		return $divHtml;
+	},
+
 	showHintMsg : function(_$obj, _hintMsg) {
 		var $hintHtml = $('<div>');
 		$hintHtml.addClass("hint");

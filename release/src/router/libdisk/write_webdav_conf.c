@@ -109,7 +109,6 @@ char *port_get(char *name)
 
         while(-1!=access("/tmp/aicloud_check.control",F_OK))
             usleep(50);
-    printf("name = %s\n",name);
     FILE *fp;
     if((fp=fopen("/tmp/webDAV.conf","r+"))==NULL)
     {
@@ -128,7 +127,6 @@ char *port_get(char *name)
             p=strchr(tmp,'=');
             p++;
             strcpy(value,p);
-            printf("name = %s,len =%d\n",value,strlen(value));
             if(value[strlen(value)-1]=='\n')
                 value[strlen(value)-1]='\0';
         }
@@ -156,14 +154,12 @@ int webdav_match(char *name,int id)
     {
         return 0;
     }
-    printf("name = %s,id = %d\n",name,id);
     char tmp[256]={0};
     while(!feof(fp)){
         memset(tmp,0,sizeof(tmp));
         fgets(tmp,sizeof(tmp),fp);
         if(strncmp(tmp,name,strlen(name))==0)
         {
-            printf("tmp = %s\n",tmp);
             int size;
             char *p=NULL;
             p=strchr(tmp,'=');
@@ -171,7 +167,6 @@ int webdav_match(char *name,int id)
             size=atoi(p);
             if(size==id)
             {
-                printf("return 1\n");
                 fclose(fp);
                 return 1;
             }

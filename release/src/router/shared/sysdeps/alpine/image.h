@@ -141,7 +141,7 @@
 #define IH_COMP_BZIP2		2	/* bzip2 Compression Used	*/
 #define IH_COMP_LZMA		3	/* lzma  Compression Used	*/
 
-#define IH_MAGIC	0x27051956	/* Image Magic Number		*/
+#define IH_MAGIC	0x48445230	/* Image Magic Number		*/
 #define IH_NMLEN		32	/* Image Name Length		*/
 
 /*
@@ -157,6 +157,19 @@
  * (hw[i].minor << 16) | (hw[i+1].major << 8) | (hw[i+1].minor)
  */
 #define ROOTFS_OFFSET_MAGIC	0xA9	/* Occupy two version_t		*/
+
+#define IMAGE_HEADER "HDR0"
+#define MAX_VERSION_LEN 64
+
+#define MAX_TAIL_LEN	64
+#ifdef HND_ROUTER
+#define TOKEN_LEN	20
+#define MAX_PID_LEN	20
+#define BUF_SIZE	100 * 1024
+#else
+#define MAX_PID_LEN	12
+#define MAX_HW_COUNT	4
+#endif
 
 typedef struct {
 	uint8_t major;

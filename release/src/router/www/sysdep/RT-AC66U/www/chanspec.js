@@ -97,7 +97,7 @@ function wl_chanspec_list_change(){
 									wl_channel_list_5g.splice(wl_channel_list_5g.getIndexByValue(wl_channel_list_5g[i]),1);
 								}
 								else{
-									if((country == "AU" && odmpid == "RT-AC66U_B1") && (parseInt(wl_channel_list_5g[i]) >= 116 && parseInt(wl_channel_list_5g[i]) <= 140)){
+									if((country == "AU") && (parseInt(wl_channel_list_5g[i]) >= 116 && parseInt(wl_channel_list_5g[i]) <= 140)){
 										wl_channel_list_5g.splice(wl_channel_list_5g.getIndexByValue(wl_channel_list_5g[i]),1);
 									}
 									else{
@@ -123,7 +123,7 @@ function wl_chanspec_list_change(){
 								wl_channel_list_5g.splice(index, 1);
 							}
 
-							if(country == "AU" && odmpid == "RT-AC66U_B1"){
+							if(country == "AU"){
 								if(wl_channel_list_5g.indexOf("116") != -1){
 									var index = wl_channel_list_5g.indexOf("116");
 									wl_channel_list_5g.splice(index, 1);									

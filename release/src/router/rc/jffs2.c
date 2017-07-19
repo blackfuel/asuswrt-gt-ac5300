@@ -42,7 +42,7 @@
 
 #define SECOND_JFFS2_PATH	"/asus_jffs"
 
-int jffs2_fail;
+int jffs2_fail = 0;
 
 static void error(const char *message)
 {
@@ -226,7 +226,9 @@ void start_jffs2(void)
 	if (!mtd_getinfo(JFFS2_PARTITION, &part, &size)) return;
 
 	model = get_model();
+	jffs2_fail = 0;
 	_dprintf("start jffs2: %d, %d\n", part, size);
+
 	if (nvram_match("jffs2_format", "1")) {
 		nvram_set("jffs2_format", "0");
 		if ((model==MODEL_RTAC56U || model==MODEL_RTAC56S || model==MODEL_RTAC3200 || model==MODEL_RTAC68U || model==MODEL_DSLAC68U || model==MODEL_RTAC87U || model==MODEL_RTAC88U || model==MODEL_RTAC86U || model==MODEL_RTAC3100 || model==MODEL_RTAC5300 || model==MODEL_GTAC5300 || model==MODEL_RTN18U || model==MODEL_RTAC1200G || model==MODEL_RTAC1200GP) ^ (!mtd_erase(JFFS2_MTD_NAME))){
@@ -277,6 +279,11 @@ void start_jffs2(void)
 			jffs2_fail = 1;
 			return;
 		}
+	}
+
+	if(jffs2_fail == 1) {
+		nvram_set("jffs2_fail", "1");
+		nvram_commit();
 	}
 
 	if (nvram_match("force_erase_jffs2", "1")) {

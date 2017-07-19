@@ -59,6 +59,14 @@
 #include <openssl/md5.h>
 #include <openssl/x509.h>
 
+#if (defined APP_IPKG) && (defined I686)
+extern char actual_s_system[10];
+extern char actual_f_system[10];
+extern char lan_ip[20];
+extern char lan_ip_s_tmp[30];
+extern char webdav_http_port[10];
+#endif
+
 int shmid;
 void* shared_memory = (void*)0;
 
@@ -172,19 +180,22 @@ do_iconv(const char* to_ces, const char* from_ces,
 }
 #endif
 
-size_t static curl_write_callback_func(void *ptr, size_t size, size_t count, void *stream)
+size_t static curl_write_callback_func(void *ptr, size_t size, size_t count, void *srv_response)
 {
    	/* ptr - your string variable.
      	stream - data chuck you received */
-	char **response_ptr =  (char**)stream;
+	char **response_ptr =  (char**)srv_response;
 
     /* assuming the response is a string */
     *response_ptr = strndup(ptr, (size_t)(size *count));
 	
   	//printf("%.*s", size, (char*)stream));
    	//Cdbg(1, "callback_func.... %s", (char*)ptr);
+
+	return 0;
 }
 
+#if 0
 static int is_host2(char *uri)
 {
 	char pWorkgroup[30]={0};
@@ -221,6 +232,7 @@ static int is_host(char *host)
 
 	return !res;
 }
+#endif
 
 /* simple combsort algorithm */
 void smbc_dirls_sort(smbc_dirls_entry_t **ent, int num) {
@@ -327,136 +339,6 @@ static int handle_encrypt(buffer *buf, uint8_t *key, int keylen) {
     return 0;
 }
 
-static int open_close_streaming_port(server* srv, int toOpen){
-	char cmd[BUFSIZ]="\0";
-	int rc = -1;
-	
-#if EMBEDDED_EANBLE
-	char* webdav_http_port = nvram_get_webdav_http_port();
-#else
-	char* webdav_http_port = "8082";
-#endif
-    #if (defined APP_IPKG) && (defined I686)
-    int i = 0;
-    char *p = NULL;
-    char* actual_s_system = nvram_get_second_system();
-    char* actual_f_system = nvram_get_first_system();
-    char* lan_ip = nvram_get_lan_ip();
-    char* lan_ip_s = nvram_get_lan_ip_s();
-    int length = strlen(lan_ip_s);
-    char *lan_ip_s_tmp = (char *)malloc(strlen(lan_ip_s)+3);
-    char lan_ip_s_bak[length + 1];
-    memset(lan_ip_s_tmp, 0, sizeof(lan_ip_s_tmp));
-    memset(lan_ip_s_bak, 0, sizeof(lan_ip_s_bak));
-    sprintf(lan_ip_s_bak, "%s",lan_ip_s);
-    free(lan_ip_s);
-    p = strtok(lan_ip_s_bak,".");
-    sprintf(lan_ip_s_tmp,"%s",p);
-    while(p != NULL && i < 2)
-    {
-        p = strtok(NULL, ".");
-        sprintf(lan_ip_s_tmp,"%s.%s", lan_ip_s_tmp,p);
-        i++;
-    }
-    sprintf(lan_ip_s_tmp,"%s.0/24", lan_ip_s_tmp);
-
-    if(toOpen==1 && srv->is_streaming_port_opend == 0){
-        //- open streaming port
-
-        //- delete accept rule
-       
-        sprintf(cmd, "%siptables -D BASE_FORWARD_CHAIN -i erouter0 -o rndbr1 -p tcp -d %s --dport %s -j ACCEPT", actual_s_system, lan_ip, webdav_http_port);
-        rc = system(cmd);
-        sprintf(cmd, "%siptables -D BASE_FORWARD_CHAIN -i rndbr1 -s %s -d %s -p tcp --dport %s -j ACCEPT", actual_s_system, lan_ip_s_tmp, lan_ip, webdav_http_port);
-        rc = system(cmd);
-        //- delete drop rule
-        sprintf(cmd, "%siptables -D BASE_FORWARD_CHAIN -i erouter0 -o rndbr1 -p tcp -d %s --dport %s -j DROP", actual_s_system, lan_ip, webdav_http_port);
-        rc = system(cmd);
-        sprintf(cmd, "%siptables -D BASE_FORWARD_CHAIN -i rndbr1 -s %s -d %s -p tcp --dport %s -j DROP", actual_s_system, lan_ip_s_tmp, lan_ip, webdav_http_port);
-        rc = system(cmd);
-
-        //- add accept rule        
-        sprintf(cmd, "%siptables -I BASE_FORWARD_CHAIN -i erouter0 -o rndbr1 -p tcp -d %s --dport %s -j ACCEPT", actual_s_system, lan_ip, webdav_http_port);
-        rc = system(cmd);
-        sprintf(cmd, "%siptables -I BASE_FORWARD_CHAIN -i rndbr1 -s %s -d %s -p tcp --dport %s -j ACCEPT", actual_s_system, lan_ip_s_tmp, lan_ip, webdav_http_port);
-        rc = system(cmd);
-    }
-    else if(toOpen==0 && srv->is_streaming_port_opend == 1){
-        //- close streaming port
-
-        //- check rule is existed?
-        //sprintf(cmd, "iptables -C INPUT -p tcp -m tcp --dport %s -j DROP", webdav_http_port);
-        //Cdbg(DBE, "%s", cmd);
-
-        //- delete accept rule
-        sprintf(cmd, "%siptables -D BASE_FORWARD_CHAIN -i erouter0 -o rndbr1 -p tcp -d %s --dport %s -j ACCEPT", actual_s_system, lan_ip, webdav_http_port);     
-        rc = system(cmd);
-        sprintf(cmd, "%siptables -D BASE_FORWARD_CHAIN -i rndbr1 -s %s -d %s -p tcp --dport %s -j ACCEPT", actual_s_system, lan_ip_s_tmp, lan_ip, webdav_http_port);     
-        rc = system(cmd);
-
-        //- delete drop rule      
-        sprintf(cmd, "%siptables -D BASE_FORWARD_CHAIN -i erouter0 -o rndbr1 -p tcp -d %s --dport %s -j DROP", actual_s_system, lan_ip, webdav_http_port);
-        rc = system(cmd);
-        sprintf(cmd, "%siptables -D BASE_FORWARD_CHAIN -i rndbr1 -s %s -d %s -p tcp --dport %s -j DROP", actual_s_system, lan_ip_s_tmp, lan_ip, webdav_http_port);       
-        rc = system(cmd);
-
-        //- add drop rule        
-        sprintf(cmd, "%siptables -I BASE_FORWARD_CHAIN -i erouter0 -o rndbr1 -p tcp -d %s --dport %s -j DROP", actual_s_system, lan_ip, webdav_http_port);       
-        rc = system(cmd);
-        sprintf(cmd, "%siptables -I BASE_FORWARD_CHAIN -i rndbr1 -s %s -d %s -p tcp --dport %s -j DROP", actual_s_system, lan_ip_s_tmp, lan_ip, webdav_http_port);
-
-        rc = system(cmd);
-    }
-    free(actual_s_system);
-    free(actual_f_system);
-    free(lan_ip);
-    free(lan_ip_s_tmp);
-    #else
-	if(toOpen==1 && srv->is_streaming_port_opend == 0){
-		//- open streaming port
-
-		//- delete accept rule
-		sprintf(cmd, "iptables -D INPUT -p tcp -m tcp --dport %s -j ACCEPT", webdav_http_port);
-		rc = system(cmd);
-
-		//- delete drop rule
-		sprintf(cmd, "iptables -D INPUT -p tcp -m tcp --dport %s -j DROP", webdav_http_port);
-		rc = system(cmd);
-
-		//- add accept rule
-		sprintf(cmd, "iptables -I INPUT 1 -p tcp -m tcp --dport %s -j ACCEPT", webdav_http_port);
-		rc = system(cmd);
-	}
-	else if(toOpen==0 && srv->is_streaming_port_opend == 1){
-		//- close streaming port
-		
-		//- check rule is existed?
-		//sprintf(cmd, "iptables -C INPUT -p tcp -m tcp --dport %s -j DROP", webdav_http_port);
-		//Cdbg(DBE, "%s", cmd);
-
-		//- delete accept rule
-		sprintf(cmd, "iptables -D INPUT -p tcp -m tcp --dport %s -j ACCEPT", webdav_http_port);
-		rc = system(cmd);
-		
-		//- delete drop rule
-		sprintf(cmd, "iptables -D INPUT -p tcp -m tcp --dport %s -j DROP", webdav_http_port);
-		rc = system(cmd);
-		
-		//- add drop rule
-		sprintf(cmd, "iptables -I INPUT 1 -p tcp -m tcp --dport %s -j DROP", webdav_http_port);
-		rc = system(cmd);
-	}
-    #endif
-	if(rc!=0){
-		return 0;
-	}
-
-	srv->last_no_ssl_connection_ts = srv->cur_ts;
-	srv->is_streaming_port_opend = toOpen;
-	
-	return 1;
-}
-
 /* init the plugin data */
 INIT_FUNC(mod_smbdav_init) {
 
@@ -491,6 +373,7 @@ INIT_FUNC(mod_smbdav_init) {
 
 URIHANDLER_FUNC(mod_msbdav_connection_close) {	
 	UNUSED(srv);
+	UNUSED(p_d);
 	
 	if(con->smb_info && con->smb_info->cli != NULL) {
 		smbc_cli_shutdown(con->smb_info->cli);
@@ -561,9 +444,14 @@ FREE_FUNC(mod_smbdav_free) {
 
 	stop_arpping_process();
 
+#ifdef EMBEDDED_EANBLE
 	//- close streaming port
 	open_close_streaming_port(srv, 0);
-	
+
+	//- close network access port
+	open_close_network_access_port(srv, 0);
+#endif
+
 	return HANDLER_GO_ON;
 }
 
@@ -919,7 +807,8 @@ URIHANDLER_FUNC(mod_smbdav_uri_handler) {
 
 static int is_usbdisk_exist(server *srv, connection *con, const char* usbdisk_name){
 
-	Cdbg(1, "is_usbdisk_exist");
+	UNUSED(con);
+	
 	#if EMBEDDED_EANBLE
 	char *a = nvram_get_webdavaidisk();
 	if(strcmp( a, "0" ) == 0)
@@ -1320,6 +1209,8 @@ static int smbdav_copy_file(server *srv, connection *con, plugin_data *p, physic
 
 static int smbdav_create_dir(server *srv, connection *con, physical *src){
 	int result=-1;
+
+	UNUSED(srv);
 	
 #if EMBEDDED_EANBLE
 	char *a = nvram_get_productid();
@@ -1901,13 +1792,14 @@ static int smbdav_get_share_property(server *srv, connection *con,
 {
 	int found = 0;
 
+	UNUSED(srv);
 	UNUSED(p);
 
 	//if (HANDLER_ERROR != (smb_cache_get_entry(srv, con, p, dst->path, &sce))) 
 	{
-		char ctime_buf[] = "2005-08-18T07:27:16Z";
-		char mtime_buf[] = "Thu, 18 Aug 2005 07:27:16 GMT";
-		size_t k;
+		//char ctime_buf[] = "2005-08-18T07:27:16Z";
+		//char mtime_buf[] = "Thu, 18 Aug 2005 07:27:16 GMT";
+		//size_t k;
 
 		if (0 == strcmp(prop_name, "resourcetype")) {
 			buffer_append_string_len(b, CONST_STR_LEN("<D:resourcetype><D:collection/></D:resourcetype>"));
@@ -1957,7 +1849,7 @@ static int smbdav_get_share_property(server *srv, connection *con,
 			//- 20111219 Jerry add
 			buffer_append_string_len(b,CONST_STR_LEN("<D:getonline>"));
 			char char_status[5]="\0";
-			sprintf(char_status, "%d", online);
+			snprintf(char_status, sizeof(char_status), "%d", online);
 			buffer_append_string(b, char_status);
 			buffer_append_string_len(b, CONST_STR_LEN("</D:getonline>"));
 			found = 1;
@@ -2020,6 +1912,8 @@ static int smbdav_get_share_props(server *srv, connection *con,
 	buffer *b_200, 
 	buffer *b_404) 
 {
+	UNUSED(b_404);
+	
 	size_t i;
 
 	if (props) {
@@ -2050,6 +1944,9 @@ static int smbdav_get_share_props(server *srv, connection *con,
  void smbdav_propfind_prepare_response_bulk(server *srv, connection *con, plugin_data *p,
 	buffer *b, physical *d, buffer *prop_200, buffer *prop_404)
 {
+	UNUSED(srv);
+	UNUSED(p);
+	
 	buffer_append_string_len(b,CONST_STR_LEN("<D:response>\n"));
 	buffer_append_string_len(b,CONST_STR_LEN("<D:href>"));
 	buffer_append_string_buffer(b, con->uri.scheme);
@@ -2106,7 +2003,10 @@ static int smbdav_get_share_props(server *srv, connection *con,
 
 int smbc_list_directory(server *srv, connection *con, plugin_data *p, buffer *dir) 
 {
-	int dh;
+	UNUSED(p);
+	UNUSED(dir);
+	
+	//int dh;
 	buffer *out;	
 	data_string *ds_userAgent = (data_string *)array_get_element(con->request.headers, "user-Agent");
 
@@ -2126,7 +2026,7 @@ int smbc_list_directory(server *srv, connection *con, plugin_data *p, buffer *di
 	*/
 	if(buffer_is_equal_string(con->uri.query, CONST_STR_LEN("mobile=1"))){
 		buffer_append_string_len(out, CONST_STR_LEN(
-				"<!DOCTYPE html>\n"
+				//"<!DOCTYPE html>\n"
 				"<html>\n"
 				"<head>\n"
 				"<meta charset=\"utf-8\"/>\n"
@@ -2134,6 +2034,7 @@ int smbc_list_directory(server *srv, connection *con, plugin_data *p, buffer *di
 				"<meta name=\"viewport\" content=\"width=device-width, initial-scale=1, user-scalable=no\" />"
 				"<meta name=\"apple-mobile-web-app-capable\" content=\"yes\">\n"
 				"<meta name=\"apple-mobile-web-app-status-bar-style\" content=\"black\">\n"
+				"<meta http-equiv=\"X-Frame-Options\" content=\"sameorigin\">\n"
 				"<link rel=\"apple-touch-icon\" href=\"/smb/css/appicon.png\">\n"
 				"<link rel=\"apple-touch-startup-image\" href=\"/smb/css/startup.png\">\n"
 				"<title>AiCloud</title>\n"
@@ -2198,12 +2099,13 @@ int smbc_list_directory(server *srv, connection *con, plugin_data *p, buffer *di
 #endif
 	{
 		buffer_append_string_len(out, CONST_STR_LEN(
-			"<!DOCTYPE html>\n"
+			//"<!DOCTYPE html>\n"
 			"<html>\n"
 			"<head>\n"
 			"<meta charset=\"utf-8\"/>\n"
 			"<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\">\n"
                         "<meta http-equiv=\"X-UA-Compatible\" content=\"IE=edge\">\n"
+			"<meta http-equiv=\"X-Frame-Options\" content=\"sameorigin\">\n"
 			//"<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />"
 			//"<meta name=\"apple-mobile-web-app-capable\" content=\"yes\">\n"
 			//"<meta name=\"apple-mobile-web-app-status-bar-style\" content=\"black\">\n"
@@ -2249,8 +2151,8 @@ int smbc_list_host(server *srv, connection *con,
 	buffer *prop_404) 
 {
 	int dir;	
-	int count = 0;
-	smb_srv_info_t *c;
+	//int count = 0;
+	//smb_srv_info_t *c;
 	physical d;	
 	physical *dst = &con->url;
 	
@@ -2272,7 +2174,7 @@ int smbc_list_host(server *srv, connection *con,
 				char workgroup[100];
 				DIR *subdir;
 				struct smbc_dirent *subde;
-				sprintf(workgroup, "smb://%s/", de->name);
+				snprintf(workgroup, sizeof(workgroup), "smb://%s/", de->name);
 
 				if (NULL != (subdir = smbc_wrapper_opendir(con, workgroup))) {
 					while(NULL != (subde = smbc_wrapper_readdir(con, subdir))) {
@@ -2402,7 +2304,7 @@ int smbc_list_host(server *srv, connection *con,
 		if (NULL != (dir = opendir("/mnt"))) {
 			struct dirent *de;
 			physical d;
-			physical *dst = &(con->physical);
+			//physical *dst = &(con->physical);
 
 			d.path = buffer_init();
 			d.rel_path = buffer_init();
@@ -2438,7 +2340,7 @@ int smbc_list_host(server *srv, connection *con,
 
 				Cdbg(1,"path=%s, rel_path=%s", d.path->ptr, d.rel_path->ptr);
 				buffer* buffer_ip = buffer_init();
-				char ip[16]="\0";
+				//char ip[16]="\0";
 				
 				buffer* buffer_mac = buffer_init();
 #if EMBEDDED_EANBLE
@@ -2514,6 +2416,7 @@ int smbc_list_host(server *srv, connection *con,
 			
 			//- IP Address
 			pch = strtok(NULL,"<>");
+			if(pch==NULL) continue;
 			ip_len = strlen(pch);
 			strncpy(ip, pch, ip_len);
 			ip[ip_len] = '\0';
@@ -2523,6 +2426,7 @@ int smbc_list_host(server *srv, connection *con,
 			
 			//- MAC Address
 			pch = strtok(NULL,"<>");
+			if(pch==NULL) continue;
 			mac_len = strlen(pch);
 			strncpy(mac, pch, mac_len);
 			mac[mac_len] = '\0';
@@ -2532,6 +2436,7 @@ int smbc_list_host(server *srv, connection *con,
 			
 			//- PC Online?
 			pch = strtok(NULL,"<>");
+			if(pch==NULL) continue;
 			online = atoi(pch);
 			buffer_copy_buffer(d.path, dst->path);
 			buffer_append_slash(d.path);
@@ -2561,8 +2466,7 @@ int smbc_list_host(server *srv, connection *con,
 		free(str_smbdav_list);
 	}
 #else
-	size_t j;
-	int length, filesize;
+	//int length;
 	char* g_temp_file = "/tmp/arpping_list";
 	FILE* fp = fopen(g_temp_file, "r");
 	if(fp!=NULL){		
@@ -2636,6 +2540,7 @@ int smbc_list_host(server *srv, connection *con,
 	buffer_free(d.path);
 	buffer_free(d.rel_path);
 
+	return 1;
 }
 
 #if 0
@@ -2743,7 +2648,7 @@ void smbc_init_aicloud_db(server *srv){
 
 URIHANDLER_FUNC(mod_smbdav_subrequest_handler) {
 	plugin_data *p = p_d;
-	buffer *b;
+	//buffer *b;
 	DIR *dir;
 	data_string *ds;
 	int depth = -1;
@@ -2751,8 +2656,8 @@ URIHANDLER_FUNC(mod_smbdav_subrequest_handler) {
 	buffer *prop_200;
 	buffer *prop_404;
 	smbdav_properties *req_props;
-	stat_cache_entry *sce = NULL;
-	handler_t res = HANDLER_GO_ON;
+	//stat_cache_entry *sce = NULL;
+	//handler_t res = HANDLER_GO_ON;
 	
 #if 0
 	//UNUSED(srv);
@@ -3014,7 +2919,7 @@ URIHANDLER_FUNC(mod_smbdav_subrequest_handler) {
 		//- Query Type
 		buffer_append_string_len(b, CONST_STR_LEN("\" qtype=\""));
 		char qtype[2]="\0";
-		sprintf(qtype, "%d", con->smb_info->qflag);
+		snprintf(qtype, sizeof(qtype), "%d", con->smb_info->qflag);
 		buffer_append_string(b, qtype);
 
 	#if EMBEDDED_EANBLE
@@ -3071,7 +2976,7 @@ URIHANDLER_FUNC(mod_smbdav_subrequest_handler) {
 						int index = strstr(dst->rel_path->ptr, con->match_smb_ip->ptr) - dst->rel_path->ptr;			
 						if( index==1 ){
 							char buff[4096];
-							char* tmp = replace_str(dst->rel_path->ptr, 
+							char* tmp = (char*)replace_str(dst->rel_path->ptr, 
 												    con->match_smb_ip->ptr, 
 												    con->replace_smb_name->ptr, 
 												    (char *)&buff[0]);
@@ -3269,13 +3174,13 @@ URIHANDLER_FUNC(mod_smbdav_subrequest_handler) {
 		time_t now = time(NULL);
 		now = now - (now%5);
 		char timesegment[256] = "\0";
-		sprintf(timesegment, "%lu", now);
+		snprintf(timesegment, sizeof(timesegment), "%lu", now);
 		
 		//- payload
 		buffer* auth = buffer_init_string(auth_username);
 		buffer_append_string(auth, ":");
 		buffer_append_string(auth, auth_password);
-		char* payload = ldb_base64_encode(auth->ptr, strlen(auth->ptr));
+		char* payload = (char*)ldb_base64_encode(auth->ptr, strlen(auth->ptr));
 
 		//- data
 		buffer *buf_data = buffer_init();
@@ -3939,7 +3844,7 @@ URIHANDLER_FUNC(mod_smbdav_subrequest_handler) {
 				buffer_append_string(p->physical.path,"@");
 
 				char* tmp = p->physical.rel_path->ptr + 1;
-				int len = p->physical.rel_path->used - 2;
+				//int len = p->physical.rel_path->used - 2;
 				//buffer_append_string_encoded(p->physical.path, tmp, len, ENCODING_REL_URI);
 				buffer_append_string(p->physical.path, tmp);
 			} else {
@@ -4415,7 +4320,7 @@ propmatch_cleanup:
 							/* create a lock-token */							
 							char uuid[37] /* 36 + \0 */;
 
-							sprintf( uuid, "%d", rand() );
+							snprintf( uuid, sizeof(uuid), "%d", rand() );
 							/*
 							#if EMBEDDED_EANBLE
 							sprintf( uuid, "%d", rand() );
@@ -4606,7 +4511,7 @@ propmatch_cleanup:
 		}
 
 		char cmd[BUFSIZ]="\0";
-		sprintf(cmd, "ether-wake -i %s %s", srv->srvconf.arpping_interface->ptr, wol_mac->ptr);		
+		snprintf(cmd, sizeof(cmd), "ether-wake -i %s %s", srv->srvconf.arpping_interface->ptr, wol_mac->ptr);		
 		int rc = system(cmd);
 
 		if(rc!=0){
@@ -4685,13 +4590,13 @@ propmatch_cleanup:
 		
 		char auth[100]="\0";
 		if(con->smb_info)
-			sprintf(auth, "%s:%s", con->smb_info->username->ptr, con->smb_info->password->ptr);
+			snprintf(auth, sizeof(auth), "%s:%s", con->smb_info->username->ptr, con->smb_info->password->ptr);
 		else{
 			con->http_status = 400;
 			return HANDLER_FINISHED;
 		}
 		
-		char* base64_auth = ldb_base64_encode(auth, strlen(auth));
+		char* base64_auth = (char*)ldb_base64_encode(auth, strlen(auth));
 		
 		if( generate_sharelink(srv, 
 							   con, 
@@ -4815,7 +4720,7 @@ propmatch_cleanup:
 				
 			//- left time
 			char strLeftTime[25] = {0};
-			sprintf(strLeftTime,"%f",offset);
+			snprintf(strLeftTime, sizeof(strLeftTime), "%f",offset);
 			buffer_append_string_len(b,CONST_STR_LEN(" lefttime=\""));
 			if(c->expiretime!=0)
 				buffer_append_string(b,strLeftTime);
@@ -4905,7 +4810,7 @@ propmatch_cleanup:
 
 		char stime[1024]="\0";
 		time_t server_time = time(NULL);
-		sprintf(stime, "%ld", server_time);
+		snprintf(stime, sizeof(stime), "%ld", server_time);
 		Cdbg(DBE, "do HTTP_METHOD_GETSRVTIME....................%s", stime);
 		
 		con->http_status = 200;
@@ -5018,7 +4923,7 @@ propmatch_cleanup:
 		
 		char stime[1024]="\0";
 		time_t server_time = time(NULL);
-		sprintf(stime, "%ld", server_time);
+		snprintf(stime, sizeof(stime), "%ld", server_time);
 		
 #if EMBEDDED_EANBLE
 		char* router_mac = nvram_get_router_mac();
@@ -5118,7 +5023,7 @@ propmatch_cleanup:
 #endif
 		int sharelink_save_count = get_sharelink_save_count();
 		int dms_enable = is_dms_enabled();
-		int jffs_supported = is_jffs_supported();
+		//int jffs_supported = is_jffs_supported();
 		
 		if(buffer_is_empty(srv->srvconf.aicloud_version)){
 			//- Parser version file
@@ -5176,6 +5081,13 @@ propmatch_cleanup:
 		
 		buffer_copy_string_len(b, CONST_STR_LEN("<?xml version=\"1.0\" encoding=\"utf-8\"?>"));
 		buffer_append_string_len(b,CONST_STR_LEN("<result>"));
+		buffer_append_string_len(b,CONST_STR_LEN("<request_host_url>"));
+		if(con->srv_socket->is_ssl)
+			buffer_append_string_len(b,CONST_STR_LEN("https://"));
+		else
+			buffer_append_string_len(b,CONST_STR_LEN("http://"));
+		buffer_append_string_buffer(b,con->request.http_host);
+		buffer_append_string_len(b,CONST_STR_LEN("</request_host_url>"));
 		buffer_append_string_len(b,CONST_STR_LEN("<servertime>"));
 		buffer_append_string(b,stime);
 		buffer_append_string_len(b,CONST_STR_LEN("</servertime>"));
@@ -5311,7 +5223,7 @@ propmatch_cleanup:
 				
 				char querycmd[100] = "\0";		
 
-				sprintf(querycmd, "df|grep -i '%s%s'", disk_path, de->d_name);
+				snprintf(querycmd, sizeof(querycmd), "df|grep -i '%s%s'", disk_path, de->d_name);
 								
 				buffer_append_string_len(b,CONST_STR_LEN("<DiskName>"));
 				buffer_append_string(b,de->d_name);
@@ -5457,11 +5369,12 @@ propmatch_cleanup:
 				return HANDLER_FINISHED;
 			}
 			
-			fread( log_content, fileLen, sizeof(unsigned char), fp );
-			
-			buffer_append_string_len(b, log_content, fileLen);
+			int len = fread( log_content, fileLen, sizeof(unsigned char), fp );
 
-			Cdbg(1, "log_content=%s", log_content);
+			if(len>0)
+				buffer_append_string_len(b, log_content, fileLen);
+
+			Cdbg(DBE, "log_content=%s", log_content);
 			
 			free(log_content);
 
@@ -5657,7 +5570,7 @@ propmatch_cleanup:
 		}
 		
 		char querycmd[100] = "\0";		
-		sprintf(querycmd, "df |grep -i %s", disk_path);		
+		snprintf(querycmd, sizeof(querycmd), "df |grep -i %s", disk_path);		
 		free(disk_path);
 
 		response_header_overwrite(srv, con, CONST_STR_LEN("Content-Type"), CONST_STR_LEN("text/xml; charset=\"utf-8\""));
@@ -5894,14 +5807,14 @@ propmatch_cleanup:
         	int fileLen = ftell(fp);
         	fseek(fp, 0, SEEK_SET);
 
-			char* buffer = (char *)malloc(fileLen+1);
-			if(!buffer){
+			char* buffer_x = (char *)malloc(fileLen+1);
+			if(!buffer_x){
 				con->http_status = 404;
 				con->file_finished = 1;
 				return HANDLER_FINISHED;
 			}
 
-			char* aa = get_filename_ext(product_icon_file);
+			char* aa = (char*)get_filename_ext(product_icon_file);
 			int len = strlen(aa)+1; 		
 			char* file_ext = (char*)malloc(len);
 			memset(file_ext,'\0', len);
@@ -5909,9 +5822,12 @@ propmatch_cleanup:
 			for (int i = 0; file_ext[i]; i++)
 				file_ext[i] = tolower(file_ext[i]);
 			
-			fread( buffer, fileLen, sizeof(unsigned char), fp );
+			len = fread( buffer_x, fileLen, sizeof(unsigned char), fp );
 			
-			char* base64_image = ldb_base64_encode(buffer, fileLen);
+			char* base64_image = NULL;
+
+			if(len>0)
+				base64_image = (char*)ldb_base64_encode(buffer_x, fileLen);
 			
 			response_header_overwrite(srv, con, CONST_STR_LEN("Content-Type"), CONST_STR_LEN("text/xml; charset=\"utf-8\""));
 
@@ -5930,7 +5846,10 @@ propmatch_cleanup:
 				buffer_append_string_len(b,CONST_STR_LEN("<mimetype>unknown</mimetype>"));
 				
 			buffer_append_string_len(b,CONST_STR_LEN("<product_icon>"));
-			buffer_append_string(b,base64_image);
+
+			if(base64_image!=NULL)
+				buffer_append_string(b, base64_image);
+			
 			buffer_append_string_len(b,CONST_STR_LEN("</product_icon>"));
 			buffer_append_string_len(b,CONST_STR_LEN("</result>"));
 
@@ -5938,7 +5857,7 @@ propmatch_cleanup:
 			buffer_free(b);
 		
 			free(file_ext);
-			free(buffer);
+			free(buffer_x);
 			fclose(fp);
 		}
 		else{
@@ -5974,13 +5893,13 @@ propmatch_cleanup:
 
 		char auth[100]="\0";
 		if(con->smb_info)
-			sprintf(auth, "%s:%s", con->smb_info->username->ptr, con->smb_info->password->ptr);
+			snprintf(auth, sizeof(auth), "%s:%s", con->smb_info->username->ptr, con->smb_info->password->ptr);
 		else{
 			con->http_status = 400;
 			return HANDLER_FINISHED;
 		}
 				
-		char* base64_auth = ldb_base64_encode(auth, strlen(auth));
+		char* base64_auth = (char*)ldb_base64_encode(auth, strlen(auth));
 		
 		response_header_overwrite(srv, con, CONST_STR_LEN("Content-Type"), CONST_STR_LEN("text/xml; charset=\"utf-8\""));
 		
@@ -6062,14 +5981,14 @@ propmatch_cleanup:
 		}
 #endif
 
-		buffer* keylength = NULL; //- Private key length
-		buffer* caname = NULL; //- CA name
-		buffer* email = NULL; //- email address
-		buffer* country = NULL; //- Country Name(2 letter code)
-		buffer* state = NULL; //- State or Province Name(full name)
-		buffer* ln = NULL; //- Locality Name(eg, city)
-		buffer* orag = NULL; //- Organization Name(eg, company)
-		buffer* ounit = NULL; //- Organizational Unit Name(eg, section)
+		//buffer* keylength = NULL; //- Private key length
+		//buffer* caname = NULL; //- CA name
+		//buffer* email = NULL; //- email address
+		//buffer* country = NULL; //- Country Name(2 letter code)
+		//buffer* state = NULL; //- State or Province Name(full name)
+		//buffer* ln = NULL; //- Locality Name(eg, city)
+		//buffer* orag = NULL; //- Organization Name(eg, company)
+		//buffer* ounit = NULL; //- Organizational Unit Name(eg, section)
 		buffer* cn = NULL; //- Common Name(eg. your name or your server's hostname)
 	#if 0		
 		if (NULL != (ds = (data_string *)array_get_element(con->request.headers, "KEYLEN"))) {
@@ -6148,7 +6067,7 @@ propmatch_cleanup:
 		unsigned long long sn;
 		char t[32];
 		f_read("/dev/urandom", &sn, sizeof(sn));
-		sprintf(t, "%llu", sn & 0x7FFFFFFFFFFFFFFFULL);
+		snprintf(t, sizeof(t), "%llu", sn & 0x7FFFFFFFFFFFFFFFULL);
         int flag_cert=0;
 		
 	#ifdef APP_IPKG
@@ -6230,7 +6149,7 @@ propmatch_cleanup:
 		xmlChar *key_content = NULL;
 		xmlChar *cert_content = NULL;
 		xmlChar *intermediate_crt_content = NULL;
-		int flag_cert=0;
+		//int flag_cert=0;
 		int ret = 0;
 		
 #ifdef USE_PROPPATCH
@@ -6287,7 +6206,7 @@ propmatch_cleanup:
 		
 		//- write cert
 		buffer_copy_string(command, "echo \"");
-		buffer_append_string(command, cert_content);
+		buffer_append_string(command, (char*)cert_content);
 		buffer_append_string(command, "\" > /etc/cert.pem.1");
 					
 		ret = system(command->ptr);
@@ -6312,7 +6231,7 @@ propmatch_cleanup:
 		
 		//- write key
 		buffer_copy_string(command, "echo \"");
-		buffer_append_string(command, key_content);
+		buffer_append_string(command, (char*)key_content);
 		buffer_append_string(command, "\" > /etc/key.pem.1");
 					
 		ret = system(command->ptr);
@@ -6352,7 +6271,7 @@ propmatch_cleanup:
 			Cdbg(DBE, "intermediate_crt_content=%s", intermediate_crt_content);
 			
 			buffer_copy_string(command, "echo \"");
-			buffer_append_string(command, intermediate_crt_content);
+			buffer_append_string(command, (char*)intermediate_crt_content);
 			buffer_append_string(command, "\" > /etc/intermediate_cert.pem.1");
 						
 			ret = system(command->ptr);
@@ -6760,7 +6679,7 @@ propmatch_cleanup:
 		CURLcode rt;
 		struct curl_httppost *formpost = NULL;
 		struct curl_httppost *lastptr = NULL;
-		char md5[129];
+		//char md5[129];
 		char* response_str;
 		char url_upload_facebook[1024] = "\0";
 		curl = curl_easy_init();
@@ -6793,10 +6712,10 @@ propmatch_cleanup:
 			             CURLFORM_COPYCONTENTS, "success", CURLFORM_END);
 			
 			char photo_path[1024] = "\0";
-			sprintf(photo_path, "%s/%s", "/tmp", filename->ptr);
+			snprintf(photo_path, sizeof(photo_path), "%s/%s", "/tmp", filename->ptr);
 
 			char photo_src_path[1024] = "\0";
-			sprintf(photo_src_path, "%s/%s", con->url.path->ptr, filename->ptr);
+			snprintf(photo_src_path, sizeof(photo_src_path), "%s/%s", con->url.path->ptr, filename->ptr);
 	
 			int status = 0, ret, src_fd = -1;
 			FILE* dst_fd;
@@ -6966,23 +6885,23 @@ propmatch_cleanup:
 		_buffer_t upload_response;
 		#endif
 		
-		buffer* buffer_photoid;
+		//buffer* buffer_photoid;
 		
 		curl = curl_easy_init();
 		if(curl) {
 			Cdbg(DBE, "curl_easy_init OK");
 
 			char request_url[1024] = "\0";
-			sprintf(request_url, "https://picasaweb.google.com/data/feed/api/user/%s/albumid/%s", user_id->ptr, album_id->ptr);
+			snprintf(request_url, sizeof(request_url), "https://picasaweb.google.com/data/feed/api/user/%s/albumid/%s", user_id->ptr, album_id->ptr);
 			curl_easy_setopt(curl, CURLOPT_URL, request_url);
 
 		#if 1
 			char photo_path[1024] = "\0";
-			sprintf(photo_path, "/tmp/%s", filename->ptr);
+			snprintf(photo_path, sizeof(photo_path), "/tmp/%s", filename->ptr);
 			Cdbg(1, "photo_path=%s", photo_path);
 
 			char photo_src_path[1024] = "\0";
-			sprintf(photo_src_path, "%s/%s", con->url.path->ptr, filename->ptr);
+			snprintf(photo_src_path, sizeof(photo_src_path), "%s/%s", con->url.path->ptr, filename->ptr);
 	
 			int status = 0, ret, src_fd = -1;
 			FILE* dst_fd;
@@ -7049,8 +6968,8 @@ propmatch_cleanup:
 		 	}
 
 			/* to get the file size */
-			struct stat file_info;
-  			if(fstat(fileno(fd), &file_info) != 0) {
+			struct stat the_file_info;
+  			if(fstat(fileno(fd), &the_file_info) != 0) {
 				fclose(fd);
 				unlink(photo_path);
 				curl_easy_cleanup(curl);
@@ -7058,7 +6977,7 @@ propmatch_cleanup:
 				return HANDLER_FINISHED;
 			}
 
-			long file_size = file_info.st_size;
+			long file_size = the_file_info.st_size;
 			char* file_data = (char*) malloc (sizeof(char)*file_size);
   			if(file_data == NULL) {
 				fclose(fd);
@@ -7129,7 +7048,7 @@ propmatch_cleanup:
 		#endif
 					
 			char mpart1[4096] = "\0";
-  			sprintf(mpart1, "\nMedia multipart posting\n"
+  			snprintf(mpart1, sizeof(mpart1), "\nMedia multipart posting\n"
 				"--END_OF_PART\n"
 				"Content-Type: application/atom+xml\n\n"
 				"<entry xmlns='http://www.w3.org/2005/Atom'>\n"
@@ -7167,11 +7086,11 @@ propmatch_cleanup:
 			headers = curl_slist_append(headers,"GData-Version: 2");
 			
 			char authHeader[1024] = "\0";
-			sprintf(authHeader, "Authorization: OAuth %s", auth_token->ptr);
+			snprintf(authHeader, sizeof(authHeader), "Authorization: OAuth %s", auth_token->ptr);
 			headers = curl_slist_append(headers, authHeader);
   
 			char content_length[1024] = "\0";
-			sprintf(content_length, "Content-Length=%d", file_size);
+			snprintf(content_length, sizeof(content_length), "Content-Length=%ld", file_size);
 			headers = curl_slist_append(headers, content_length);
 			
 			curl_easy_setopt(curl, CURLOPT_VERBOSE, 2);
@@ -7283,11 +7202,11 @@ propmatch_cleanup:
 						 CURLFORM_COPYCONTENTS, title->ptr, CURLFORM_END);
 
 			char photo_path[1024] = "\0";
-			sprintf(photo_path, "/tmp/%s", filename->ptr);
+			snprintf(photo_path, sizeof(photo_path), "/tmp/%s", filename->ptr);
 			Cdbg(1, "photo_path=%s", photo_path);
 
 			char photo_src_path[1024] = "\0";
-			sprintf(photo_src_path, "%s/%s", con->url.path->ptr, filename->ptr);
+			snprintf(photo_src_path, sizeof(photo_src_path), "%s/%s", con->url.path->ptr, filename->ptr);
 	
 			int status = 0, ret, src_fd = -1;
 			FILE* dst_fd;
@@ -7518,7 +7437,7 @@ propmatch_cleanup:
 
 			struct curl_slist *headers = NULL;
 			char authHeader[1024] = "\0";
-			sprintf(authHeader, "Authorization: OAuth"
+			snprintf(authHeader, sizeof(authHeader), "Authorization: OAuth"
 				" oauth_consumer_key=\"%s\","
 				" oauth_nonce=\"%s\","
 				" oauth_signature_method=\"HMAC-SHA1\","
@@ -7558,10 +7477,10 @@ propmatch_cleanup:
 			}
 			#else
 			char photo_path[1024] = "\0";
-			sprintf(photo_path, "/tmp/%s", filename->ptr);
+			snprintf(photo_path, sizeof(photo_path), "/tmp/%s", filename->ptr);
 			
 			char photo_src_path[1024] = "\0";
-			sprintf(photo_src_path, "%s/%s", con->url.path->ptr, filename->ptr);
+			snprintf(photo_src_path, sizeof(photo_src_path), "%s/%s", con->url.path->ptr, filename->ptr);
 	
 			int status = 0, ret, src_fd = -1;
 			FILE* dst_fd;
@@ -7629,8 +7548,8 @@ propmatch_cleanup:
 		 	}
 
 			/* to get the file size */
-			struct stat file_info;
-  			if(fstat(fileno(fd), &file_info) != 0) {
+			struct stat the_file_info;
+  			if(fstat(fileno(fd), &the_file_info) != 0) {
 				fclose(fd);
 				unlink(photo_path);
 				curl_easy_cleanup(curl);
@@ -7639,7 +7558,7 @@ propmatch_cleanup:
 			}
 			#endif
 			
-			long file_size = file_info.st_size;
+			long file_size = the_file_info.st_size;
 			long l_photo_size_limit = atol(photo_size_limit->ptr);
 			fclose(fd);
 
@@ -7743,12 +7662,12 @@ propmatch_cleanup:
 				unsigned long cpu_percentage = (100*user_diff/total_diff);
 
 				buffer_append_string_len(b, CONST_STR_LEN("<cpu"));
-																																					buffer_append_string(b, cpu_num);
-																																					buffer_append_string_len(b, CONST_STR_LEN(">"));
-																																					memset(tmp, 0, 10);
-																																					sprintf(tmp, "%lu", cpu_percentage);
+				buffer_append_string(b, cpu_num);
+				buffer_append_string_len(b, CONST_STR_LEN(">"));
+				memset(tmp, 0, 10);
+				snprintf(tmp, sizeof(tmp), "%lu", cpu_percentage);
 				buffer_append_string(b, tmp);
-																																					buffer_append_string_len(b, CONST_STR_LEN("</cpu"));
+				buffer_append_string_len(b, CONST_STR_LEN("</cpu"));
 				buffer_append_string(b, cpu_num);
 				buffer_append_string_len(b, CONST_STR_LEN(">"));
 
@@ -7812,7 +7731,7 @@ propmatch_cleanup:
 		
 		buffer_append_string_len(b,CONST_STR_LEN("<cpucount>"));
 		memset(tmp, 0, 10);
-		sprintf(tmp, "%d", cpu_count);
+		snprintf(tmp, sizeof(tmp), "%d", cpu_count);
 		buffer_append_string(b,tmp);
 		buffer_append_string_len(b,CONST_STR_LEN("</cpucount>"));		
 		buffer_append_string_len(b,CONST_STR_LEN("</result>"));
@@ -7860,19 +7779,19 @@ propmatch_cleanup:
 
 		buffer_append_string_len(b, CONST_STR_LEN("<Total>"));
 		memset(tmp, 0, 80);
-		sprintf(tmp, "%lu", total);
+		snprintf(tmp, sizeof(tmp), "%lu", total);
 		buffer_append_string(b, tmp);
 		buffer_append_string_len(b, CONST_STR_LEN("</Total>"));
 
 		buffer_append_string_len(b, CONST_STR_LEN("<Free>"));
 		memset(tmp, 0, 80);
-		sprintf(tmp, "%lu", mfree);
+		snprintf(tmp, sizeof(tmp), "%lu", mfree);
 		buffer_append_string(b, tmp);
 		buffer_append_string_len(b, CONST_STR_LEN("</Free>"));
 
 		buffer_append_string_len(b, CONST_STR_LEN("<Used>"));
 		memset(tmp, 0, 80);
-		sprintf(tmp, "%lu", used);
+		snprintf(tmp, sizeof(tmp), "%lu", used);
 		buffer_append_string(b, tmp);
 		buffer_append_string_len(b, CONST_STR_LEN("</Used>"));
 
@@ -7919,22 +7838,22 @@ propmatch_cleanup:
 		
 					for (cmd = rootnode->children; cmd; cmd = cmd->next) {
 						if (0 == xmlStrcmp(cmd->name, BAD_CAST "id")) {
-							userid = atoi(xmlNodeGetContent(cmd));
+							userid = atoi((char*)xmlNodeGetContent(cmd));
 						}
 						else if (0 == xmlStrcmp(cmd->name, BAD_CAST "username")) {
-							buffer_copy_string(username, xmlNodeGetContent(cmd));
+							buffer_copy_string(username, (char*)xmlNodeGetContent(cmd));
 							buffer_urldecode_path(username);
 						}
 						else if (0 == xmlStrcmp(cmd->name, BAD_CAST "password")) {
-							buffer_copy_string(password, xmlNodeGetContent(cmd));
+							buffer_copy_string(password, (char*)xmlNodeGetContent(cmd));
 							buffer_urldecode_path(password);
 						}
 						else if (0 == xmlStrcmp(cmd->name, BAD_CAST "type")) {
-							buffer_copy_string(type, xmlNodeGetContent(cmd));
+							buffer_copy_string(type, (char*)xmlNodeGetContent(cmd));
 							buffer_urldecode_path(type);
 						}
 						else if (0 == xmlStrcmp(cmd->name, BAD_CAST "permission")) {
-							buffer_copy_string(permission, xmlNodeGetContent(cmd));
+							buffer_copy_string(permission, (char*)xmlNodeGetContent(cmd));
 							buffer_urldecode_path(permission);
 						}
 					}
@@ -8042,21 +7961,21 @@ propmatch_cleanup:
 
 					//- permission
 					pch = strtok(NULL,",;");
-					buffer* permission = buffer_init();
-					buffer_copy_string_len(permission, pch, strlen(pch));
+					buffer* buffer_permission = buffer_init();
+					buffer_copy_string_len(buffer_permission, pch, strlen(pch));
 					
-					Cdbg(DBE, "result: partion=%s, folder=%s, permission=%s", partion->ptr, folder->ptr, permission->ptr);
+					Cdbg(DBE, "result: partion=%s, folder=%s, permission=%s", partion->ptr, folder->ptr, buffer_permission->ptr);
 
 #if EMBEDDED_EANBLE
 					set_aicloud_permission( username->ptr,
 											partion->ptr,
 					  					    folder->ptr,
-                 						    atoi(permission->ptr) );
+                 						    atoi(buffer_permission->ptr) );
 #endif
 
 					buffer_free(partion);
 					buffer_free(folder);
-					buffer_free(permission);
+					buffer_free(buffer_permission);
 					
 					pch = strtok(NULL,",;");
 					
@@ -8162,7 +8081,7 @@ propmatch_cleanup:
 								continue;
 
 							memset(test_path, 0, PATH_MAX);
-							sprintf(test_path, "%s/%s", follow_partition->mount_point, dp->d_name);
+							snprintf(test_path, sizeof(test_path), "%s/%s", follow_partition->mount_point, dp->d_name);
 							
 							delete_file_or_dir(test_path);
 						}
@@ -8341,7 +8260,7 @@ propmatch_cleanup:
 		free(a);
 		#endif
 #else
-		int i = 100;
+		//int i = 100;
 		nvram_acc_list = (char*)malloc(100);
 		strcpy(nvram_acc_list, "admin>admin<jerry>jerry");
 #endif
@@ -8459,18 +8378,18 @@ propmatch_cleanup:
 		
 					for (cmd = rootnode->children; cmd; cmd = cmd->next) {
 						if (0 == xmlStrcmp(cmd->name, BAD_CAST "token")) {
-							buffer_copy_string(token, xmlNodeGetContent(cmd));
+							buffer_copy_string(token, (char*)xmlNodeGetContent(cmd));
 							buffer_urldecode_path(token);
 						}
 						else if (0 == xmlStrcmp(cmd->name, BAD_CAST "permission")) {
-							buffer_copy_string(permission, xmlNodeGetContent(cmd));
+							buffer_copy_string(permission, (char*)xmlNodeGetContent(cmd));
 							buffer_urldecode_path(permission);
 						}
 						else if (0 == xmlStrcmp(cmd->name, BAD_CAST "enable_smart_access")) {
-							enable_smart_access = atoi(xmlNodeGetContent(cmd));
+							enable_smart_access = atoi((char*)xmlNodeGetContent(cmd));
 						}
 						else if (0 == xmlStrcmp(cmd->name, BAD_CAST "security_code")) {
-							buffer_copy_string(security_code, xmlNodeGetContent(cmd));
+							buffer_copy_string(security_code, (char*)xmlNodeGetContent(cmd));
 						}
 					}
 				}
@@ -8507,7 +8426,7 @@ propmatch_cleanup:
 			unsigned long long now_utime;
 			gettimeofday(&tv,NULL);
 			now_utime = tv.tv_sec * 1000000 + tv.tv_usec;  
-			sprintf( invite_token, "AINVITE%d", abs(now_utime));
+			snprintf(invite_token, sizeof(invite_token), "AINVITE%d", abs(now_utime));
 			
 			//- new
 			aicloud_acc_invite_info = (aicloud_acc_invite_info_t *)calloc(1, sizeof(aicloud_acc_invite_info_t));
@@ -8639,10 +8558,11 @@ propmatch_cleanup:
 			buffer_append_string_buffer(b, c->token);
 			buffer_append_string_len(b, CONST_STR_LEN("</token>"));
 			Cdbg(1, "c->token=%s", c->token->ptr);
+
 			//- smart_access
 			buffer_append_string_len(b, CONST_STR_LEN("<smart_access>"));
 			char strSmartAccess[2] = {0};
-			sprintf(strSmartAccess, "%d", c->smart_access);
+			snprintf(strSmartAccess, sizeof(strSmartAccess), "%d", c->smart_access);
 			buffer_append_string(b, strSmartAccess);
 			buffer_append_string_len(b, CONST_STR_LEN("</smart_access>"));
 			Cdbg(1, "c->smart_access=%d", c->smart_access);
@@ -8743,7 +8663,7 @@ propmatch_cleanup:
 
 		buffer_append_string_len(b, CONST_STR_LEN("<smart_access>"));
 		char strSmartAccess[2] = {0};
-		sprintf(strSmartAccess, "%d", c->smart_access);
+		snprintf(strSmartAccess, sizeof(strSmartAccess), "%d", c->smart_access);
 		buffer_append_string(b, strSmartAccess);
 		buffer_append_string_len(b, CONST_STR_LEN("</smart_access>"));
 
@@ -8972,36 +8892,22 @@ propmatch_cleanup:
 }
 
 URIHANDLER_FUNC(mod_smbdav_trigger_handler){
+	UNUSED(con);
+	UNUSED(p_d);
+	
 #ifdef EMBEDDED_EANBLE
-
-#if 0
-	time_t cur_ts = time(NULL);
-
-	//- stop arp every 2 hour
-	if(prv_ts != 0 && cur_ts - prv_ts >= 7200){
-		stop_arpping_process();
-		prv_ts = cur_ts;
-	}
-#endif
-
-	/*if( srv->last_no_ssl_connection_ts == 0 ){		
-		
-		if(prv_ts==0){
-			prv_ts = srv->cur_ts;
-		}
-		else{
-			if(srv->cur_ts - prv_ts >=20){
-				//- After init the lighttpd, close the streaming port after 20 seconds.
-				open_close_streaming_port(srv, 0);
-			}
-		}
-		
-	}
-	else */if( srv->last_no_ssl_connection_ts == 0 ||
-		     (srv->is_streaming_port_opend == 1 && srv->cur_ts - srv->last_no_ssl_connection_ts >= 7200/*2 hour*/ )){
+	if( srv->last_ts_of_streaming_connection == 0 ||
+		(srv->is_streaming_port_opend == 1 && srv->cur_ts - srv->last_ts_of_streaming_connection >= 7200/*2 hour*/ )){
 		//- close streaming port
 		open_close_streaming_port(srv, 0);
 	}
+	
+	if( srv->last_ts_of_network_access_connection == 0 ||
+		(srv->is_network_access_port_opend == 1 && srv->cur_ts - srv->last_ts_of_network_access_connection >= 3600/*1 hour*/ )){		
+		//- close network access port
+		open_close_network_access_port(srv, 0);
+	}
+	
 #else
 	start_arpping_process(srv->srvconf.arpping_interface->ptr);
 #endif

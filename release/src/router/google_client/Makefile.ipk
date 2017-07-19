@@ -4,11 +4,11 @@
 #
 #***********************************************************************
 
-CFLAGS = -I$(SRCBASE)/openssl/include -I$(SRCBASE)/curl-7.21.7/include -I$(SRCBASE)/smartsync_api
+CFLAGS = -I$(SRCBASE)/openssl-ipk/include -I$(SRCBASE)/curl-7.21.7/include -I$(SRCBASE)/smartsync_api
 CFLAGS += -I$(LD_DIR) -I$(LD_DIR)/include -I. -I$(SRCBASE)/shared -D_FILE_OFFSET_BITS=64
 CFLAGS += $(if $(QCA),$(EXTRACFLAGS))
 
-LDFLAGS = -L$(SRCBASE)/curl-7.21.7/lib/.libs -L$(SRCBASE)/openssl  -L$(SRCBASE)/smartsync_api
+LDFLAGS = -L$(SRCBASE)/curl-7.21.7/lib/.libs -L$(SRCBASE)/openssl-ipk  -L$(SRCBASE)/smartsync_api
 LDFLAGS += -Wl,-rpath,/opt/lib -Wl,-rpath-link,$(SRCBASE)/opt/lib
 LIBS = -lpthread -lcrypto -lssl -lcurl -lm -lsmartsync_api
 

@@ -2053,3 +2053,14 @@ sysfail:
   free(pt);
  return NULL;
 }
+
+int num_of_wl_if()
+{
+	char word[256], *next;
+	int count = 0;
+
+	foreach (word, nvram_safe_get("wl_ifnames"), next)
+		count++;
+
+	return count;
+}

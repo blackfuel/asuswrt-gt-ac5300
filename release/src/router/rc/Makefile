@@ -60,7 +60,7 @@ CFLAGS += -I$(TOP)/shared/sysdeps/alpine -I$(TOP)/wireless_tools -I$(TOP)/mtd-ut
 endif
 
 ifeq ($(RTCONFIG_LANTIQ),y)
-CFLAGS += -I$(TOP)/shared/sysdeps/lantiq -I$(TOP)/wireless_tools -I$(TOP)/fapi_wlan_common-1.0.0.1/include -I$(TOP)/libhelper-1.4.0.2
+CFLAGS += -I$(TOP)/shared/sysdeps/lantiq -I$(TOP)/wireless_tools -I$(TOP)/fapi_wlan_common-1.0.0.1/include -I$(TOP)/libhelper-1.4.0.2 -DPACKAGE_ID=\"fapi_wlan_common\" -DLOGGING_ID="fapi_wlan_common"
 endif
 
 include $(SRCBASE)/.config
@@ -95,7 +95,8 @@ LDFLAGS += -L$(TOP)/libqcsapi_client_10g -lqcsapi_client
 endif
 
 ifeq ($(RTCONFIG_LANTIQ),y)
-LDFLAGS += -L$(TOP)/fapi_wlan_common-1.0.0.1 -lfapiwlancommon -L$(TOP)/libhelper-1.4.0.2 -lhelper
+# LDFLAGS += -L$(TOP)/fapi_wlan_common-1.0.0.1 -lfapiwlancommon -L$(TOP)/libhelper-1.4.0.2 -lhelper -lrt
+LDFLAGS += -L$(TOP)/fapi_wlan_common-1.0.0.1 -lfapiwlancommon -L$(TOP)/libhelper-1.4.0.2 -lhelper -L$(TOP)/libfapi-0.1 -lfapi
 endif
 
 ifeq ($(RTCONFIG_HTTPS),y)
@@ -104,9 +105,6 @@ LDFLAGS += -L$(TOP)/openssl -lcrypto -lssl
 endif
 
 ifeq ($(RTCONFIG_BWDPI),y)
-CFLAGS += -I$(TOP)/bwdpi_source/src/tdts_udb_sample
-CFLAGS += -I$(TOP)/bwdpi_source/src/tdts_udb_sample/linux
-CFLAGS += -I$(TOP)/bwdpi_source/include
 CFLAGS += -I$(TOP)/bwdpi_source/asus_include
 CFLAGS += -I$(TOP)/httpd/
 CFLAGS += -I$(TOP)/util-linux/include
@@ -248,7 +246,7 @@ OBJS += init-ralink-dsl.o
 endif
 else ifeq ($(RTCONFIG_QCA),y)
 OBJS += init-qca.o wps-qca.o qca.o ate-qca.o $(if $(wildcard sysdeps/qca/ctl.c),ctl.obj,prebuild/ctl.obj)
-ifeq ($(MAKE_HIVEDOT)$(MAKE_HIVESPOT),y)
+ifeq ($(or $(MAPAC1300),$(MAPAC2200)),y)
 OBJS += repacd.o
 endif
 else ifeq ($(RTCONFIG_ALPINE),y)
@@ -402,7 +400,7 @@ SW_DSLWANLED=y
 endif
 endif
 
-ifneq (,$(filter y,$(RTCONFIG_WLAN_LED) $(RTN18U) $(RTCONFIG_FAKE_ETLAN_LED) $(SW_USBLED) $(RTCONFIG_MMC_LED) $(RTCONFIG_BRCM_USBAP) $(RTAC66U) $(BCM4352) $(SW_DSLWANLED)))
+ifneq (,$(filter y,$(RTCONFIG_WLAN_LED) $(RTN18U) $(RTCONFIG_FAKE_ETLAN_LED) $(SW_USBLED) $(RTCONFIG_MMC_LED) $(RTCONFIG_BRCM_USBAP) $(RTAC66U) $(BCM4352) $(SW_DSLWANLED) $(RTCONFIG_SW_DEVLED)))
 CFLAGS += -DSW_DEVLED
 endif
 
@@ -465,7 +463,7 @@ ifeq ($(RTCONFIG_TR069),y)
 OBJS += tr069.o
 endif
 
-ifeq ($(or $(and $(RTCONFIG_USER_LOW_RSSI),$(RTCONFIG_BCMARM)),$(RTCONFIG_NEW_USER_LOW_RSSI)),y)
+ifeq ($(RTCONFIG_NEW_USER_LOW_RSSI),y)
 OBJS += roamast.o
 ifeq ($(RTCONFIG_RALINK),y)
 OBJS += roamast-ralink.o
@@ -583,10 +581,11 @@ endif
 endif
 	@cd $(INSTALLDIR)/sbin && ln -sf rc ots
 	@cd $(INSTALLDIR)/sbin && ln -sf rc watchdog
+	@cd $(INSTALLDIR)/sbin && ln -sf rc wave_monitor
 ifneq ($(RTCONFIG_QCA)$(RTCONFIG_RALINK)$(RTCONFIG_ALPINE)$(RTCONFIG_LANTIQ),y)
 	@cd $(INSTALLDIR)/sbin && ln -sf rc watchdog02
 endif
-ifneq (,$(filter y,$(RTCONFIG_WLAN_LED) $(RTN18U) $(RTCONFIG_FAKE_ETLAN_LED) $(SW_USBLED) $(RTCONFIG_MMC_LED) $(RTCONFIG_BRCM_USBAP) $(RTAC66U) $(BCM4352) $(SW_DSLWANLED)))
+ifneq (,$(filter y,$(RTCONFIG_WLAN_LED) $(RTN18U) $(RTCONFIG_FAKE_ETLAN_LED) $(SW_USBLED) $(RTCONFIG_MMC_LED) $(RTCONFIG_BRCM_USBAP) $(RTAC66U) $(BCM4352) $(SW_DSLWANLED) $(RTCONFIG_SW_DEVLED)))
 	@cd $(INSTALLDIR)/sbin && ln -sf rc sw_devled
 endif
 ifeq ($(RTAC1200G),y)
@@ -631,7 +630,7 @@ endif
 ifeq ($(RTCONFIG_QCA_PLC_UTILS),y)
 	@cd $(INSTALLDIR)/sbin && ln -sf rc autodet_plc
 endif
-ifeq ($(BUILD_NAME),HIVESPOT)
+ifeq ($(MAPAC2200),y)
 	@cd $(INSTALLDIR)/sbin && ln -sf rc dpdt_ant
 endif
 
@@ -699,7 +698,7 @@ endif
 endif
 	@cd $(INSTALLDIR)/sbin && ln -sf rc restart_wireless
 
-ifeq ($(MAKE_HIVEDOT)$(MAKE_HIVESPOT),y)
+ifeq ($(or $(MAPAC1300),$(MAPAC2200)),y)
 	@cd $(INSTALLDIR)/sbin && ln -sf rc hive_cap 
 	@cd $(INSTALLDIR)/sbin && ln -sf rc hive_re
 	@cd $(INSTALLDIR)/sbin && ln -sf rc wifimon_check
@@ -812,7 +811,7 @@ ifeq ($(RTCONFIG_TR069),y)
 	@cd $(INSTALLDIR)/sbin && ln -sf rc dhcpc_lease
 endif
 
-ifeq ($(or $(and $(RTCONFIG_USER_LOW_RSSI),$(RTCONFIG_BCMARM)),$(RTCONFIG_NEW_USER_LOW_RSSI)),y)
+ifeq ($(RTCONFIG_NEW_USER_LOW_RSSI),y)
 	@cd $(INSTALLDIR)/sbin && ln -sf rc roamast
 endif
 
@@ -980,6 +979,44 @@ ifeq ($(and $(CONFIG_BCMWL5),$(RTCONFIG_DUALWAN)),y)
 ifneq ($(wildcard ./prebuild/dualwan.o),)
 dualwan.o:
 	@-cp -f ./prebuild/dualwan.o .
+endif
+endif
+
+ifeq ($(RTCONFIG_ALPINE),y)
+ifneq ($(wildcard ./prebuild/init-alpine.o),)
+init-alpine.o:
+	@-cp -f ./prebuild/init-alpine.o .
+endif
+ifneq ($(wildcard ./prebuild/ate-alpine.o),)
+ate-alpine.o:
+	@-cp -f ./prebuild/ate-alpine.o .
+endif
+ifneq ($(wildcard ./prebuild/alpine.o),)
+alpine.o:
+	@-cp -f ./prebuild/alpine.o .
+endif
+ifneq ($(wildcard ./prebuild/qsr10g.o),)
+qsr10g.o:
+	@-cp -f ./prebuild/qsr10g.o .
+endif
+endif
+
+ifeq ($(RTCONFIG_LANTIQ),y)
+ifneq ($(wildcard ./prebuild/lantiq.o),)
+lantiq.o:
+	@-cp -f ./prebuild/lantiq.o .
+endif
+ifneq ($(wildcard ./prebuild/ate-lantiq.o),)
+ate-lantiq.o:
+	@-cp -f ./prebuild/ate-lantiq.o .
+endif
+ifneq ($(wildcard ./prebuild/init-lantiq.o),)
+init-lantiq.o:
+	@-cp -f ./prebuild/init-lantiq.o .
+endif
+ifneq ($(wildcard ./prebuild/lantiq-wave.o),)
+lantiq-wave.o:
+	@-cp -f ./prebuild/lantiq-wave.o .
 endif
 endif
 

@@ -61,6 +61,7 @@ else
 		sig_ver=`grep $WW_type /tmp/sig_update.txt | sed s/.*#//;`
 		nvram set SKU="WW"_"$sig_type"
 	else
+		territory_type=`echo $territory_type | sed s/'\/'/'\_'/g;`
 		nvram set SKU="$territory_type"
 	fi
 	echo `nvram get SKU`

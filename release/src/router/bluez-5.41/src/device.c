@@ -2181,6 +2181,7 @@ static void device_svc_resolved(struct btd_device *dev, uint8_t bdaddr_type,
 	struct browse_req *req = dev->browse;
 
 	DBG("%s err %d", dev->path, err);
+	if (WORKAROUND) usleep(200*1000);
 
 	state->svc_resolved = true;
 
@@ -5417,6 +5418,7 @@ void device_bonding_complete(struct btd_device *device, uint8_t bdaddr_type,
 
 		bonding_request_free(bonding);
 	} else if (!state->svc_resolved) {
+#if 0 /* disable reverse discovery */
 		if (!device->browse && !device->discov_timer &&
 				main_opts.reverse_sdp) {
 			/* If we are not initiators and there is no currently
@@ -5428,6 +5430,7 @@ void device_bonding_complete(struct btd_device *device, uint8_t bdaddr_type,
 							start_discovery,
 							device);
 		}
+#endif
 	}
 }
 

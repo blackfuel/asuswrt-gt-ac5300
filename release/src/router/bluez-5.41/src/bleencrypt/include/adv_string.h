@@ -190,10 +190,10 @@ static char* dumpHEX(
 	for (c=0, PP=&P[0]; s<ss; s++)
 	{
 		memset(sss, 0, sizeof(sss));
-		snprintf(sss, sizeof(sss)-1, "%02X%c", *s, (c>=15)?'\x0a':'\x20');
+		snprintf(sss, sizeof(sss)-1, "%02X%c", *s, (c>=19)?'\x0a':'\x20');
 		strncpy(PP, sss, strlen(sss));
 		PP += strlen(sss);
-		if (c++>=15) c = 0;	
+		if (c++>=19) c = 0;	
 	}
 	printf("%s\n", P);
 	free(P);

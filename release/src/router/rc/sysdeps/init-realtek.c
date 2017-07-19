@@ -135,6 +135,9 @@ void init_syspara(void)
 	nvram_set("swpjverno", rt_swpjverno);
 
 	set_country_code();
+#ifdef RTCONFIG_TCODE
+	set_territory_code();
+#endif
 }
 
 

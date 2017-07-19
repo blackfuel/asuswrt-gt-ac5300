@@ -92,7 +92,7 @@ struct param_handler_svr param_handlers_svr[] = {
 	{ BLE_COMMAND_SET_ADMIN_PWD,		"http_passwd",			"chpass",			BLE_DATA_TYPE_STRING },
 	{ BLE_COMMAND_SET_USER_LOCATION,	"cfg_alias",			NULL,				BLE_DATA_TYPE_STRING },
 	{ BLE_COMMAND_SET_USER_PLACE,		"bt_user_place",		NULL,				BLE_DATA_TYPE_STRING },
-	{ BLE_COMMAND_SET_SW_MODE,		"sw_mode",			"start_hyfi_process",		BLE_DATA_TYPE_STRING },
+	{ BLE_COMMAND_SET_SW_MODE,		"sw_mode",			"ble_qis_done",			BLE_DATA_TYPE_STRING },
 	{ BLE_COMMAND_SET_WAN_DNS_ENABLE,	"wan_dnsenable_x",		"restart_wan_if 0",		BLE_DATA_TYPE_STRING },
 	{ BLE_COMMAND_GET_MAC_BLE_VERSION,	NULL,				NULL,				BLE_DATA_TYPE_NULL },
 	{ -1,					NULL,				NULL,				-1 }
@@ -115,6 +115,26 @@ static int fileExists(char *FileName)
 	return ret;
 }
 
+void print_data_topic(char *topic, int length)
+{
+	char str_tmp[MAX_PACKET_SIZE];
+	int index;
+
+	memset(str_tmp, '\0', MAX_PACKET_SIZE);
+	snprintf(str_tmp, sizeof(str_tmp), "%s[%4s] ", str_tmp, "");
+
+	for(index=0; index<MAX_LE_DATALEN; index++)
+			snprintf(str_tmp, sizeof(str_tmp), "%s%2d%c", str_tmp, index, ' ');
+
+	if(GATTDATABASE_DEBUG)
+		printf("\n[%s total data length]: %d\n%s\n", topic, length, str_tmp);
+
+	logmessage("BLUEZ", "[%s total data length]: %d\n", topic, length);
+	logmessage("BLUEZ", "%s\n", str_tmp);
+
+	return;
+}
+
 /*
  * @func: printf uint8 value 
  * @value:
@@ -125,25 +145,29 @@ static int fileExists(char *FileName)
  *
  * @return:
  * */
-void print_uint8(uint8_t *value, int val_len, int row_len, int val_index, int flag)
+void print_data_info(uint8_t *value, int val_len, int row_len, int val_index, int flag)
 {
 	uint8_t *val_tmp=malloc(MAX_PACKET_SIZE);
 	char str_tmp[MAX_PACKET_SIZE];
-	size_t index;
+	int index;
 
 	memset(val_tmp, '\0', val_len);
 	memset(str_tmp, '\0', MAX_PACKET_SIZE);
 	memcpy(val_tmp, value, val_len);
-	for(index=0; index<val_len; index++)
-		if (flag == 1)
+
+	if (flag == 1)
+		snprintf(str_tmp, sizeof(str_tmp), "Data value:\n%s\n", str_tmp);
+	else
+		snprintf(str_tmp, sizeof(str_tmp), "[%4d] ", val_index);
+
+	for(index=0; index<val_len; index++) if (flag == 1)
 			snprintf(str_tmp, sizeof(str_tmp), "%s%02x%c", str_tmp, val_tmp[index], (((index+1)%row_len)==0 && index!=0)?'\n':' ');
 		else
 			snprintf(str_tmp, sizeof(str_tmp), "%s%02x%c", str_tmp, val_tmp[index], ' ');
 
-	if (flag == 1)
-		printf("Data length: %d, Data value:\n%s\n", val_len, str_tmp);
-	else
-		printf("[%5d] %s\n", val_index, str_tmp);
+	if(GATTDATABASE_DEBUG)
+		printf("%s\n", str_tmp);
+	logmessage("BLUEZ", "%s\n", str_tmp);
 
 	free(val_tmp);
 

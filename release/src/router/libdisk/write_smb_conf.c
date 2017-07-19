@@ -191,7 +191,7 @@ int main(int argc, char *argv[])
 {
 	FILE *fp;
 	int n=0;
-	char *p_computer_name = NULL;
+	char p_computer_name[16]; // computer_name's len is CKN_STR15.
 	disk_info_t *follow_disk, *disks_info = NULL;
 	partition_info_t *follow_partition;
 	char *mount_folder;
@@ -222,8 +222,11 @@ int main(int argc, char *argv[])
 		fprintf(fp, "server string = %s\n", nvram_safe_get("computer_name"));
 	}
 #else
-	p_computer_name = nvram_get("computer_name") && is_valid_netbios_name(nvram_get("computer_name")) ? nvram_get("computer_name") : get_productid();
-	if (p_computer_name) {
+	snprintf(p_computer_name, sizeof(p_computer_name), "%s", nvram_safe_get("computer_name"));
+	if(strlen(p_computer_name) <= 0 || !is_valid_netbios_name(p_computer_name))
+		snprintf(p_computer_name, sizeof(p_computer_name), "%s", get_productid());
+
+	if(strlen(p_computer_name) > 0){
 		fprintf(fp, "netbios name = %s\n", p_computer_name);
 		fprintf(fp, "server string = %s\n", p_computer_name);
 	}
@@ -298,6 +301,8 @@ int main(int argc, char *argv[])
 	if (!nvram_get_int("stop_samba_speedup")) {
 #if defined(RTCONFIG_SAMBA36X)
 		fprintf(fp, "socket options = TCP_NODELAY SO_KEEPALIVE\n");
+#elif defined(RTCONFIG_ALPINE)
+		fprintf(fp, "socket options = TCP_NODELAY IPTOS_LOWDELAY IPTOS_THROUGHPUT SO_RCVBUF=5048576 SO_SNDBUF=5048576\n");
 #elif defined(RTCONFIG_BCMARM)
 #ifdef RTCONFIG_BCM_7114
 		fprintf(fp, "socket options = IPTOS_LOWDELAY TCP_NODELAY SO_RCVBUF=131072 SO_SNDBUF=131072\n");

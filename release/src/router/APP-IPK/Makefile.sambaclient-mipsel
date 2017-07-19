@@ -22,10 +22,7 @@ export SIZE := $(CROSS_COMPILE)size
 export CXX := $(CROSS_COMPILE)g++
 export CXXCPP := $(CROSS_COMPILE)g++ -E
 
-#obj-y += zlib
-#obj-y += libxml2
-#obj-y += openssl
-#obj-y += curl
+obj-y += mkdir
 obj-y += samba
 obj-y += sambaclient
 obj-y += sambaclient-ipk
@@ -38,13 +35,12 @@ all: $(obj-y)
 clean:
 	@$(MAKE) -C $(CURRENT)/sambaclient clean -f Makefile.ipk
 	@$(MAKE) -C $(CURRENT)/samba-3.5.8 clean -f Makefile.mipsel
-	#@$(MAKE) -C $(CURRENT)/libxml2 clean
-	#@$(MAKE) -C $(CURRENT)/openssl clean
-	#@$(MAKE) -C $(CURRENT)/curl-7.21.7 clean
 	@rm -rf Sambaclient-ipk/opt/tmp/lib/*
 	@rm -rf Sambaclient-ipk/opt/tmp/bin/*
 	rm -rf sambaclient_*.ipk
 
+mkdir:
+	-mkdir -p Sambaclient-ipk/opt/tmp/bin/
 
 samba:
 	@$(MAKE) -C $(CURRENT)/samba-3.5.8 -f Makefile.mipsel
@@ -65,5 +61,6 @@ sambaclient: sambaclient/stamp-h1
 
 
 sambaclient-ipk:
+	cp -rf AiCloud-tmp/CONTROL/control-samba-mipsel Sambaclient-ipk/CONTROL/control
 	$(STRIP) Sambaclient-ipk/opt/tmp/bin/*
 	@$(IPKG_TOOLS)/ipkg-build Sambaclient-ipk ./

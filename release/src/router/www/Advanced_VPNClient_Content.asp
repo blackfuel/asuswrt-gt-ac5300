@@ -85,7 +85,6 @@
 }
 </style>
 <script>
-
 var subnetIP_support_IPv6 = false;
 var vpnc_clientlist_array = [];
 var vpnc_pptp_options_x_list_array = [];
@@ -101,14 +100,14 @@ var ipsec_profile_client_5 = decodeURIComponent('<% nvram_char_to_ascii("","ipse
 var all_profile_subnet_list = "";
 var control_profile_flag = true;
 
-function parseNvramToArray(_oriNvram) {
+function parseNvramToArray(_oriNvram, _arrayLength) {
 	var parseArray = [];
 	var oriNvramRow = decodeURIComponent(_oriNvram).split('<');
 	for(var i = 0; i < oriNvramRow.length; i += 1) {
 		if(oriNvramRow[i] != "") {
 			var oriNvramCol = oriNvramRow[i].split('>');
 			var eachRuleArray = new Array();
-			for(var j = 0; j < oriNvramCol.length; j += 1) {
+			for(var j = 0; j < _arrayLength; j += 1) {
 				eachRuleArray.push(oriNvramCol[j]);
 			}
 			parseArray.push(eachRuleArray);
@@ -119,11 +118,11 @@ function parseNvramToArray(_oriNvram) {
 
 function initial(){
 	show_menu();
-	vpnc_clientlist_array = parseNvramToArray('<% nvram_char_to_ascii("","vpnc_clientlist"); %>');
-	vpnc_pptp_options_x_list_array = parseNvramToArray('<% nvram_char_to_ascii("","vpnc_pptp_options_x_list"); %>');
+	vpnc_clientlist_array = parseNvramToArray('<% nvram_char_to_ascii("","vpnc_clientlist"); %>', 5);
+	vpnc_pptp_options_x_list_array = parseNvramToArray('<% nvram_char_to_ascii("","vpnc_pptp_options_x_list"); %>', 1);
 	show_vpnc_rulelist();
 
-	if(ipsec_support) {
+	if(ipsec_cli_support) {
 		update_connect_status();
 		document.getElementById("ipsec_profile_client_1").value = ipsec_profile_client_1;
 		document.getElementById("ipsec_profile_client_2").value = ipsec_profile_client_2;
@@ -208,7 +207,7 @@ function Add_profile(){
 	$("#openvpnc_setting").fadeIn(300);
 	document.getElementById("cancelBtn").style.display = "";
 	document.getElementById("cancelBtn_openvpn").style.display = "";
-	if(ipsec_support)
+	if(ipsec_cli_support)
 		initialIPSecProfile();
 }
 
@@ -597,7 +596,7 @@ function tabclickhandler(_type){
 	document.getElementById('l2tpcTitle_' + tab_id + '').className = "vpnClientTitle_td_unclick";
 	if(openvpnd_support)
 		document.getElementById('opencTitle_' + tab_id + '').className = "vpnClientTitle_td_unclick";
-	if(ipsec_support)
+	if(ipsec_cli_support)
 		document.getElementById('ipsecTitle_' + tab_id + '').className = "vpnClientTitle_td_unclick";
 	document.getElementById('openvpnc_setting').style.display = "none";
 	document.getElementById('openvpnc_setting_openvpn').style.display = "none";	
@@ -644,7 +643,7 @@ function tabclickhandler(_type){
 	if (openvpn_arrayLength == 5 && openvpnd_support && add_profile_flag) {
 		document.getElementById('opencTitle_' + tab_id + '').style.display = "none";
 	}
-	if(ipsec_arrayLength == 5 && ipsec_support && add_profile_flag) {
+	if(ipsec_arrayLength == 5 && ipsec_cli_support && add_profile_flag) {
 		document.getElementById('ipsecTitle_' + tab_id + '').style.display = "none";
 	}
 }
@@ -683,7 +682,7 @@ function show_vpnc_rulelist(){
 	ipsec_arrayLength = 0;
 	openvpn_arrayLength = 0;
 
-	if(ipsec_support) {
+	if(ipsec_cli_support) {
 	//create ipsec profile array start
 		var ipsec_profilelist_arraylist = new Array();
 		var temp_array = [];
@@ -819,7 +818,7 @@ function show_vpnc_rulelist(){
 			}
 		}
 
-		if(ipsec_support) {
+		if(ipsec_cli_support) {
 			//creat ipsec profile row start
 			control_profile_flag = true;
 			for(var i = 0; i < ipsec_arrayLength; i += 1) {
@@ -1108,7 +1107,7 @@ function Edit_Row(rowdata, flag){
 		document.getElementById("l2tpcTitle_pptp").style.display = "none";
 		if(openvpnd_support)
 			document.getElementById("opencTitle_pptp").style.display = "none";
-		if(ipsec_support)
+		if(ipsec_cli_support)
 			document.getElementById("ipsecTitle_pptp").style.display = "none";
 		if(vpnc_proto == "PPTP") {
 			document.getElementById("pptpcTitle_pptp").style.display = "";
@@ -1124,7 +1123,7 @@ function Edit_Row(rowdata, flag){
 		document.getElementById("pptpcTitle_openvpn").style.display = "none";
 		document.getElementById("l2tpcTitle_openvpn").style.display = "none";
 		document.getElementById("opencTitle_openvpn").style.display = "";
-		if(ipsec_support)
+		if(ipsec_cli_support)
 			document.getElementById("ipsecTitle_openvpn").style.display = "none";
 	}
 
@@ -1390,7 +1389,7 @@ function gen_vpnc_tab_list(_type) {
 	if(openvpnd_support) {
 		code += "<td align='center' id='opencTitle_" + _type + "' onclick='tabclickhandler(2);'>OpenVPN</td>";
 	}
-	if(ipsec_support)
+	if(ipsec_cli_support)
 		code += "<td align='center' id='ipsecTitle_" + _type + "' onclick='tabclickhandler(3);'>IPSec</td>";
 	code += "</tr>";
 	code += "</table>";
@@ -2560,7 +2559,7 @@ function parseArrayToStr_vpnc_pptp_options_x_list() {
 							</td>
 						</tr>
 					</table>
-					<div style="color:#FC0;margin:10px 0px;">Note: ASUS BRT-AC828 pre-configure the Diffie Hellman (DH) key change Group of phase 1 and phase 2 in auto mode, which support 2, 5, 14, 15, 16 and 18.<!--untranslated--></div>
+					<div style="color:#FC0;margin:10px 0px;">Note: ASUS <#Web_Title2#> pre-configure the Diffie Hellman (DH) key change Group of phase 1 and phase 2 in auto mode, which support 2, 5, 14, 15, 16 and 18.<!--untranslated--></div>
 				</div>
 				<!-- Advanced Settings table end-->
 

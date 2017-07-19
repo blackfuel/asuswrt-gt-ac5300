@@ -118,6 +118,10 @@ extern int mkdir_if_none(const char *path)
 #include <bluetooth/hci.h>
 #endif /* RTCONFIG_BT_CONN */
 
+#if defined(RTCONFIG_LP5523)
+#include <lp5523led.h>
+#endif
+
 extern char *crypt __P((const char *, const char *)); //should be defined in unistd.h with _XOPEN_SOURCE defined
 #define sin_addr(s) (((struct sockaddr_in *)(s))->sin_addr)
 
@@ -2970,8 +2974,11 @@ _dprintf("%s:\n", __FUNCTION__);
 	start_klogd();
 
 #if defined(DUMP_PREV_OOPS_MSG) && defined(RTCONFIG_BCMARM)
-#ifdef HND_ROUTER
-	dump_prev_oops();
+#if defined(HND_ROUTER) && defined(RTCONFIG_BRCM_NAND_JFFS2)
+	if (f_exists("/jffs/oops")) {
+		dump_prev_oops();
+		unlink("/jffs/oops");
+	}
 #else
 #if defined(RTCONFIG_BCM_7114) || defined(RTCONFIG_BCM9)
 	eval("et", "dump", "oops");
@@ -3193,6 +3200,10 @@ stop_misc(void)
 	if (pids("watchdog02"))
 		killall_tk("watchdog02");
 #endif
+#ifdef RTCONFIG_LANTIQ
+	if (pids("wave_monitor"))
+		killall_tk("wave_monitor");
+#endif
 #ifdef SW_DEVLED
 	if (pids("sw_devled"))
 		killall_tk("sw_devled");
@@ -3243,6 +3254,9 @@ stop_misc(void)
 	stop_acsd();
 #ifdef BCM_BSD
 	stop_bsd();
+#endif
+#if defined(BCM_APPEVENTD)
+	stop_appeventd();
 #endif
 #ifdef BCM_SSD
 	stop_ssd();
@@ -4548,22 +4562,48 @@ void stop_dbus_daemon(void)
 	}
 }
 
+int check_bluetooth_device(const char *bt_dev)
+{
+	struct hci_dev_info di;
+	int fd;
+	int ret = -1;
+
+	if(bt_dev == NULL || strlen(bt_dev) < 4)
+		return -1;
+
+	if((fd = socket(AF_BLUETOOTH, SOCK_RAW | SOCK_CLOEXEC, BTPROTO_HCI)) >= 0)
+	{
+		memset(&di, 0, sizeof(di));
+		di.dev_id = safe_atoi(bt_dev + 3);	// hci interface: hci0
+
+		if (ioctl(fd, HCIGETDEVINFO, (void *) &di) == 0)
+		{
+			ret = 0;
+		}
+		close(fd);
+	}
+
+	if(ret == 0){
+		char cmd[64];
+		snprintf(cmd, sizeof(cmd), "hciconfig %s | grep 'UP RUNNING' -q", bt_dev);
+		if(system(cmd) != 0)
+		{
+			ret = -1;
+		}
+	}
+	return ret;
+}
+
 void start_bluetooth_service(void)
 {
 	pid_t pid;
 	char *ble_argv[]= { "bluetoothd", "-n", NULL };
-	struct hci_dev_info di;
 	const char *str_inf = "hci0";
-	int fd = -1, retry=0;
+	int retry=0;
 
-	while (fd < 0) {
-		fd = socket(AF_BLUETOOTH, SOCK_RAW | SOCK_CLOEXEC, BTPROTO_HCI);
-		memset(&di, 0, sizeof(di));
-		di.dev_id = safe_atoi(str_inf+3);	// hci interface: hci0 
-
-		if (ioctl(fd, HCIGETDEVINFO, (void *) &di))
+	while (1) {
+		if(check_bluetooth_device(str_inf))
 		{
-			fd = -1;
 			printf("Failed to get HCI Device! Retry after 1 sec!\n");
 			sleep(1);
 			if (++retry > 30) {
@@ -4571,6 +4611,8 @@ void start_bluetooth_service(void)
 				return;
 			}
 		}
+		else
+			break;
 	}
 
 	if (getpid()!=1) {
@@ -4597,14 +4639,14 @@ void stop_bluetooth_service(void)
 	if (pids("bluetoothd")) {
 		_dprintf("Turn off Bluetooth\n");
 		killall_tk("bluetoothd");
-		system("hciconfig hci0 down");
+		system("hciconfig hci0 reset down");
 		logmessage("bluetoothd", "daemon is stoped");
 	}
 
 }
 #endif	/* RTCONFIG_BT_CONN */
 
-#if defined(HIVEDOT) || defined(HIVESPOT)
+#if defined(MAPAC1300) || defined(MAPAC2200)
 void start_hyfi_process(void)
 {
 	hyfi_process();
@@ -5980,6 +6022,7 @@ void start_CP(void)
 {
 	char htmlPath[128];
 	char cssPath[128];
+	char jsonPath[128];
 	char *nv=NULL, *nvp=NULL, *b=NULL;
 	int brCount=0;
 	char *profileName=NULL, *htmlIdx=NULL,    *awayTime=NULL,   *sessionTime=NULL;
@@ -6011,6 +6054,7 @@ void start_CP(void)
 			  memset(cssPath, 0, sizeof(cssPath));
 			  sprintf(htmlPath, "/jffs/customized_splash/%s.html", htmlIdx);
 			  sprintf(cssPath, "/jffs/customized_splash/%s.css", htmlIdx);
+			  sprintf(jsonPath, "/jffs/customized_splash/%s.json", htmlIdx);
 			  bridge_ifByA(ifName, CPIF, 1);
 
 			  nvram_set("cp_sessiontime", sessionTime);
@@ -6062,6 +6106,8 @@ void start_CP(void)
 	   symlink(htmlPath, "/tmp/lighttpd/www/Uam.html");
 	   unlink("/tmp/lighttpd/www/Uam.css");
 	   symlink(cssPath, "/tmp/lighttpd/www/Uam.css");
+	   unlink("/tmp/lighttpd/www/Uam.json");
+	   symlink(jsonPath, "/tmp/lighttpd/www/Uam.json"); 
 
 	}
 	start_firewall(wan_primary_ifunit(), 0);
@@ -6260,6 +6306,14 @@ setup_nc_event_conf()
 		memset(setConf, 0, sizeof(setConf));
 		for (i=0; mapInfo[i].value != 0; i++) {
 			memset(tmp, 0, sizeof(tmp));
+			if (mapInfo[i].value == PROTECTION_VULNERABILITY_EVENT ||
+			    mapInfo[i].value == PROTECTION_CC_EVENT ||
+			    mapInfo[i].value == PROTECTION_MALICIOUS_SITE_EVENT) {
+				snprintf(tmp, sizeof(tmp), "<%x>%d>%d",
+					 mapInfo[i].value,
+					 NC_ACTION_SET(mapInfo[i].action, NC_ACT_EMAIL_BIT),
+					 mapInfo[i].eType);
+			} else
 			snprintf(tmp, sizeof(tmp), "<%x>%d>%d",
 				 mapInfo[i].value,
 				 NC_ACTION_CLR(mapInfo[i].action, NC_ACT_EMAIL_BIT),
@@ -6319,7 +6373,7 @@ void
 update_nc_setting_conf()
 {
 	setup_nc_event_conf();
-	kill_pidfile_s("/tmp/Notification_Center.pid", SIGUSR1);
+	kill_pidfile_s(NOTIFY_CENTER_PID_PATH, SIGUSR1);
 }
 #endif
 #ifdef RTCONFIG_PROTECTION_SERVER
@@ -6402,6 +6456,9 @@ start_services(void)
 #ifdef BCM_BSD
 	start_bsd();
 #endif
+#if defined(BCM_APPEVENTD)
+	start_appeventd();
+#endif
 #ifdef BCM_SSD
 	start_ssd();
 #endif
@@ -6456,6 +6513,9 @@ start_services(void)
 	start_watchdog();
 #ifdef RTAC87U
 	start_watchdog02();
+#endif
+#ifdef RTCONFIG_LANTIQ
+	start_wave_monitor();
 #endif
 #ifdef SW_DEVLED
 	start_sw_devled();
@@ -6562,7 +6622,7 @@ start_services(void)
 #ifdef RTCONFIG_QCA_PLC_UTILS
 	start_plchost();
 #endif
-#if ((defined(RTCONFIG_USER_LOW_RSSI) && defined(RTCONFIG_BCMARM)) || defined(RTCONFIG_NEW_USER_LOW_RSSI))
+#ifdef RTCONFIG_NEW_USER_LOW_RSSI
 	start_roamast();
 #endif
 
@@ -6598,8 +6658,7 @@ start_services(void)
 	hnd_mfg_services();
 #endif
 #ifdef RTCONFIG_CFGSYNC
-	if (is_router_mode())
-		start_cfgsync();
+	start_cfgsync();
 #endif
 
 #if !(defined(RTCONFIG_QCA) || defined(RTCONFIG_RALINK) || defined(RTCONFIG_REALTEK))
@@ -6707,6 +6766,9 @@ stop_services(void)
 #ifdef BCM_BSD
 	stop_bsd();
 #endif
+#if defined(BCM_APPEVENTD)
+	stop_appeventd();
+#endif
 #ifdef BCM_SSD
 	stop_ssd();
 #endif
@@ -6790,8 +6852,7 @@ stop_services(void)
 	stop_sysstate();
 #endif
 #ifdef RTCONFIG_CFGSYNC
-	if (is_router_mode())
-		stop_cfgsync();
+	stop_cfgsync();
 #endif
 }
 
@@ -6889,6 +6950,9 @@ stop_services_mfg(void)
 	stop_acsd();
 #ifdef BCM_BSD
 	stop_bsd();
+#endif
+#if defined(BCM_APPEVENTD)
+	stop_appeventd();
 #endif
 #ifdef BCM_SSD
 	stop_ssd();
@@ -7128,6 +7192,18 @@ start_watchdog02(void)
 }
 #endif
 
+#ifdef RTCONFIG_LANTIQ
+int
+start_wave_monitor(void)
+{
+	char *wave_monitor_argv[] = {"wave_monitor", NULL};
+	pid_t wavepid;
+
+	if (pidof("wave_monitor") > 0) return -1;
+
+	return _eval(wave_monitor_argv, NULL, 0, &wavepid);
+}
+#endif
 #ifdef SW_DEVLED
 int
 start_sw_devled(void)
@@ -7630,6 +7706,9 @@ again:
 #endif
 		sleep(3);
 		nvram_set(ASUS_STOP_COMMIT, "1");
+#if defined(RTCONFIG_NVRAM_FILE)
+		ResetDefault();
+#else
 		if (nvram_contains_word("rc_support", "nandflash"))	/* RT-AC56S,U/RT-AC68U/RT-N18U */
 #ifdef HND_ROUTER
 			eval("hnd-erase", "nvram");
@@ -7641,10 +7720,9 @@ again:
 			eval("mtd-erase2", "nvram");
 #elif defined(RTCONFIG_REALTEK)
 			ResetDefault();
-#elif defined(RTCONFIG_NVRAM_FILE)
-			ResetDefault();
 #else
 			eval("mtd-erase", "-d", "nvram");
+#endif
 #endif
 
 #ifdef RTCONFIG_QCA_PLC_UTILS
@@ -7655,7 +7733,7 @@ again:
 		kill(1, SIGTERM);
 	}
 	else if (strcmp(script, "all") == 0) {
-#if defined(HIVEDOT) || defined(HIVESPOT)
+#if defined(MAPAC1300) || defined(MAPAC2200)
 		action |= RC_SERVICE_STOP | RC_SERVICE_START;
 		goto script_allnet;
 #else
@@ -7682,7 +7760,6 @@ again:
 #endif
 		   if(!(nvram_match("webs_state_flag", "1") && nvram_match("webs_state_upgrade", "0")))
 			stop_wanduck();
-			stop_wan();
 
 			// what process need to stop to free memory or
 			// to avoid affecting upgrade
@@ -7826,12 +7903,8 @@ again:
 #endif	//RTCONFIG_QCA
 #endif
 #endif
-#ifndef HND_ROUTER
 				if (!(r = build_temp_rootfs(TMP_ROOTFS_MNT_POINT)))
 					sw = 1;
-#else
-				sw = 0;
-#endif
 #ifdef RTCONFIG_DUAL_TRX
 				if (!nvram_match("nflash_swecc", "1"))
 				{
@@ -7845,6 +7918,10 @@ again:
 				if (nvram_contains_word("rc_support", "nandflash"))	/* RT-AC56S,U/RT-AC68U/RT-N16UHP */
 #ifdef HND_ROUTER
 					eval("hnd-write", upgrade_file);
+#elif defined(RTCONFIG_ALPINE)
+					update_trx("/tmp/linux.trx");
+#elif defined(RTCONFIG_LANTIQ)
+					update_trx("/tmp/linux.trx");
 #else
 					eval("mtd-write2", upgrade_file, "linux");
 #endif
@@ -7910,7 +7987,7 @@ again:
 		stop_services_mfg();
 	}
 	else if (strcmp(script, "allnet") == 0) {
-#if defined(HIVEDOT) || defined(HIVESPOT)
+#if defined(MAPAC1300) || defined(MAPAC2200)
 script_allnet:
 #endif
 		if(action&RC_SERVICE_STOP) {
@@ -7943,6 +8020,9 @@ script_allnet:
 			stop_acsd();
 #ifdef BCM_BSD
 			stop_bsd();
+#endif
+#if defined(BCM_APPEVENTD)
+			stop_appeventd();
 #endif
 #ifdef BCM_SSD
 			stop_ssd();
@@ -7979,8 +8059,7 @@ script_allnet:
 			stop_u2ec();
 #endif
 #ifdef RTCONFIG_CFGSYNC
-			if (is_router_mode())
-				stop_cfgsync();
+			stop_cfgsync();
 #endif
 
 			// TODO free memory here
@@ -8037,6 +8116,9 @@ script_allnet:
 #ifdef BCM_BSD
 			start_bsd();
 #endif
+#if defined(BCM_APPEVENTD)
+			start_appeventd();
+#endif
 #ifdef BCM_SSD
 			start_ssd();
 #endif
@@ -8077,8 +8159,7 @@ script_allnet:
 #endif
 #endif
 #ifdef RTCONFIG_CFGSYNC
-			if (is_router_mode())
-				start_cfgsync();
+			start_cfgsync();
 #endif
 		}
 	}
@@ -8112,6 +8193,9 @@ script_allnet:
 #ifdef BCM_BSD
 			stop_bsd();
 #endif
+#if defined(BCM_APPEVENTD)
+			stop_appeventd();
+#endif
 #ifdef BCM_SSD
 			stop_ssd();
 #endif
@@ -8137,8 +8221,7 @@ script_allnet:
 			stop_8021x();
 #endif
 #ifdef RTCONFIG_CFGSYNC
-			if (is_router_mode())
-				stop_cfgsync();
+			stop_cfgsync();
 #endif
 			stop_wan();
 			stop_lan();
@@ -8185,6 +8268,9 @@ script_allnet:
 #ifdef BCM_BSD
 			start_bsd();
 #endif
+#if defined(BCM_APPEVENTD)
+			start_appeventd();
+#endif
 #ifdef BCM_SSD
 			start_ssd();
 #endif
@@ -8225,8 +8311,7 @@ script_allnet:
 #endif
 #endif
 #ifdef RTCONFIG_CFGSYNC
-			if (is_router_mode())
-				start_cfgsync();
+			start_cfgsync();
 #endif
 		}
 	}
@@ -8277,6 +8362,9 @@ script_allnet:
 #ifdef BCM_BSD
 			stop_bsd();
 #endif
+#if defined(BCM_APPEVENTD)
+			stop_appeventd();
+#endif
 #ifdef BCM_SSD
 			stop_ssd();
 #endif
@@ -8318,8 +8406,7 @@ script_allnet:
 			//stop_pptpd();
 #endif
 #ifdef RTCONFIG_CFGSYNC
-			if (is_router_mode())
-				stop_cfgsync();
+			stop_cfgsync();
 #endif
 			stop_wan();
 			stop_lan();
@@ -8374,6 +8461,9 @@ script_allnet:
 			start_igmp_proxy();
 #ifdef BCM_BSD
 			start_bsd();
+#endif
+#if defined(BCM_APPEVENTD)
+			start_appeventd();
 #endif
 #ifdef BCM_SSD
 			start_ssd();
@@ -8440,8 +8530,7 @@ script_allnet:
 			start_plchost();
 #endif
 #ifdef RTCONFIG_CFGSYNC
-			if (is_router_mode())
-				start_cfgsync();
+			start_cfgsync();
 #endif
 		}
 	}
@@ -8725,6 +8814,10 @@ check_ddr_done:
 			}
 			if(action & RC_SERVICE_START)
 			{
+#if defined(RTCONFIG_DETWAN)
+				extern void detwan_set_net_block(int add);
+				detwan_set_net_block(0);
+#endif	/* RTCONFIG_DETWAN */
 #ifdef RTCONFIG_IPV6
 				start_lan_ipv6();
 #endif
@@ -8822,6 +8915,9 @@ check_ddr_done:
 #ifdef BCM_BSD
 			start_bsd();
 #endif
+#if defined(BCM_APPEVENTD)
+			start_appeventd();
+#endif
 #ifdef BCM_SSD
 			start_ssd();
 #endif
@@ -8849,15 +8945,15 @@ check_ddr_done:
 #ifdef RTCONFIG_USB
 	else if (strcmp(script, "nasapps") == 0)
 	{
-		if(action&RC_SERVICE_STOP){
+		if(action&RC_SERVICE_STOP){						
 //_dprintf("restart_nas_services(%d): test 10.\n", getpid());
-			restart_nas_services(1, 0);
+			restart_nas_services(1, 0);		
 		}
-		if(action&RC_SERVICE_START){
+		if(action&RC_SERVICE_START){			
 			stop_upnp();
 //_dprintf("restart_nas_services(%d): test 11.\n", getpid());
 			restart_nas_services(0, 1);
-			start_upnp();
+			start_upnp();	
 		}
 	}
 #if defined(RTCONFIG_SAMBASRV) && defined(RTCONFIG_FTP)
@@ -9482,7 +9578,7 @@ check_ddr_done:
 		else if(action&RC_SERVICE_START) start_bluetooth_service();
 	}
 #endif	/* RTCONFIG_BT_CONN */ 
-#if defined(HIVEDOT) || defined(HIVESPOT)
+#if defined(MAPAC1300) || defined(MAPAC2200)
 	else if (strcmp(script, "hyfi_process") == 0)
 	{
 		if(action&RC_SERVICE_START) start_hyfi_process();
@@ -9838,7 +9934,10 @@ check_ddr_done:
 		if(action & RC_SERVICE_START) start_plcdet();
 	}
 #endif
-#if defined(CONFIG_BCMWL5)|| (defined(RTCONFIG_RALINK) && defined(RTCONFIG_WIRELESSREPEATER)) || defined(RTCONFIG_QCA) || defined(RTCONFIG_REALTEK)
+#if defined(CONFIG_BCMWL5) \
+		|| (defined(RTCONFIG_RALINK) && defined(RTCONFIG_WIRELESSREPEATER)) \
+		|| defined(RTCONFIG_QCA) || defined(RTCONFIG_REALTEK) \
+		|| defined(RTCONFIG_QSR10G)
 	else if (strcmp(script, "wlcscan")==0)
 	{
 		if(action & RC_SERVICE_STOP) stop_wlcscan();
@@ -10102,6 +10201,12 @@ check_ddr_done:
 
 		change_default_wan();
 	}
+#if 1
+	else if (strcmp(script, "vpnc_dev_policy") == 0)
+	{
+		vpnc_set_dev_policy_rule();
+	}
+#else
 	else if (strcmp(script, "vpnc_dev_policy") == 0)
 	{
 		int policy_idx = nvram_get_int("vpnc_policy_unit");
@@ -10120,6 +10225,7 @@ check_ddr_done:
 		vpnc_remove_tmp_policy_rule();
 		vpnc_active_dev_policy(policy_idx);
 	}
+#endif
 #endif	//endif defined(RTCONFIG_VPN_FUSION)
 	else if (strcmp(script, "vpncall") == 0)
 	{
@@ -10578,7 +10684,10 @@ _dprintf("goto again(%d)...\n", getpid());
 _dprintf("handle_notifications() end\n");
 }
 
-#if defined(CONFIG_BCMWL5) || (defined(RTCONFIG_RALINK) && defined(RTCONFIG_WIRELESSREPEATER)) || defined(RTCONFIG_QCA) || defined(RTCONFIG_REALTEK)
+#if defined(CONFIG_BCMWL5) \
+		|| (defined(RTCONFIG_RALINK) && defined(RTCONFIG_WIRELESSREPEATER)) \
+		|| defined(RTCONFIG_QCA) || defined(RTCONFIG_REALTEK) \
+		|| defined(RTCONFIG_QSR10G)
 void
 start_wlcscan(void)
 {
@@ -10876,6 +10985,27 @@ void stop_bsd(void)
 	killall_tk("bsd");
 }
 #endif /* BCM_BSD */
+
+#if defined(BCM_APPEVENTD)
+int start_appeventd(void)
+{
+	int ret = 0;
+	char *appeventd_argv[] = {"/usr/sbin/appeventd", NULL};
+	pid_t pid;
+
+	if (nvram_match("appeventd_enable", "1"))
+		ret = _eval(appeventd_argv, NULL, 0, &pid);
+
+	return ret;
+}
+
+int stop_appeventd(void)
+{
+	int ret = eval("killall", "appeventd");
+
+	return ret;
+}
+#endif /* BCM_APPEVENTD */
 
 #if defined(BCM_SSD)
 int start_ssd(void)
@@ -11332,7 +11462,7 @@ void start_cloudcheck(void){
 }
 #endif
 
-#if ((defined(RTCONFIG_USER_LOW_RSSI) && defined(RTCONFIG_BCMARM)) || defined(RTCONFIG_NEW_USER_LOW_RSSI))
+#ifdef RTCONFIG_NEW_USER_LOW_RSSI
 void stop_roamast(void){
 	if (pids("roamast"))
 		killall("roamast", SIGTERM);
@@ -12613,17 +12743,18 @@ overwrite_fbwifi_ssid(void) {
 int start_cfgsync(void)
 {
 	char *cfg_server_argv[] = {"cfg_server", NULL};
-	char *cfg_client_argv[] = {"cfg_client", "-i", NULL, NULL};
+	char *cfg_client_argv[] = {"cfg_client", NULL};
 	pid_t pid;
 	int ret = 0;
 
-	stop_cfgsync();
-
-	if (is_router_mode())
+	if (is_router_mode()) {
+		stop_cfgsync();
 		ret = _eval(cfg_server_argv, NULL, 0, &pid);
-	else
+	}
+	else if ((access_point_mode() && nvram_get_int("lan_state_t") == LAN_STATE_CONNECTED) ||
+		(repeater_mode() && nvram_get_int("wlc_state") == WLC_STATE_CONNECTED))
 	{
-		cfg_client_argv[2] = nvram_safe_get("lan_gateway");
+		stop_cfgsync();
 		ret = _eval(cfg_client_argv, NULL, 0, &pid);
 	}
 
@@ -12637,5 +12768,22 @@ void stop_cfgsync(void)
 
 	if (pids("cfg_client"))
 		killall_tk("cfg_client");
+}
+#endif
+
+#ifdef RTCONFIG_USB_SWAP
+int start_usb_swap(path)
+{
+	int ret;
+	ret = eval("/usr/sbin/usb_swap.sh", path);
+	
+	return ret;
+}
+
+int stop_usb_swap(path)
+{
+	int ret;
+	ret = eval("/usr/sbin/usb_swap.sh", path, "0");
+	return ret;
 }
 #endif

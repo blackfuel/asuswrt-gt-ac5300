@@ -99,9 +99,10 @@ start_lpd()
 
 	if (!pids("lpd"))
 	{
+		unlink("/var/run/lpdparent.pid");
+
 		if (is_routing_enabled())
 			lpd_argv[1] = nvram_safe_get("lan_ifname");
-		unlink("/var/run/lpdparent.pid");
 		//return xstart("lpd");
 		_eval(lpd_argv, NULL, 0, &pid);
 	}
@@ -489,7 +490,7 @@ void start_usb(int orig)
 #if defined(RTCONFIG_BT_CONN)
 		modprobe("btusb");
 		modprobe("ath3k");
-#if defined(HIVEDOT) || defined(HIVESPOT)
+#if defined(MAPAC1300) || defined(MAPAC2200)
 		if (nvram_match("x_Setting", "0"))
 			system("/usr/bin/btchk.sh &"); /* workaround script */
 #endif
@@ -500,7 +501,7 @@ void start_usb(int orig)
 	}
 }
 
-#if defined(RTAC58U) || defined(RTAC82U) || defined(HIVEDOT) || defined(HIVESPOT)
+#if defined(RTAC58U) || defined(RTAC82U) || defined(MAPAC1300) || defined(MAPAC2200)
 void remove_dakota_usb_modules(void)
 {
 	modprobe_r(USB_DWC3);
@@ -642,7 +643,7 @@ void remove_usb_module(void)
 	remove_usb_led_module();
 	remove_usb_host_module();
 
-#if defined(RTAC58U) || defined(RTAC82U) || defined(HIVEDOT) || defined(HIVESPOT)
+#if defined(RTAC58U) || defined(RTAC82U) || defined(MAPAC1300) || defined(MAPAC2200)
 	remove_dakota_usb_modules();
 #endif
 }
@@ -798,7 +799,7 @@ void stop_usb(int f_force)
 		}
 	}
 
-#if defined(RTAC58U) || defined(RTAC82U) || defined(HIVEDOT) || defined(HIVESPOT)
+#if defined(RTAC58U) || defined(RTAC82U) || defined(MAPAC1300) || defined(MAPAC2200)
 	if(disabled)remove_dakota_usb_modules();
 #endif
 #endif // HND_ROUTER
@@ -896,13 +897,15 @@ int mount_r(char *mnt_dev, char *mnt_dir, char *_type)
 						nvram_get("smbd_cset"));
 
 			if (nvram_invmatch("smbd_cpage", "")) {
-				char *cp = nvram_safe_get("smbd_cpage");
+				char cp[16];
+
+				snprintf(cp, sizeof(cp), "%s", nvram_safe_get("smbd_cpage"));
 				sprintf(options + strlen(options), ",codepage=%s" + (options[0] ? 0 : 1), cp);
 				snprintf(flagfn, sizeof(flagfn), "nls_cp%s", cp);
 				TRACE_PT("USB %s(%s) is setting the code page to %s!\n", mnt_dev, type, flagfn);
 
-				cp = nvram_get("smbd_nlsmod");
-				if ((cp) && (*cp != 0) && (strcmp(cp, flagfn) != 0))
+				snprintf(cp, sizeof(cp), "%s", nvram_safe_get("smbd_nlsmod"));
+				if(strlen(cp) > 0 && (strcmp(cp, flagfn) != 0))
 					modprobe_r(cp);
 
 				modprobe(flagfn);
@@ -937,14 +940,16 @@ int mount_r(char *mnt_dev, char *mnt_dir, char *_type)
 						nvram_get("smbd_cset"));
 
 			if (nvram_invmatch("smbd_cpage", "")) {
-				char *cp = nvram_safe_get("smbd_cpage");
+				char cp[16];
+
+				snprintf(cp, sizeof(cp), "%s", nvram_safe_get("smbd_cpage"));
 				sprintf(options + strlen(options), ",codepage=%s" + (options[0] ? 0 : 1), cp);
 				snprintf(flagfn, sizeof(flagfn), "nls_cp%s", cp);
 				TRACE_PT("USB %s(%s) is setting the code page to %s!\n", mnt_dev, type, flagfn);
 
-				cp = nvram_get("smbd_nlsmod");
-				if ((cp) && (*cp != 0) && (strcmp(cp, flagfn) != 0))
-				modprobe_r(cp);
+				snprintf(cp, sizeof(cp), "%s", nvram_safe_get("smbd_nlsmod"));
+				if(strlen(cp) > 0 && (strcmp(cp, flagfn) != 0))
+					modprobe_r(cp);
 
 				modprobe(flagfn);
 				nvram_set("smbd_nlsmod", flagfn);
@@ -1308,6 +1313,10 @@ _dprintf("%s: stop_cloudsync.\n", __func__);
 	if(!g_reboot && nvram_match("apps_mounted_path", mnt->mnt_dir))
 		stop_app();
 #endif
+	
+#ifdef RTCONFIG_USB_SWAP	
+		stop_usb_swap(mnt->mnt_dir);
+#endif	
 
 	for (count = 0; count < 35; count++) {
 		sync();
@@ -1638,7 +1647,9 @@ _dprintf("usb_path: 4. don't set %s.\n", tmp);
 
 		usb_notify();
 #endif
-
+#ifdef RTCONFIG_USB_SWAP
+			start_usb_swap(mountpoint);
+#endif
 #ifdef RTCONFIG_DSL_TCLINUX
 		if(ret == MOUNT_VAL_RW) {
 			if(nvram_match("dsltmp_diag_log_path", "")) {
@@ -1658,7 +1669,7 @@ _dprintf("usb_path: 4. don't set %s.\n", tmp);
 
 #if defined(RTCONFIG_APP_PREINSTALLED) && defined(RTCONFIG_CLOUDSYNC)
 		char word[PATH_MAX], *next_word;
-		char *cloud_setting, *b, *nvp, *nv;
+		char cloud_setting[2048], *b, *nvp, *nv;
 		int type = 0, rule = 0, enable = 0;
 		char username[64], password[64], url[PATH_MAX], sync_dir[PATH_MAX];
 		int count;
@@ -1666,7 +1677,7 @@ _dprintf("usb_path: 4. don't set %s.\n", tmp);
 		char cloud_setting_buf[PATH_MAX];
 		char cloud_setting_buf2[PATH_MAX];
 
-		cloud_setting = nvram_safe_get("cloud_sync");
+		snprintf(cloud_setting, sizeof(cloud_setting), "%s", nvram_safe_get("cloud_sync"));
 
 		memset(cloud_setting_buf, 0, PATH_MAX);
 
@@ -1796,7 +1807,9 @@ _dprintf("%s: start_cloudsync.\n", __func__);
 	}
 #ifdef RTCONFIG_USBRESET
 	else if(strcmp(type, "unknown")){ // Can't mount the the known partition.
-		char *usbreset_active = nvram_safe_get("usbreset_active");
+		char usbreset_active[16];
+
+		snprintf(usbreset_active, sizeof(usbreset_active), "%s", nvram_safe_get("usbreset_active"));
 
 _dprintf("test a. %s: usbreset_active=%s.\n", dev_name, usbreset_active);
 		if(strlen(usbreset_active) <= 0 || !strcmp(usbreset_active, "0")){
@@ -2393,7 +2406,7 @@ static void kill_samba(int sig)
 void enable_gro(int interval)
 {
 	char *argv[3] = {"echo", "", NULL};
-	char lan_ifname[32], *lan_ifnames, *next;
+	char lan_ifname[32], lan_ifnames[32], *next;
 	char path[64] = {0};
 	char parm[32] = {0};
 
@@ -2401,7 +2414,7 @@ void enable_gro(int interval)
 		return;
 
 	/* enabled gso on vlan interface */
-	lan_ifnames = nvram_safe_get("lan_ifnames");
+	snprintf(lan_ifnames, sizeof(lan_ifnames), "%s", nvram_safe_get("lan_ifnames"));
 	foreach(lan_ifname, lan_ifnames, next) {
 		if (!strncmp(lan_ifname, "vlan", 4)) {
 			snprintf(path, sizeof(path), ">>/proc/net/vlan/%s", lan_ifname);
@@ -2463,9 +2476,6 @@ start_samba(void)
 #endif
 #if (defined(RTCONFIG_BCMARM) || defined(RTCONFIG_SAMBA36X)) && defined(SMP) && !defined(HND_ROUTER)
 	int cpu_num = sysconf(_SC_NPROCESSORS_CONF);
-	int taskset_ret = -1;
-#endif
-#ifdef RTCONFIG_ALPINE
 	int taskset_ret = -1;
 #endif
 	char smbd_cmd[32];
@@ -2573,7 +2583,7 @@ start_samba(void)
 #endif
 #endif
 #ifdef RTCONFIG_ALPINE
-		taskset_ret = cpu_eval(NULL, "2", smbd_cmd, "-D", "-s", "/etc/smb.conf");
+		cpu_eval(NULL, "3", smbd_cmd, "-D", "-s", "/etc/smb.conf");
 #else
 		xstart(smbd_cmd, "-D", "-s", "/etc/smb.conf");
 #endif
@@ -2900,7 +2910,7 @@ void
 write_mt_daapd_conf(char *servername)
 {
 	FILE *fp;
-	char *dmsdir, *ptr;
+	char dmsdir[PATH_MAX], *ptr;
 	char dbdir[128], dbdir_t[128];
 
 	if (check_if_file_exist("/etc/mt-daapd.conf"))
@@ -2911,9 +2921,9 @@ write_mt_daapd_conf(char *servername)
 	if (fp == NULL)
 		return;
 
-	dmsdir = nvram_safe_get("dms_dir");
+	snprintf(dmsdir, sizeof(dmsdir), "%s", nvram_safe_get("dms_dir"));
 	if (!check_if_dir_exist(dmsdir))
-		dmsdir = nvram_default_get("dms_dir");
+		snprintf(dmsdir, sizeof(dmsdir), "%s", nvram_default_get("dms_dir"));
 
 #if 1
 	memset(dbdir, 0, sizeof(dbdir));
@@ -3914,7 +3924,7 @@ static int stop_diskscan()
 }
 
 static void start_diskformat(char *port_path) {
-	char *cmd_system_fatfs, *cmd_system_ntfs, *cmd_system_hfs;
+	char cmd_system_fatfs[16], cmd_system_ntfs[16], cmd_system_hfs[16], usbport[16];
 	char **cmd = NULL;
 	char write_file_name[32];
 	memset(write_file_name, 0, 32);
@@ -3922,19 +3932,20 @@ static void start_diskformat(char *port_path) {
 
 	disk_info_t *disk_list, *disk_info;
 	partition_info_t *partition_info;
-	char *disk_system, *disk_label, devpath[16], *ptr_path;
+	char disk_system[32], disk_label[32], devpath[16], *ptr_path;
 
 	if (!port_path)
 		return;
 
-	disk_system = nvram_safe_get("diskformat_file_system");
-	disk_label = nvram_safe_get("diskformat_label");
-	cmd_system_fatfs = nvram_safe_get("usb_fatfs_mod");
-	cmd_system_ntfs = nvram_safe_get("usb_ntfs_mod");
-	cmd_system_hfs = nvram_safe_get("usb_hfs_mod");
+	snprintf(disk_system, sizeof(disk_system), "%s", nvram_safe_get("diskformat_file_system"));
+	snprintf(disk_label, sizeof(disk_label), "%s", nvram_safe_get("diskformat_label"));
+	snprintf(cmd_system_fatfs, sizeof(cmd_system_fatfs), "%s", nvram_safe_get("usb_fatfs_mod"));
+	snprintf(cmd_system_ntfs, sizeof(cmd_system_ntfs), "%s", nvram_safe_get("usb_ntfs_mod"));
+	snprintf(cmd_system_hfs, sizeof(cmd_system_hfs), "%s", nvram_safe_get("usb_hfs_mod"));
+	snprintf(usbport, sizeof(usbport), "%s", nvram_safe_get("diskmon_usbport"));
 
 	if(atoi(port_path) == -1)
-		ptr_path = nvram_safe_get("diskmon_usbport");
+		ptr_path = usbport;
 	else
 		ptr_path = port_path;
 
@@ -4043,16 +4054,17 @@ static void start_diskscan(char *port_path)
 {
 	disk_info_t *disk_list, *disk_info;
 	partition_info_t *partition_info;
-	char *policy, *monpart, devpath[16], *ptr_path;
+	char policy[16], monpart[128], usbport[16], devpath[16], *ptr_path;
 
 	if (!port_path || stop_diskscan())
 		return;
 
-	policy = nvram_safe_get("diskmon_policy");
-	monpart = nvram_safe_get("diskmon_part");
+	snprintf(policy, sizeof(policy), "%s", nvram_safe_get("diskmon_policy"));
+	snprintf(monpart, sizeof(monpart), "%s", nvram_safe_get("diskmon_part"));
+	snprintf(usbport, sizeof(usbport), "%s", nvram_safe_get("diskmon_usbport"));
 
 	if(atoi(port_path) == -1)
-		ptr_path = nvram_safe_get("diskmon_usbport");
+		ptr_path = usbport;
 	else
 		ptr_path = port_path;
 
@@ -4334,7 +4346,7 @@ cprintf("disk_monitor: Pause...\n\n");
 void record_pool_error(const char *device, const char *flag){
 	char word[PATH_MAX], *next;
 	char tmp[100], prefix[] = "usb_pathXXXXXXXXXX_";
-	char *pool_act;
+	char pool_act[16];
 	int port, len;
 	int orig_val;
 
@@ -4342,7 +4354,7 @@ void record_pool_error(const char *device, const char *flag){
 	foreach(word, nvram_safe_get("ehci_ports"), next){
 		snprintf(prefix, sizeof(prefix), "usb_path%d_", port);
 
-		pool_act = nvram_safe_get(strcat_r(prefix, "act", tmp));
+		snprintf(pool_act, sizeof(pool_act), "%s", nvram_safe_get(strcat_r(prefix, "act", tmp)));
 		len = strlen(pool_act);
 		if(len > 0 && !strncmp(device, pool_act, len)){
 			orig_val = strtol(nvram_safe_get(strcat_r(prefix, "pool_error", tmp)), NULL, 0);
@@ -4376,7 +4388,7 @@ _dprintf("diskremove: removing the device: %d:%d:%d:%d.\n", host, channel, id, l
 void remove_pool_error(const char *device, const char *flag){
 	char word[PATH_MAX], *next;
 	char tmp[100], prefix[] = "usb_pathXXXXXXXXXX_";
-	char *pool_act;
+	char pool_act[16];
 	int port, len;
 	int host, channel, id, lun;
 _dprintf("diskremove: device=%s, flag=%s.\n", device, flag);
@@ -4388,7 +4400,7 @@ _dprintf("diskremove: device=%s, flag=%s.\n", device, flag);
 	foreach(word, nvram_safe_get("ehci_ports"), next){
 		snprintf(prefix, sizeof(prefix), "usb_path%d_", port);
 
-		pool_act = nvram_safe_get(strcat_r(prefix, "act", tmp));
+		snprintf(pool_act, sizeof(pool_act), "%s", nvram_safe_get(strcat_r(prefix, "act", tmp)));
 _dprintf("diskremove: pool_act=%s.\n", pool_act);
 		len = strlen(pool_act);
 		if(len > 0 && !strncmp(device, pool_act, len)){
@@ -4460,8 +4472,11 @@ int diskremove_main(int argc, char *argv[]){
 int start_app(void)
 {
 	char cmd[PATH_MAX];
-	char *apps_dev = nvram_safe_get("apps_dev");
-	char *apps_mounted_path = nvram_safe_get("apps_mounted_path");
+	char apps_dev[16];
+	char apps_mounted_path[PATH_MAX];
+
+	snprintf(apps_dev, sizeof(apps_dev), "%s", nvram_safe_get("apps_dev"));
+	snprintf(apps_mounted_path, sizeof(apps_mounted_path), "%s", nvram_safe_get("apps_mounted_path"));
 
 	if(strlen(apps_dev) <= 0 || strlen(apps_mounted_path) <= 0)
 		return -1;
@@ -4475,10 +4490,7 @@ int start_app(void)
 
 int stop_app(void)
 {
-	char *apps_dev = nvram_safe_get("apps_dev");
-	char *apps_mounted_path = nvram_safe_get("apps_mounted_path");
-
-	if(strlen(apps_dev) <= 0 || strlen(apps_mounted_path) <= 0)
+	if(strlen(nvram_safe_get("apps_dev")) <= 0 || strlen(nvram_safe_get("apps_mounted_path")) <= 0)
 		return -1;
 
 	system("/usr/sbin/app_stop.sh");

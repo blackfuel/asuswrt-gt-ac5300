@@ -1208,8 +1208,18 @@ char *get_lan_mac_name(void)
 		case MODEL_RTAC87U:
 		case MODEL_RTAC5300:
 		case MODEL_RTAC88U:
+#ifdef RTCONFIG_GMAC3
+		if (!nvram_match("stop_gmac3", "1") && *nvram_safe_get("et2macaddr") && !nvram_match("et2macaddr", "00:00:00:00:00:00"))
+			return "et2macaddr";
+		else
+#endif
 			return "et1macaddr";
 		default:
+#ifdef RTCONFIG_GMAC3
+		if (!nvram_match("stop_gmac3", "1") && *nvram_safe_get("et2macaddr") && !nvram_match("et2macaddr", "00:00:00:00:00:00"))
+			return "et2macaddr";
+		else
+#endif
 			return "et0macaddr";
 	}
 #endif
@@ -1227,8 +1237,18 @@ char *get_wan_mac_name(void)
 		case MODEL_RTAC5300:
 		case MODEL_GTAC5300:
 		case MODEL_RTAC88U:
+#ifdef RTCONFIG_GMAC3
+		if (!nvram_match("stop_gmac3", "1") && *nvram_safe_get("et2macaddr") && !nvram_match("et2macaddr", "00:00:00:00:00:00"))
+			return "et2macaddr";
+		else
+#endif
 			return "et1macaddr";
 		default:
+#ifdef RTCONFIG_GMAC3
+		if (!nvram_match("stop_gmac3", "1") && *nvram_safe_get("et2macaddr") && !nvram_match("et2macaddr", "00:00:00:00:00:00"))
+			return "et2macaddr";
+		else
+#endif
 			return "et0macaddr";
 	}
 #endif

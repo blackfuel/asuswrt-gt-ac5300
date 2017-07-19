@@ -22,11 +22,12 @@ export SIZE := $(CROSS_COMPILE)size
 export CXX := $(CROSS_COMPILE)g++
 export CXXCPP := $(CROSS_COMPILE)g++ -E
 
-obj-y += prepare
+obj-y += mkdir
+#obj-y += prepare
 obj-y += samba
 obj-y += sambaclient
 obj-y += sambaclient-ipk
-obj-y += subsequent
+#obj-y += subsequent
 
 all: $(obj-y)
 	echo $(LD_DIR)
@@ -36,22 +37,25 @@ all: $(obj-y)
 clean:
 	@$(MAKE) -C $(CURRENT)/sambaclient clean -f Makefile.ipk
 	@$(MAKE) -C $(CURRENT)/samba-3.5.8 clean -f Makefile.i686
-	#@$(MAKE) -C $(CURRENT)/libxml2 clean
-	#@$(MAKE) -C $(CURRENT)/openssl clean
-	#@$(MAKE) -C $(CURRENT)/curl-7.21.7 clean
 	@rm -rf Sambaclient-ipk/opt/tmp/lib/*
 	@rm -rf Sambaclient-ipk/opt/tmp/bin/*
 	rm -rf sambaclient_*.ipk
+
+mkdir:
+	-mkdir -p Sambaclient-ipk/opt/tmp/bin/
 
 prepare: 
 	if [ -f $(TOOLCHAIN)/usr/include/iconv.h ] || [-f $(TOOLCHAIN)/usr/include/libiconv/iconv.h ]; then \
 		mv -f $(TOOLCHAIN)/usr/include/libiconv/iconv.h $(TOOLCHAIN)/usr/include/libiconv/iconv.h.org ; \
 		mv -f $(TOOLCHAIN)/usr/include/iconv.h $(TOOLCHAIN)/usr/include/iconv.h.org ; \
 	fi
-	if [ -f /usr/include/iconv.h ] || [ -f /usr/local/include/iconv.h ] ; then \
+	if [ -f /usr/include/iconv.h ] ; then \
 		sudo mv -f /usr/include/iconv.h /usr/include/iconv.h.org ; \
+	fi
+	if [ -f /usr/local/include/iconv.h ] ; then \
 		sudo mv -f /usr/local/include/iconv.h /usr/local/include/iconv.h.org ; \
 	fi
+
 
 
 subsequent:
@@ -85,5 +89,6 @@ sambaclient: sambaclient/stamp-h1
 
 
 sambaclient-ipk:
+	cp -rf AiCloud-tmp/CONTROL/control-samba-i686 Sambaclient-ipk/CONTROL/control
 	$(STRIP) Sambaclient-ipk/opt/tmp/bin/*
 	@$(IPKG_TOOLS)/ipkg-build Sambaclient-ipk ./

@@ -144,4 +144,9 @@ typedef struct {
 
 #define WPS_UPNPDEV_PORT		40000
 
+/* Wireless Application Event Service (appeventd) */
+#define APPS_EVENT_UDP_PORT             40200
+
+/* all application uses this shared function to send event to appeventd */
+extern int app_event_sendup(int event_id, int status, unsigned char *data, int data_len);
 #endif	/* __SECURITY_IPC_H__ */

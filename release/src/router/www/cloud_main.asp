@@ -862,25 +862,23 @@ This agreement constitutes the entire agreement between you and ASUS with respec
 												<script type="text/javascript">
 													$('#radio_smartAccess_enable').iphoneSwitch('<% nvram_get("webdav_proxy"); %>', 
 														 function() {
-															curState = '<% nvram_get("webdav_proxy"); %>';
 															document.form.webdav_proxy.value = 1;
 															document.form.enable_webdav.value = 1;
 															FormActions("start_apply.htm", "apply", "restart_webdav", "3");
-															showLoading();	
+															showLoading();
 															document.form.submit();
 														 },
 														 function() {
-															curState = '<% nvram_get("webdav_proxy"); %>';
 															document.form.webdav_proxy.value = 0;
 															if(document.form.webdav_aidisk.value == 0)
 																document.form.enable_webdav.value = 0;
 															FormActions("start_apply.htm", "apply", "restart_webdav", "3");
-															showLoading();	
+															showLoading();
 															document.form.submit();
 														 }
 													);
-												</script>			
-												</div>	
+												</script>
+												</div>
 											</td>
 									  </tr>
 

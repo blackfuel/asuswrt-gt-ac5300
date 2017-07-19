@@ -24,7 +24,7 @@ WSLIB=libws.so
 
 CURL_DIR=../curl-7.21.7
 XML2_DIR=../libxml2
-OPENSSL_DIR=../openssl
+OPENSSL_DIR=../openssl-ipk
 
 WS_SRC=ws_src
 OUTPUT=output

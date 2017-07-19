@@ -36,8 +36,9 @@ struct cmd_handler_svr {
 	void (*pack)(int cmdno, int status, unsigned char *pdu, int *pdulen);
 };
 
+extern void print_data_topic(char *topic, int length);
 extern int ble_encrypt_clnt(unsigned char *input, unsigned char *output, size_t input_len);
 extern int ble_encrypt_svr(unsigned char *input, unsigned char *output, size_t input_len);
 extern void ble_key_act(char *type,  char *action);
-extern void print_uint8(uint8_t *value, int val_len, int row_len, int val_index, int flag);
+extern void print_data_info(uint8_t *value, int val_len, int row_len, int val_index, int flag);
 #endif	//__BLEENCRYPT_H___

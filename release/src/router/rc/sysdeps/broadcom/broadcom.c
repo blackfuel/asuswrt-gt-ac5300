@@ -3121,6 +3121,118 @@ next_info:
 }
 #endif
 
+#if defined(RTCONFIG_BCMWL6) && defined(RTCONFIG_PROXYSTA)
+#define	MAX_STA_COUNT	128
+#define	NVRAM_BUFSIZE	100
+
+int get_psta_status(int unit)
+{
+	char tmp[NVRAM_BUFSIZE], tmp2[NVRAM_BUFSIZE], prefix[] = "wlXXXXXXXXXX_";
+	char *name = NULL;
+	struct maclist *mac_list = NULL;
+	int mac_list_size;
+	struct ether_addr bssid;
+	unsigned char bssid_null[6] = { 0x0, 0x0, 0x0, 0x0, 0x0, 0x0 };
+	int ret = 0;
+
+	if (unit == -1) return 0;
+
+	snprintf(prefix, sizeof(prefix), "wl%d_", unit);
+
+	if (!nvram_match(strcat_r(prefix, "mode", tmp), "psta") &&
+	    !nvram_match(strcat_r(prefix, "mode", tmp2), "psr"))
+		goto PSTA_ERR;
+
+	name = nvram_safe_get(strcat_r(prefix, "ifname", tmp));
+
+	if (wl_ioctl(name, WLC_GET_BSSID, &bssid, ETHER_ADDR_LEN) != 0)
+		goto PSTA_ERR;
+	else if (!memcmp(&bssid, bssid_null, 6))
+		goto PSTA_ERR;
+
+	dbg("[wlc] wl-associated\n");
+
+	/* buffers and length */
+	mac_list_size = sizeof(mac_list->count) + MAX_STA_COUNT * sizeof(struct ether_addr);
+	mac_list = malloc(mac_list_size);
+
+	if (!mac_list)
+		goto PSTA_ERR;
+
+	/* query wl for authorized sta list */
+
+	if (nvram_match(strcat_r(prefix, "akm", tmp), ""))
+		ret = 2;
+	else
+	{
+		ret = 1;
+
+		strcpy((char*)mac_list, "autho_sta_list");
+		if (wl_ioctl(name, WLC_GET_VAR, mac_list, mac_list_size)) {
+			free(mac_list);
+			goto PSTA_ERR;
+		}
+
+		if (mac_list->count)
+			ret = 2;
+	}
+
+PSTA_ERR:
+	if (mac_list) free(mac_list);
+
+	if (ret == 2)
+		dbg("[wlc] authorized\n");
+	else if (ret == 1)
+		dbg("[wlc] not authorized\n");
+	else
+		dbg("[wlc] not associated\n");
+
+	return ret;
+}
+
+#define	WL_IW_RSSI_NO_SIGNAL	-91	/* NDIS RSSI link quality cutoffs */
+
+int get_psta_rssi(int unit)
+{
+	char tmp[256], prefix[] = "wlXXXXXXXXXX_";
+	char *name;
+	char word[256], *next;
+	int unit_max = 0, unit_cur = -1;
+	char *mode = NULL;
+	int sta = 0, wet = 0, psta = 0, psr = 0;
+	int rssi = WL_IW_RSSI_NO_SIGNAL;
+
+	foreach (word, nvram_safe_get("wl_ifnames"), next)
+		unit_max++;
+
+	if (unit > (unit_max - 1))
+		goto ERROR;
+
+	snprintf(prefix, sizeof(prefix), "wl%d_", unit);
+	name = nvram_safe_get(strcat_r(prefix, "ifname", tmp));
+	mode = nvram_safe_get(strcat_r(prefix, "mode", tmp));
+	sta = !strcmp(mode, "sta");
+	wet = !strcmp(mode, "wet");
+	psta = !strcmp(mode, "psta");
+	psr = !strcmp(mode, "psr");
+
+	wl_ioctl(name, WLC_GET_INSTANCE, &unit_cur, sizeof(unit_cur));
+	if (unit != unit_cur)
+		goto ERROR;
+	else if (!(wet || sta || psta || psr))
+		goto ERROR;
+	else if (wl_ioctl(name, WLC_GET_RSSI, &rssi, sizeof(rssi))) {
+		dbg("can not get rssi info of %s\n", name);
+		goto ERROR;
+	} else {
+		rssi = dtoh32(rssi);
+	}
+
+ERROR:
+	return rssi;
+}
+#endif
+
 #ifdef RTCONFIG_WIRELESSREPEATER
 /*
  *  Return value:
@@ -3254,7 +3366,6 @@ int wlcconnect_core(void)
 
 	return ret;
 }
-
 #endif
 
 #if 0
@@ -3752,14 +3863,6 @@ GEN_CONF:
 			else
 				eval("wl", "-i", ifname, "bus:ffsched_flr_rst_delay", FFSCHED_FLOW_RING_RESET_DELAY);	// driver default setting
 		}
-#endif
-
-#ifdef HND_ROUTER
-	if(unit == 0) {
-		eval("dhd", "-i", ifname, "tcpack_suppress", "3");
-		eval("dhd", "-i", ifname, "tcpack_sup_ratio", "8");
-		eval("dhd", "-i", ifname, "tcpack_sup_delay", "20");
-	}
 #endif
 
 #endif /* RTCONFIG_BCMARM */

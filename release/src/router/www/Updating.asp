@@ -22,6 +22,7 @@
 	 || parent.based_modelid == "RT-AC68U" || parent.based_modelid == "RT-AC68A" || parent.based_modelid == "4G-AC68U"
 	 || parent.based_modelid == "RT-AC3200" 
 	 || parent.based_modelid == "RT-AC5300" || parent.based_modelid == "GT-AC5300"
+	 || parent.based_modelid == "GT-AC9600"
 	 || parent.based_modelid == "RT-AC88U"  || parent.based_modelid == "RT-AC3100"
 	 || parent.based_modelid == "RT-AC86U" || parent.based_modelid == "AC2900"
 	){

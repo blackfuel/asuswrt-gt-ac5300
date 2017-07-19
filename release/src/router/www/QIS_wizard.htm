@@ -104,8 +104,9 @@ var pppoe_failed_flag = false;
 if(isMobile() && tmo_support && sw_mode != 2 && qisFlag != "sitesurvey_rep" && qisFlag != "sitesurvey_mb")
 	location.href = "MobileQIS_Login.asp";
 
-if(isMobile() && (based_modelid == "RT-AC88U" || based_modelid == "RT-AC3100" || based_modelid == "RT-AC5300" || based_modelid == "GT-AC5300"))
-	location.href = "QIS_wizard_m.htm";	
+if(isMobile() && (based_modelid == "RT-AC88U" || based_modelid == "RT-AC3100" || based_modelid == "RT-AC5300" || based_modelid == "GT-AC5300" || based_modelid == "GT-AC9600")){
+	location.href = "QIS_wizard_m.htm" + ((qisFlag !== "") ? "?flag="+qisFlag : "");
+}
 	
 var parent_macaddr = '<% nvram_get("lan_hwaddr"); %>';
 
@@ -152,6 +153,64 @@ var rebootTime = eval("<% get_default_reboot_time(); %>");
 
 var wan_autodet_state = "";
 var usb_connected = 0;
+
+var htmlEnDeCode = (function() {
+	var charToEntityRegex,
+		entityToCharRegex,
+		charToEntity,
+		entityToChar;
+
+	function resetCharacterEntities() {
+		charToEntity = {};
+		entityToChar = {};
+		// add the default set
+		addCharacterEntities({
+		'&amp;'		: 	'&',
+		'&gt;'		: 	'>',
+		'&lt;'		: 	'<',
+		'&quot;'	: 	'"',
+		'&#39;'		: 	"'"
+		});
+	}
+
+	function addCharacterEntities(newEntities) {
+		var charKeys = [],
+		entityKeys = [],
+		key, echar;
+		for (key in newEntities) {
+			echar = newEntities[key];
+			entityToChar[key] = echar;
+			charToEntity[echar] = key;
+			charKeys.push(echar);
+			entityKeys.push(key);
+		}
+		charToEntityRegex = new RegExp('(' + charKeys.join('|') + ')', 'g');
+		entityToCharRegex = new RegExp('(' + entityKeys.join('|') + '|&#[0-9]{1,5};' + ')', 'g');
+	}
+
+	function htmlEncode(value){
+		var htmlEncodeReplaceFn = function(match, capture) {
+			return charToEntity[capture];
+		};
+
+		return (!value) ? value : String(value).replace(charToEntityRegex, htmlEncodeReplaceFn);
+	}
+
+	function htmlDecode(value) {
+		var htmlDecodeReplaceFn = function(match, capture) {
+			return (capture in entityToChar) ? entityToChar[capture] : String.fromCharCode(parseInt(capture.substr(2), 10));
+		};
+
+		return (!value) ? value : String(value).replace(entityToCharRegex, htmlDecodeReplaceFn);
+	}
+
+	resetCharacterEntities();
+
+	return {
+		htmlEncode: htmlEncode,
+		htmlDecode: htmlDecode
+	};
+})();
 
 function add_options_x2(o, arr, varr, orig){
 	free_options(o);
@@ -271,7 +330,7 @@ function QIS_load_body(){
 	}
 
 	winW_H();
-	if(based_modelid == "GT-AC5300"){
+	if(based_modelid == "GT-AC5300" || based_modelid == "GT-AC9600"){
 		document.getElementById("logo").src = "images/New_ui/logo_ROG.png"
 		document.getElementById("logo").style.width = "358px"
 		document.getElementById("logo").style.height = "86px"
@@ -290,7 +349,7 @@ function QIS_load_body(){
 			document.QKform.sw_mode.value = 4;
 	}
 
-	if(based_modelid == "HIVEDOT" || based_modelid == "HIVESPOT"){
+	if(based_modelid == "MAP-AC1300" || based_modelid == "MAP-AC2200"){
 		document.getElementById("QIS_wizard_menu").style.display = "none";
 		document.getElementById("qis_menu").style.marginTop = "-160px";
 	}

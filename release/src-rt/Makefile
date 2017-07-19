@@ -144,6 +144,21 @@ endif
 endif
 export PLATFORMDIR := $(SRCBASE)/router/$(PLATFORM)
 
+ifneq ($(BUILD_NAME),)
+ifneq ($(BASE_MODEL),)
+MODEL = $(subst -,,$(subst +,P,$(BASE_MODEL)))
+else ifneq ($(findstring 4G-,$(BUILD_NAME)),)
+MODEL = RT$(subst -,,$(BUILD_NAME))
+else ifneq ($(findstring DSL,$(BUILD_NAME)),)
+MODEL = $(subst -,_,$(BUILD_NAME))
+else
+MODEL = $(subst -,,$(subst +,P,$(BUILD_NAME)))
+endif
+export MODEL
+export CFLAGS += -D$(MODEL)
+export $(MODEL):=y
+endif
+
 testlink:
 	$(call platformKernelConfig, $(1))
 	@echo testlink
@@ -275,6 +290,10 @@ define build_bluecave_image
 	rm -f vmlinux*
 	rm -f uImage*
 	rm -f easy350_anywan_router_800m.dtb
+	dd if=/dev/zero count=1 bs=128 | tr "\000" "\145" > ./eof.txt
+	rm -f image/tmp-linux.trx; ctools/trx -o image/tmp-linux.trx image/fullimage.img ./eof.txt
+	ctools/trx_asus -i image/tmp-linux.trx -r $(BUILD_NAME),$(KERNEL_VER).$(FS_VER),$(SERIALNO),$(EXTENDNO),image/$(IMGNAME).trx
+	rm -f ./eof.txt
 endef
 
 default:
@@ -558,6 +577,11 @@ else ifeq ($(RTCONFIG_REALTEK),y)
 	@rm -f $(SRCBASE)/image-realtek
 	@ln -sf $(RSDKDIR)/image $(SRCBASE)/image-realtek
 else ifeq ($(ALPINE),y)
+	$(MAKE) -C ctools clean
+	$(MAKE) -C ctools TRX=NEW
+	$(MAKE) -C proprietary gen_uimage-clean
+	$(MAKE) -C proprietary gen_uimage
+	# Create generic TRX image
 	# generate kernel part
 	@rm -rf $(PLATFORMDIR)/zImage.lzma ; \
 		$(CROSS_COMPILE)objcopy -O binary $(LINUXDIR)/vmlinux $(PLATFORMDIR)/vmlinus ; \
@@ -578,7 +602,14 @@ else ifeq ($(ALPINE),y)
 		asustools/mkimage -A $(ARCH) -O linux -T kernel -C lzma -a $(LOADADDR) -e $(ENTRYADDR) -r $${RFSOFFSET} \
 			-n $(BUILD_NAME) -V "$(KERNEL_VER)" "$(FS_VER)" "0" "0" "0" "0" "0" "0" "0" "0" \
 			-d $(PLATFORMDIR)/zImage.img image/$(IMGNAME).trx
+	@proprietary/gen_uimage
+	dd if=/dev/zero count=1 bs=128 | tr "\000" "\145" > ./eof.txt
+	rm -f image/tmp-linux.trx; ctools/trx -o image/tmp-linux.trx $(PLATFORMDIR)/uImage.final $(PLATFORMDIR)/target.image ./eof.txt
+	ctools/trx_asus -i image/tmp-linux.trx -r $(BUILD_NAME),$(KERNEL_VER).$(FS_VER),$(SERIALNO),$(EXTENDNO),image/$(IMGNAME).trx
+	rm -f ./eof.txt
 else ifeq ($(LANTIQ),y)
+	$(MAKE) -C ctools clean
+	$(MAKE) -C ctools TRX=NEW
 	# generate kernel part
 	@rm -rf $(PLATFORMDIR)/zImage.lzma ; \
 		$(CROSS_COMPILE)objcopy -O binary $(LINUXDIR)/vmlinux $(PLATFORMDIR)/vmlinus ; \
@@ -996,6 +1027,10 @@ define RouterOptions
 	if [ "$(REPEATER)" = "y" ]; then \
 		sed -i "/RTCONFIG_WIRELESSREPEATER/d" $(1); \
 		echo "RTCONFIG_WIRELESSREPEATER=y" >>$(1); \
+		if [ "$(DISABLE_REPEATER_UI)" = "y" ] ; then \
+			sed -i "/RTCONFIG_DISABLE_REPEATER_UI/d" $(1); \
+			echo "RTCONFIG_DISABLE_REPEATER_UI=y" >>$(1); \
+		fi; \
 	fi; \
 	if [ "$(PURE_REPEATER)" = "y" ]; then \
 		sed -i "/RTCONFIG_REPEATER/d" $(1); \
@@ -1530,6 +1565,18 @@ define RouterOptions
 			sed -i "/RTCONFIG_$${ipsec}\>/d" $(1); \
 			if [ "$(IPSEC)" = "$${ipsec}" ] ; then \
 				echo "RTCONFIG_$${ipsec}=y" >> $(1); \
+				if [ "$(IPSEC_SRVCLI_ONLY)" = "SRV" ]; then \
+					sed -i "/RTCONFIG_IPSEC_SERVER/d" $(1); \
+					echo "RTCONFIG_IPSEC_SERVER=y" >>$(1); \
+					echo "# RTCONFIG_IPSEC_CLIENT is not set" >>$(1); \
+				elif [ "$(IPSEC_SRVCLI_ONLY)" = "CLI" ]; then \
+					sed -i "/RTCONFIG_IPSEC_CLIENT/d" $(1); \
+					echo "RTCONFIG_IPSEC_CLIENT=y" >>$(1); \
+					echo "# RTCONFIG_IPSEC_SERVER is not set" >>$(1); \
+				else \
+					echo "RTCONFIG_IPSEC_SERVER=y" >>$(1); \
+					echo "RTCONFIG_IPSEC_CLIENT=y" >>$(1); \
+				fi; \
 			elif [ "$(IPSEC)" = "y" -a "$${ipsec}" = "STRONGSWAN" ] ; then \
 				sed -i "/RTCONFIG_STRONGSWAN/d" $(1); \
 				echo "RTCONFIG_STRONGSWAN=y" >>$(1); \
@@ -1544,6 +1591,8 @@ define RouterOptions
 			sed -i "/RTCONFIG_$${ipsec}\>/d" $(1); \
 			echo "# RTCONFIG_$${ipsec} is not set" >> $(1); \
 		done; \
+		echo "# RTCONFIG_IPSEC_SERVER is not set" >>$(1); \
+		echo "# RTCONFIG_IPSEC_CLIENT is not set" >>$(1); \
 	fi; \
 	if [ "$(OPENVPN)" = "y" ]; then \
 		sed -i "/RTCONFIG_LZO/d" $(1); \
@@ -2272,6 +2321,14 @@ define RouterOptions
 		sed -i "/RTCONFIG_NO_SELECT_CHANNEL/d" $(1); \
 		echo "# RTCONFIG_NO_SELECT_CHANNEL is not set" >>$(1); \
 	fi; \
+	if [ "$(USB_SWAP)" = "y" ]; then \
+		sed -i "/RTCONFIG_USB_SWAP/d" $(1); \
+		echo "RTCONFIG_USB_SWAP=y" >>$(1); \
+	fi; \
+	if [ "$(SW_DEVLED)" = "y" ]; then \
+		sed -i "/RTCONFIG_SW_DEVLED/d" $(1); \
+		echo "RTCONFIG_SW_DEVLED=y" >>$(1); \
+	fi; \
 	)
 	$(call platformRouterOptions, $(1))
 endef
@@ -2453,7 +2510,7 @@ define BusyboxOptions
 		sed -i "/CONFIG_DEVMEM/d" $(1); \
 		echo "CONFIG_DEVMEM=y" >>$(1); \
 	fi; \
-	if [ "$(MAKE_HIVEDOT)" = "y" ] || [ "$(MAKE_HIVESPOT)" = "y" ]; then \
+	if [ "$(MAPAC1300)" = "y" ] || [ "$(MAPAC2200)" = "y" ]; then \
 		sed -i "/CONFIG_TFTP/d" $(1); \
 		echo "CONFIG_TFTP=y" >>$(1); \
 		sed -i "/CONFIG_FEATURE_TFTP_GET/d" $(1); \
@@ -2464,6 +2521,8 @@ define BusyboxOptions
 		echo "# CONFIG_TFTPD is not set" >>$(1); \
 		sed -i "/CONFIG_TFTP_DEBUG/d" $(1); \
 		echo "# CONFIG_TFTP_DEBUG is not set" >>$(1); \
+		sed -i "/CONFIG_TELNET\b/d" $(1); \
+		echo "CONFIG_TELNET=y" >>$(1); \
 	fi; \
 	if [ "$(SLIM)" = "y" ]; then \
 		sed -i "/CONFIG_AWK/d" $(1); \
@@ -2567,6 +2626,10 @@ define BusyboxOptions
 		echo "CONFIG_LSPCI=y" >>$(1); \
 		sed -i "/CONFIG_LSUSB/d" $(1); \
 		echo "CONFIG_LSUSB=y" >>$(1); \
+	fi; \
+	if [ "$(LANTIQ)" = "y" ] ; then \
+		sed -i "/CONFIG_XARGS/d" $(1); \
+		echo "CONFIG_XARGS=y" >>$(1); \
 	fi; \
 	if [ "$(LANTIQ)" = "y" ] ; then \
 		sed -i "/CONFIG_TFTP/d" $(1); \
@@ -3542,6 +3605,7 @@ else
 		cp $(LINUXDIR)/config_base_$(lowercase_B) $(LINUXDIR)/config_$(lowercase_B); \
 	fi
 endif
+	@echo "" >> router/config_$(lowercase_B)
 	$(call RouterOptions, router/config_$(lowercase_B))
 	$(call KernelConfig, $(LINUXDIR)/config_$(lowercase_B))
 ifeq ($(REALTEK),y)
@@ -3622,10 +3686,7 @@ endef
 	$(call save_src_config, RT$@)
 	$(MAKE) bin
 
-brt-% BRT-% rt-% RT-% gt-% GT-% rp-% RP-% ea-% EA-% tm-% TM-% pl-% PL-% ac%:
-ifeq ($(ALPINE),y)
-	cd $(SRCBASE)/router; rm -rf nvram ; ln -s nvram_file nvram; cd $(SRCBASE) ; cd -
-endif
+brt-% BRT-% rt-% RT-% gt-% GT-% rp-% RP-% ea-% EA-% tm-% TM-% pl-% PL-% ac% map-% MAP-%:
 ifeq ($(REALTEK),y)
 	rm -f include
 	ln -sf include-n66u include
@@ -3647,11 +3708,6 @@ endif
 	$(MAKE) bin
 
 Bluecave bluecave:
-	cd $(SRCBASE)/router; rm -rf nvram ; ln -s nvram_file nvram; cd $(SRCBASE) ; cd -
-	$(call save_src_config, $@)
-	$(MAKE) bin
-
-hivedot hivespot:
 	$(call save_src_config, $@)
 	$(MAKE) bin
 

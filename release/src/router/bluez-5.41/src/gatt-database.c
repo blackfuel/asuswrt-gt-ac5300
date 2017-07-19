@@ -2750,22 +2750,18 @@ static bool asus_nvram_cb(void *user_data)
 		return false;
 
 	value = database->asus_value;
-	if(GATTDATABASE_DEBUG) {
-		printf("\n==========Svr Send ============= Total Data Length: %d\n", (int)len);
-	}
+	print_data_topic("TX", (int)len);
+
 	for (index=0; index<=len; index+=MAX_LE_DATALEN) {
 
 		if (index>0) value += MAX_LE_DATALEN;
-
-		if(GATTDATABASE_DEBUG) {
-			print_uint8(value, (index+MAX_LE_DATALEN)>len ? (len-index):MAX_LE_DATALEN, MAX_LE_DATALEN, index, 0);
-		}
+		print_data_info(value, (index+MAX_LE_DATALEN)>len ? (len-index):MAX_LE_DATALEN, MAX_LE_DATALEN, index, 0);
 
 		bt_gatt_server_send_notification(
 			server,
 			database->asus_nvram_handle, value,
 			(index+MAX_LE_DATALEN)>len ? (len-index):MAX_LE_DATALEN);
-		usleep(10* MILLISEC);
+		usleep(50* MILLISEC);
 	}
 
 	return true;
@@ -2788,14 +2784,11 @@ static void asus_write_value(struct gatt_db_attribute *attrib,
 	if (!ble_data_len) {
 		ble_data_len = (int)value[2]*256 + (int)value[3];
 		memset(ble_data, '\0', MAX_PACKET_SIZE);
-		if(GATTDATABASE_DEBUG)
-			printf("\n==========Svr Receive ========== Total Data Length: %d\n", ble_data_len);
+		print_data_topic("RX", ble_data_len);
 	}
 
 	memcpy(ble_data+ble_count_len, value, len);
-	if(GATTDATABASE_DEBUG) {
-		print_uint8((uint8_t *)value, len, MAX_LE_DATALEN, ble_count_len, 0);
-	}
+	print_data_info((uint8_t *)value, len, MAX_LE_DATALEN, ble_count_len, 0);
 	ble_count_len += (int)len;
 
 	if (ble_count_len < ble_data_len) {
@@ -2807,7 +2800,7 @@ static void asus_write_value(struct gatt_db_attribute *attrib,
 	}
 
 	if (ble_data_len) {
-		unsigned char *uchar_out=malloc(MAX_PACKET_SIZE);
+		unsigned char uchar_out[MAX_PACKET_SIZE];
 		int len_out;
 
 		memset(uchar_out, '\0', MAX_PACKET_SIZE);
@@ -2826,7 +2819,6 @@ static void asus_write_value(struct gatt_db_attribute *attrib,
 		memcpy(database->asus_value, uchar_out, len_out);
 		database->asus_value_len = len_out;
 		database->asus_att = att;
-		free(uchar_out);
 	}
 
 	asus_nvram_cb(database);

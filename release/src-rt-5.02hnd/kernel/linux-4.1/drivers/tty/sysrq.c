@@ -385,10 +385,13 @@ static void sysrq_showregs_othercpus(struct work_struct *dummy)
 
 static DECLARE_WORK(sysrq_showallcpus, sysrq_showregs_othercpus);
 
+unsigned long blog_lock_ret_ip = 0; 
+EXPORT_SYMBOL(blog_lock_ret_ip);
+
 static void sysrq_handle_showallcpus(int key)
 {
 #if defined(CONFIG_BCM_KF_CHAR_SYSRQ)
-
+	printk("blog_lock_ret_ip: 0x%lx\n", blog_lock_ret_ip);
 
 	showacpu(NULL);
 

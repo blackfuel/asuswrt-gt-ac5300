@@ -1,12 +1,18 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+
 #include "blepack.h"
 #include "include/adv_string.h"
 #include "utility.h"
 
 #define DEF_LEN_128 128
-static char do_rc_service[DEF_LEN_128];
+#define DEF_LEN_256 256
+
+static char do_rc_service[DEF_LEN_256];
 
 typedef struct TLV_Header_t
 {
@@ -127,6 +133,8 @@ void UnpackBLEDataToNvram(struct param_handler_svr *param_handler, unsigned char
 	char prefix[DEF_LEN_128];
 	char *delim=";", *str_service;
 	int unit=0, chk_service=0;
+	int is_change_lanip;
+	struct in_addr lan_addr, dhcp_start_addr, dhcp_end_addr;
 	
 	memset(str_data, '\0', DEF_LEN_128);
 	memset(prefix, '\0', DEF_LEN_128);
@@ -223,6 +231,7 @@ void UnpackBLEDataToNvram(struct param_handler_svr *param_handler, unsigned char
 		case BLE_COMMAND_RESET:
 			break;
 		case BLE_COMMAND_APPLY:
+			is_change_lanip = 0;
 			if (nvram_match("sw_mode", "3"))
 			{
 
@@ -234,55 +243,109 @@ void UnpackBLEDataToNvram(struct param_handler_svr *param_handler, unsigned char
 				}
 				nvram_set("hive_re_autoconf", "1");
 			}
+			else // router mode
+			{
+				//////// IP conflict detection
+				int wan_state, wan_sbstate, wan_auxstate;
+				char *lan_ipaddr, *lan_netmask;
+				char *wan_ipaddr, *wan_netmask;
+				in_addr_t lan_mask, tmp_ip;
+
+
+				wan_state = nvram_get_int("wan0_state_t");
+				wan_sbstate = nvram_get_int("wan0_sbstate_t");
+				wan_auxstate = nvram_get_int("wan0_auxstate_t");
+				if (wan_state == 4 && wan_sbstate == 4 && wan_auxstate == 0)
+				{
+					lan_ipaddr = nvram_safe_get("lan_ipaddr");
+					lan_netmask = nvram_safe_get("lan_netmask");
+
+					wan_ipaddr = nvram_safe_get("wan0_ipaddr");
+					wan_netmask = nvram_safe_get("wan0_netmask");
+
+					if (inet_deconflict(lan_ipaddr, lan_netmask, wan_ipaddr, wan_netmask, &lan_addr)) {
+						printf("[IP conflict]: change lan IP to %s\n", inet_ntoa(lan_addr));
+						lan_mask = inet_network(lan_netmask);
+						tmp_ip = ntohl(lan_addr.s_addr);
+						dhcp_start_addr.s_addr = htonl(tmp_ip + 1);
+						dhcp_end_addr.s_addr = htonl((tmp_ip | ~lan_mask) & 0xfffffffe);
+						is_change_lanip = 1;
+					}
+				}
+			}
 
 			if(strlen(do_rc_service))
 			{
 				/* do rc_service */
-				str_service = strtok(do_rc_service, delim);
-				while (str_service!=NULL)
+				if (strstr(do_rc_service, "ble_qis_done"))
 				{
 					if (chk_service==3)
 					{
-						if (strncmp(str_service, "chpass", strlen(str_service))!=0)
-						{
-							if (BLEPACKET_DEBUG) printf("[rc ignore]: %s \n", str_service);
-
-							str_service = strtok(NULL, delim);
-							continue;
-						}
+						if (strstr(do_rc_service, "chpass"))
+							notify_rc_and_wait("chpass");
+ 
+						memset(do_rc_service, '\0', DEF_LEN_256);
+						snprintf(do_rc_service, sizeof(do_rc_service), "%s%s%s", do_rc_service, delim, "ble_qis_done");
 					}
-					else if (!strncmp(str_service, "start_hyfi_process", strlen(str_service)))
-					{
+					else
 						chk_service = 1;
-						str_service = strtok(NULL, delim);
-						continue;
-					}
-
-					if (BLEPACKET_DEBUG) printf("[rc do service]: %s \n", str_service);
-					notify_rc_and_wait(str_service);
-
-					if (!strncmp(str_service, "restart_wireless", strlen(str_service)))
-						sleep(10);
-
-					str_service = strtok(NULL, delim);
 				}
-				free(str_service);
+				else
+				{
+					str_service = strtok(do_rc_service, delim);
+					while (str_service!=NULL)
+					{
+						if (BLEPACKET_DEBUG) printf("[rc do service]: %s \n", str_service);
+
+						notify_rc_and_wait(str_service);
+						str_service = strtok(NULL, delim);
+					}
+				}
 
 				if (chk_service)
 				{
-					nvram_set("w_Setting", "1");
-					nvram_set("x_Setting", "1");
-					nvram_commit();
+					if ( chk_service == 1 )
+					{
+						nvram_set("wrs_protect_enable", "1");
+						nvram_set("wrs_mals_t", "0");
+						nvram_set("wrs_cc_t", "0");
+						nvram_set("wrs_vp_t", "0");
+						nvram_set("bwdpi_db_enable", "1");
+						nvram_set("apps_analysis", "1");
+						nvram_set("TM_EULA", "1");
+					} else {
+						eval("modprobe", "-r", "shortcut_fe_cm");
+						eval("modprobe", "-r", "shortcut_fe_ipv6");
+						eval("modprobe", "-r", "shortcut_fe");
+					}
+
+					if ( is_change_lanip )
+					{
+						nvram_set("lan_ipaddr", inet_ntoa(lan_addr));
+						nvram_set("dhcp_start", inet_ntoa(dhcp_start_addr));
+						nvram_set("dhcp_end", inet_ntoa(dhcp_end_addr));
+					}
+
+					if ( is_change_lanip )
+					{
+						logmessage("BLUEZ", "[IP conflict]: restart_net_and_phy\n");
+						snprintf(do_rc_service, sizeof(do_rc_service), "%s%s%s", do_rc_service, delim, "restart_net_and_phy");
+					}
+
 					if(chk_service==1)
-						notify_rc_and_wait("start_hyfi_process");
+					{
+						snprintf(do_rc_service, sizeof(do_rc_service), "%s%s%s", do_rc_service, delim, "restart_wrs");
+						snprintf(do_rc_service, sizeof(do_rc_service), "%s%s%s", do_rc_service, delim, "restart_firewall");
+						snprintf(do_rc_service, sizeof(do_rc_service), "%s%s%s", do_rc_service, delim, "start_hyfi_process");
+					}
 					else if(chk_service==3)
-						notify_rc_and_wait("restart_allnet");
+						snprintf(do_rc_service, sizeof(do_rc_service), "%s%s%s", do_rc_service, delim, "restart_allnet");
+
+					logmessage("BLUEZ", "[service]: %s\n", do_rc_service);
+					nvram_set("bt_turn_off_service", do_rc_service);
 				}
 			}
-			memset(do_rc_service, '\0', DEF_LEN_128);
-
-			if (chk_service)
-				nvram_set("bt_turn_off_service", "1");
+			memset(do_rc_service, '\0', DEF_LEN_256);
 
 			break;
 		default:
@@ -678,48 +741,79 @@ void PackBLEResponseOnly(int cmdno, int status, unsigned char *pdu, int *pdulen)
 
 void PackBLEResponseGetMacBleVersion(int cmdno, int status, unsigned char *pdu, int *pdulen)
 {
+	char *delim="-";
 #if defined(RTCONFIG_RGMII_BRCM5301X) || defined(RTCONFIG_QCA) || defined(RTAC3100)
 	char *macaddr=nvram_safe_get("lan_hwaddr");
 #else
 	char *macaddr=nvram_safe_get("et0macaddr");
 #endif
+	char *groupid=nvram_safe_get("cfg_group");
 	char tmp[DEF_LEN_128];
 	memset(tmp, '\0', DEF_LEN_128);
 
-	snprintf(tmp, sizeof(tmp), "%s%s-%d", tmp, macaddr, BLE_VERSION);
+	snprintf(tmp, sizeof(tmp), "%s%s%s%d", tmp, macaddr, delim, BLE_VERSION);
+	snprintf(tmp, sizeof(tmp), "%s%s%s", tmp, delim, groupid);
 
 	PackBLEResponseData(cmdno, status, (unsigned char*)tmp, sizeof(tmp), pdu, pdulen, BLE_RESPONSE_FLAGS|BLE_FLAG_WITH_ENCRYPT);
 }
 
 void PackBLEResponseGetWanStatus(int cmdno, int status, unsigned char *pdu, int *pdulen)
 {
-	int wanstatus=BLE_WAN_STATUS_ALL_DISCONN;
 	char var_name[DEF_LEN_128];
-	int idx, max_inf, value;
-	int conn_count=-1, wan_proto;
+	char *detwan[] = {"detwan", NULL};
+	char *old_wan_ifname = nvram_safe_get("wan0_ifname");
+	int wanstatus=BLE_WAN_STATUS_ALL_DISCONN;
+	int old_wan_proto = nvram_get_int("detwan_proto"); 
+	int idx, max_inf, value, wan_proto;
+	int conn=0, conn_tmp=1;
 
 	/* Check the port status */
 	memset(var_name, '\0', DEF_LEN_128);
 	max_inf = nvram_get_int("detwan_max");
-	for (idx = 0; idx < max_inf; idx++) {
+	for (idx = 0; idx < max_inf; idx++, conn_tmp=conn_tmp<<1) {
 		snprintf(var_name, sizeof(var_name), "detwan_mask_%d", idx);
 		if ((value = nvram_get_int(var_name)) != 0) {
 			if (get_ports_status((unsigned int)value))
-			{
-				if (conn_count>-1)
-					conn_count=2;
-				else
-					conn_count=idx;
-			}
+					conn |= conn_tmp;
 		}
 	}
 
-	/* Check the link status */
-	if (conn_count>-1) 
-	{
-		if (strlen(nvram_safe_get("wan0_ifname"))) {
-			wan_proto = nvram_get_int("detwan_proto");
-			if (nvram_match("wan0_ifname", "eth0")) {
+	if ((conn&PHY_PORT0)&&(conn&PHY_PORT1))
+		wanstatus = BLE_WAN_STATUS_ALL_UNKNOWN;
+	else if (conn>0) {
+		/* Check the link proto */
+		nvram_unset("wan0_ifname");
+		_eval(detwan, NULL, 0, NULL);
+		idx = 0;
+		while ((nvram_safe_get("wan0_ifname")[0] =='\0') && idx<10) {
+			sleep(1);
+			idx++;
+		}
+		memset(var_name, '\0', DEF_LEN_128);
+		snprintf(var_name, sizeof(var_name), "%s", nvram_safe_get("wan0_ifname"));
+		wan_proto = nvram_get_int("detwan_proto");
+
+		/* Check the link status */
+		notify_rc_and_wait("restart_wan_if 0");
+
+		conn_tmp = nvram_get_int("link_internet");
+		idx = 0;
+		while ( wan_proto==3 && conn_tmp!=2 && idx<20) {
+			sleep(1);
+			conn_tmp = nvram_get_int("link_internet");
+			idx++;
+		}
+		logmessage("BLUEZ", "wan0_ifname:%s, detwan_proto:%d, link_internet:%d\n", var_name, wan_proto, conn_tmp);
+
+		if (wan_proto == 3) {
+			if (conn_tmp == 2)
+				wan_proto = 1;
+			else
+				wan_proto = 2;
+		}
+
+		if (strlen(var_name)) {
+			if (!strncmp(var_name, "eth0", strlen(var_name))) {
 				if (wan_proto == 1)
 					wanstatus = BLE_WAN_STATUS_PORT0_DHCP;
 				else if (wan_proto == 2)
@@ -737,12 +831,10 @@ void PackBLEResponseGetWanStatus(int cmdno, int status, unsigned char *pdu, int 
 			}
 		}
 		else {
-			if (conn_count == 0)
+			if (conn&PHY_PORT0)
 				wanstatus = BLE_WAN_STATUS_PORT0_UNKNOWN;
-			else if (conn_count == 1)
+			else if (conn&PHY_PORT1)
 				wanstatus = BLE_WAN_STATUS_PORT1_UNKNOWN;
-			else
-				wanstatus = BLE_WAN_STATUS_ALL_UNKNOWN;
 		}
 	}
 

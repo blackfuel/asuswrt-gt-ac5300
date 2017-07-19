@@ -547,8 +547,9 @@ www.juliendecaudin.com
 	
 	var fitImage = function(settings, ImgD, index) {
 		var exif_data = settings.exifData;
-		var window_width = $(window).width();
-		var window_height = $(window).height();
+		var size = getPageSize();
+		var window_width = size[0];
+		var window_height = size[1];
 		var orientation = "0";
 		var imgWidth = settings.imageSize[index].width;
 		var imgHeight = settings.imageSize[index].height;

@@ -41,11 +41,12 @@ struct lp55xx_leds_pattern lp55xx_leds_col[] = {
  *
  * */
 struct lp55xx_leds_pattern lp55xx_leds_beh[] = {
-	{ LP55XX_ACT_NONE,	"",				"", "" },
-	{ LP55XX_ACT_SBLINK,	"7e00420040007e004200",		"", "" },
-	{ LP55XX_ACT_3ON1OFF,	"7e00620040006000",		"", "" },
-	{ LP55XX_ACT_BREATH,	"44084258420043584508",		"", "" },
-	{ LP55XX_END_BLINK,	"", 				"", "" }
+	{ LP55XX_ACT_NONE,		"",				"", 				"" },
+	{ LP55XX_ACT_SBLINK,		"7e00420040007e004200",		"7e00420040007e004200", 	"7e00420040007e004200" },
+	{ LP55XX_ACT_3ON1OFF,		"7e00620040006000",		"7e00620040006000", 		"7e00620040006000" },
+	{ LP55XX_ACT_BREATH,		"44101ef042001ff04510",		"44101af042001bf04510", 	"44101cf042001df04510" },
+	{ LP55XX_ACT_BREATH_DOWN_011,	"",				"43584508420044084258", 	"43584508420044084258" },
+	{ LP55XX_END_BLINK,		"", 				"", 				"" }
 };
 
 void split(char **arr, char *str, char *del) {
@@ -129,9 +130,9 @@ void lp55xx_set_pattern_led(int col_mode, int beh_mode)
 
 				pattern_combine(initial[i], arr[0], blnk_leds_beh->ptn1, brightness, tmp1);
 				if (col_mode==LP55XX_ALL_BREATH_LEDS) i++;
-				pattern_combine(initial[i], arr[1], strlen(blnk_leds_beh->ptn2)>0?blnk_leds_beh->ptn2:blnk_leds_beh->ptn1, brightness, tmp2);
+				pattern_combine(initial[i], arr[1], blnk_leds_beh->ptn2, brightness, tmp2);
 				if (col_mode==LP55XX_ALL_BREATH_LEDS) i++;
-				pattern_combine(initial[i], arr[2], strlen(blnk_leds_beh->ptn3)>0?blnk_leds_beh->ptn3:blnk_leds_beh->ptn1, brightness, tmp3);
+				pattern_combine(initial[i], arr[2], blnk_leds_beh->ptn3, brightness, tmp3);
 			}
 			else
 			{
@@ -139,9 +140,9 @@ void lp55xx_set_pattern_led(int col_mode, int beh_mode)
 					if (col_mode == blnk_leds_col->ptn_mode){
 						pattern_combine(initial[i], blnk_leds_col->ptn1, blnk_leds_beh->ptn1, brightness, tmp1);
 						if (col_mode==LP55XX_ALL_BREATH_LEDS) i++;
-						pattern_combine(initial[i], blnk_leds_col->ptn2, strlen(blnk_leds_beh->ptn2)>0?blnk_leds_beh->ptn2:blnk_leds_beh->ptn1, brightness, tmp2);
+						pattern_combine(initial[i], blnk_leds_col->ptn2, blnk_leds_beh->ptn2, brightness, tmp2);
 						if (col_mode==LP55XX_ALL_BREATH_LEDS) i++;
-						pattern_combine(initial[i], blnk_leds_col->ptn3, strlen(blnk_leds_beh->ptn3)>0?blnk_leds_beh->ptn3:blnk_leds_beh->ptn1, brightness, tmp3);
+						pattern_combine(initial[i], blnk_leds_col->ptn3, blnk_leds_beh->ptn3, brightness, tmp3);
 					}
 				}
 			}

@@ -1415,75 +1415,6 @@ static int ej_wl_channel_list(int eid, webs_t wp, int argc, char_t **argv, int u
 }
 
 
-static int ej_wl_rate(int eid, webs_t wp, int argc, char_t **argv, int unit)
-{
-#define ASUS_IOCTL_GET_STA_DATARATE (SIOCDEVPRIVATE+15) /* from qca-wifi/os/linux/include/ieee80211_ioctl.h */
-        struct iwreq wrq;
-	int retval = 0;
-	char tmp[256], prefix[] = "wlXXXXXXXXXX_";
-	char *name;
-	char word[256], *next;
-	int unit_max = 0;
-	unsigned int rate[2];
-	char rate_buf[32];
-	int sw_mode = nvram_get_int("sw_mode");
-	int wlc_band = nvram_get_int("wlc_band");
-
-	sprintf(rate_buf, "0 Mbps");
-
-	if (!nvram_match("wlc_state", "2"))
-		goto ERROR;
-
-	foreach (word, nvram_safe_get("wl_ifnames"), next)
-		unit_max++;
-
-	if (unit > (unit_max - 1))
-		goto ERROR;
-
-	if (wlc_band == unit && (sw_mode == SW_MODE_REPEATER || sw_mode == SW_MODE_HOTSPOT))
-		snprintf(prefix, sizeof(prefix), "wl%d.1_", unit);
-	else
-		goto ERROR;
-	name = nvram_safe_get(strcat_r(prefix, "ifname", tmp));
-
-	wrq.u.data.pointer = rate;
-	wrq.u.data.length = sizeof(rate);
-
-	if (wl_ioctl(name, ASUS_IOCTL_GET_STA_DATARATE, &wrq) < 0)
-	{
-		dbg("%s: errors in getting %s ASUS_IOCTL_GET_STA_DATARATE result\n", __func__, name);
-		goto ERROR;
-	}
-
-	if (rate[0] > rate[1])
-		sprintf(rate_buf, "%d Mbps", rate[0]);
-	else
-		sprintf(rate_buf, "%d Mbps", rate[1]);
-
-ERROR:
-	retval += websWrite(wp, "%s", rate_buf);
-	return retval;
-}
-
-
-int
-ej_wl_rate_2g(int eid, webs_t wp, int argc, char_t **argv)
-{
-   	if(nvram_match("sw_mode", "2"))
-		return ej_wl_rate(eid, wp, argc, argv, 0);
-	else
-	   	return 0;
-}
-
-int
-ej_wl_rate_5g(int eid, webs_t wp, int argc, char_t **argv)
-{
-   	if(nvram_match("sw_mode", "2"))
-		return ej_wl_rate(eid, wp, argc, argv, 1);
-	else
-	   	return 0;
-}
-
 int
 ej_nat_accel_status(int eid, webs_t wp, int argc, char_t **argv)
 {
@@ -1495,6 +1426,7 @@ ej_nat_accel_status(int eid, webs_t wp, int argc, char_t **argv)
 	return retval;
 }
 
+#if 0
 #ifdef RTCONFIG_PROXYSTA
 int
 ej_wl_auth_psta(int eid, webs_t wp, int argc, char_t **argv)
@@ -1510,4 +1442,5 @@ ej_wl_auth_psta(int eid, webs_t wp, int argc, char_t **argv)
 
 	return retval;
 }
+#endif
 #endif

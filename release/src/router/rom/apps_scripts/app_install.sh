@@ -874,7 +874,7 @@ echo "Enabling the package: $1..."
 /usr/sbin/app_set_enabled.sh $1 "yes"
 
 if [ "$link_internet" == "2" ]; then
-	/usr/sbin/app_update.sh&
+	/usr/sbin/app_update.sh &
 fi
 
 test_of_var_files "$APPS_MOUNTED_PATH"

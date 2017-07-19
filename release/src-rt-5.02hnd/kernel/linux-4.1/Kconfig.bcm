@@ -1319,16 +1319,6 @@ config DUMP_PREV_OOPS_MSG
 	depends on PRINTK
 	default n
 
-config DUMP_PREV_OOPS_MSG_BUF_ADDR
-	hex "Buffer start address to store previous kernel oops message."
-	depends on DUMP_PREV_OOPS_MSG
-	default "0xC000000" if BCM_KF_HNDROUTER=y
-
-config DUMP_PREV_OOPS_MSG_BUF_LEN
-	hex "Buffer length to store previous kernel oops message."
-	depends on DUMP_PREV_OOPS_MSG
-	default "0x2000" if BCM_KF_HNDROUTER=y
-
 config BCM_ARM_CPUIDLE
 	bool "Cpuidle driver for BCM ARM and ARM64 chips"
 	depends on CPU_IDLE

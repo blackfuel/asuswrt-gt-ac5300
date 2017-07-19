@@ -17,6 +17,19 @@
 #include <bcmutils.h>
 #include <wlutils.h>
 
+#ifdef RTCONFIG_QSR10G
+#include "qcsapi_output.h"
+#include "qcsapi_rpc_common/client/find_host_addr.h"
+
+#include "qcsapi.h"
+#include "qcsapi_rpc/client/qcsapi_rpc_client.h"
+#include "qcsapi_rpc/generated/qcsapi_rpc.h"
+#include <qcsapi_rpc_common/common/rpc_raw.h>
+#include <qcsapi_rpc_common/common/rpc_pci.h>
+#include "qcsapi_driver.h"
+#include "call_qcsapi.h"
+#endif
+
 //	ref: http://wiki.openwrt.org/OpenWrtDocs/nas
 
 //	#define DEBUG_TIMING
@@ -109,7 +122,10 @@ void notify_nas(const char *ifname)
 #endif
 #endif
 
-#if defined(CONFIG_BCMWL5) || (defined(RTCONFIG_RALINK) && defined(RTCONFIG_WIRELESSREPEATER)) || defined(RTCONFIG_QCA) || defined(RTCONFIG_REALTEK)
+#if defined(CONFIG_BCMWL5) \
+		|| (defined(RTCONFIG_RALINK) && defined(RTCONFIG_WIRELESSREPEATER)) \
+		|| defined(RTCONFIG_QCA) || defined(RTCONFIG_REALTEK) \
+		|| defined(RTCONFIG_QSR10G)
 #define APSCAN_INFO "/tmp/apscan_info.txt"
 
 static int lock = -1;
@@ -134,9 +150,22 @@ int wlcscan_main(void)
 	char wl_ifs[256]={0};
 #endif
 	int i = 0;
+#ifdef RTCONFIG_QSR10G
+	CLIENT *clnt;
+	char host[18];
+#endif
 
 	signal(SIGTERM, wlcscan_safeleave);
 
+#ifdef RTCONFIG_QSR10G
+	snprintf(host, sizeof(host), "localhost");
+	clnt = clnt_pci_create(host, QCSAPI_PROG, QCSAPI_VERS, NULL);
+	if (clnt == NULL) {
+		_dprintf("[%s][%d] clnt_pci_create() error\n", __func__, __LINE__);
+	}else{
+		client_qcsapi_set_rpcclient(clnt);
+	}
+#endif
 	/* clean APSCAN_INFO */
 	lock = file_lock("sitesurvey");
 	if ((fp = fopen(APSCAN_INFO, "w")) != NULL) {
@@ -176,6 +205,11 @@ int wlcscan_main(void)
 	wlcscan_core_qtn(APSCAN_INFO, "wifi0");
 #endif
 	nvram_set_int("wlc_scan_state", WLCSCAN_STATE_FINISHED);
+#ifdef RTCONFIG_QSR10GBAK
+	if(clnt != NULL){
+		clnt_destroy(clnt);
+	}
+#endif
 	return 1;
 }
 

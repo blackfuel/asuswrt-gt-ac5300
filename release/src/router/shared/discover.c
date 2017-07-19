@@ -1190,6 +1190,8 @@ leave:
 				break;
 			}
 		}
+		if(idx == num)
+			ret = 0;	// No protocol is found
 	}
 eprintf("--- %s(%s): finish ret(%d) got_inf(%d). ---\n", __func__, wan_ifNames, ret, *got_inf);
 	for(idx = 0; idx < num; idx++)

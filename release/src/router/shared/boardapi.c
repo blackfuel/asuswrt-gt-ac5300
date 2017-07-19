@@ -136,6 +136,14 @@ static const struct led_btn_table_s {
 	{ "led_sig3_gpio",	&led_gpio_table[LED_SIG3] },
 #endif
 
+#ifdef BLUECAVE
+	{ "led_ctl_sig1_gpio",	&led_gpio_table[LED_CENTRAL_SIG1] },
+	{ "led_ctl_sig2_gpio",  &led_gpio_table[LED_CENTRAL_SIG2] },
+	{ "led_ctl_sig3_gpio",  &led_gpio_table[LED_CENTRAL_SIG3] },
+	{ "led_idr_sig1_gpio",  &led_gpio_table[LED_INDICATOR_SIG1] },
+	{ "led_idr_sig2_gpio",  &led_gpio_table[LED_INDICATOR_SIG2] },
+#endif
+
 #if defined(RTAC5300) || defined(GTAC5300)
 	{ "rpm_fan_gpio",	&led_gpio_table[RPM_FAN] },
 #endif
@@ -307,6 +315,10 @@ int init_gpio(void)
 #ifdef RPAC55
 		, "led_pwr_red_gpio"
 		, "led_wifi_gpio", "led_sig1_gpio", "led_sig2_gpio"
+#endif
+#ifdef BLUECAVE
+		, "led_ctl_sig1_gpio", "led_ctl_sig2_gpio", "led_ctl_sig3_gpio"
+		, "led_idr_sig1_gpio", "led_idr_sig2_gpio"
 #endif			
 #ifdef RTCONFIG_MMC_LED
 		, "led_mmc_gpio"
@@ -682,13 +694,12 @@ void led_control_lte(int percent)
 }
 #endif	/* RT4GAC55U */
 
-extern uint32_t get_phy_status(uint32_t portmask);
-extern uint32_t set_phy_ctrl(uint32_t portmask, int ctrl);
-
 int wanport_status(int wan_unit)
 {
 #if defined(RTCONFIG_RALINK) || defined(RTCONFIG_QCA) || defined(RTCONFIG_REALTEK)
 	return rtkswitch_wanPort_phyStatus(wan_unit);
+#elif defined(RTCONFIG_ALPINE)
+	return get_phy_status(wan_unit);
 #else
 	char word[100], *next;
 	int mask;

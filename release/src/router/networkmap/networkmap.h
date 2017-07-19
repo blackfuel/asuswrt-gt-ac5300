@@ -125,10 +125,10 @@ enum
 #define NMP_CL_JSON_FILE		"/tmp/nmp_cl_json.js"
 #endif
 
-#ifndef RTCONFIG_RALINK
+#if !defined(RTCONFIG_RALINK) && !defined(HND_ROUTER)
 #define NMP_DEBUG(fmt, args...) \
 	if(f_exists(NMP_DEBUG_FILE)) { \
-		cprintf(fmt, ## args); \
+		_dprintf(fmt, ## args); \
 	}
 #else
 #define NMP_DEBUG(fmt, args...) \
@@ -137,10 +137,10 @@ enum
 	}
 #endif
 
-#ifndef RTCONFIG_RALINK
+#if !defined(RTCONFIG_RALINK) && !defined(HND_ROUTER)
 #define NMP_DEBUG_M(fmt, args...) \
 	if(f_exists(NMP_DEBUG_MORE_FILE)) { \
-		cprintf(fmt, ## args); \
+		_dprintf(fmt, ## args); \
 	}
 #else
 #define NMP_DEBUG_M(fmt, args...) \
@@ -149,10 +149,10 @@ enum
 	}
 #endif
 
-#ifndef RTCONFIG_RALINK
+#if !defined(RTCONFIG_RALINK) && !defined(HND_ROUTER)
 #define NMP_DEBUG_F(fmt, args...) \
 	if(f_exists(NMP_DEBUG_FUNCTION_FILE)) { \
-		cprintf(fmt, ## args); \
+		_dprintf(fmt, ## args); \
 	}
 #else
 #define NMP_DEBUG_F(fmt, args...) \

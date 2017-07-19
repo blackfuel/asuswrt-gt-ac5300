@@ -22,6 +22,7 @@ export SIZE := $(CROSS_COMPILE)size
 export CXX := $(CROSS_COMPILE)g++
 export CXXCPP := $(CROSS_COMPILE)g++ -E
 
+obj-y += mkdir
 obj-y += prepare
 obj-y += zlib
 obj-y += libdisk
@@ -31,11 +32,12 @@ obj-y += curl
 obj-y += pcre
 obj-y += samba
 obj-y += sqlite
-obj-y += wb
+obj-y += subsequent
+#obj-y += wb
 #obj-y += push_log
 obj-y += lighttpd
 obj-y += Aicloud-ipk
-obj-y += subsequent
+
 
 
 all: $(obj-y)
@@ -47,7 +49,7 @@ clean:
 	@$(MAKE) -C $(CURRENT)/zlib clean
 	@$(MAKE) -C $(CURRENT)/libdisk clean -f Makefile.ipk
 	@$(MAKE) -C $(CURRENT)/libxml2 clean
-	@$(MAKE) -C $(CURRENT)/openssl clean
+	@$(MAKE) -C $(CURRENT)/openssl-ipk clean
 	@$(MAKE) -C $(CURRENT)/curl-7.21.7 clean
 	@$(MAKE) -C $(CURRENT)/pcre-8.31 clean
 	@$(MAKE) -C $(CURRENT)/sqlite clean
@@ -57,14 +59,24 @@ clean:
 	#@$(MAKE) -C $(CURRENT)/push_log clean
 	@rm -rf AiCloud-ipk/opt/tmp/lib/*
 	@rm -rf AiCloud-ipk/opt/tmp/bin/*
-	@rm -rf *.ipk
+	@rm -rf AiCloud-ipk/CONTROL/control
+	@rm -rf AiCloud-ipk/CONTROL/preinst
+	@rm -rf AiCloud-ipk/opt/etc/init.d/S50aicloud
+	@rm -rf aicloud_*.ipk
+
+mkdir:
+	-mkdir -p AiCloud-ipk/opt/tmp/bin/
+	-mkdir -p AiCloud-ipk/opt/tmp/lib/
+	-mkdir -p AiCloud-ipk/opt/etc/init.d
 
 prepare: 
 	if [ -f $(TOOLCHAIN)/../../toolchain_build_arm_nofpu/uClibc-0.9.28/include/iconv.h ] ; then \
 		mv -f $(TOOLCHAIN)/../../toolchain_build_arm_nofpu/uClibc-0.9.28/include/iconv.h $(TOOLCHAIN)/../../toolchain_build_arm_nofpu/uClibc-0.9.28/include/iconv.h.org ; \
 	fi
-	if [ -f /usr/include/iconv.h ] || [ -f /usr/local/include/iconv.h ] ; then \
+	if [ -f /usr/include/iconv.h ] ; then \
 		sudo mv -f /usr/include/iconv.h /usr/include/iconv.h.org ; \
+	fi
+	if [ -f /usr/local/include/iconv.h ] ; then \
 		sudo mv -f /usr/local/include/iconv.h /usr/local/include/iconv.h.org ; \
 	fi
 
@@ -120,21 +132,21 @@ libxml: libxml2/stamp-h1
 
 
 openssl/stamp-h1: 
-		cd $(CURRENT)/openssl \
+		cd $(CURRENT)/openssl-ipk \
 		touch stamp-h1;	
 
 
 openssl: openssl/stamp-h1
-	cd $(CURRENT)/openssl && \
+	cd $(CURRENT)/openssl-ipk && \
 	AR=$(AR) AS=$(AS) LD=$(LD) NM=$(NM) CC=$(CC) CPP="$(CC) -E" GCC=$(CC) CXX=$(CXX) RANLIB=$(RANLIB) STRIP=$(STRIP) LDFLAGS=" -L$(SRCBASE)/opt/lib -Wl,-rpath,/opt/lib -Wl,-rpath-link,$(SRCBASE)/opt/lib" \
-	./Configure shared zlib-dynamic -O2 -pipe  -I$(SRCBASE)/opt/include --openssldir=/opt/share/openssl --prefix=$(SRCBASE)/opt linux-generic32
-	#cd $(CURRENT)/openssl && sed -i "s|^SHARED_LDFLAGS=|SHARED_LDFLAGS=-Wl,-rpath,\/opt\/lib -Wl,-rpath-link,$(SRCBASE)\/opt\/lib|" Makefile
-	@$(MAKE) -C $(CURRENT)/openssl \
+	./Configure shared no-zlib -O2 -pipe  -I$(SRCBASE)/opt/include --openssldir=$(SRCBASE)/opt/share/openssl --prefix=$(SRCBASE)/opt linux-generic32
+	cd $(CURRENT)/openssl-ipk && sed -i "s|^SHARED_LDFLAGS=|SHARED_LDFLAGS=-Wl,-rpath,\/opt\/lib -Wl,-rpath-link,$(SRCBASE)\/opt\/lib|" Makefile
+	@$(MAKE) -C $(CURRENT)/openssl-ipk \
 	EX_LIBS=" -L$(LD_DIR)/opt/lib -Wl,-rpath,/opt/lib -Wl,-rpath-link,$(LD_DIR)/opt/lib -ldl"
-	cp -rf $(CURRENT)/openssl/libssl.so.1.0.0 AiCloud-ipk/opt/tmp/lib/
-	cp -rf $(CURRENT)/openssl/libcrypto.so.1.0.0 AiCloud-ipk/opt/tmp/lib/
-	cp -rf $(CURRENT)/openssl/apps/openssl AiCloud-ipk/opt/tmp/bin/aicloud_openssl
-	cd $(CURRENT)/openssl && \
+	cp -rf $(CURRENT)/openssl-ipk/libssl.so.1.0.0 AiCloud-ipk/opt/tmp/lib/
+	cp -rf $(CURRENT)/openssl-ipk/libcrypto.so.1.0.0 AiCloud-ipk/opt/tmp/lib/
+	cp -rf $(CURRENT)/openssl-ipk/apps/openssl AiCloud-ipk/opt/tmp/bin/aicloud_openssl
+	cd $(CURRENT)/openssl-ipk && \
 	$(MAKE) install
 
 curl/stamp-h1: 
@@ -144,7 +156,7 @@ curl/stamp-h1:
 curl: curl/stamp-h1
 	cd $(CURRENT)/curl-7.21.7 && \
 	AR=$(AR) AS=$(AS) LD=$(LD) NM=$(NM) CC=$(CC) CPP="$(CC) -E" GCC=$(CC) CXX=$(CXX) RANLIB=$(RANLIB) STRIP=$(STRIP)  \
-	./configure --build=i386-pc-linux-gnu --host=arm-linux --target=arm-linux --prefix=$(SRCBASE)/opt --enable-http --with-ssl=$(SRCBASE)/openssl
+	./configure --build=i386-pc-linux-gnu --host=arm-linux --target=arm-linux --prefix=$(SRCBASE)/opt --enable-http --with-ssl=$(SRCBASE)/openssl-ipk
 	@$(MAKE) -C $(CURRENT)/curl-7.21.7
 	cd $(CURRENT)/curl-7.21.7 && \
 	$(MAKE) install
@@ -189,8 +201,8 @@ push_log:push/stamp-h1
 	cp -rf $(CURRENT)/push_log/libpush_log.so AiCloud-ipk/opt/tmp/lib/
 lighttpd:
 	cd $(CURRENT)/lighttpd-1.4.39 && \
-	AR=$(AR) AS=$(AS) LD=$(LD) NM=$(NM) CC=$(CC) CPP="$(CC) -E" GCC=$(CC) CXX=$(CXX) RANLIB=$(RANLIB) STRIP=$(STRIP) \
-	./configure --host=arm-linux --build=i386-pc-linux-gnu --prefix=$(SRCBASE)/opt --with-pcre PCRECONFIG="$(SRCBASE)/pcre-8.31/pcre-config" --with-smbdav-props --with-openssl=$(SRCBASE)/openssl --with-openssl-includes=$(SRCBASE)/openssl/include/openssl --with-openssl-libs=$(SRCBASE)/openssl/ --with-webdav-props --with-smbdav-locks=yes --with-libsmbclient=$(SRCBASE)/samba-3.5.8/source3 --without-zlib --without-bzip2 --disable-ipv6 --enable-shared --disable-static  CFLAGS=" -I$(SRCBASE)/libdisk -I$(SRCBASE)/pcre-8.31 -I$(SRCBASE)/curl-7.21.7 -I$(TOOLCHAIN)/include -I$(SRCBASE)/sqlite  -DHAVE_OPENSSL_SSL_H=1 -DHAVE_LIBSSL=1 -DEMBEDDED_EANBLE=1 -DAPP_IPKG=1 -DOLEG_ARM=1" LIBS="-L$(TOOLCHAIN)/lib -ldl  -L$(SRCBASE)/wb -lws" LDFLAGS=" -L$(SRCBASE)/opt/lib -Wl,-rpath,/opt/lib -Wl,-rpath-link,$(SRCBASE)/opt/lib -Wl,-rpath,$(SRCBASE)/pcre-8.31/.libs  -Wl,-rpath,$(SRCBASE)/libxml2/.libs -Wl,-rpath,$(SRCBASE)/openssl -Wl,-rpath,$(SRCBASE)/wb  -Wl,-rpath,$(SRCBASE)/curl-7.21.7/lib/.libs -L$(SRCBASE)/curl-7.21.7/lib/.libs -lcurl -L$(SRCBASE)/libxml2/.libs -lxml2 -L$(SRCBASE)/openssl -lcrypto -lssl " CURL_CFLAGS="-I$(SRCBASE)/curl-7.21.7" CURL_LIBS="-L$(SRCBASE)/curl-7.21.7/lib/.libs -lcurl" XML_CFLAGS="-I$(SRCBASE)/libxml2/include" XML_LIBS="-L$(SRCBASE)/libxml2/.libs -lxml2" SQLITE_CFLAGS="-I$(SRCBASE)/sqlite" SQLITE_LIBS="-L$(SRCBASE)/sqlite/.libs -lsqlite3" PCRE_LIB="-L$(SRCBASE)/pcre-8.31/.libs -lpcre" PCRECONFIG="$(SRCBASE)/pcre-8.31/pcre-config" SSL_LIB="-L$(SRCBASE)/openssl -lcrypto -lssl"  --no-create --no-recursion
+	#AR=$(AR) AS=$(AS) LD=$(LD) NM=$(NM) CC=$(CC) CPP="$(CC) -E" GCC=$(CC) CXX=$(CXX) RANLIB=$(RANLIB) STRIP=$(STRIP) \
+	./configure --host=arm-linux --build=i386-pc-linux-gnu --prefix=$(SRCBASE)/opt --with-pcre PCRECONFIG="$(SRCBASE)/pcre-8.31/pcre-config" --with-smbdav-props --with-openssl=$(SRCBASE)/openssl-ipk --with-openssl-includes=$(SRCBASE)/openssl-ipk/include/openssl --with-openssl-libs=$(SRCBASE)/openssl-ipk/ --with-webdav-props --with-smbdav-locks=yes --with-libsmbclient=$(SRCBASE)/samba-3.5.8/source3 --without-zlib --without-bzip2 --disable-ipv6 --enable-shared --disable-static  CFLAGS=" -I$(SRCBASE)/libdisk -I$(SRCBASE)/pcre-8.31 -I$(SRCBASE)/curl-7.21.7 -I$(TOOLCHAIN)/include -I$(SRCBASE)/sqlite  -DHAVE_OPENSSL_SSL_H=1 -DHAVE_LIBSSL=1 -DEMBEDDED_EANBLE=1 -DAPP_IPKG=1 -DOLEG_ARM=1" LIBS="-L$(TOOLCHAIN)/lib -ldl" LDFLAGS=" -L$(SRCBASE)/opt/lib -Wl,-rpath,/opt/lib -Wl,-rpath-link,$(SRCBASE)/opt/lib -Wl,-rpath,$(SRCBASE)/pcre-8.31/.libs  -Wl,-rpath,$(SRCBASE)/libxml2/.libs -Wl,-rpath,$(SRCBASE)/openssl-ipk   -Wl,-rpath,$(SRCBASE)/curl-7.21.7/lib/.libs -L$(SRCBASE)/curl-7.21.7/lib/.libs -lcurl -L$(SRCBASE)/libxml2/.libs -lxml2 -L$(SRCBASE)/openssl-ipk -lcrypto -lssl " CURL_CFLAGS="-I$(SRCBASE)/curl-7.21.7" CURL_LIBS="-L$(SRCBASE)/curl-7.21.7/lib/.libs -lcurl" XML_CFLAGS="-I$(SRCBASE)/libxml2/include" XML_LIBS="-L$(SRCBASE)/libxml2/.libs -lxml2" SQLITE_CFLAGS="-I$(SRCBASE)/sqlite" SQLITE_LIBS="-L$(SRCBASE)/sqlite/.libs -lsqlite3" PCRE_LIB="-L$(SRCBASE)/pcre-8.31/.libs -lpcre" PCRECONFIG="$(SRCBASE)/pcre-8.31/pcre-config" SSL_LIB="-L$(SRCBASE)/openssl-ipk -lcrypto -lssl"  --no-create --no-recursion
 	cd $(CURRENT)/lighttpd-1.4.39 && /bin/sh ./config.status	
 	@$(MAKE) -C $(CURRENT)/lighttpd-1.4.39
 	cp -rf $(CURRENT)/lighttpd-1.4.39/src/lighttpd AiCloud-ipk/opt/tmp/bin/
@@ -202,13 +214,13 @@ lighttpd:
 	cp -rf $(CURRENT)/lighttpd-1.4.39/src/.libs/mod_auth.so AiCloud-ipk/opt/tmp/lib/aicloud_mod_auth.so
 	cp -rf $(CURRENT)/lighttpd-1.4.39/src/.libs/mod_compress.so AiCloud-ipk/opt/tmp/lib/aicloud_mod_compress.so
 	cp -rf $(CURRENT)/lighttpd-1.4.39/src/.libs/mod_create_captcha_image.so AiCloud-ipk/opt/tmp/lib/aicloud_mod_create_captcha_image.so
-	cp -rf $(CURRENT)/lighttpd-1.4.39/src/.libs/mod_dirlisting.so AiCloud-ipk/opt/tmp/lib/mod_dirlisting.so
-	cp -rf $(CURRENT)/lighttpd-1.4.39/src/.libs/mod_indexfile.so AiCloud-ipk/opt/tmp/lib/mod_indexfile.so
+	cp -rf $(CURRENT)/lighttpd-1.4.39/src/.libs/mod_dirlisting.so AiCloud-ipk/opt/tmp/lib/aicloud_mod_dirlisting.so
+	cp -rf $(CURRENT)/lighttpd-1.4.39/src/.libs/mod_indexfile.so AiCloud-ipk/opt/tmp/lib/aicloud_mod_indexfile.so
 	#cp -rf $(CURRENT)/lighttpd-1.4.39/src/.libs/mod_redirect.so AiCloud-ipk/opt/tmp/lib/aicloud_mod_redirect.so
 	#cp -rf $(CURRENT)/lighttpd-1.4.39/src/.libs/mod_rewrite.so AiCloud-ipk/opt/tmp/lib/aicloud_mod_rewrite.so
 	cp -rf $(CURRENT)/lighttpd-1.4.39/src/.libs/mod_aicloud_sharelink.so AiCloud-ipk/opt/tmp/lib/aicloud_mod_aicloud_sharelink.so
 	cp -rf $(CURRENT)/lighttpd-1.4.39/src/.libs/mod_smbdav.so AiCloud-ipk/opt/tmp/lib/aicloud_mod_smbdav.so
-	cp -rf $(CURRENT)/lighttpd-1.4.39/src/.libs/mod_staticfile.so AiCloud-ipk/opt/tmp/lib/mod_staticfile.so
+	cp -rf $(CURRENT)/lighttpd-1.4.39/src/.libs/mod_staticfile.so AiCloud-ipk/opt/tmp/lib/aicloud_mod_staticfile.so
 	#cp -rf $(CURRENT)/lighttpd-1.4.39/src/.libs/mod_userdir.so AiCloud-ipk/opt/tmp/lib/aicloud_mod_userdir.so
 	#cp -rf $(CURRENT)/lighttpd-1.4.39/src/.libs/mod_usertrack.so AiCloud-ipk/opt/tmp/lib/aicloud_mod_usertrack.so
 	cp -rf $(CURRENT)/lighttpd-1.4.39/src/.libs/mod_webdav.so AiCloud-ipk/opt/tmp/lib/aicloud_mod_webdav.so
@@ -216,12 +228,14 @@ lighttpd:
 	cp -rf $(CURRENT)/lighttpd-1.4.39/src/.libs/mod_query_field_json.so AiCloud-ipk/opt/tmp/lib/aicloud_mod_query_field_json.so
 	cp -rf $(CURRENT)/lighttpd-1.4.39/src/.libs/liblightsql.so  AiCloud-ipk/opt/tmp/lib/liblightsql.so
 	cp -rf $(CURRENT)/lighttpd-1.4.39/src/.libs/mod_aicloud_invite.so AiCloud-ipk/opt/tmp/lib/mod_aicloud_invite.so
-	rm -rf Aicloud-pkg-0.1/opt/etc/aicloud_UI/js
-	rm -rf Aicloud-pkg-0.1/opt/etc/aicloud_UI/css
+	rm -rf AiCloud-ipk/opt/etc/aicloud_UI/js
+	rm -rf AiCloud-ipk/opt/etc/aicloud_UI/css
 	cp -rf $(CURRENT)/lighttpd-1.4.39/external_file/js AiCloud-ipk/opt/etc/aicloud_UI/js
 	cp -rf $(CURRENT)/lighttpd-1.4.39/external_file/css AiCloud-ipk/opt/etc/aicloud_UI/css
 
 Aicloud-ipk:
+	cp -rf AiCloud-tmp/CONTROL/control-aicloud-arm AiCloud-ipk/CONTROL/control
+	cp -rf AiCloud-tmp/opt/etc/init.d/S50aicloud-arm AiCloud-ipk/opt/etc/init.d/S50aicloud
 	arm-linux-strip AiCloud-ipk/opt/tmp/bin/*
 	arm-linux-strip AiCloud-ipk/opt/tmp/lib/*
 	@$(IPKG_TOOLS)/ipkg-build AiCloud-ipk ./

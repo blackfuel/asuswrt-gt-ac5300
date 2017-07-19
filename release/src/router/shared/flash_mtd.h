@@ -1,11 +1,17 @@
 #ifndef __FLASH_MTD_H
 #define __FLASH_MTD_H
 
+#include <bcmnvram.h>
+
 #define NUM_INFO 16
 #define MAX_READ_CNT 0x10000
 
 #define BOOTLOADER_MTD_NAME	"Bootloader"
+#if defined(RTCONFIG_ALPINE)
+#define NVRAM_MTD_NAME		MTD_OF_NVRAM
+#else
 #define NVRAM_MTD_NAME		"nvram"
+#endif
 #if defined(RTCONFIG_LANTIQ)
 #define FACTORY_MTD_NAME	"data2"
 #elif defined(RTCONFIG_ALPINE)

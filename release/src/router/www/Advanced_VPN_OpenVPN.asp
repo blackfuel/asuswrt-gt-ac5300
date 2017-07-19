@@ -146,7 +146,7 @@ function initial(){
 	if(!openvpnd_support) {
 		delete vpn_server_array.OpenVPN;
 	}
-	if(!ipsec_support) {
+	if(!ipsec_srv_support) {
 		delete vpn_server_array.IPSEC;
 	}
 	$('#divSwitchMenu').html(gen_switch_menu(vpn_server_array, "OpenVPN"));

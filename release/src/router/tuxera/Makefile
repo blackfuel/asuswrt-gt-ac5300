@@ -24,6 +24,10 @@ else ifeq ($(RTCONFIG_REALTEK),y)
 SRCFILE = realtek
 DSTDIR = $(INSTALLDIR)/lib/modules/3.10.24/kernel/fs
 
+else ifeq ($(RTCONFIG_ALPINE),y)
+SRCFILE = alpine_gt_ac9600
+else ifeq ($(RTCONFIG_LANTIQ),y)
+SRCFILE = lantiq_grx350
 else
 # Broadcom platform
 

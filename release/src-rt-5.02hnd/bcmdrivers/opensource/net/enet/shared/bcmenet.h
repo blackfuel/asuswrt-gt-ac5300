@@ -158,6 +158,8 @@ extern int logicalport_to_vport[];
 
 #ifndef FAP_4KE
 
+#define CATHY_SKBLIST_LOCK_PATCH
+
 #ifdef DYING_GASP_API
 
 
@@ -170,6 +172,10 @@ extern int dg_in_context;
 #define ENET_RX_UNLOCK() if(dg_in_context==0) spin_unlock_bh(&global.pVnetDev0_g->ethlock_rx)
 #define ENET_MOCA_TX_LOCK() if(dg_in_context==0) spin_lock_bh(&global.pVnetDev0_g->ethlock_moca_tx)
 #define ENET_MOCA_TX_UNLOCK() if(dg_in_context==0) spin_unlock_bh(&global.pVnetDev0_g->ethlock_moca_tx)
+#ifdef CATHY_SKBLIST_LOCK_PATCH
+#define ENET_SKBLIST_LOCK() if(dg_in_context==0) spin_lock_bh(&global.pVnetDev0_g->skblist_lock)
+#define ENET_SKBLIST_UNLOCK() if(dg_in_context==0) spin_unlock_bh(&global.pVnetDev0_g->skblist_lock)
+#endif /* CATHY_SKBLIST_LOCK_PATCH */
 
 #else
 
@@ -180,6 +186,10 @@ extern int dg_in_context;
 #define ENET_RX_UNLOCK() spin_unlock_bh(&global.pVnetDev0_g->ethlock_rx)
 #define ENET_MOCA_TX_LOCK() spin_lock_bh(&global.pVnetDev0_g->ethlock_moca_tx)
 #define ENET_MOCA_TX_UNLOCK() spin_unlock_bh(&global.pVnetDev0_g->ethlock_moca_tx)
+#ifdef CATHY_SKBLIST_LOCK_PATCH
+#define ENET_SKBLIST_LOCK() spin_lock_bh(&global.pVnetDev0_g->skblist_lock)
+#define ENET_SKBLIST_UNLOCK() spin_unlock_bh(&global.pVnetDev0_g->skblist_lock)
+#endif /* CATHY_SKBLIST_LOCK_PATCH */
 
 #endif /* ELSE #ifdef DYING_GASP_API */
 

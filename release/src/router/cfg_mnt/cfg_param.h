@@ -158,8 +158,8 @@ struct param_mapping_s param_mapping_list[] = {
 	{ "wl0_sched",		FT_WIRELESS,		SUBFT_TIMESCHED_2G},
 	{ "wl1_timesched", 	FT_WIRELESS,		SUBFT_TIMESCHED_5G},
 	{ "wl1_sched",		FT_WIRELESS,		SUBFT_TIMESCHED_5G},
-	{ "wl2_macmode",	FT_WIRELESS,		SUBFT_MACFILTER_5G},
-	{ "wl2_maclist_x",	FT_WIRELESS,		SUBFT_MACFILTER_5G},
+	{ "wl2_macmode",	FT_WIRELESS,		SUBFT_MACFILTER_5G1},
+	{ "wl2_maclist_x",	FT_WIRELESS,		SUBFT_MACFILTER_5G1},
 	/* guest network */
 	{ "wl0.1_ssid", 	FT_WIRELESS, 		SUBFT_BASIC_2G_G1},
 	{ "wl0.1_wpa_psk",	FT_WIRELESS,		SUBFT_BASIC_2G_G1},

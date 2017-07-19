@@ -78,20 +78,6 @@
 	background-color:#FC0;
 }
 
-.remove_btn{
-	background: transparent url(delete.svg) no-repeat;
-	border:0;
-	height:32px;
-	width:32px;
-	cursor:pointer;
-}
-.remove_btn:hover, .remove_btn:active{
-	border:0;
-	height:32px;
-	width:32px;
-	cursor:pointer;
-}
-
 .createNewRule {
 	position: absolute;
 	-webkit-border-radius: 5px;
@@ -257,4 +243,87 @@
 }
 .editFrame {
 	display: flex;
+}
+
+.activate_icon {
+	background-image: url('/images/New_ui/activate.svg');
+	cursor: pointer;
+	width: 25px;
+	height: 25px;
+	margin: auto;
+	background-repeat: no-repeat;
+}
+.deactivate_icon {
+	background-image: url('/images/New_ui/deactivate.svg');
+	cursor: pointer;
+	width: 25px;
+	height: 25px;
+	margin: auto;
+	background-repeat: no-repeat;
+}
+.pullDownbg {
+	cursor: pointer;
+	border: 2px outset #EFEFEF;
+	background-color: #CCC;
+	height: 23px;
+	width: 20px;
+}
+.triangle {
+	width: 0;
+	height: 0;
+	border-style: solid;
+	margin: 0 auto;
+	margin-top: 7px;
+}
+.arrowUp {
+	border-width: 0 8px 10px;
+	border-color: transparent transparent #a20101;
+
+}
+.arrowDown {
+	border-width: 10px 8px 0px;
+	border-color: #a20101 transparent transparent;
+}
+.table_clientlist_dropdown {
+	border: 1px outset #999;
+	background-color: #576D73;
+	position: absolute;
+	text-align: left;
+	height: auto;
+	overflow-y: auto;
+	z-index: 200;
+	padding: 1px;
+	display: none;
+}
+.table_clientlist_item {
+	color: #FFF;
+	font-size: 12px;
+	height: auto;
+	line-height: 20px;
+	font-family: Lucida Console;
+	padding-left: 1px;
+	font-weight: bolder;
+	cursor: pointer;
+	background-color: #576D73;
+}
+.table_clientlist_item_offline {
+	color: #A0A0A0;
+}
+.table_clientlist_item:hover {
+	background-color: #3366FF;
+}
+.clientList_offline_expand {
+	font-size: 12px;
+	height: auto;
+	line-height: 20px;
+	color: #A0A0A0;
+	text-decoration: underline;
+	cursor: pointer;
+	text-align: right;
+	padding: 0 3px;
+}
+.offlineClientDel {
+	float: right;
+	width: 15px;
+	cursor: pointer;
 }

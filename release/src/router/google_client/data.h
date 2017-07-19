@@ -70,7 +70,7 @@
 #define RENAME_F
 #define TOKENFILE 1
 #define MEM_POOL_ENABLE 1
-
+#define CA_INFO_FILE "/tmp/smartsync/google/cert/GeoTrustGlobalCA.crt"
 
 
 pthread_t newthid1,newthid2,newthid3;

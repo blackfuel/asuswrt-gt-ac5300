@@ -22,6 +22,7 @@ export SIZE := $(CROSS_COMPILE)size
 export CXX := $(CROSS_COMPILE)g++
 export CXXCPP := $(CROSS_COMPILE)g++ -E
 
+obj-y += mkdir
 obj-y += zlib
 obj-y += libxml
 obj-y += openssl
@@ -38,13 +39,15 @@ all: $(obj-y)
 clean:
 	@$(MAKE) -C $(CURRENT)/ftpclient clean -f Makefile.ipk
 	@$(MAKE) -C $(CURRENT)/libxml2 clean
-	@$(MAKE) -C $(CURRENT)/openssl clean
+	@$(MAKE) -C $(CURRENT)/openssl-ipk clean
 	@$(MAKE) -C $(CURRENT)/zlib clean
 	@$(MAKE) -C $(CURRENT)/curl-7.21.7 clean
 	@$(MAKE) -C $(CURRENT)/libiconv-1.14 clean
-	@rm -rf Ftpclient-ipk/opt/tmp/lib/*
 	@rm -rf Ftpclient-ipk/opt/tmp/bin/*
 	rm -rf ftpclient_*.ipk
+
+mkdir:
+	-mkdir -p Ftpclient-ipk/opt/tmp/bin/
 
 zlib/stamp-h1: 
 		@$(SEP)
@@ -78,15 +81,15 @@ libxml: libxml2/stamp-h1
 
 openssl/stamp-h1: 
 		@$(SEP)
-		cd $(CURRENT)/openssl \
+		cd $(CURRENT)/openssl-ipk \
 		touch stamp-h1;	
 
 openssl: openssl/stamp-h1
-	cd $(CURRENT)/openssl && \
+	cd $(CURRENT)/openssl-ipk && \
 	AR=$(AR) AS=$(AS) LD=$(LD) NM=$(NM) CC=$(CC) CPP="$(CC) -E" GCC=$(CC) CXX=$(CXX) RANLIB=$(RANLIB) STRIP=$(STRIP) \
-	./Configure shared zlib-dynamic -O2   -pipe  -I$(SRCBASE)/opt/include --openssldir=/opt/share/openssl --prefix=$(SRCBASE)/opt linux-generic32 
-	@$(MAKE) -C $(CURRENT)/openssl
-	cd $(CURRENT)/openssl && \
+	./Configure shared no-zlib -O2   -pipe  -I$(SRCBASE)/opt/include --openssldir=$(SRCBASE)/opt/share/openssl --prefix=$(SRCBASE)/opt linux-generic32 
+	@$(MAKE) -C $(CURRENT)/openssl-ipk
+	cd $(CURRENT)/openssl-ipk && \
 	$(MAKE) install
 
 curl/stamp-h1: 
@@ -97,7 +100,7 @@ curl/stamp-h1:
 curl: curl/stamp-h1
 	cd $(CURRENT)/curl-7.21.7 && \
 	AR=$(AR) AS=$(AS) LD=$(LD) NM=$(NM) CC=$(CC) CPP="$(CC) -E" GCC=$(CC) CXX=$(CXX) RANLIB=$(RANLIB) STRIP=$(STRIP) \
-	./configure --build=i386-pc-linux-gnu --host=arm-linux --target=arm-linux --prefix=$(SRCBASE)/opt --enable-http --with-ssl=$(SRCBASE)/openssl
+	./configure --build=i386-pc-linux-gnu --host=arm-linux --target=arm-linux --prefix=$(SRCBASE)/opt --enable-http --with-ssl=$(SRCBASE)/openssl-ipk
 	@$(MAKE) -C $(CURRENT)/curl-7.21.7
 	cd $(CURRENT)/curl-7.21.7 && \
 	$(MAKE) install
@@ -133,6 +136,7 @@ ftpclient: ftpclient/stamp-h1
 	cp -rf $(CURRENT)/ftpclient/ftpclient Ftpclient-ipk/opt/tmp/bin/
 
 ftpclient-ipk:
+	cp -rf AiCloud-tmp/CONTROL/control-ftp-arm Ftpclient-ipk/CONTROL/control
 	$(STRIP) Ftpclient-ipk/opt/tmp/bin/*
-	$(STRIP) Ftpclient-ipk/opt/tmp/lib/*
+	#$(STRIP) Ftpclient-ipk/opt/tmp/lib/*
 	@$(IPKG_TOOLS)/ipkg-build Ftpclient-ipk ./

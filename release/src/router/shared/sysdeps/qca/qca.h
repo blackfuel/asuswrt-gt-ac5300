@@ -380,6 +380,10 @@ enum ASUS_IOCTL_SUBCMD {
 #define OFFSET_DEF_GROUPID		(MTD_FACTORY_BASE_ADDRESS + 0x0D1B0)	// CFGSYNC_GROUPID_LEN (32 bytes)
 #endif
 
+#if defined(MAPAC1300) || defined(MAPAC2200) /* for Lyra */
+#define OFFSET_DISABLE_GUI		(MTD_FACTORY_BASE_ADDRESS + 0x0D1F0)	// 1 byte
+#endif
+
 #define OFFSET_DEV_FLAGS		(MTD_FACTORY_BASE_ADDRESS + 0x0ffa0)	//device dependent flags
 #ifdef RTCONFIG_32BYTES_ODMPID
 #define OFFSET_ODMPID			(MTD_FACTORY_BASE_ADDRESS + 0x0ff70)	/* 32 bytes */
@@ -449,7 +453,7 @@ typedef struct {
 #define BD_2G_CHIP_DIR	"QCA9984"
 #define BD_2G_HW_DIR	"hw.1"
 #define BD_5G_CHIP_DIR	"QCA9984"
-#define BD_2G_HW_DIR	"hw.1"
+#define BD_5G_HW_DIR	"hw.1"
 #elif defined(RTAC58U)
 #define BD_2G_PREFIX	"boardData_1_0_IPQ4019_Y9803_wifi0"
 #define BD_5G_PREFIX	"boardData_1_0_IPQ4019_Y9803_wifi1"
@@ -457,14 +461,14 @@ typedef struct {
 #define BD_2G_HW_DIR	"hw.1"
 #define BD_5G_CHIP_DIR	"IPQ4019"
 #define BD_5G_HW_DIR	"hw.1"
-#elif defined(HIVEDOT)
+#elif defined(MAPAC1300)
 #define BD_2G_PREFIX	"boardData_1_0_IPQ4019_YA131_wifi0"
 #define BD_5G_PREFIX	"boardData_1_0_IPQ4019_YA131_wifi1"
 #define BD_2G_CHIP_DIR	"IPQ4019"
 #define BD_2G_HW_DIR	"hw.1"
 #define BD_5G_CHIP_DIR	"IPQ4019"
 #define BD_5G_HW_DIR	"hw.1"
-#elif defined(HIVESPOT)
+#elif defined(MAPAC2200)
 #define BD_2G_PREFIX	"boardData_1_0_IPQ4019_DK04_2G"
 #define BD_5G_PREFIX	"boardData_1_0_IPQ4019_DK04_5G"
 #define BD_5G2_PREFIX	"boardData_2_0_QCA9888_5G_Y9484"

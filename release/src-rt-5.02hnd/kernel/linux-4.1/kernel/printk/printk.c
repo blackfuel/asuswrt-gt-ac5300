@@ -47,6 +47,10 @@
 #include <linux/ctype.h>
 #include <linux/uio.h>
 
+#include <linux/fs.h>
+#include <asm/segment.h>
+#include <linux/buffer_head.h>
+
 #include <asm/uaccess.h>
 
 #define CREATE_TRACE_POINTS
@@ -269,88 +273,108 @@ static char *log_buf = __log_buf;
 static u32 log_buf_len = __LOG_BUF_LEN;
 
 #ifdef CONFIG_DUMP_PREV_OOPS_MSG
-extern int oops_mem;
-
-struct oopsbuf_s {
-	char sig[8];
-	uint32_t len;
-	char buf[0];
-};
-
-#define OOPSBUF_SIG		"OopsBuf"
-#define MAX_PREV_OOPS_MSG_LEN	(CONFIG_DUMP_PREV_OOPS_MSG_BUF_LEN - sizeof(struct oopsbuf_s))
-static struct oopsbuf_s *oopsbuf = NULL;
+#define IS_FILE_OPEN_ERR(_fd)	((_fd == NULL) || IS_ERR((_fd)))
 static int save_oopsmsg = 0;
+
+struct file* file_open(const char* path, int flags, int rights) {
+	struct file* filp = NULL;
+	mm_segment_t oldfs;
+	int err = 0;
+
+	oldfs = get_fs();
+	set_fs(get_ds());
+	filp = filp_open(path, flags, rights);
+	set_fs(oldfs);
+
+	if (IS_ERR(filp)) {
+		err = PTR_ERR(filp);
+		return NULL;
+	}
+
+	return filp;
+}
+
+void file_close(struct file* file) {
+	filp_close(file, NULL);
+}
+
+int file_read(struct file* file, unsigned long long offset, unsigned char* data, unsigned int size) {
+	mm_segment_t oldfs;
+	int ret;
+
+	oldfs = get_fs();
+	set_fs(get_ds());
+	ret = vfs_read(file, data, size, &offset);
+	set_fs(oldfs);
+
+	return ret;
+}
+
+int file_write(struct file* file, unsigned long long offset, unsigned char* data, unsigned int size) {
+	mm_segment_t oldfs;
+	int ret;
+
+	oldfs = get_fs();
+	set_fs(get_ds());
+	ret = vfs_write(file, data, size, &offset);
+	set_fs(oldfs);
+
+	return ret;
+}
 
 void enable_oopsbuf(int onoff)
 {
 	save_oopsmsg = !!onoff;
 }
 
-static inline void copy_char_to_oopsbuf(char c)
-{
-	if (!oopsbuf)
-		return;
-	else if (likely(!save_oopsmsg))
-		return;
-	else if (unlikely((oopsbuf->len + 1) >= MAX_PREV_OOPS_MSG_LEN))
-		return;
-
-	oopsbuf->buf[oopsbuf->len++] = c;
-}
-
 static void copy_to_oopsbuf(const char *text, u16 text_len)
 {
-	u16 i;
+	char *fileName = NULL;
+	struct file* file;
 
-	for (i = 0; i < text_len; i++)
-		copy_char_to_oopsbuf(text[i]);
-}
+	if (!save_oopsmsg)
+		return;
 
-static char local_buf[CONFIG_DUMP_PREV_OOPS_MSG_BUF_LEN];
-static int local_buf_len = 0;
-
-int prepare_and_dump_previous_oops(void)
-{
-	unsigned char *u;
-
-//	printk("DUMP_PREV_OOPS_MSG::prepare OopsBuf virt addr 0x%x (phys addr 0x%llx) length 0x%x\n", CONFIG_DUMP_PREV_OOPS_MSG_BUF_ADDR, virt_to_phys((void *)CONFIG_DUMP_PREV_OOPS_MSG_BUF_ADDR), CONFIG_DUMP_PREV_OOPS_MSG_BUF_LEN);
-
-	if (oops_mem)
-		oopsbuf = (struct oopsbuf_s *) (CONFIG_DUMP_PREV_OOPS_MSG_BUF_ADDR);
-	else
-		return 0;
-
-	if (strncmp(oopsbuf->sig, OOPSBUF_SIG, strlen(OOPSBUF_SIG))) {
-		u = oopsbuf->sig;
-		printk("* Invalid signature of oopsbuf: %02X-%02X-%02X-%02X-%02X-%02X-%02X-%02X (len %u)\n",
-			u[0], u[1], u[2], u[3], u[4], u[5], u[6], u[7],
-			oopsbuf->len);
-	} else if (oopsbuf->len > 32 && oopsbuf->len < MAX_PREV_OOPS_MSG_LEN) {
-		memcpy(local_buf, oopsbuf->buf, oopsbuf->len);
-		local_buf_len = oopsbuf->len;
+	fileName = "/jffs/oops";
+	file = file_open(fileName, O_WRONLY|O_CREAT|O_APPEND, 0);
+        if (IS_FILE_OPEN_ERR(file))
+        {
+                return;
+        }
+        else
+        {
+		file_write(file, 0, (unsigned char*) text, text_len);
 	}
 
-	/* Initialize oopsbuf */
-	strcpy(oopsbuf->sig, OOPSBUF_SIG);
-	oopsbuf->len = 0;
-	memset(oopsbuf->buf, 0, MAX_PREV_OOPS_MSG_LEN);
-	return 0;
+	file_close(file);
 }
 
 void dump_previous_oops(void)
 {
-	int i;
+	char *fileName = NULL;
+	struct file* file;
+	int ret, i;
+	char buf[1024];
+	unsigned long long offset = 0;
 
-	if (local_buf_len) {
+        fileName = "/jffs/oops";
+	file = file_open(fileName, O_RDONLY, 0);
+        if (IS_FILE_OPEN_ERR(file))
+        {
+                return;
+        }
+        else
+	{
 		printk("_ Reboot message ... _______________________________________________________\n");
-		for (i = 0; i < local_buf_len; i++)
-			printk("%c", local_buf[i]);
+		while ((ret = file_read(file, offset, buf, sizeof(buf)))) {
+			offset += ret;
+			for (i = 0; i < ret; i++)
+				printk("%c", buf[i]);
+		}
 		printk("\n____________________________________________________________________________\n");
-
-		memset(local_buf, 0, oopsbuf->len);
-		local_buf_len = 0;
 	}
+
+	file_close(file);
 }
 EXPORT_SYMBOL(dump_previous_oops);
 #endif //End of CONFIG_DUMP_PREV_OOPS_MSG

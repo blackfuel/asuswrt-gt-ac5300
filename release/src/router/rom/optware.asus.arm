@@ -275,12 +275,12 @@ Source: http://www.openssl.org/source/openssl-0.9.8v.tar.gz
 Description: Openssl provides the ssl implementation in libraries libcrypto and libssl, and is needed by many other applications and libraries.
 
 Package: asusopenssl
-Version: 1.0.2j
+Version: 1.0.2j.v001
 Section: libs
 Architecture: arm
 Maintainer: NSLU2 Linux <nslu2-linux@yahoogroups.com>
-Size: 1108856
-Filename: asusopenssl_1.0.2j_arm.ipk
+Size: 1108459
+Filename: asusopenssl_1.0.2j.v001_arm.ipk
 Source: http://www.openssl.org/source/openssl-0.9.8v.tar.gz
 Description: Openssl provides the ssl implementation in libraries libcrypto and libssl, and is needed by many other applications and libraries.
 

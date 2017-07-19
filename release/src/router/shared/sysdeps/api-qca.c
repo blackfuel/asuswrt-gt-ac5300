@@ -207,139 +207,9 @@ uint32_t set_phy_ctrl(uint32_t portmask, int ctrl)
 	return 1;		/* FIXME */
 }
 
-/* 0: it is not a legal image
- * 1: it is legal image
- */
-int check_imageheader(char *buf, long *filelen)
-{
-	uint32_t checksum;
-	image_header_t header2;
-	image_header_t *hdr, *hdr2;
-
-	hdr = (image_header_t *) buf;
-	hdr2 = &header2;
-
-	/* check header magic */
-	if (ntohl(hdr->ih_magic) != IH_MAGIC) {
-		_dprintf("Bad Magic Number\n");
-		return 0;
-	}
-
-	/* check header crc */
-	memcpy(hdr2, hdr, sizeof(image_header_t));
-	hdr2->ih_hcrc = 0;
-	checksum = crc_calc(0, (const char *)hdr2, sizeof(image_header_t));
-	_dprintf("header crc: %X\n", checksum);
-	_dprintf("org header crc: %X\n", ntohl(hdr->ih_hcrc));
-	if (checksum != ntohl(hdr->ih_hcrc)) {
-		_dprintf("Bad Header Checksum\n");
-		return 0;
-	}
-
-	if (!strcmp(buf + 36, nvram_safe_get("productid"))) {
-		*filelen = ntohl(hdr->ih_size);
-		*filelen += sizeof(image_header_t);
-		_dprintf("image len: %x\n", *filelen);
-		return 1;
-	}
-	return 0;
-}
-
-int checkcrc(char *fname)
-{
-	int ifd = -1;
-	uint32_t checksum;
-	struct stat sbuf;
-	unsigned char *ptr = NULL;
-	image_header_t *hdr;
-	char *imagefile;
-	int ret = -1;
-	int len;
-
-	imagefile = fname;
-	ifd = open(imagefile, O_RDONLY | O_BINARY);
-	if (ifd < 0) {
-		_dprintf("Can't open %s: %s\n", imagefile, strerror(errno));
-		goto checkcrc_end;
-	}
-
-	/* We're a bit of paranoid */
-#if defined(_POSIX_SYNCHRONIZED_IO) && !defined(__sun__) && !defined(__FreeBSD__)
-	(void)fdatasync(ifd);
-#else
-	(void)fsync(ifd);
-#endif
-	if (fstat(ifd, &sbuf) < 0) {
-		_dprintf("Can't stat %s: %s\n", imagefile, strerror(errno));
-		goto checkcrc_fail;
-	}
-
-	ptr = (unsigned char *)mmap(0, sbuf.st_size,
-				    PROT_READ, MAP_SHARED, ifd, 0);
-	if (ptr == (unsigned char *)MAP_FAILED) {
-		_dprintf("Can't map %s: %s\n", imagefile, strerror(errno));
-		goto checkcrc_fail;
-	}
-	hdr = (image_header_t *) ptr;
-
-	/* check image header */
-	if (check_imageheader((char *)hdr, (long *)&len) == 0) {
-		_dprintf("Check image heaer fail !!!\n");
-		goto checkcrc_fail;
-	}
-
-	len = ntohl(hdr->ih_size);
-	if (sbuf.st_size < (len + sizeof(image_header_t))) {
-		_dprintf("Size mismatch %lx/%lx !!!\n", sbuf.st_size, len + sizeof(image_header_t));
-		goto checkcrc_fail;
-	}
-
-	/* check body crc */
-	_dprintf("Verifying Checksum ... ");
-	checksum = crc_calc(0, (const char *)ptr + sizeof(image_header_t), len);
-	if (checksum != ntohl(hdr->ih_dcrc)) {
-		_dprintf("Bad Data CRC\n");
-		goto checkcrc_fail;
-	}
-	_dprintf("OK\n");
-
-	ret = 0;
-
-	/* We're a bit of paranoid */
-checkcrc_fail:
-	if (ptr != NULL)
-		munmap(ptr, sbuf.st_size);
-#if defined(_POSIX_SYNCHRONIZED_IO) && !defined(__sun__) && !defined(__FreeBSD__)
-	(void)fdatasync(ifd);
-#else
-	(void)fsync(ifd);
-#endif
-	if (close(ifd)) {
-		_dprintf("Read error on %s: %s\n", imagefile, strerror(errno));
-		ret = -1;
-	}
-
-checkcrc_end:
-	return ret;
-}
-
 int get_imageheader_size(void)
 {
 	return sizeof(image_header_t);
-}
-
-/* 
- * 0: legal image
- * 1: illegal image
- *
- * check product id, crc ..
- */
-
-int check_imagefile(char *fname)
-{
-	if (!checkcrc(fname))
-		return 0;
-	return 1;
 }
 
 int wl_ioctl(const char *ifname, int cmd, struct iwreq *pwrq)
@@ -1143,14 +1013,16 @@ char *get_lan_mac_name(void)
 	switch (model) {
 	case MODEL_PLN12:	/* fall-through */
 	case MODEL_PLAC56:	/* fall-through */
+	case MODEL_PLAC66U:	/* fall-through */
+	case MODEL_RPAC66:	/* fall-through */
 	case MODEL_RTAC55U:	/* fall-through */
 	case MODEL_RTAC55UHP:	/* fall-through */
 	case MODEL_RT4GAC55U:	/* fall-through */
 	case MODEL_BRTAC828:	/* fall-through */
 	case MODEL_RTAC88S:	/* fall-through */
 	case MODEL_RTAC88N:	/* fall-through */
-        case MODEL_HIVEDOT:
-        case MODEL_HIVESPOT:
+        case MODEL_MAPAC1300:
+        case MODEL_MAPAC2200:
 		/* Use 5G MAC address as LAN MAC address. */
 		mac_name = "et1macaddr";
 		break;
@@ -1235,9 +1107,9 @@ char *__get_wlifname(int band, int subunit, char *buf)
 		return buf;
 
 	if (!subunit)
-		strcpy(buf, (!band)? WIF_2G:WIF_5G);
+		strcpy(buf, get_wififname(band));
 	else
-		sprintf(buf, "%s%02d", (!band)? WIF_2G:WIF_5G, subunit);
+		sprintf(buf, "%s0%d", get_wififname(band), subunit);
 
 	return buf;
 }
@@ -1258,7 +1130,10 @@ char *get_wlifname(int unit, int subunit, int subunit_x, char *buf)
 	char prefix[] = "wlXXXXXX_", tmp[100];
 #if defined(RTCONFIG_WIRELESSREPEATER)
 	if (sw_mode() == SW_MODE_REPEATER
-	    && nvram_get_int("wlc_band") == unit && subunit == 1) {
+#if !defined(RTCONFIG_CONCURRENTREPEATER)
+	    && nvram_get_int("wlc_band") == unit
+#endif
+		 && subunit == 1) {
 		strcpy(buf, get_staifname(unit));
 	} else
 #endif /* RTCONFIG_WIRELESSREPEATER */
@@ -1317,14 +1192,28 @@ char *get_wlxy_ifname(int x, int y, char *buf)
 	return buf;
 }
 
+char *get_wififname(int band)
+{
+	const char *wif[] = { WIF_2G, WIF_5G, WIF_5G2 };
+	if(band <0 || band >= ARRAY_SIZE(wif))
+		band = 0;
+	return (char*) wif[band];
+}
+
 char *get_staifname(int band)
 {
-	return (char*) ((!band)? STA_2G:STA_5G);
+	const char *sta[] = { STA_2G, STA_5G, STA_5G2 };
+	if(band <0 || band >= ARRAY_SIZE(sta))
+		band = 0;
+	return (char*) sta[band];
 }
 
 char *get_vphyifname(int band)
 {
-	return (char*) ((!band)? VPHY_2G:VPHY_5G);
+	const char *vphy[] = { VPHY_2G, VPHY_5G, VPHY_5G2 };
+	if(band <0 || band >= ARRAY_SIZE(vphy))
+		band = 0;
+	return (char *) vphy[band];
 }
 
 /**
@@ -1362,3 +1251,34 @@ int get_wlsubnet(int band, const char *ifname)
 	}
 	return -1;
 }
+
+int get_ap_mac(const char *ifname, struct iwreq *pwrq)
+{
+	return wl_ioctl(ifname, SIOCGIWAP, pwrq);
+}
+
+const unsigned char ether_zero[6]  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+const unsigned char ether_bcast[6] = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
+
+int chk_assoc(const char *ifname)
+{
+	struct iwreq wrq;
+	int ret;
+
+	if((ret = get_ap_mac(ifname, &wrq)) < 0)
+		return ret;
+
+#if 0
+cprintf("## %s(): ret(%d) ap_addr(%02x:%02x:%02x:%02x:%02x:%02x)\n", __func__, ret
+, wrq.u.ap_addr.sa_data[0], wrq.u.ap_addr.sa_data[1], wrq.u.ap_addr.sa_data[2]
+, wrq.u.ap_addr.sa_data[3], wrq.u.ap_addr.sa_data[4], wrq.u.ap_addr.sa_data[5]);
+#endif
+	if(memcmp(&(wrq.u.ap_addr.sa_data), ether_zero, 6) == 0)
+		return 0;	// Not-Associated
+	else if(memcmp(&(wrq.u.ap_addr.sa_data), ether_bcast, 6) == 0)
+		return -1;	// Invalid
+
+	return 1;
+}
+
+

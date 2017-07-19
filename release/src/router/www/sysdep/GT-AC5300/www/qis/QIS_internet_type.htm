@@ -130,15 +130,19 @@ function QKinternettype_load_body(){
 			parent.based_modelid != "RT-AC88U" &&
 			parent.based_modelid != "RT-AC87U" &&
 			parent.based_modelid != "RT-AC68U" &&
+			parent.based_modelid != "RT-AC68A" &&
+			parent.based_modelid != "4G-AC68U" &&
 			parent.based_modelid != "RT-AC66U" &&
 			parent.based_modelid != "RT-AC56U" &&
+			parent.based_modelid != "RT-AC56S" &&
+			parent.based_modelid != "RT-AC51U" &&
 			parent.based_modelid != "RT-N66U" &&
 			parent.based_modelid != "RT-N18U"
 	        ){
 			document.getElementById('movistarOption').outerHTML = "";
 		}
 
-		if(parent.based_modelid == "GT-AC5300"){ //MODELDEP: GT-AC5300 : TRUNK ports
+		if(parent.based_modelid == "GT-AC5300" || parent.based_modelid == "GT-AC9600"){ //MODELDEP: GT-AC5300 : TRUNK ports
 			document.getElementById("voip_lan").innerHTML = "LAN4";	//P3
 			document.getElementById("iptv_lan").innerHTML = "LAN8"; //P4
 			document.getElementById("voip_port3").innerHTML = "VoIP (LAN port 4):"; //P3
@@ -560,7 +564,7 @@ function switch_dialUp_type(obj){
 		else
 			document.getElementById("image_field").className = "non_dialUp";
 		document.getElementById("isp_card_desc").style.display = "none";
-		if(parent.based_modelid != "GT-AC5300"){
+		if(parent.based_modelid != "GT-AC5300" && parent.based_modelid != "GT-AC9600"){
 			document.getElementById("dhcp_scenario_1").style.display = "";
 			document.getElementById("dhcp_scenario_2").style.display = "";
 		}
@@ -758,7 +762,7 @@ function switch_dhcp_type(obj){
 			else	
 				document.getElementById("image_field").className = "non_dialUp";
 
-			if(parent.based_modelid != "GT-AC5300"){
+			if(parent.based_modelid != "GT-AC5300" && parent.based_modelid != "GT-AC9600"){
 				document.getElementById("dhcp_scenario_1").style.display = "";
 				document.getElementById("dhcp_scenario_2").style.display = "";
 			}
@@ -788,7 +792,7 @@ function previous_step(flag){
 			else
 				document.getElementById("image_field").className = "non_dialUp";
 
-			if(parent.based_modelid != "GT-AC5300"){
+			if(parent.based_modelid != "GT-AC5300" && parent.based_modelid != "GT-AC9600"){
 				document.getElementById("dhcp_scenario_1").style.display = "";
 				document.getElementById("dhcp_scenario_2").style.display = "";
 			}

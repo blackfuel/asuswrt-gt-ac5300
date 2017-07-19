@@ -275,7 +275,7 @@ var isSwMode = function(mode){
 	}
 	else ui_sw_mode = "rt"; // Router
 
-	return (ui_sw_mode == mode);
+	return (ui_sw_mode.search(mode) !== -1);
 }
 
 var current_url = location.pathname.substring(location.pathname.lastIndexOf('/') + 1) || "<% rel_index_page(); %>";
@@ -406,7 +406,7 @@ function isSupport(_ptn){
 	else if(_ptn == "traffic_analyzer"){
 		if(!bwdpi_support) return false;
 
-		if(( based_modelid == "BRT-AC828" || based_modelid == "GT-AC5300" || based_modelid == "RT-AC5300" || based_modelid == "RT-AC3200" || based_modelid == "RT-AC3100" || 
+		if(( based_modelid == "BRT-AC828" || based_modelid == "GT-AC5300" || based_modelid == "GT-AC9600" || based_modelid == "RT-AC5300" || based_modelid == "RT-AC3200" || based_modelid == "RT-AC3100" || 
 			based_modelid == "RT-AC88U" || based_modelid == "RT-AC87U" || based_modelid == "RT-AC86U" || based_modelid == "AC2900" || based_modelid == "RT-AC85U" ||
 			based_modelid == "4G-AC68U" || based_modelid == "DSL-AC68U" || based_modelid == "RT-AC68U" || based_modelid == "RT-AC68R" || 
 			based_modelid == "RT-AC68W" || based_modelid == "RT-AC68RW" || based_modelid == "RT-AC1900P" || 
@@ -422,6 +422,7 @@ function isSupport(_ptn){
 }
 
 var wifilogo_support = isSupport("WIFI_LOGO"); 
+var new_wifi_cert_support = isSupport("wifi2017"); 
 var band2g_support = isSupport("2.4G"); 
 var band5g_support = isSupport("5G");
 var live_update_support = isSupport("update"); 
@@ -510,7 +511,8 @@ var tmo_support = isSupport("tmo");
 var atf_support = isSupport("atf");
 var wl_mfp_support = isSupport("wl_mfp");	// For Protected Management Frames, ARM platform
 var bwdpi_support = isSupport("bwdpi");
-var ipsec_support = isSupport("ipsec");
+var ipsec_srv_support = isSupport("ipsec_srv");
+var ipsec_cli_support = isSupport("ipsec_cli");
 var traffic_analyzer_support = isSupport("traffic_analyzer");
 /* MODELDEP */
 if(based_modelid == "AC2900"){	//MODELDEP: AC2900(RT-AC86U)
@@ -554,8 +556,9 @@ var noiptv_support = isSupport("noiptv");
 var nz_isp_support = isSupport("nz_isp");
 var app_support = false;
 var pm_support = isSupport("permission_management");
+var smart_control_support = isSupport("smart_control");
 
-if( based_modelid == "RT-AC5300" || based_modelid == "GT-AC5300" || based_modelid == "RT-AC3100" || based_modelid == "RT-AC88U" || based_modelid == "RT-AC86U" || 
+if( based_modelid == "RT-AC5300" || based_modelid == "GT-AC5300" || based_modelid == "GT-AC9600" || based_modelid == "RT-AC3100" || based_modelid == "RT-AC88U" || based_modelid == "RT-AC86U" || 
 	based_modelid == "RT-AC3200" || based_modelid == "RT-AC87U" || based_modelid == "RT-AC87R" || based_modelid == "RT-AC68U" || based_modelid == "RT-AC68A" || 
 	based_modelid == "4G-AC68U" || based_modelid == "RT-AC68R" || based_modelid == "RT-AC68P" || based_modelid == "RT-AC68W" || based_modelid == "RT-AC66U" || 
 	based_modelid == "RT-AC66R" || based_modelid == "RT-AC56U" || based_modelid == "RT-N66U" || based_modelid == "RT-N66R" || based_modelid == "RT-N66W"){
@@ -563,6 +566,7 @@ if( based_modelid == "RT-AC5300" || based_modelid == "GT-AC5300" || based_modeli
  }
 
 var tagged_based_vlan = isSupport("tagged_based_vlan");
+var vpn_fusion_support = isSupport("vpn_fusion");
 var QISWIZARD = "QIS_wizard.htm";
 
 var wl_version = "<% nvram_get("wl_version"); %>";
@@ -573,7 +577,7 @@ var sdk_7 = sdk_version_array[0] == 7 ? true : false;
 var sdk_5 = sdk_version_array[0] == 5 ? true : false;
 var bcm_mumimo_support = isSupport("mumimo");		//Broadcom MU-MIMOs
 var nt_center_support = isSupport("nt_center");
-if(based_modelid == "RT-AC65U" || based_modelid == "GT-AC5300" || based_modelid == "RP-AC87" || based_modelid == "RT-AC85U")
+if(nt_center_support && based_modelid != "")
 	nt_center_support = false;
 
 if(nt_center_support)
@@ -599,7 +603,7 @@ if(tmo_support && isMobile()){
 		location.href = "MobileQIS_Login.asp";
 }
 	
-if(isMobile() && (based_modelid == "RT-AC88U" || based_modelid == "RT-AC86U" || based_modelid == "AC2900" || based_modelid == "RT-AC3100" || based_modelid == "RT-AC5300" || based_modelid == "GT-AC5300"))
+if(isMobile() && (based_modelid == "RT-AC88U" || based_modelid == "RT-AC86U" || based_modelid == "AC2900" || based_modelid == "RT-AC3100" || based_modelid == "RT-AC5300" || based_modelid == "GT-AC5300" || based_modelid == "GT-AC9600"))
 	QISWIZARD = "QIS_wizard_m.htm";	
 
 var stopFlag = 0;
@@ -767,7 +771,7 @@ function show_banner(L3){// L3 = The third Level of Menu
 		banner_code +='</form>\n';
 	}	
 	
-	if(based_modelid == "GT-AC5300"){
+	if(based_modelid == "GT-AC5300" || based_modelid == "GT-AC9600"){
 		banner_code +='<div class="banner1" align="center"><img src="images/New_ui/logo_ROG.png" width="358" height="86" align="left">\n';
 		banner_code +='<div style="margin-top:13px;margin-left:-90px;*margin-top:0px;*margin-left:0px;" align="center"><span id="modelName_top" onclick="this.focus();" class="modelName_top"><#Web_Title2#></span></div>';
 		// logout
@@ -790,7 +794,7 @@ function show_banner(L3){// L3 = The third Level of Menu
 	banner_code +='</div>\n';
 	banner_code +='<table width="998" border="0" align="center" cellpadding="0" cellspacing="0" class="statusBar">\n';
 	banner_code +='<tr>\n';
-	if(based_modelid == "GT-AC5300"){
+	if(based_modelid == "GT-AC5300" || based_modelid == "GT-AC9600"){
 		banner_code +='<td class="minup_bg" height="179" valign="top"><table width="764" border="0" cellpadding="0" cellspacing="0" height="35px" style="margin-left:230px;">\n';
 	}else{
 		banner_code +='<td class="minup_bg" height="179" valign="top"><table width="764" border="0" cellpadding="0" cellspacing="0" height="35px" style="margin-left:230px;">\n';
@@ -817,7 +821,7 @@ function show_banner(L3){// L3 = The third Level of Menu
 	
 	//APP Link
 	if(app_support){
-		if(based_modelid == "GT-AC5300"){
+		if(based_modelid == "GT-AC5300" || based_modelid == "GT-AC9600"){
 			banner_code +='<td><div style="cursor:pointer;"><div id="app_icon" class="app_status"></div></div>';
 		}
 		else{
@@ -883,7 +887,7 @@ function show_banner(L3){// L3 = The third Level of Menu
 	if(usb_support)
 		banner_code +='<td><div id="usb_status"></div></td>\n';
 	
-	if(based_modelid == "GT-AC5300"){
+	if(based_modelid == "GT-AC5300" || based_modelid == "GT-AC9600"){
 		banner_code +='<td><div id="reboot_status" class="reboot_status" onclick="reboot();"></div></td>\n';
 	}
 
@@ -1095,7 +1099,8 @@ function addOnlineHelp(obj, keywordArray){
 		UK : "/",
 		HU : "/",
 		RO : "/",
-		KR : "/"
+		KR : "/",
+		SL : "/"
 	}
 
 	// exception start
@@ -1111,54 +1116,40 @@ function addOnlineHelp(obj, keywordArray){
 	
 	}else if(keywordArray[0] == "ASUSWRT" && keywordArray[1] == "ez" && keywordArray[2] == "printer"){
 		support_path = "support/Search-Result-Detail/552E63A3-FA2D-1265-7029-84467B3993E4/?";
-		faqLang.TW = "/tw/";
-		faqLang.CN = ".cn/";
-		faqLang.FR = "/fr/";
 		faqLang.ES = "/es/";
-        faqLang.RU = "/ru/";
-        faqLang.MS = "/my/";
-        faqLang.SV = "/se/";
-        faqLang.UK = "/ua/";
-		faqLang.DA = "/dk/";
-		faqLang.FI = "/fi/";
+		faqLang.RU = "/ru/";
+		faqLang.MS = "/my/";
+		faqLang.UK = "/ua/";
 		faqLang.TR = "/tr/";
 		faqLang.DE = "/de/";
 		faqLang.PL = "/pl/";
 		faqLang.CZ = "/cz/";
 	
 	}else if(keywordArray[0] == "ASUSWRT" && keywordArray[1] == "lpr"){
-		faqLang.TW = "/tw/";
-		faqLang.CN = ".cn/";
 		faqLang.FR = "/fr/";
 		faqLang.ES = "/es/";
-        faqLang.RU = "/ru/";
-        faqLang.MS = "/my/";
-        faqLang.SV = "/se/";
-        faqLang.UK = "/ua/";
-        faqLang.FI = "/fi/";
-        faqLang.TR = "/tr/";
-        faqLang.DE = "/de/";
-        faqLang.PL = "/pl/";
-        faqLang.CZ = "/cz/";
-		faqLang.BR = "/br/";
+		faqLang.RU = "/ru/";
+		faqLang.MS = "/my/";
+		faqLang.UK = "/ua/";
+		faqLang.TR = "/tr/";
+		faqLang.DE = "/de/";
+		faqLang.PL = "/pl/";
+		faqLang.CZ = "/cz/";
 		faqLang.TH = "/th/";
 	
 	}else	if(keywordArray[0] == "mac" && keywordArray[1] == "lpr"){
 		faqLang.TW = "/tw/";
-		faqLang.CN = ".cn/";
 		faqLang.FR = "/fr/";
 		faqLang.ES = "/es/";
-        faqLang.RU = "/ru/";
-        faqLang.MS = "/my/";
-        faqLang.SV = "/se/";
-        faqLang.UK = "/ua/";
-        faqLang.FI = "/fi/";
-        faqLang.TR = "/tr/";
-        faqLang.DE = "/de/";
-        faqLang.PL = "/pl/";
-        faqLang.CZ = "/cz/";
-        faqLang.BR = "/br/";
-        faqLang.TH = "/th/";
+		faqLang.RU = "/ru/";
+		faqLang.MS = "/my/";
+		faqLang.UK = "/ua/";
+		faqLang.TR = "/tr/";
+		faqLang.DE = "/de/";
+		faqLang.PL = "/pl/";
+		faqLang.CZ = "/cz/";
+		faqLang.BR = "/br/";
+		faqLang.TH = "/th/";
 	
 	}else	if(keywordArray[0] == "ASUSWRT" && keywordArray[1] == "IPv6"){
 		faqLang.MS = "/my/";
@@ -1415,7 +1406,10 @@ function showMenuTree(menuList, menuExclude){
 						menu_code += '" id="';
 						menu_code += curMenu.tab[firstEntry].url.split(".")[0];
 						menu_code += '_menu"><table><tr><td><div class="menu_Icon ';
-						menu_code += curMenu.index;
+						if(based_modelid == "RT-AC85U" && curMenu.index == 'menu_QoS')	//MODELDEP : RT-AC85U change icon
+							menu_code += 'menu_BandwidthMonitor';
+						else
+							menu_code += curMenu.index;
 						menu_code += '"></div></td><td class="menu_Desc">';
 						menu_code += curMenu.menuName;
 						menu_code += '</td></tr></table></div>\n';
@@ -2373,20 +2367,20 @@ function blocking(obj_id, show){
 function inputCtrl(obj, flag){
 	if(flag == 0){
 		obj.disabled = true;
-		if(obj.type != "select-one" && based_modelid != "GT-AC5300")
+		if(obj.type != "select-one" && based_modelid != "GT-AC5300" && based_modelid != "GT-AC9600")
 			obj.style.backgroundColor = "#CCCCCC";
 		if(obj.type == "radio" || obj.type == "checkbox")
 			obj.style.backgroundColor = "#475A5F";
 		if(obj.type == "text" || obj.type == "password")
-			if(based_modelid != "GT-AC5300")
+			if(based_modelid != "GT-AC5300" && based_modelid != "GT-AC9600")
 				obj.style.backgroundImage = "url(/images/New_ui/inputbg_disable.png)";
 	}
 	else{
 		obj.disabled = false;		
-		if((obj.type == "radio" || obj.type == "checkbox") && based_modelid != "GT-AC5300") 
+		if((obj.type == "radio" || obj.type == "checkbox") && based_modelid != "GT-AC5300" && based_modelid != "") 
 			obj.style.backgroundColor = "#475A5F";
 		if(obj.type == "text" || obj.type == "password"){
-			if(based_modelid != "GT-AC5300")
+			if(based_modelid != "GT-AC5300" && based_modelid != "GT-AC9600")
 				obj.style.backgroundImage = "url(/images/New_ui/inputbg.png)";
 		}
 	}
@@ -2641,8 +2635,6 @@ function refreshStatus(xhr){
 
 	if(location.pathname == "/"+ QISWIZARD)
 		return false;
-	else if(location.pathname == "/Advanced_VPNClient_Content.asp")
-		show_vpnc_rulelist();
 	else if(location.pathname == "/Advanced_Feedback.asp")
 		updateUSBStatus();
 	
@@ -2667,7 +2659,7 @@ function refreshStatus(xhr){
 	}
 
 	//reboot
-	if(based_modelid == "GT-AC5300"){
+	if(based_modelid == "GT-AC5300" || based_modelid == "GT-AC9600"){
 		document.getElementById("reboot_status").onmouseover = function(){overHint(26);}
 		document.getElementById("reboot_status").onmouseout = function(){nd();}
 	}
@@ -2789,7 +2781,7 @@ function refreshStatus(xhr){
 				document.getElementById("connect_status").className = NM_connect_status.hasInternet ? "connectstatuson" : "connectstatusoff";
 				wanConnectStatus = NM_connect_status.hasInternet;
 
-				if(based_modelid == "GT-AC5300" && location.pathname == "/GameDashboard.asp"){
+				if((based_modelid == "GT-AC5300" || based_modelid == "GT-AC9600") && location.pathname == "/GameDashboard.asp"){
 					$("#wan_state").html(NM_connect_status.hint);
 					if(NM_connect_status.hasInternet){
 						$("#wan_state_icon").addClass("wan_icon_connect");

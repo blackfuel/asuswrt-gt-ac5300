@@ -218,7 +218,7 @@ function initial(){
 	if(!openvpnd_support) {
 		delete vpn_server_array.OpenVPN;
 	}
-	if(!ipsec_support) {
+	if(!ipsec_srv_support) {
 		delete vpn_server_array.IPSEC;
 	}
 	$('#divSwitchMenu').html(gen_switch_menu(vpn_server_array, "IPSEC"));
@@ -2529,7 +2529,7 @@ function changeExchangeMode() {
 				</td>
 			</tr>
 		</table>
-		<div style="color:#FC0;margin:10px 0px;">Note: ASUS BRT-AC828 pre-configure the Diffie Hellman (DH) key change Group of phase 1 and phase 2 in auto mode, which support 2, 5, 14, 15, 16 and 18.<!--untranslated--></div>
+		<div style="color:#FC0;margin:10px 0px;">Note: ASUS <#Web_Title2#> pre-configure the Diffie Hellman (DH) key change Group of phase 1 and phase 2 in auto mode, which support 2, 5, 14, 15, 16 and 18.<!--untranslated--></div>
 	</div>
 	<!-- Advanced Settings table end-->
 	<!-- User table start-->

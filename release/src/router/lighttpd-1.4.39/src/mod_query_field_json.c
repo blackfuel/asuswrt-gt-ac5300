@@ -390,7 +390,7 @@ URIHANDLER_FUNC(mod_query_field_json_physical_handler){
 						
 						buffer_append_string_len(folder_info->path, CONST_STR_LEN(", \"permission\" : "));
 						char str_permission[10] = "\0";
-						sprintf( str_permission, "%d", permission );
+						snprintf( str_permission, sizeof(str_permission), "%d", permission );
 						buffer_append_string(folder_info->path, str_permission);
 							
 						buffer_append_string_len(folder_info->path, CONST_STR_LEN("}"));
@@ -522,7 +522,7 @@ URIHANDLER_FUNC(mod_query_field_json_physical_handler){
 				
 				buffer_append_string_len(folder_info->path, CONST_STR_LEN(", \"permission\" : "));
 				char str_permission[10] = "\0";
-				sprintf( str_permission, "%d", permission );
+				snprintf( str_permission, sizeof(str_permission), "%d", permission );
 				buffer_append_string(folder_info->path, str_permission);
 #endif
 					

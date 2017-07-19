@@ -65,7 +65,9 @@ static bcmFun_t *enet_spdsvc_transmit = NULL;
 
 static inline int bcmeapi_alloc_skb(BcmEnet_devctrl *pDevCtrl, struct sk_buff **skb)
 {
-
+#ifdef CATHY_SKBLIST_LOCK_PATCH
+    ENET_SKBLIST_LOCK();
+#endif /* CATHY_SKBLIST_LOCK_PATCH */
 #if 1
     if (pDevCtrl->freeSkbList) {
         *skb = pDevCtrl->freeSkbList;
@@ -77,9 +79,15 @@ static inline int bcmeapi_alloc_skb(BcmEnet_devctrl *pDevCtrl, struct sk_buff **
         *skb = kmem_cache_alloc(enetSkbCache, GFP_ATOMIC);
 
         if (!(*skb)) {
+#ifdef CATHY_SKBLIST_LOCK_PATCH
+            ENET_SKBLIST_UNLOCK();
+#endif /* CATHY_SKBLIST_LOCK_PATCH */
             return BCMEAPI_CTRL_FALSE;
         }
     }
+#ifdef CATHY_SKBLIST_LOCK_PATCH
+	ENET_SKBLIST_UNLOCK();
+#endif /* CATHY_SKBLIST_LOCK_PATCH */
 	return BCMEAPI_CTRL_TRUE;
 }
 
@@ -105,8 +113,12 @@ static inline int bcmeapi_free_skb(BcmEnet_devctrl *pDevCtrl,
     cpuid =  smp_processor_id();
     is_bulk_rx_lock_active = pDevCtrl->bulk_rx_lock_active[cpuid];
 
+#ifdef CATHY_SKBLIST_LOCK_PATCH
+    ENET_SKBLIST_LOCK();
+#else
     if (0 == is_bulk_rx_lock_active)
         ENET_RX_LOCK();
+#endif /* CATHY_SKBLIST_LOCK_PATCH */
 
     if ((unsigned char *)skb < pDevCtrl->skbs_p || (unsigned char *)skb >= pDevCtrl->end_skbs_p)
     {
@@ -118,8 +130,12 @@ static inline int bcmeapi_free_skb(BcmEnet_devctrl *pDevCtrl,
         pDevCtrl->freeSkbList = skb;      
     }
 
+#ifdef CATHY_SKBLIST_LOCK_PATCH
+    ENET_SKBLIST_UNLOCK();
+#else
     if (0 == is_bulk_rx_lock_active)
         ENET_RX_UNLOCK();
+#endif /* CATHY_SKBLIST_LOCK_PATCH */
 
     preempt_enable();
     return BCMEAPI_CTRL_TRUE;

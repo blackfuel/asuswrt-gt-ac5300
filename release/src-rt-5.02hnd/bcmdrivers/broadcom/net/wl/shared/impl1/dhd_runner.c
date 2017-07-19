@@ -2884,13 +2884,6 @@ dhd_runner_rxoffl_init(struct dhd_runner_hlp *dhd_hlp,
 	ring_cfg->offload = DHD_RNR_DEF_RX_OFFLOAD;
 	ring_cfg->size = D2HRING_RXCMPLT_MAX_ITEM;
 
-#ifdef CATHY_HW_ACC_DIS
-	if (dhd_hlp->dhd->hw_acc_disabled) {
-		ring_cfg->offload = 0;
-		goto done;
-	}
-#endif /* CATHY_HW_ACC_DIS */
-
 	/* Fetch the Rx Ring Configuration information of the radio, if present */
 	memset(buff, 0, sizeof(buff));
 	length = dhd_runner_psp_get(dhd_hlp->dhd->unit, DHD_RNR_PSP_KEY_RXOFFL, buff,

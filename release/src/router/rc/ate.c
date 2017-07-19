@@ -462,6 +462,15 @@ void get_usb_port_eject_button(unsigned int port)
 }
 #endif
 
+void asus_ate_StartATEMode(void)
+{
+	nvram_set("asus_mfg", "1");
+#ifdef RTCONFIG_QSR10G
+	start_ate_mode_qsr10g();
+#endif
+	stop_services_mfg();
+}
+
 int asus_ate_command(const char *command, const char *value, const char *value2)
 {
 	//_dprintf("===[ATE %s %s]===\n", command, value);
@@ -473,11 +482,7 @@ int asus_ate_command(const char *command, const char *value, const char *value2)
 #endif
 	/*** ATE Set function ***/
 	if (!strcmp(command, "Set_StartATEMode")) {
-		nvram_set("asus_mfg", "1");
-#ifdef RTCONFIG_QSR10G
-		start_ate_mode_qsr10g();
-#endif
-		stop_services_mfg();
+		asus_ate_StartATEMode();
 		puts("1");
 		return 0;
 	}
@@ -490,6 +495,44 @@ int asus_ate_command(const char *command, const char *value, const char *value2)
 	}
 	else if (!strcmp(command, "Set_AllBlueLedLightOn")) {
 		return setAllBlueLedLight_level1();
+	}
+	else if (!strcmp(command, "Set_CentralLedLv")) {
+		return setCentralLedLv(atoi(value));
+	}
+#endif
+#ifdef RTCONFIG_ALPINE
+	else if (!strcmp(command, "Set_RogRGBRedLedOn")) {
+		return setRogRGBLedTest(0);
+	}
+	else if (!strcmp(command, "Set_RogRGBBlueLedOn")) {
+		return setRogRGBLedTest(1);
+	}
+	else if (!strcmp(command, "Set_RogRGBGreenLedOn")) {
+		return setRogRGBLedTest(2);
+	}
+	else if (!strcmp(command, "Set_RogRGBLedModeOn")) {
+		return setRogRGBLedTest(3);
+	}
+	else if (!strcmp(command, "Set_AllRogRGBLedOff")) {
+		return setRogRGBLedTest(4);
+	}
+	else if (!strcmp(command, "Set_FanRead")) {
+		return fanCtrl(5);
+	}
+	else if (!strcmp(command, "Set_FanMax")) {
+		return fanCtrl(4);
+	}
+	else if (!strcmp(command, "Set_FanMidwell")) {
+		return fanCtrl(3);
+	}
+	else if (!strcmp(command, "Set_FanMid")) {
+		return fanCtrl(2);
+	}
+	else if (!strcmp(command, "Set_FanLow")) {
+		return fanCtrl(1);
+	}
+	else if (!strcmp(command, "Set_FanStop")) {
+		return fanCtrl(0);
 	}
 #endif
 	else if (!strcmp(command, "Set_AllLedOn")) {
@@ -635,7 +678,7 @@ int asus_ate_command(const char *command, const char *value, const char *value2)
 		}
 		return 0;
 	}
-#if defined(RTAC3200) || defined(RTAC5300)|| defined(GTAC5300) || defined(HIVESPOT)
+#if defined(RTAC3200) || defined(RTAC5300)|| defined(GTAC5300) || defined(MAPAC2200)
 	else if (!strcmp(command, "Set_MacAddr_5G_2")) {
 #if defined(RTCONFIG_CFEZ) && defined(RTCONFIG_BCMARM)
 		if (!chk_envrams_proc())
@@ -1154,7 +1197,7 @@ int asus_ate_command(const char *command, const char *value, const char *value2)
 #endif
 		return 0;
 	}
-#if defined(RTAC3200) || defined(RTAC5300) || defined(GTAC5300) || defined(HIVESPOT)
+#if defined(RTAC3200) || defined(RTAC5300) || defined(GTAC5300) || defined(MAPAC2200)
 	else if (!strcmp(command, "Get_MacAddr_5G_2")) {
 		getMAC_5G_2();
 		return 0;
@@ -1284,7 +1327,7 @@ int asus_ate_command(const char *command, const char *value, const char *value2)
 			puts("ATE_ERROR");
 		return 0;
 	}
-#if defined(RTAC3200) || defined(RTAC5300) || defined(GTAC5300) || defined(HIVESPOT)
+#if defined(RTAC3200) || defined(RTAC5300) || defined(GTAC5300) || defined(MAPAC2200)
 	else if (!strcmp(command, "Get_ChannelList_5G_2")) {
 		if (!Get_ChannelList_5G_2())
 			puts("ATE_ERROR");
@@ -1486,6 +1529,24 @@ int asus_ate_command(const char *command, const char *value, const char *value2)
 	else if (!strncmp(command, "Get_", 4) && !strncmp(command + 4, "BData", 5) &&
 		 *(command + 9) == '_') {
 		Get_BData_X(command);
+		return 0;
+	}
+#endif
+#if defined(MAPAC1300) || defined(MAPAC2200) /* for Lyra */
+	else if (!strcmp(command, "Set_DisableGUI")) {
+		if (setDisableGUI(value))
+		{
+			puts("ATE_ERROR_INCORRECT_PARAMETER");
+			return EINVAL;
+		}
+		return 0;
+	}
+	else if (!strcmp(command, "Get_DisableGUI")) {
+		if (getDisableGUI())
+		{
+			puts("Invalid content!");
+			return EINVAL;
+		}
 		return 0;
 	}
 #endif
@@ -1857,41 +1918,73 @@ int asus_ate_command(const char *command, const char *value, const char *value2)
 
 int ate_dev_status(void)
 {
-	int ret = 1, wl_band=1;
-	char wl_dev_name[16], dev_chk_buf[32], word[256], *next;
-	char dev_chk_buf2[32];
+	int ret = 1, wl_band = 1;
+	char wl_dev_name[16], dev_chk_buf[64], word[256], *next;
+	int len, remain;
+	char result;
+	char *p;
 
 	memset(dev_chk_buf, 0, sizeof(dev_chk_buf));
 	snprintf(wl_dev_name, sizeof(wl_dev_name), nvram_safe_get("wl_ifnames"));
-	if (switch_exist())
+	if(switch_exist())
 		snprintf(dev_chk_buf, sizeof(dev_chk_buf), "switch=O");
-	else {
+	else{
 		snprintf(dev_chk_buf, sizeof(dev_chk_buf), "switch=X");
 #ifdef CONFIG_BCMWL5	//broadcom platform need to shift the interface name
 		snprintf(wl_dev_name, sizeof(wl_dev_name), "eth0 eth1");
 #endif
 		ret = 0;
 	}
-	
-	foreach (word, wl_dev_name, next) {
-		if (wl_exist(word, wl_band)) {
-			if (wl_band == 1)
-				snprintf(dev_chk_buf2, sizeof(dev_chk_buf), "%s,2G=O",dev_chk_buf);
-			else
-				snprintf(dev_chk_buf2, sizeof(dev_chk_buf), "%s,5G=O",dev_chk_buf);
-			strlcpy(dev_chk_buf, dev_chk_buf2, sizeof(dev_chk_buf));
+
+	len = strlen(dev_chk_buf);
+	p = dev_chk_buf + len;
+	remain = sizeof(dev_chk_buf) - len;
+
+	foreach(word, wl_dev_name, next){
+		if(wl_exist(word, wl_band)){
+			result = 'O';
 		}
-		else {
-			if (wl_band == 1)
-				snprintf(dev_chk_buf2, sizeof(dev_chk_buf), "%s,2G=X",dev_chk_buf);
-			else
-				snprintf(dev_chk_buf2, sizeof(dev_chk_buf), "%s,5G=X",dev_chk_buf);
-			strlcpy(dev_chk_buf, dev_chk_buf2, sizeof(dev_chk_buf));
+		else{
+			result = 'X';
 			ret = 0;
 		}
-			wl_band++;
+
+		if(wl_band == 1)
+			len = snprintf(p, remain, ",2G=%c", result);
+		else
+			len = snprintf(p, remain, ",5G=%c", result);
+
+		p += len;
+		remain -= len;
+		wl_band++;
 	}
-	nvram_set("Ate_dev_status",dev_chk_buf);
+
+#ifdef RTCONFIG_BT_CONN
+	{
+		int retry;
+		for(retry = 60; retry > 0; retry--){
+			extern int check_bluetooth_device(const char *bt_dev);
+			if(check_bluetooth_device("hci0") == 0)
+				break;
+			sleep(1);
+		}
+		if(retry > 0)
+		{
+			result = 'O';
+		}
+		else
+		{
+			result = 'X';
+			ret = 0;
+		}
+	}
+	len = snprintf(p, remain, ",hci0=%c", result);
+	p += len;
+	remain -= len;
+#endif
+
+	nvram_set("Ate_dev_status", dev_chk_buf);
+
 	return ret;
 }
 

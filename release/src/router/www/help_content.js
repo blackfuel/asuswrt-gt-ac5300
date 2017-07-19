@@ -321,3 +321,17 @@ helpcontent[29] = new Array("",
 helpcontent[30] = new Array("",
 							"Send alert before monthly alert is reached",/*untranslated*/
 							"Cut-off internet if monthly limit is reached");/*untranslated*/
+
+//Captive portal
+helpcontent[31] = new Array("",
+							"The Wi-Fi and authentication session will be disconnected if user does not process within the defined Idle time.",/*untranslated*/
+							"The Wi-Fi and Internet connection will be disconnected after a specified period of inactivity.",/*untranslated*/
+							"The Wi-Fi and Internet connection will be disconnected if the defined Internet session time expired.",/*untranslated*/
+							"The NAS ID is string on RADIUS attribute 32, which allows captive portal to send authentication request to RADIUS server for applying different policy of user group.Then, the RADIUS server can send a customized authentication response base on the received NAS ID for the captive portal. To enable the features, you must configure NAS ID policy on RADIUS server correspondingly.",/*untranslated*/
+							"Enter a whitelist URL, also known as walled garden.\nNote: Guest user can fetch the whitelist web content under the domain name without any authentication."/*untranslated*/
+							);
+
+//VPN Fusion
+helpcontent[32] = new Array("",
+							"The client which doesn't exist in the VPN policy list will connect to default connection. You can set default connection as VPN tunnel once VPN profile created. If VPN tunnel is disconnected or deactivate, client device will connect to Internet."/*untranslated*/
+							);

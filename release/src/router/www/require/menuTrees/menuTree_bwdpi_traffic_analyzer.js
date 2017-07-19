@@ -1,4 +1,5 @@
-﻿define(function(){
+﻿/* menuTree_bwdpi_traffic_analyzer.js */
+define(function(){
 	var menuTree = {
 		list: [
 			/*
@@ -80,7 +81,6 @@
 					{url: "Advanced_QOSUserPrio_Content.asp", tabName: "__INHERIT__"},
 					{url: "Advanced_QOSUserRules_Content.asp", tabName: "__INHERIT__"},
 					{url: "AdaptiveQoS_Adaptive.asp", tabName: "__INHERIT__"},
-					{url: "Bandwidth_Limiter.asp", tabName: "__INHERIT__"},
 					{url: "NULL", tabName: "__INHERIT__"}
 				] 
 			},
@@ -88,7 +88,7 @@
 				menuName: "<#Traffic_Analyzer#>",
 				index: "menu_TrafficAnalyzer", 
 				tab: [
-					{url: "TrafficAnalyzer_Statistic.asp", tabName: "Statistic"},
+					{url: "TrafficAnalyzer_Statistic.asp", tabName: "<#Statistic#>"},
 					{url: "Main_TrafficMonitor_realtime.asp", tabName: "<#traffic_monitor#>"},
 					{url: "Main_TrafficMonitor_last24.asp", tabName: "__INHERIT__"},
 					{url: "Main_TrafficMonitor_daily.asp", tabName: "__INHERIT__"},
@@ -181,6 +181,15 @@
 					{url: "Advanced_Exposed_Content.asp", tabName: "<#menu5_3_5#>"},
 					{url: "Advanced_ASUSDDNS_Content.asp", tabName: "<#menu5_3_6#>"},
 					{url: "Advanced_NATPassThrough_Content.asp", tabName: "<#NAT_passthrough_itemname#>"},
+					{url: "NULL", tabName: "__INHERIT__"}
+				]
+			},
+			{
+				menuName: "smart Control",
+				index: "smart_control",
+				tab: [
+					{url: "Advanced_Smart_Control_Alexa.asp", tabName: "__INHERIT__"},
+					{url: "Advanced_Smart_Control_IFTTT.asp", tabName: "__INHERIT__"},
 					{url: "NULL", tabName: "__INHERIT__"}
 				]
 			},
@@ -309,6 +318,9 @@
 					retArray.push("menu_GameBoost");
 				}
 
+				if(!smart_control_support)
+					retArray.push("smart_control");
+
 				/* Operation Mode */
 				if(isSwMode("re")){
 					retArray.push("menu_GuestNetwork");
@@ -399,7 +411,7 @@
 					retArray.push("Advanced_VPN_OpenVPN.asp");
 				}	
 
-				if(!ipsec_support){
+				if(!ipsec_srv_support){
 					retArray.push("Advanced_VPN_IPSec.asp");
 				}
 				
@@ -509,6 +521,11 @@
 					retArray.push("GameBoost.asp");
 				}
 
+				if(!smart_control_support){
+					retArray.push("Advanced_Smart_Control_Alexa.asp");
+					retArray.push("Advanced_Smart_Control_IFTTT.asp");
+				}
+
 				if(!IPv6_support){
 					retArray.push("Main_IPV6Status_Content.asp");
 					retArray.push("Advanced_Firewall_IPv6_Content.asp");
@@ -525,7 +542,7 @@
 				else
 					retArray.push("Advanced_DHCP_Content.asp");
 
-				if(!Rawifi_support || !concurrep_support || !isSwMode("re")){
+				if((!Rawifi_support && ! Rtkwifi_support) || !concurrep_support || !isSwMode("re")){
 					retArray.push("Advanced_WProxy_Content.asp");
 				}
 				

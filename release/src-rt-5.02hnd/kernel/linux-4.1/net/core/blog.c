@@ -78,7 +78,7 @@ written consent.
 /*--- globals ---*/
 
 /* RFC4008 */
-uint32_t blog_nat_tcp_def_idle_timeout = BLOG_NAT_TCP_DEFAULT_IDLE_TIMEOUT; /* 1 DAY */
+uint32_t blog_nat_tcp_def_idle_timeout = BLOG_NAT_TCP_DEFAULT_IDLE_TIMEOUT; /* 20 minutes */
 uint32_t blog_nat_udp_def_idle_timeout = BLOG_NAT_UDP_DEFAULT_IDLE_TIMEOUT; /* 300 seconds */
 
 uint32_t blog_nat_generic_def_idle_timeout = 600 *HZ;/* 600 seconds */
@@ -2673,10 +2673,12 @@ static void blog_gre_dump( Blog_t *blog_p )
             bGreTx_p->hlen, ntohs(bGreTx_p->ipid), ntohs(bGreTx_p->ipid),
             bGreTx_p->gre_flags.u16 ); 
 }
- 
+
+extern unsigned long blog_lock_ret_ip;
 void blog_lock(void)
 {
     BLOG_LOCK_BH();
+    blog_lock_ret_ip = _RET_IP_;
 }
 
 void blog_unlock(void)

@@ -48,6 +48,9 @@ struct BcmEnet_devctrl {
     unsigned char *end_skbs_p;
     int            rdpa_port;
     int physical_inx;
+#ifdef CATHY_SKBLIST_LOCK_PATCH
+    spinlock_t skblist_lock;
+#endif /* CATHY_SKBLIST_LOCK_PATCH */
 };
 
 struct enet_xmit_params {

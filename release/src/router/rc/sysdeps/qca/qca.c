@@ -487,17 +487,18 @@ int get_bw_via_channel(int band, int channel)
 }
 
 
-#define MAX_NO_GUEST 3
 int gen_ath_config(int band, int is_iNIC,int subnet)
 {
 #ifdef RTCONFIG_WIRELESSREPEATER
 	FILE *fp4 = NULL;
 	char path4[50];
+	int wlc_band = nvram_get_int("wlc_band");
 #endif
 	FILE *fp, *fp2, *fp3, *fp5;
 	char *str = NULL;
 	char *str2 = NULL;
 	int i, j, bw = 0, puren = 0, only_20m = 0;
+	int max_subnet;
 	char list[2048];
 	char wds_mac[4][30];
 	int wds_keyidx;
@@ -513,7 +514,6 @@ int gen_ath_config(int band, int is_iNIC,int subnet)
 	char t_mode[30],t_bw[10],t_ext[10],mode_cmd[100];
 	int bg_prot,ban;
 	int sw_mode = sw_mode();
-	int wlc_band = nvram_get_int("wlc_band");
 	int wpapsk;
 	int val,rate,caps;
 	char wif[10], vphy[10];
@@ -544,6 +544,7 @@ int gen_ath_config(int band, int is_iNIC,int subnet)
 	memset(t_mode,0,sizeof(t_mode));
 	memset(t_bw,0,sizeof(t_bw));
 	memset(t_ext,0,sizeof(t_ext));
+	max_subnet = num_of_mssid_support(band);
 	
 	__get_wlifname(band, subnet, wif);
 	strcpy(vphy, get_vphyifname(band));
@@ -594,8 +595,7 @@ int gen_ath_config(int band, int is_iNIC,int subnet)
 	else
 	{
 	   	j=0;
-	   	for(i=1;i<=MAX_NO_GUEST;i++)
-		{
+		for (i = 1;i <= max_subnet; i++) {
 			sprintf(prefix_mssid, "wl%d.%d_", band, i);
 			if (nvram_match(strcat_r(prefix_mssid, "bss_enabled", temp), "1"))
 			{   
@@ -1097,7 +1097,13 @@ int gen_ath_config(int band, int is_iNIC,int subnet)
 		//BeaconPeriod
 		str = nvram_safe_get(strcat_r(prefix, "bcn", tmp));
 		if (str && strlen(str)) {
-			if (atoi(str) > 1000 || atoi(str) < 20) {
+			const int min_bintval =
+#if defined(RTCONFIG_WIFI_QCA9994_QCA9994)
+				100;
+#else
+				40;
+#endif
+			if (atoi(str) > 1000 || atoi(str) < min_bintval) {
 				nvram_set(strcat_r(prefix, "bcn", tmp), "100");
 				fprintf(fp2, "iwpriv %s bintval 100\n",wif);
 			} else
@@ -1140,7 +1146,7 @@ int gen_ath_config(int band, int is_iNIC,int subnet)
 		else if (!strcmp(str, "shared")) 
 			fprintf(fp, "auth_algs=2\n");
 		else if (!strcmp(str, "radius")) {
-			fprintf(fp, "auth_algs=3\n");
+			fprintf(fp, "auth_algs=1\n");
 			fprintf(fp, "wep_key_len_broadcast=5\n");
 			fprintf(fp, "wep_key_len_unicast=5\n");
 			fprintf(fp, "wep_rekey_period=300\n");
@@ -1391,7 +1397,7 @@ int gen_ath_config(int band, int is_iNIC,int subnet)
 
 	val = nvram_pf_get_int(main_prefix, "channel");
 #ifdef RTCONFIG_QCA_TW_AUTO_BAND4
-	if(band) //5G, flush block-channel list
+	if (band && !subnet) //5G, flush block-channel list
 		fprintf(fp3, "wifitool %s block_acs_channel 0\n",wif);
 #if defined(RTAC58U)
 	else
@@ -1431,17 +1437,18 @@ int gen_ath_config(int band, int is_iNIC,int subnet)
 #endif
 #endif		
 		fprintf(fp3, "iwpriv wifi%d dcs_enable 0\n",band);	//not to scan and change to other channels
-	   	fprintf(fp3, "iwconfig %s channel auto\n",wif);
 	}
 	if(!band && strstr(t_mode, "11N") != NULL) //only 2.4G && N mode is used
 		fprintf(fp3,"iwpriv %s disablecoext %d\n",wif,(bw==2)?1:0);	// when N mode is used
 
 #if defined(RTCONFIG_WIFI_QCA9994_QCA9994)
 	if (!subnet) {
-		val = nvram_get_int("qca_fc_buf_min");
-		if (val >= 64 && val <= 1000)
-			fc_buf_min = val;
-		fprintf(fp3, "iwpriv %s fc_buf_min %d\n", get_vphyifname(band), fc_buf_min);
+		if (band == 1) {
+			val = nvram_get_int("qca_fc_buf_min");
+			if (val >= 64 && val <= 1000)
+				fc_buf_min = val;
+			fprintf(fp3, "iwpriv %s fc_buf_min %d\n", get_vphyifname(band), fc_buf_min);
+		}
 		if (nvram_pf_match(prefix, "hwol", "1")) {
 			int i;
 			char *vphyif = get_vphyifname(band);
@@ -1823,7 +1830,12 @@ next_mrate:
 	fprintf(fp, "config_methods=push_button display virtual_display virtual_push_button physical_push_button label\n");
 	fprintf(fp, "pbc_in_m1=1\n");
 	fprintf(fp, "ap_pin=%s\n", nvram_safe_get("secret_code"));
-	fprintf(fp, "upnp_iface=br0\n");
+#ifdef RTCONFIG_TAGGED_BASED_VLAN
+	if(strlen(br_if))
+		fprintf(fp, "upnp_iface=%s\n",br_if);
+	else
+		fprintf(fp, "upnp_iface=br0\n");
+#endif
 	fprintf(fp, "friendly_name=WPS Access Point\n");
 	fprintf(fp, "manufacturer_url=http://www.asus.com\n");
 	fprintf(fp, "model_description=ASUS Router\n");
@@ -2043,6 +2055,16 @@ int wps_pin(int pincode)
 	foreach(word, ifnames, next) {
 		if (i >= MAX_NR_WL_IF)
 			break;
+
+#if defined(MAPAC1300) || defined(MAPAC2200)
+#ifndef RTCONFIG_DUAL_BACKHAUL
+		if(i==0)
+		{	
+			i++;
+			continue;
+		}
+#endif
+#endif
 		if (!multiband && wps_band != i) {
 			++i;
 			continue;
@@ -2077,6 +2099,17 @@ static int __wps_pbc(int multiband)
 	foreach(word, ifnames, next) {
 		if (i >= MAX_NR_WL_IF)
 			break;
+
+#if defined(MAPAC1300) || defined(MAPAC2200)
+#ifndef RTCONFIG_DUAL_BACKHAUL
+		if(i==0)
+		{	
+			i++;
+			continue;
+		}
+#endif
+#endif
+
 		if (!multiband && wps_band != i) {
 			++i;
 			continue;
@@ -2124,6 +2157,17 @@ void __wps_oob(const int multiband)
 	foreach(word, ifnames, next) {
 		if (i >= MAX_NR_WL_IF)
 			break;
+
+#if defined(MAPAC1300) || defined(MAPAC2200)
+#ifndef RTCONFIG_DUAL_BACKHAUL
+		if(i==0)
+		{	
+			i++;
+			continue;
+		}
+#endif
+#endif
+
 		if (!multiband && wps_band != i) {
 			++i;
 			continue;
@@ -2205,6 +2249,16 @@ void start_wsc(void)
 	foreach(word, ifnames, next) {
 		if (i >= MAX_NR_WL_IF)
 			break;
+
+#if defined(MAPAC1300) || defined(MAPAC2200)
+#ifndef RTCONFIG_DUAL_BACKHAUL
+		if(i==0)
+		{	
+			i++;
+			continue;
+		}
+#endif
+#endif
 		if (!multiband && wps_band != i) {
 			++i;
 			continue;
@@ -2247,6 +2301,16 @@ static void __stop_wsc(int multiband)
 	foreach(word, ifnames, next) {
 		if (i >= MAX_NR_WL_IF)
 			break;
+
+#if defined(MAPAC1300) || defined(MAPAC2200)
+#ifndef RTCONFIG_DUAL_BACKHAUL
+		if(i==0)
+		{	
+			i++;
+			continue;
+		}
+#endif
+#endif
 		if (!multiband && wps_band != i) {
 			++i;
 			continue;
@@ -2287,7 +2351,19 @@ void start_wsc_enrollee(void)
 	foreach(word, ifnames, next) {
 		if (i >= MAX_NR_WL_IF)
 			break;
-
+#if defined(MAPAC2200) 
+		if(i>=2)        //only need sta0 & sta1
+                       	break;
+#endif
+#if defined(MAPAC1300) || defined(MAPAC2200)
+#ifndef RTCONFIG_DUAL_BACKHAUL
+		if(i==0)
+		{	
+			i++;
+			continue;
+		}
+#endif
+#endif
 		dbg("%s: start wsc enrollee(%d)\n", __func__, i);
 
 		strcpy(sta, get_staifname(i));
@@ -2305,7 +2381,7 @@ void start_wsc_enrollee(void)
 			fprintf(fp, "ctrl_interface=/var/run/wpa_supplicant\n");
 			fprintf(fp, "update_config=1\n");
 			fclose(fp);
-#if defined(HIVEDOT) || defined(HIVESPOT)
+#if defined(MAPAC1300) || defined(MAPAC2200)
 			if(nvram_get_int("x_Setting") && sw_mode()==SW_MODE_AP)
 				_dprintf("==>wps enrollee: using original sta%d vap\n",i);
 			else
@@ -2335,19 +2411,33 @@ void stop_wsc_enrollee(void)
 	foreach(word, ifnames, next) {
 		if (i >= MAX_NR_WL_IF)
 			break;
+#if defined(MAPAC2200) 
+                if(i>=2)        //only need sta0 & sta1
+                        break;
+#endif
+
+#if defined(MAPAC1300) || defined(MAPAC2200)
+#ifndef RTCONFIG_DUAL_BACKHAUL
+		if(i==0)
+		{	
+			i++;
+			continue;
+		}
+#endif
+#endif
 
 		strcpy(sta, get_staifname(i));
 		doSystem("wpa_cli -i %s wps_cancel", sta);
 
 		if (sw_mode() == SW_MODE_ROUTER
-				|| sw_mode() == SW_MODE_AP) {
+				|| nvram_get_int("sw_mode") == SW_MODE_AP) {
 			snprintf(fpath, sizeof(fpath), "/var/run/wifi-%s.pid", sta);
 			kill_pidfile_tk(fpath);
 			unlink(fpath);
 			snprintf(fpath, sizeof(fpath), "/etc/Wireless/conf/wpa_supplicant-%s.conf", sta);
 			unlink(fpath);
 
-#if defined(HIVEDOT) || defined(HIVESPOT)
+#if defined(MAPAC1300) || defined(MAPAC2200)
 			if(nvram_get_int("x_Setting") && sw_mode()==SW_MODE_AP)
 				_dprintf("==>wps enrollee: do not destroy original sta%d vap\n",i);
 			else
@@ -2372,8 +2462,15 @@ void wifi_clone(int unit)
 	int len;
 	char *pt1, *pt2;
 	char tmp[128], prefix[] = "wlXXXXXXXXXX_";
-#if defined(HIVEDOT) || defined(HIVESPOT)
+#if defined(MAPAC1300) || defined(MAPAC2200)
 	char stmp[128], sprefix[] = "wlXXXXXXXXXX_";
+#ifndef RTCONFIG_DUAL_BACKHAUL
+	if(unit==0)
+	{
+		_dprintf("RE: do not use sta0!\n");
+		return;
+	}
+#endif
 #endif
 	sprintf(buf, "/etc/Wireless/conf/wpa_supplicant-%s.conf", get_staifname(unit));
 	snprintf(prefix, sizeof(prefix), "wl%d_", unit);
@@ -2418,14 +2515,14 @@ void wifi_clone(int unit)
 			nvram_commit();
 		}
 	}
-#if defined(HIVEDOT) || defined(HIVESPOT)
+#if defined(MAPAC1300) || defined(MAPAC2200)
 	snprintf(sprefix, sizeof(sprefix), "wl%d_", unit);
 	snprintf(prefix, sizeof(prefix), "wl%d_", unit?0:1);
 	nvram_set(strcat_r(prefix, "ssid", tmp), nvram_get(strcat_r(sprefix, "ssid", stmp)));
 	nvram_set(strcat_r(prefix, "wpa_psk", tmp), nvram_get(strcat_r(sprefix, "wpa_psk", stmp)));
 	nvram_set(strcat_r(prefix, "crypto", tmp), nvram_get(strcat_r(sprefix, "crypto", stmp)));
 	nvram_set(strcat_r(prefix, "auth_mode_x", tmp), nvram_get(strcat_r(sprefix, "auth_mode_x", stmp)));
-#if defined(HIVESPOT)
+#if defined(MAPAC2200)
         duplicate_5g2();
 #endif
 	nvram_commit();
@@ -2683,7 +2780,7 @@ void platform_start_ate_mode(void)
 		break;
 #endif	/* RT4GAC55U */
 
-#if defined(RTAC88N) || defined(BRTAC828) || defined(RTAC88S) || defined(RTAC58U) ||  defined(RTAC82U)     
+#if defined(RTAC88N) || defined(BRTAC828) || defined(RTAC88S) || defined(RTAC58U) ||  defined(RTAC82U)
 	case MODEL_RTAC88N:
 	case MODEL_BRTAC828:
 	case MODEL_RTAC88S:
@@ -2787,11 +2884,25 @@ getSiteSurvey(int band,char* ofile)
 	char ure_mac[18];
 	int wl_authorized = 0;
 #endif
+#if defined(MAPAC1300) || defined(MAPAC2200)
+	int j,mac1=0,mac2=0,cmp=0;
+	char address2[18]="",tm[5]="";
+	char tmpnv[30];
+	int sig_tmp,sig_bk;
+	char addr_tmp[18]="";
+#endif
 	int is_ready, wlc_band = -1;
 	char temp1[200];
 	char prefix_header[]="Cell xx - Address:";
 
 	dbG("site survey...\n");
+
+#if defined(MAPAC1300) || defined(MAPAC2200)
+	sig_tmp=0;
+	sig_bk=0;
+	memset(addr_tmp,0,sizeof(addr_tmp));
+	goto skip_init;
+#endif
 #if defined(RTCONFIG_WIRELESSREPEATER)
 	if (nvram_get("wlc_band") && (repeater_mode() || mediabridge_mode()))
 		wlc_band = nvram_get_int("wlc_band");
@@ -2830,6 +2941,14 @@ getSiteSurvey(int band,char* ofile)
 		ssv_ok = do_sitesurvey(ssv_if);
 		ifconfig(ssv_if, 0, NULL, NULL);
 	}
+
+#if defined(MAPAC1300) || defined(MAPAC2200)
+skip_init:
+        lock = file_lock("sitesurvey");
+        strcpy(ssv_if, get_staifname(band));
+        ifconfig(ssv_if, IFUP, NULL, NULL);
+        ssv_ok = do_sitesurvey(ssv_if);
+#endif
 	file_unlock(lock);
 	
 	if (!(fp= fopen(APSCAN_WLIST, "r")))
@@ -2838,8 +2957,9 @@ getSiteSurvey(int band,char* ofile)
 	memset(header, 0, sizeof(header));
 	sprintf(header, "%-4s%-33s%-18s%-9s%-16s%-9s%-8s\n", "Ch", "SSID", "BSSID", "Enc", "Auth", "Siganl(%)", "W-Mode");
 
+#if !defined(MAPAC1300) && !defined(MAPAC2200)
 	dbg("\n%s", header);
-
+#endif
 	if ((ofp = fopen(ofile, "a")) == NULL)
 	{
 	   fclose(fp);
@@ -2893,7 +3013,10 @@ getSiteSurvey(int band,char* ofile)
 		   		break;
 		}
 #endif
+
+#if !defined(MAPAC1300) && !defined(MAPAC2200)
 		dbg("\napCount=%d\n",apCount);
+#endif
 		apCount++;
 
 		//ch
@@ -3010,10 +3133,11 @@ getSiteSurvey(int band,char* ofile)
 		else
 		   	sprintf(wmode,"unknown");
 
+#if !defined(MAPAC1300) && !defined(MAPAC2200)
 #if 1
 		dbg("%-4s%-33s%-18s%-9s%-16s%-9s%-8s\n",ch,ssid,address,enc,auth,sig,wmode);
 #endif
-
+#endif
 //////
 		if(atoi(ch)<0)
 			fprintf(ofp, "\"ERR_BNAD\",");
@@ -3044,6 +3168,84 @@ getSiteSurvey(int band,char* ofile)
 		fprintf(ofp, "\"%s\",", address);
 
 		fprintf(ofp, "\"%s\",", wmode); 
+
+
+#if defined(MAPAC1300) || defined(MAPAC2200)
+		if(nvram_get_int("x_Setting") && sw_mode()==SW_MODE_AP) //RE
+		{
+			if(band)
+			{
+				memset(tmpnv,0,sizeof(tmpnv));
+				sprintf(tmpnv,"wl%d_ssid",band);
+				if(!strcmp(nvram_safe_get(tmpnv), ssid))
+				{
+					if(atoi(sig)>sig_tmp)
+					{
+						sig_bk=sig_tmp;
+						nvram_set("sta_bssid_bk",addr_tmp);
+						sig_tmp=atoi(sig);
+						strcpy(addr_tmp,address);
+						//_dprintf("=>sig=%d,address=%s\n",sig_tmp, addr_tmp);	
+					}
+					else if (atoi(sig) > sig_bk)
+					{
+						sig_bk=atoi(sig);
+						nvram_set("sta_bssid_bk",address);
+					}
+				}
+			}
+			else //2G
+			{
+				memset(tmpnv,0,sizeof(tmpnv));
+				sprintf(tmpnv,"wl%d_ssid",band);
+				if(!strcmp(nvram_safe_get(tmpnv), ssid))
+				{
+					memset(tmpnv,0,sizeof(tmpnv));
+					sprintf(tmpnv,"wl%d_sta_bssid",band?0:1);//compare with 5G's bssid if scan 2G's bssid
+					if(strlen(nvram_safe_get(tmpnv)))
+					{
+						memset(address2,0,sizeof(address2));
+						strcpy(address2,nvram_safe_get(tmpnv));
+					}
+					else
+						goto skip_cmp;
+
+					for(j=0;j<15;j++)
+					{
+					//	_dprintf("==>mac1[%d]=%c, mac2[%d]=%c\n",j,*(address+j),j,*(address2+j));
+						cmp=abs(*(address+j)-*(address2+j));
+						if(cmp!=0 && cmp!=32) //upper or lower 
+							goto skip_cmp;
+					}
+					//last macfield
+#if 0
+					memset(tm,0,sizeof(tm));
+					sprintf(tm,"%c%c",*(address+15),*(address+16));
+					sscanf(tm,"%x",&mac1);
+					memset(tm,0,sizeof(tm));
+					sprintf(tm,"%c%c",*(address2+15),*(address2+16));
+					sscanf(tm,"%x",&mac2);
+
+					if(abs(mac1-mac2)==2 || abs(mac1-mac2)==4)
+					{
+						//_dprintf("=>set sta_bssid_tmp=%s\n",address);
+						nvram_set("sta_bssid_tmp",address);
+					}
+#else
+					cmp=abs(*(address+15)-*(address2+15));
+					if(cmp!=0 && cmp!=32) //upper or lower 
+						goto skip_cmp;
+					else
+						nvram_set("sta_bssid_tmp",address);
+				
+#endif
+					
+				}
+			}
+		}
+
+skip_cmp:
+#endif
 
 #ifdef RTCONFIG_WIRELESSREPEATER		
 		//memset(ure_mac, 0x0, 18);
@@ -3101,6 +3303,17 @@ getSiteSurvey(int band,char* ofile)
 //////
 
 	}
+
+#if defined(MAPAC1300) || defined(MAPAC2200)
+	if(nvram_get_int("x_Setting") && sw_mode()==SW_MODE_AP) //RE
+	{
+		if(band)
+		{
+			if(sig_tmp!=0 && strlen(addr_tmp)>0)
+				nvram_set("sta_bssid_tmp",addr_tmp);	
+		}
+	}
+#endif
 
 	fclose(fp);
 	fclose(ofp);
@@ -3171,6 +3384,34 @@ unsigned int getStaXRssi(int unit)
 	return atoi(pt1);
 }
 	
+char *get_qca_iwpriv(int unit, char *command)
+{
+	char buf[512];
+	FILE *fp;
+	int len;
+	char *pt1, *pt2;
+
+	sprintf(buf, "iwpriv %s %s", get_wifname(unit), command);
+	fp = popen(buf, "r");
+	if (fp) {
+		memset(buf, 0, sizeof(buf));
+		len = fread(buf, 1, sizeof(buf), fp);
+		pclose(fp);
+		if (len > 1) {
+			buf[len-1] = '\0';
+			pt1 = strstr(buf, command);
+			if (pt1) {
+				pt2 = pt1 + strlen(command) + 1/* ':' */;
+				pt1 = pt2;
+				while ( *pt1!='\r' && *pt1!='\n' && *pt1!='\0' )
+					pt1++;
+				*pt1='\0';
+				return strdup(pt2); // the caller must free it
+			}
+		}
+	}
+	return NULL;
+}
 
 unsigned int getPapState(int unit)
 {
@@ -3325,7 +3566,7 @@ int select_wlc_band()
 #define FIND_CHANNEL_INTERVAL	15
 int wlcconnect_core(void)
 {
-   int unit,ret;
+	int unit, ret;
 
 #ifdef RTCONFIG_CONCURRENTREPEATER
 	int sw_mode = sw_mode();

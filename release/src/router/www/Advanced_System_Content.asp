@@ -1278,7 +1278,7 @@ function control_all_rule_status(obj) {
 			<div>&nbsp;</div>
 			<div class="formfonttitle"><#menu5_6#> - <#menu5_6_2#></div>
 			<div style="margin-left:5px;margin-top:10px;margin-bottom:10px"><img src="/images/New_ui/export/line_export.png"></div>
-			<div class="formfontdesc"><#Syste_title#></div>
+			<div class="formfontdesc"><#System_title#></div>
 
 			<table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3"  class="FormTable">
 			<thead>

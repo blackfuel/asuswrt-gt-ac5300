@@ -5,11 +5,76 @@
 **	
 ** 
 */
+
 #include "encrypt.h"
 #ifndef __MBEDTLS__
 #define	RSA_PADDING		RSA_PKCS1_PADDING 
 #endif	/* !__MBEDTLS__ */
 #define AES_BLOCK_SIZE	16
+//---------------------------------------------------------------------------
+#ifndef __MBEDTLS__
+char *openssl_version_text(
+	char version_text[32])
+{
+#if (SSLEAY_VERSION_NUMBER >= 0x905000)
+	char sub[2];
+	unsigned long ssleay_value;
+	
+	sub[1] = '\0';
+	ssleay_value = SSLeay();
+	if (ssleay_value < 0x906000)
+	{
+		ssleay_value = SSLEAY_VERSION_NUMBER;
+		sub[0] = '\0';
+	}
+	else 
+	{
+		if (ssleay_value & 0xff0)
+		{
+			sub[0] = (char)((ssleay_value >> 4) & 0xff) + 'a' - 1;
+		}
+		else
+		{
+			sub[0] = '\0';
+		}
+	}
+	
+	snprintf(version_text, 31, "OpenSSL/%lx.%lx.%lx%s", 
+		(ssleay_value >> 28) & 0xf,
+		(ssleay_value >> 20) & 0xff,
+		(ssleay_value >> 12) & 0xff,
+		sub);
+			
+#else	/* SSLEAY_VERSION_NUMBER >= 0x905000 */
+	
+#if (SSLEAY_VERSION_NUMBER >= 0x900000)
+	snprintf(version_text, 31, "OpenSSL/%lx.%lx.%lx", 
+		(SSLEAY_VERSION_NUMBER >> 28) & 0xff,
+		(SSLEAY_VERSION_NUMBER >> 20) & 0xff,
+		(SSLEAY_VERSION_NUMBER >> 12) & 0xf);
+
+#else 	/* SSLEAY_VERSION_NUMBER >= 0x900000 */
+    char sub[2];
+    sub[1]='\0';
+    if(SSLEAY_VERSION_NUMBER &0x0f) 
+    {
+      sub[0] = (SSLEAY_VERSION_NUMBER & 0x0f) + 'a' -1;
+    }
+    else
+    {
+      sub[0]='\0';
+	}
+	
+    snprintf(version_text, 31, "SSL/%x.%x.%x%s",
+            (SSLEAY_VERSION_NUMBER >> 12) & 0xff,
+            (SSLEAY_VERSION_NUMBER >> 8) & 0xf,
+            (SSLEAY_VERSION_NUMBER >> 4) & 0xf, sub);
+#endif	/* SSLEAY_VERSION_NUMBER >= 0x900000 */
+#endif	/* SSLEAY_VERSION_NUMBER >= 0x905000 */	
+
+	return version_text;
+}	
+#endif	/* __MBEDTLS__ */
 //---------------------------------------------------------------------------
 char *ssl_version_text(
 	char version_text[32])
@@ -19,9 +84,12 @@ char *ssl_version_text(
 	memset(s, 0, sizeof(s));
 	mbedtls_version_get_string_full(s);
 	snprintf(version_text, 31, "%s", s);
-#else	// __MBEDTLS__
-	snprintf(version_text, 31, "%s", SSLeay_version(SSLEAY_VERSION));
-#endif	// __MBEDTLS__
+#else	/* __MBEDTLS__ */
+	// >>> Remove by MAX 20170111
+	// snprintf(version_text, 31, "%s", SSLeay_version(SSLEAY_VERSION));
+	// <<< Remove by MAX 20170111
+	openssl_version_text(version_text);
+#endif	/* __MBEDTLS__ */	
 	return version_text;
 }
 //---------------------------------------------------------------------------
@@ -32,6 +100,7 @@ RSA* rsa_create(
 {
 	RSA *rsa = NULL;
 	BIO *keybio = NULL;
+	
 	if (key == NULL)
 	{
 		return NULL;
@@ -55,7 +124,7 @@ RSA* rsa_create(
 	BIO_free(keybio);
 	return rsa;
 }
-#endif	// !__MBEDTLS__
+#endif	/* !__MBEDTLS__ */
 //---------------------------------------------------------------------------
 #ifndef __MBEDTLS__
 RSA* rsa_create_with_file(
@@ -163,12 +232,12 @@ rsa_decrypt_err:
 	
 	size_t len = 0;
 	RSA *rsa = NULL;
-	
+
 	if (enc_data == NULL || data_len <= 0 || key == NULL || decrypted == NULL)
 	{
 		return 0;
 	}
-	
+
 	rsa = rsa_create(key, public);
 	if (rsa == NULL)
 	{
@@ -373,7 +442,7 @@ rsa_encrypt_err:
 	{
 		return 0;
 	}
-	
+
 	rsa = rsa_create(key, public);
 	if (rsa == NULL)
 	{
@@ -397,7 +466,7 @@ rsa_encrypt_err:
 	{
 		len = RSA_public_encrypt(data_len, data, encrypted, rsa, RSA_PADDING);
 	}
-	
+
 	RSA_free(rsa);
 	return len;	
 
@@ -622,6 +691,7 @@ aes_encrypt_err:
 	if (!EVP_EncryptInit_ex(e_ctx, EVP_aes_256_ecb(), NULL, key, NULL))
 	{
 		printf("%s(%d):EVP_EncryptInit_ex()!!\n", __func__, __LINE__);
+		EVP_CIPHER_CTX_free(e_ctx);
 		return NULL;
 	}
 	
@@ -631,6 +701,7 @@ aes_encrypt_err:
 	if (out == NULL)
 	{
 		printf("%s(%d):Failed to malloc() !!\n", __func__, __LINE__);
+		EVP_CIPHER_CTX_free(e_ctx);
 		return NULL;
 	}
 	
@@ -642,6 +713,7 @@ aes_encrypt_err:
 		{
 			printf("%s(%d):Failed to EVP_EncryptUpdate() !!\n", __func__, __LINE__);
 			free(out);
+			EVP_CIPHER_CTX_free(e_ctx);
 			return NULL;
 		}	
 		
@@ -657,6 +729,7 @@ aes_encrypt_err:
 		{
 			printf("%s(%d):Failed to EVP_EncryptUpdate() !!\n", __func__, __LINE__);
 			free(out);
+			EVP_CIPHER_CTX_free(e_ctx);
 			return NULL;
 		}
 		o += enc_size;
@@ -667,6 +740,7 @@ aes_encrypt_err:
 	{
 		printf("%s(%d):EVP_EncryptUpdate() !!\n", __func__, __LINE__);
 		free(out);
+		EVP_CIPHER_CTX_free(e_ctx);
 		return NULL;
 	}
 	
@@ -766,7 +840,8 @@ aes_decrypt_err:
 
 	if (!EVP_DecryptInit_ex(d_ctx, EVP_aes_256_ecb(), NULL, key, NULL))
 	{
-		printf("%s(%d):Failed to EVP_DecryptInit_ex() !!\n", __func__, __LINE__);		
+		printf("%s(%d):Failed to EVP_DecryptInit_ex() !!\n", __func__, __LINE__);
+		EVP_CIPHER_CTX_free(d_ctx);
 		return NULL;
 	}
 	
@@ -776,6 +851,7 @@ aes_decrypt_err:
 	if (out == NULL)
 	{
 		printf("%s(%d):Failed to malloc() !!\n", __func__, __LINE__);
+		EVP_CIPHER_CTX_free(d_ctx);
 		return NULL;
 	}
 
@@ -787,6 +863,7 @@ aes_decrypt_err:
 		{
 			printf("%s(%d):Failed to EVP_DecryptUpdate()!!\n", __func__, __LINE__);		
 			free(out);
+			EVP_CIPHER_CTX_free(d_ctx);
 			return NULL;
 		}	
 		
@@ -802,6 +879,7 @@ aes_decrypt_err:
 		{			
 			printf("%s(%d):Failed to EVP_DecryptUpdate()!!\n", __func__, __LINE__);		
 			free(out);
+			EVP_CIPHER_CTX_free(d_ctx);
 			return NULL;
 		}
 		*out_len += dec_size;
@@ -812,6 +890,7 @@ aes_decrypt_err:
 	{
 		printf("%s(%d):Failed to EVP_DecryptFinal_ex()!!\n", __func__, __LINE__);		
 		free(out);
+		EVP_CIPHER_CTX_free(d_ctx);
 		return NULL;
 	}
 	

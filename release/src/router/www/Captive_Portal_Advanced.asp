@@ -562,7 +562,7 @@ function gen_basic_settings() {
 	code += "<th>Landing Page (Redirect to your website)</th>";/*untranslated*/
 	code += "<td>";
 	code += "<input style='margin-left:0px;' type='text' name='cpa_landing_page' value='' class='input_25_table' maxlength='64' autocomplete='off' autocorrect='off' autocapitalize='off'>";
-	code += "<span style='color:#FCO;margin-left:5px;'>ex. www.asus.com</span>";
+	code += "<span style='margin-left:5px;'>ex. http or https ://www.asus.com</span>";
 	code += "</td>";
 	code += "</tr>";
 
@@ -2542,8 +2542,7 @@ function editProfile(_profile_id) {
 			set_time(edit_profile_content[3], $("input[name=cpa_session_set]"), $("select[name=cpa_session_timeout_unit]"));
 		}
 
-		var landingPage = edit_profile_content[4].replace("http://", "");
-		$("input[name=cpa_landing_page]").val(landingPage);
+		$("input[name=cpa_landing_page]").val(edit_profile_content[4]);
 
 		var _wl_if_group = "";
 		var set_checkbox_status = function(_unit, _status) {
@@ -2942,7 +2941,7 @@ function finishRule(flag) {
 
 	var cpa_landing_page = "";
 	if($("input[name=cpa_landing_page]").val() != "") {
-		cpa_landing_page = "http://" + $("input[name=cpa_landing_page]").val().trim();
+		cpa_landing_page = $("input[name=cpa_landing_page]").val().trim();
 		if(!validator.isValidURL(cpa_landing_page)) {
 			captive_portal_adv_edit_idx = 1;
 			set_tab_and_action_btn();
@@ -3424,33 +3423,58 @@ function finishRule(flag) {
 	splash_page_adv_html += "gen_component_html(1.4, 1.4);\n";
 	splash_page_adv_html += "}\n";
 	splash_page_adv_html += "}\n";
-
 	splash_page_adv_html += "var splash_page_preview_array = new Array();\n";
-	if(component_array['component_image']) {
-		splash_page_adv_html += "splash_page_preview_array['component_image'] = []\n";
-		var _component_image_obj = Object.keys(component_array['component_image']);
-		var _component_obj_length = _component_image_obj.length;
-		for(var i = 0; i < _component_obj_length; i += 1) {
-			var _idx = _component_image_obj[i];
-			splash_page_adv_html += "splash_page_preview_array['component_image'][" + _idx + "] = "  + JSON.stringify(component_array['component_image'][_idx]) + ";\n";
-		}
-	}
-	if(component_array['component_text']) {
-		splash_page_adv_html += "splash_page_preview_array['component_text'] = []\n";
-		var _component_text_obj = Object.keys(component_array['component_text']);
-		var _component_obj_length = _component_text_obj.length;
-		for(var i = 0; i < _component_obj_length; i += 1) {
-			var _idx = _component_text_obj[i];
-			splash_page_adv_html += "splash_page_preview_array['component_text'][" + _idx + "] = "  + JSON.stringify(component_array['component_text'][_idx]) + ";\n";
-		}
-	}
-	if(component_array["component_eula"])
-		splash_page_adv_html += "splash_page_preview_array['component_eula'] = "  + JSON.stringify(component_array['component_eula']) + ";\n";
-	if(component_array['component_account'])
-		splash_page_adv_html += "splash_page_preview_array['component_account'] = "  + JSON.stringify(component_array['component_account']) + ";\n";
-	splash_page_adv_html += "splash_page_preview_array['component_button'] = "  + JSON.stringify(component_array['component_button']) + ";\n";
-	splash_page_adv_html += "splash_page_preview_array['component_background'] = "  + JSON.stringify(component_array['component_background']) + ";\n";
-
+	splash_page_adv_html += "function get_splash_page_attribute() {\n";
+	splash_page_adv_html += "var result = 'NoData';\n";
+	splash_page_adv_html += "$.ajax({\n";
+	splash_page_adv_html += "url: '/Uam.json',\n";
+	splash_page_adv_html += "dataType: 'json',\n";
+	splash_page_adv_html += "error: function(xhr){\n";
+	splash_page_adv_html += "setTimeout('get_splash_page_attribute();', 1000);\n";
+	splash_page_adv_html += "},\n";
+	splash_page_adv_html += "success: function(response) {\n";
+	splash_page_adv_html += "splash_page_preview_array = [];\n";
+	splash_page_adv_html += "var component_array_element = '';\n";
+	splash_page_adv_html += "if(response.component_image) {\n";
+	splash_page_adv_html += "component_array_element = JSON.parse( JSON.stringify( response.component_image ) );\n";
+	splash_page_adv_html += "for(var i = 0; i < component_array_element.length; i += 1) {\n";
+	splash_page_adv_html += "var _idx = component_array_element[i].idx;\n";
+	splash_page_adv_html += "if(splash_page_preview_array['component_image'] == undefined)\n";
+	splash_page_adv_html += "splash_page_preview_array['component_image'] = [];\n";
+	splash_page_adv_html += "splash_page_preview_array['component_image'][_idx] = component_array_element[i];\n";
+	splash_page_adv_html += "delete splash_page_preview_array['component_image'][_idx].idx;\n";
+	splash_page_adv_html += "}\n";
+	splash_page_adv_html += "}\n";
+	splash_page_adv_html += "if(response.component_text) {\n";
+	splash_page_adv_html += "component_array_element = JSON.parse( JSON.stringify( response.component_text ) );\n";
+	splash_page_adv_html += "for(var i = 0; i < component_array_element.length; i += 1) {\n";
+	splash_page_adv_html += "var _idx = component_array_element[i].idx;\n";
+	splash_page_adv_html += "if(splash_page_preview_array['component_text'] == undefined)\n";
+	splash_page_adv_html += "splash_page_preview_array['component_text'] = [];\n";
+	splash_page_adv_html += "splash_page_preview_array['component_text'][_idx] = component_array_element[i];\n";
+	splash_page_adv_html += "delete splash_page_preview_array['component_text'][_idx].idx;\n";
+	splash_page_adv_html += "}\n";
+	splash_page_adv_html += "}\n";
+	splash_page_adv_html += "if(response.component_eula) {\n";
+	splash_page_adv_html += "component_array_element = JSON.parse( JSON.stringify( response.component_eula ) );\n";
+	splash_page_adv_html += "splash_page_preview_array['component_eula'] = [component_array_element];\n";
+	splash_page_adv_html += "}\n";
+	splash_page_adv_html += "if(response.component_account) {\n";
+	splash_page_adv_html += "component_array_element = JSON.parse( JSON.stringify( response.component_account ) );\n";
+	splash_page_adv_html += "splash_page_preview_array['component_account'] = [component_array_element];\n";
+	splash_page_adv_html += "}\n";
+	splash_page_adv_html += "if(response.component_button) {\n";
+	splash_page_adv_html += "component_array_element = JSON.parse( JSON.stringify( response.component_button ) );\n";
+	splash_page_adv_html += "splash_page_preview_array['component_button'] = [component_array_element];\n";
+	splash_page_adv_html += "}\n";
+	splash_page_adv_html += "if(response.component_background) {\n";
+	splash_page_adv_html += "component_array_element = JSON.parse( JSON.stringify( response.component_background ) );\n";
+	splash_page_adv_html += "splash_page_preview_array['component_background'] = [component_array_element];\n";
+	splash_page_adv_html += "}\n";
+	splash_page_adv_html += "re_tune_size();\n";
+	splash_page_adv_html += "}\n";
+	splash_page_adv_html += "});\n";
+	splash_page_adv_html += "}\n";
 	splash_page_adv_html += "function initial() {\n";
 	splash_page_adv_html += "var mql = window.matchMedia('(orientation: portrait)');\n";
 	splash_page_adv_html += "if(mql.matches) {\n";  
@@ -3461,7 +3485,7 @@ function finishRule(flag) {
 	splash_page_adv_html += "windw_width = (screen.height > screen.width) ? screen.height : screen.width;\n";
 	splash_page_adv_html += "windw_height = (screen.height > screen.width) ? screen.width : screen.height;\n";
 	splash_page_adv_html += "}\n";
-	splash_page_adv_html += "re_tune_size();\n";
+	splash_page_adv_html += "get_splash_page_attribute();\n";
 	splash_page_adv_html += "}\n";
 	splash_page_adv_html += "function open_walled_garden(_url) {\n";
 	splash_page_adv_html += "if(_url != '') {\n";

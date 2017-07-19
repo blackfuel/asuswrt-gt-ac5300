@@ -119,7 +119,7 @@ function initial(){
 		if(addRow_Group(32, $("#vts_rulelist_0")[0])) applyRule();
 	}
 
-	if(based_modelid == "GT-AC5300")
+	if(based_modelid == "GT-AC5300" || based_modelid == "GT-AC9600")
 		document.getElementById("VSGameList").parentNode.style.display = "none";
 }
 

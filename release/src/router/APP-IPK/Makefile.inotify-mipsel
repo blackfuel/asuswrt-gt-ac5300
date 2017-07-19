@@ -23,7 +23,7 @@ export SIZE := $(CROSS_COMPILE)size
 export CXX := $(CROSS_COMPILE)g++
 export CXXCPP := $(CROSS_COMPILE)g++ -E
 
-
+obj-y += mkdir
 obj-y += inotify
 obj-y += inotify-ipk
 
@@ -35,6 +35,9 @@ all: $(obj-y)
 clean:
 	@$(MAKE) inotify-clean
 	rm -rf inotify*.ipk
+
+mkdir:
+	-mkdir -p Inotify-ipk/opt/tmp/bin/
 
 inotify-clean:
 	@$(MAKE) -C $(CURRENT)/inotify clean -f Makefile.ipk
@@ -50,6 +53,7 @@ inotify: inotify/stamp-h1
 
 
 inotify-ipk:
+	cp -rf AiCloud-tmp/CONTROL/control-inotify-mipsel Inotify-ipk/CONTROL/control
 	$(STRIP) Inotify-ipk/opt/tmp/bin/*
 #	$(STRIP) Inotify-ipk/opt/tmp/lib/*
 	@$(IPKG_TOOLS)/ipkg-build Inotify-ipk ./

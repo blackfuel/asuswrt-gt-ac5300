@@ -288,7 +288,7 @@ function initial(){
 			}
 		}
 
-		if(based_modelid == "RT-AC88N" || based_modelid == "RT-AC88Q" || based_modelid == "BRT-AC828" || based_modelid == "RT-AC58U"  || based_modelid == "RT-AC82U"){
+		if(based_modelid == "RT-AC88N" || based_modelid == "RT-AC88Q" || based_modelid == "BRT-AC828" || based_modelid == "RT-AC58U"  || based_modelid == "RT-AC82U" || based_modelid == "MAP-AC1300" || based_modelid == "MAP-AC2200"){
 			inputCtrl(document.form.wl_txbf, 1);
 			document.getElementById("wl_MU_MIMO_field").style.display = "";
 			document.form.wl_mumimo.disabled = false;
@@ -317,6 +317,7 @@ function initial(){
 		}
 
 		if((!Qcawifi_support && !Rawifi_support) || based_modelid == "RT-AC87U"
+		    || based_modelid == "MAP-AC1300" || based_modelid == "MAP-AC2200"
 		    || based_modelid == "RT-AC82U" || based_modelid == "RT-AC58U" || (based_modelid == "RP-AC87" && wl_unit_value == "1") ){		// hide on Broadcom platform
 			document.getElementById("wl_plcphdr_field").style.display = "none";
 		}
@@ -374,12 +375,11 @@ function initial(){
 				inputCtrl(document.form.wl_itxbf, 1);
 			}	
 		}	
-		if(based_modelid == "RT-AC88N" || based_modelid == "RT-AC88Q" || based_modelid == "BRT-AC828" || based_modelid == "RT-AC58U"  || based_modelid == "RT-AC82U")
+		if(based_modelid == "RT-AC88N" || based_modelid == "RT-AC88Q" || based_modelid == "BRT-AC828" || based_modelid == "RT-AC58U" || based_modelid == "RT-AC82U" || based_modelid == "MAP-AC1300" || based_modelid == "MAP-AC2200")
 		{
 			$('wl_txbf_desc').innerHTML = "<#WLANConfig11b_x_ExpBeam#>";
 			inputCtrl(document.form.wl_txbf, 1);
 			inputCtrl(document.form.wl_turbo_qam, 1);
-			inputCtrl(document.form.wl_turbo_qam_brcm_intop, 1);
 		}
 	}
 
@@ -468,7 +468,7 @@ function initial(){
 	}
 	
 
-	if( based_modelid == "RT-AC82U" ||  based_modelid == "RT-AC58U")
+	if( based_modelid == "RT-AC82U" ||  based_modelid == "RT-AC58U" || based_modelid == "MAP-AC1300" || based_modelid == "MAP-AC2200")
 		document.getElementById("wl_implicitxbf_field").style.display = "";
 	else
 		document.getElementById("wl_implicitxbf_field").style.display = "none";
@@ -498,7 +498,7 @@ function initial(){
 	
 	/*location_code Setting*/		
 	if(location_list_support){
-		if(based_modelid == "GT-AC5300"){
+		if(based_modelid == "GT-AC5300" || based_modelid == "GT-AC9600"){
 			generate_country_selection();
 		}
 		else{
@@ -1738,7 +1738,7 @@ function handle_beamforming(value){
 							</select>
 						</td>
 					</tr>					
-					<!-- RT-AC82U & RT-AC58U -->
+					<!-- RT-AC82U & RT-AC58U & MAP-AC1300 & MAP-AC2200 -->
 					<tr id="wl_implicitxbf_field"  style="display:none">
 						<th><a class="hintstyle" href="javascript:void(0);" onClick="">Implicit beamforming</a></th>
 						<td>

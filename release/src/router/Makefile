@@ -530,7 +530,7 @@ obj-$(RTCONFIG_SOC_IPQ40XX) += qca-ssdk-shell.ipq40xx
 
 obj-$(RTCONFIG_SOC_IPQ40XX) += ethtool-3.7
 obj-$(RTCONFIG_SOC_IPQ40XX) += stress-1.x
-ifeq ($(MAKE_HIVEDOT)$(MAKE_HIVESPOT),y)
+ifeq ($(MAPAC1300)$(MAPAC2200),y)
 obj-y  += qca-hyfi-qdisc.ipq40xx
 obj-y  += qca-hyfi-bridge.ipq40xx
 ifeq ($(HIVE_LIB),y)
@@ -612,6 +612,7 @@ obj-$(RTCONFIG_BT_CONN) += qca-ar3k-fw
 endif
 
 obj-$(RTCONFIG_I2CTOOLS) += i2c-tools-3.1.2
+obj-$(RTCONFIG_RGBLED) += aura_sw
 
 ifeq ($(or $(RTCONFIG_LANTIQ),$(RTCONFIG_REALTEK)),y)
 BLUEZ_FEATURE=--enable-library
@@ -673,8 +674,10 @@ obj-y += libpasswd
 obj-y += httpd json-c
 obj-$(RTCONFIG_VISUALIZATION) += sqlite3 json-c libxml2 visdcoll visdcon
 obj-y += www
-ifeq ($(MAKE_HIVEDOT)$(MAKE_HIVESPOT),y)
+ifeq ($(HIVE_BIN),y)
 obj-y += hive_bin
+endif
+ifeq ($(HIVE_LIB),y)
 obj-y += hive_lib
 endif
 ifneq ($(HND_ROUTER),y)
@@ -721,9 +724,12 @@ obj-y += wireless_tools
 else ifeq ($(RTCONFIG_ALPINE),y)
 obj-y += taskset
 else ifeq ($(RTCONFIG_LANTIQ),y)
+obj-y += btconfig
 # obj-y += ppacmd
-# obj-y += libhelper
-obj-y += fapi_wlan_common
+obj-y += libhelper-1.4.0.2
+obj-y += fapi_wlan_common-1.0.0.1
+obj-y += libfapi-0.1
+obj-y += taskset
 else
 obj-y += utils$(BCMEX)$(EX7)
 obj-$(RTCONFIG_EMF) += emf$(BCMEX)$(EX7)
@@ -1065,6 +1071,10 @@ obj-$(RTCONFIG_TOAD) += toad
 ifeq ($(RTCONFIG_BCMARM),y)
 ifneq ($(RTCONFIG_QTN),y)
 obj-$(RTCONFIG_BCMBSD) += bsd
+#ifeq ($(HND_ROUTER),y)
+#obj-$(RTCONFIG_BCMBSD) += appeventd
+#export CFLAGS += -DBCM_APPEVENTD
+#endif
 endif
 endif
 obj-$(RTCONFIG_BCMSSD) += ssd
@@ -1228,6 +1238,10 @@ obj-$(HND_ROUTER) += pppd_245
 #obj-$(HND_ROUTER) += jquery
 #obj-$(HND_ROUTER) += tablesorter
 
+# ALPINE compile package
+obj-$(RTCONFIG_ALPINE) += qsr10g_image
+obj-$(RTCONFIG_ALPINE) += aqr107_image
+
 ifeq ($(RTCONFIG_BCMARM),y)
 obj-prelibs =$(filter busybox% nvram$(BCMEX)$(EX7) libbcmcrypto shared netconf libupnp$(BCMEX)$(EX7) libz libbcm pciefd, $(obj-y))
 obj-postlibs := $(filter-out $(obj-prelibs), $(obj-y))
@@ -1235,6 +1249,12 @@ endif
 
 ifneq ($(find lighttpd-1.4.39, $(obj-y)),"")
 released_dir += APP-IPK
+endif
+
+ifeq ($(RTCONFIG_RALINK_MT7621),y)
+ifeq ($(RTCONFIG_APP_NETINSTALLED),y)
+obj-y += taskset
+endif
 endif
 
 obj-clean := $(foreach obj, $(obj-y) $(obj-n) $(obj-), $(obj)-clean)
@@ -1684,7 +1704,7 @@ endif
 
 ifeq ($(RTCONFIG_QCA),y)
 	#FIXME
-ifeq ($(MAKE_HIVEDOT)$(MAKE_HIVESPOT),y)
+ifeq ($(MAPAC1300)$(MAPAC2200),y)
 	ln -sf $(TARGETDIR)/lib/ld-uClibc.so.0  $(TARGETDIR)/usr/lib/ld-uClibc.so.1 && \
 	ln -sf $(TARGETDIR)/lib/libc.so.0  $(TARGETDIR)/usr/lib/libc.so.1 && \
 	ln -sf $(TARGETDIR)/lib/libdl.so.0  $(TARGETDIR)/usr/lib/libdl.so.1 && \
@@ -1855,6 +1875,8 @@ ifeq ($(RTCONFIG_ROMATECCODEFIX),y)
 endif
 ifeq ($(RTCONFIG_LANTIQ),y)
 	cp -R rom_lantiq/opt/ $(TARGETDIR)/rom/opt/
+	cp rom_lantiq/etc/wave_components.ver $(TARGETDIR)/rom/opt/lantiq/etc/
+	rm -rf $(TARGETDIR)/rom/opt/lantiq/www
 	install -D rom_lantiq/bin/dutserver $(TARGETDIR)/bin/
 	install -D rom_lantiq/bin/wave_wlan_dut_drvctrl.sh $(TARGETDIR)/bin/
 	install -D rom_lantiq/bin/wave_wlan_dut_file_saver.sh $(TARGETDIR)/bin/
@@ -1866,6 +1888,8 @@ ifeq ($(RTCONFIG_LANTIQ),y)
 	install -D rom_lantiq/usr/sbin/read_img $(TARGETDIR)/usr/sbin/
 	install -D rom_lantiq/usr/sbin/nandwrite $(TARGETDIR)/usr/sbin/
 	install -D rom_lantiq/usr/sbin/nanddump $(TARGETDIR)/usr/sbin/
+	install -D rom_lantiq/usr/sbin/uboot_env $(TARGETDIR)/usr/sbin/
+	install -D rom_lantiq/usr/sbin/mem $(TARGETDIR)/usr/sbin/
 	cd $(TARGETDIR)/usr/sbin && ln -sf ../../rom/opt/lantiq/bin/mtdump ./mtdump
 	install -D rom_lantiq/usr/sbin/fapi_wlan_dbXml $(TARGETDIR)/usr/sbin/
 	install -D rom_lantiq/usr/sbin/fapi_wlan_cli $(TARGETDIR)/usr/sbin/
@@ -1895,6 +1919,8 @@ ifeq ($(RTCONFIG_ALPINE),y)
 	install -D aqr107_image/aqr_firmware.cld $(TARGETDIR)/lib/firmware/aqr_firmware.cld
 	install -D ${SRCBASE}/tools/${TOOLCHAIN_NAME}/lib/libstdc++.so.6.0.19 $(TARGETDIR)/lib/libstdc++.so.6
 	$(STRIP) $(TARGETDIR)/lib/libstdc++.so.6
+	cd ${PLATFORMDIR}/target; cp ${SRCBASE}/proprietary/sbin/fw_print sbin/
+	cd ${PLATFORMDIR}/target; cp ${SRCBASE}/proprietary/etc/fw_env.config sbin/
 endif
 ifeq ($(RTCONFIG_QTN),y)
 	# install qtn boot-code and firmware
@@ -2189,7 +2215,7 @@ stress-1.x/Makefile:
 
 stress-1.x-configure:
 	( cd stress-1.x ; \
-		$(CONFIGURE) \
+		./autogen.sh && $(CONFIGURE) \
 		--prefix=/usr \
 		--bindir=/usr/sbin \
 		--libdir=/usr/lib \
@@ -2375,7 +2401,7 @@ wb-install:
 
 push_log: wb
 
-rc: nvram$(BCMEX)$(EX7) shared libbcmcrypto libdisk $(if $(RTCONFIG_FBWIFI),fb_wifi) $(if $(RTCONFIG_QTN),libqcsapi_client) $(if $(CONFIG_LIBBCM),libbcm) $(if $(RTCONFIG_BWDPI),bwdpi_source) $(if $(RTCONFIG_USB_SMS_MODEM),smspdu) $(if $(RTCONFIG_HND_ROUTER),bcm_flashutil bcm_util bcm_boardctl) $(if $(RTCONFIG_OPENVPN),libvpn) $(if $(RTCONFIG_LANTIQ),fapi_wlan_common)
+rc: shared nvram$(BCMEX)$(EX7) libbcmcrypto libdisk $(if $(RTCONFIG_FBWIFI),fb_wifi) $(if $(RTCONFIG_QTN),libqcsapi_client) $(if $(CONFIG_LIBBCM),libbcm) $(if $(RTCONFIG_BWDPI),bwdpi_source) $(if $(RTCONFIG_USB_SMS_MODEM),smspdu) $(if $(RTCONFIG_HND_ROUTER),bcm_flashutil bcm_util bcm_boardctl) $(if $(RTCONFIG_OPENVPN),libvpn) $(if $(RTCONFIG_LANTIQ),libfapi-0.1)
 
 rc-install:
 	$(MAKE) -C rc INSTALLDIR=$(INSTALLDIR)/rc install
@@ -2384,6 +2410,11 @@ networkmap: shared json-c
 
 networkmap-install:
 	$(MAKE) -C networkmap INSTALLDIR=$(INSTALLDIR)/networkmap install
+
+aura_sw: aura_sw 
+
+aura_sw-install:
+	$(MAKE) -C aura_sw INSTALLDIR=$(INSTALLDIR)/aura_sw install
 
 bridge/stamp-h1:
 ifneq ($(or $(CONFIG_LINUX3_14),$(findstring linux-3.10,$(LINUXDIR))),)
@@ -4231,6 +4262,9 @@ sysstate-install:
 	echo "install sysstate"
 	$(MAKE) -C sysstate install
 
+qsr10g_image:
+aqr107_image:
+
 CHIP=0
 CLM_BLOBS=router
 CLM_BLOB_IMAGES := $(CLM_BLOBS:=.clm_bin)
@@ -4710,24 +4744,21 @@ ifneq ($(RTCONFIG_BCMARM),y)
 endif
 
 lighttpd-1.4.39/stamp-h1: lighttpd-1.4.39/Makefile
-
-ifneq ($(RTCONFIG_QTN),y)
- ifeq ($(HND_ROUTER),y)
-	cd lighttpd-1.4.39 && ./preconfigure-script-hnd touch $@
- else
-	cd lighttpd-1.4.39 && ./preconfigure-script touch $@
- endif
+ifeq ($(HND_ROUTER),y)
+	cd lighttpd-1.4.39 && ./preconfigure-script-hnd
 else
-	cd lighttpd-1.4.39 && ./preconfigure-script-qtn touch $@
+	cd lighttpd-1.4.39 && ./preconfigure-script
 endif
+	@touch $@
 
-lighttpd-1.4.39: shared nvram$(BCMEX)$(EX7) libdisk samba-3.5.8 pcre-8.31 libxml2 sqlite libexif openssl lighttpd-1.4.39/stamp-h1
+lighttpd-1.4.39: shared nvram$(BCMEX)$(EX7) libdisk samba-3.5.8 pcre-8.31 libxml2 sqlite libexif openssl curl-7.21.7 $(if $(RTCONFIG_PERMISSION_MANAGEMENT),PMS_DBapis) lighttpd-1.4.39/stamp-h1
 
 lighttpd-1.4.39-install:
 	if [ -f lighttpd-1.4.39/Makefile ] ; then \
 		install -D lighttpd-1.4.39/src/.libs/lighttpd $(INSTALLDIR)/lighttpd-1.4.39/usr/sbin/lighttpd ; \
 		install -D lighttpd-1.4.39/src/.libs/lighttpd-monitor $(INSTALLDIR)/lighttpd-1.4.39/usr/sbin/lighttpd-monitor ; \
 		install -D lighttpd-1.4.39/src/.libs/lighttpd-arpping $(INSTALLDIR)/lighttpd-1.4.39/usr/sbin/lighttpd-arpping ; \
+		ln -sf lighttpd $(INSTALLDIR)/lighttpd-1.4.39/usr/sbin/uamsrv ; \
 		$(STRIP) -s $(INSTALLDIR)/lighttpd-1.4.39/usr/sbin/lighttpd ; \
 		$(STRIP) -s $(INSTALLDIR)/lighttpd-1.4.39/usr/sbin/lighttpd-monitor ; \
 		$(STRIP) -s $(INSTALLDIR)/lighttpd-1.4.39/usr/sbin/lighttpd-arpping ; \
@@ -4739,8 +4770,8 @@ lighttpd-1.4.39-install:
 		mkdir -p $(INSTALLDIR)/lighttpd-1.4.39/usr/lighttpd/css && mkdir -p $(INSTALLDIR)/lighttpd-1.4.39/usr/lighttpd/js ; \
 		cp -rf lighttpd-1.4.39/external_file/css/ $(INSTALLDIR)/lighttpd-1.4.39/usr/lighttpd ; \
 		cp -rf lighttpd-1.4.39/external_file/js/ $(INSTALLDIR)/lighttpd-1.4.39/usr/lighttpd ; \
-		cp -f APP-IPK/AiCloud-ipk/CONTROL/control $(INSTALLDIR)/lighttpd-1.4.39/usr/lighttpd ; \
-		cp -f APP-IPK/smartsync-pkg-1.0/CONTROL/control $(INSTALLDIR)/lighttpd-1.4.39/usr/lighttpd/smartsync_control ; \
+		cp -f APP-IPK/AiCloud-tmp/CONTROL/control-aicloud $(INSTALLDIR)/lighttpd-1.4.39/usr/lighttpd/control ; \
+		cp -f APP-IPK/AiCloud-tmp/CONTROL/control-smartsync-arm $(INSTALLDIR)/lighttpd-1.4.39/usr/lighttpd/smartsync_control ; \
 		$(STRIP) -s $(INSTALLDIR)/lighttpd-1.4.39/usr/lib/*.so ; \
 		$(STRIP) -s $(INSTALLDIR)/lighttpd-1.4.39/usr/lib/*.so.0 ; \
 	fi
@@ -5851,11 +5882,15 @@ openswan-nss-clean:
 openswan-nss-stage:
 	$(MAKE) -C openswan-nss stage
 
+ifeq ($(HIVE_BIN),y)
+hive_bin-install: qca-wsplcd.ipq40xx-install qca-hyctl.ipq40xx-install
+endif
+
 qca-whc30-lbd: libqcacommon
 	$(MAKE) -C $@ && $(MAKE) $@-stage
 
 cfg_mnt : libevent-2.0.21
-qca-wifi-assoc-eventd: cfg_mnt
+qca-wifi-assoc-eventd: $(if $(IPQ40XX),cfg_mnt)
 
 qca-wifi:
 	$(MAKE) -C $@ TARGET_CROSS=$(CROSS_COMPILE) LINUX_KARCH=$(ARCH) LINUX_VERSION=$(LINUX_KERNEL) LINUX_DIR=$(LINUXDIR) && $(MAKE) $@-stage
@@ -6117,16 +6152,23 @@ i2c-tools-3.1.2-install: i2c-tools-3.1.2
 ppacmd:
 	cd ppacmd; make
 
-libhelper:
+libhelper-1.4.0.2:
 	cd libhelper-1.4.0.2; make
 
-libhelper-install:
+libhelper-1.4.0.2-install:
 	install -D libhelper-1.4.0.2/libhelper.so $(TARGETDIR)/usr/lib/
 
-fapi_wlan_common: libhelper
+libfapi-0.1: fapi_wlan_common-1.0.0.1
+	cd libfapi-0.1; make clean; make
+
+libfapi-0.1-install:
+	cd libfapi-0.1; make clean; make
+	install -D libfapi-0.1/libfapi.so $(TARGETDIR)/usr/lib/
+
+fapi_wlan_common-1.0.0.1: libhelper-1.4.0.2
 	cd fapi_wlan_common-1.0.0.1; make clean; make
 
-fapi_wlan_common-install:
+fapi_wlan_common-1.0.0.1-install:
 	install -D fapi_wlan_common-1.0.0.1/libfapiwlancommon.so $(TARGETDIR)/usr/lib/
 
 btconfig:

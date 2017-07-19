@@ -76,7 +76,7 @@ struct nvram_tuple router_defaults[] = {
 	{ "wl_phytypes", "", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },	/* List of supported wireless bands (e.g. ga) */
 	{ "wl_radioids", "", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },	/* List of radio IDs */
 #endif
-	{ "wl_ssid", "ASUS", CKN_STR32, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },	/* Service set ID (network name) */
+	{ "wl_ssid", SSID_PREFIX, CKN_STR32, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },	/* Service set ID (network name) */
 #ifdef RTCONFIG_CONCURRENTREPEATER
 	{ "wl0_ssid", DEF_SSID_2G, CKN_STR32, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
 	{ "wl1_ssid", DEF_SSID_5G, CKN_STR32, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
@@ -89,11 +89,11 @@ struct nvram_tuple router_defaults[] = {
 	{ "wl0.1_channel", "0", CKN_STR1, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },	
 #endif
 #else
-#if !defined (RTAC3200) && !defined (RTAC5300) && !defined (GTAC5300) && !defined(HIVESPOT)
-	{ "wl1_ssid", "ASUS_5G", CKN_STR32, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
+#if !defined (RTAC3200) && !defined (RTAC5300) && !defined (GTAC5300) && !defined(MAPAC2200)
+	{ "wl1_ssid", SSID_PREFIX "_5G", CKN_STR32, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
 #else
-	{ "wl1_ssid", "ASUS_5G-1", CKN_STR32, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
-	{ "wl2_ssid", "ASUS_5G-2", CKN_STR32, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
+	{ "wl1_ssid", SSID_PREFIX "_5G-1", CKN_STR32, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
+	{ "wl2_ssid", SSID_PREFIX "_5G-2", CKN_STR32, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
 #endif
 #endif	// RTCONFIG_CONCURRENTREPEATER
 
@@ -296,9 +296,9 @@ struct nvram_tuple router_defaults[] = {
 	{ "wl_nband", "2", CKN_STR1, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },	/* N-BAND */
 	{ "wl0_nband", "2", CKN_STR1, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },	/* 2.4 GHz */
 	{ "wl1_nband", "1", CKN_STR1, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },	/* 5 GHz */
-#if defined(HIVESPOT)
+#if defined(MAPAC2200)
 	{ "wl2_nband", "1", CKN_STR1, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },	/* 5G-2 */
-#endif	/* HIVESPOT */
+#endif	/* MAPAC2200 */
 #else
 	{ "wl_nband", "2", CKN_STR1, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },	/* N-BAND */
 #if defined (RTAC3200) || defined (RTAC5300) || defined (GTAC5300)
@@ -931,6 +931,9 @@ struct nvram_tuple router_defaults[] = {
 #endif
 	{ "bsd_scheme", "2", CKN_STR64, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
 #endif
+#if defined(BCM_APPEVENTD)
+	{ "appeventd_enable", "0", CKN_STR64, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
+#endif
 #ifdef RTCONFIG_BCMARM
 #if !defined(RTCONFIG_BCM7) && !defined(RTCONFIG_BCM_7114) && !defined(HND_ROUTER)
 	{ "acsd_foreground", "0", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },	/* daemon foreground mode control */
@@ -973,7 +976,6 @@ struct nvram_tuple router_defaults[] = {
 	{ "dhd_msg_level", "0", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
 #endif
 #ifdef HND_ROUTER
-	{ "dhd_hw_acc_dis_unit", "0", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 }, /* Disable runner on 2G band to make tcpack suppression effective*/
 	{ "wl0_custom_oui", "ff:ff:ff", CKN_STR32, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 }, /* scheme for forcing AC mode */
 #endif
 #ifdef __CONFIG_VISUALIZATION__
@@ -1044,7 +1046,7 @@ struct nvram_tuple router_defaults[] = {
 #if defined(RTN300)
 	{ "lan_ipaddr", "192.168.50.1", CKN_STR15, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },	/* LAN IP address */
 	{ "lan_ipaddr_rt", "192.168.50.1", CKN_STR15, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
-#elif defined(HIVEDOT) || defined(HIVESPOT)
+#elif defined(MAPAC1300) || defined(MAPAC2200)
 	{ "lan_ipaddr", "192.168.72.1", CKN_STR15, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },	/* LAN IP address */
 	{ "lan_ipaddr_rt", "192.168.72.1", CKN_STR15, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
 #else
@@ -1100,7 +1102,7 @@ struct nvram_tuple router_defaults[] = {
 #if defined(RTN300)
 	{ "dhcp_start", "192.168.50.2", CKN_STR15, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
 	{ "dhcp_end", "192.168.50.254", CKN_STR15, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
-#elif defined(HIVEDOT) || defined(HIVESPOT)
+#elif defined(MAPAC1300) || defined(MAPAC2200)
 	{ "dhcp_start", "192.168.72.2", CKN_STR15, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
 	{ "dhcp_end", "192.168.72.254", CKN_STR15, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
 #else
@@ -1721,7 +1723,7 @@ struct nvram_tuple router_defaults[] = {
 	// NVRAM for start_usb
 	{ "usb_enable", "1", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
 #ifdef RTCONFIG_USB_XHCI
-#if defined(HIVEDOT) || defined(HIVESPOT)
+#if defined(MAPAC1300) || defined(MAPAC2200)
 /* MODEL DON'T USB USB3 but NEED XHCI */
 #else
 #ifdef RTAC87U
@@ -2084,9 +2086,9 @@ struct nvram_tuple router_defaults[] = {
 	{ "apps_ipkg_server", "", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
 	{ "apps_wget_timeout", "30", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
 	{ "apps_local_space", "/rom", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
-#if defined (RTAC1200) || defined (RTAC1200GA1) || defined (RTAC1200GU)
+#if defined (RTAC1200) || defined (RTAC1200GA1) || defined (RTAC1200GU) || defined(RTAC85U)
 	{ "apps_swap_enable", "1", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
-	{ "apps_swap_size", "67000", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
+	{ "apps_swap_size", "67000", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },	
 #else
 	{ "apps_swap_enable", "0", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
 	{ "apps_swap_size", "33000", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },	/* 32M */
@@ -2120,7 +2122,10 @@ struct nvram_tuple router_defaults[] = {
 	{ "r_Setting", "0", CKN_STR1, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },	/* is repeater set */
 	{ "w_Setting", "0", CKN_STR1, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },	/* is wilreess set */
 	{ "ui_Setting", "0", CKN_STR1, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },	/* for Language change in QIS */
-
+#if defined(MAPAC1300) || defined(MAPAC2200)
+	{ "qis_Setting", "0", CKN_STR1, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },	/* QIS finish */
+	{ "hive_ui", "", CKN_STR1, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },	/* for HIVE UI debug */
+#endif
 	{ "asus_mfg", "0", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
 	{ "asus_mfg_flash", "", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
 	{ "btn_rst", "0", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
@@ -2312,12 +2317,12 @@ struct nvram_tuple router_defaults[] = {
 	{ "vpnc_pptp_options_x_list", "", CKN_STR2048, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
 #endif
 
-#if defined(RTCONFIG_VPNC)
-	{ "vpnc_clientlist_ex", "", CKN_STR4096, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
+#if defined(RTCONFIG_VPN_FUSION)
 	{ "vpnc_default_wan", "0", CKN_STR8, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },		
 	{ "vpnc_default_wan_tmp", "", CKN_STR8, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },		
 	{ "vpnc_unit", "", CKN_STR8, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
 	{ "vpnc_dev_policy_list", "", CKN_STR4096, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
+	{ "vpnc_dev_policy_list_tmp", "", CKN_STR4096, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
 	{ "vpnc_policy_unit", "", CKN_STR8, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
 #endif
 
@@ -2833,16 +2838,18 @@ struct nvram_tuple router_defaults[] = {
 #endif /* RTCONFIG_BT_CONN */
 #ifdef RTCONFIG_LP5523
 	{ "lp55xx_lp5523_user_enable", "0", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
-	{ "lp55xx_lp5523_user_col", "", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
-	{ "lp55xx_lp5523_user_beh", "", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
-	{ "lp55xx_lp5523_user_brightness", "100", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
+	{ "lp55xx_lp5523_user_col", "", CKN_STR4, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
+	{ "lp55xx_lp5523_user_beh", "", CKN_STR4, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
+	{ "lp55xx_lp5523_user_brightness", "100", CKN_STR4, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
 	{ "lp55xx_lp5523_sch_enable", "0", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
-	{ "lp55xx_lp5523_sch", "", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
-	{ "lp55xx_lp5523_sch_col", "", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
-	{ "lp55xx_lp5523_sch_beh", "", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
-	{ "lp55xx_lp5523_sch_brightness", "100", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
+	{ "lp55xx_lp5523_sch", "", CKN_STR1024, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
+	{ "lp55xx_lp5523_sch_col", "", CKN_STR4, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
+	{ "lp55xx_lp5523_sch_beh", "", CKN_STR4, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
+	{ "lp55xx_lp5523_sch_brightness", "100", CKN_STR4, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
 #endif /* RTCONFIG_LP5523 */
-
+#ifdef RTCONFIG_RGBLED
+	{ "sb_flash_update", "0", CKN_STR1, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },	/* 0: need to update 1: updated*/
+#endif
 
 	{ NULL, NULL }
 }; // router_defaults

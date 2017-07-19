@@ -94,7 +94,6 @@
 					{url: "Advanced_QOSUserPrio_Content.asp", tabName: "__INHERIT__"},
 					{url: "Advanced_QOSUserRules_Content.asp", tabName: "__INHERIT__"},
 					{url: "AdaptiveQoS_Adaptive.asp", tabName: "__INHERIT__"},
-					{url: "Bandwidth_Limiter.asp", tabName: "__INHERIT__"},
 					{url: "NULL", tabName: "__INHERIT__"}
 				] 
 			},
@@ -102,7 +101,7 @@
 				menuName: Traffic_Analyzer_add_br,
 				index: "menu_TrafficAnalyzer", 
 				tab: [
-					{url: "TrafficAnalyzer_Statistic.asp", tabName: "Statistic"},
+					{url: "TrafficAnalyzer_Statistic.asp", tabName: "<#Statistic#>"},
 					{url: "Main_TrafficMonitor_realtime.asp", tabName: "<#traffic_monitor#>"},
 					{url: "Main_TrafficMonitor_last24.asp", tabName: "__INHERIT__"},
 					{url: "Main_TrafficMonitor_daily.asp", tabName: "__INHERIT__"},
@@ -410,7 +409,7 @@
 					retArray.push("Advanced_VPN_OpenVPN.asp");
 				}	
 
-				if(!ipsec_support){
+				if(!ipsec_srv_support){
 					retArray.push("Advanced_VPN_IPSec.asp");
 				}
 
@@ -518,7 +517,7 @@
 				else
 					retArray.push("Advanced_DHCP_Content.asp");
 
-				if(!Rawifi_support || !concurrep_support || sw_mode != 2){
+				if((!Rawifi_support && !Rtkwifi_support) || !concurrep_support || sw_mode != 2){
 					retArray.push("Advanced_WProxy_Content.asp");
 				}
 				

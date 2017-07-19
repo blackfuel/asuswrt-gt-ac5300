@@ -20,6 +20,68 @@ extern double start_time;
 
 #define MAXSIZE 512
 
+int set_iptables(int flag)
+{
+    int rc = -1;
+    char cmd[1024]={0};
+#ifdef I686
+#else
+    sprintf(cmd, "iptables -D INPUT -p tcp -m tcp --dport %d -j DROP", MYPORT);
+    rc = system(cmd);
+    sprintf(cmd, "iptables -D INPUT -p tcp -m tcp -s 127.0.0.1 --dport %d -j ACCEPT", MYPORT);
+    rc = system(cmd);
+#endif
+    if(flag)
+    {
+#ifdef I686
+	rc = 0;
+#else
+        sprintf(cmd, "iptables -I INPUT -p tcp -m tcp --dport %d -j DROP", MYPORT);
+        rc = system(cmd);
+        sprintf(cmd, "iptables -I INPUT -p tcp -m tcp -s 127.0.0.1 --dport %d -j ACCEPT", MYPORT);
+        rc = system(cmd);
+#endif
+    }
+
+    if(rc == 0)
+        return 0;
+    else
+        return 1;
+}
+
+int write_rootca()
+{
+    FILE *fp;
+    fp = fopen(CA_INFO_FILE,"w");
+    if(NULL == fp)
+    {
+        printf("open rootca  file %s fail\n",CA_INFO_FILE);
+        return -1;
+    }
+    fprintf(fp,"%s","-----BEGIN CERTIFICATE-----\n"
+            "MIIDVDCCAjygAwIBAgIDAjRWMA0GCSqGSIb3DQEBBQUAMEIxCzAJBgNVBAYTAlVT\n"
+            "MRYwFAYDVQQKEw1HZW9UcnVzdCBJbmMuMRswGQYDVQQDExJHZW9UcnVzdCBHbG9i\n"
+            "YWwgQ0EwHhcNMDIwNTIxMDQwMDAwWhcNMjIwNTIxMDQwMDAwWjBCMQswCQYDVQQG\n"
+            "EwJVUzEWMBQGA1UEChMNR2VvVHJ1c3QgSW5jLjEbMBkGA1UEAxMSR2VvVHJ1c3Qg\n"
+            "R2xvYmFsIENBMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA2swYYzD9\n"
+            "9BcjGlZ+W988bDjkcbd4kdS8odhM+KhDtgPpTSEHCIjaWC9mOSm9BXiLnTjoBbdq\n"
+            "fnGk5sRgprDvgOSJKA+eJdbtg/OtppHHmMlCGDUUna2YRpIuT8rxh0PBFpVXLVDv\n"
+            "iS2Aelet8u5fa9IAjbkU+BQVNdnARqN7csiRv8lVK83Qlz6cJmTM386DGXHKTubU\n"
+            "1XupGc1V3sjs0l44U+VcT4wt/lAjNvxm5suOpDkZALeVAjmRCw7+OC7RHQWa9k0+\n"
+            "bw8HHa8sHo9gOeL6NlMTOdReJivbPagUvTLrGAMoUgRx5aszPeE4uwc2hGKceeoW\n"
+            "MPRfwCvocWvk+QIDAQABo1MwUTAPBgNVHRMBAf8EBTADAQH/MB0GA1UdDgQWBBTA\n"
+            "ephojYn7qwVkDBF9qn1luMrMTjAfBgNVHSMEGDAWgBTAephojYn7qwVkDBF9qn1l\n"
+            "uMrMTjANBgkqhkiG9w0BAQUFAAOCAQEANeMpauUvXVSOKVCUn5kaFOSPeCpilKIn\n"
+            "Z57QzxpeR+nBsqTP3UEaBU6bS+5Kb1VSsyShNwrrZHYqLizz/Tt1kL/6cdjHPTfS\n"
+            "tQWVYrmm3ok9Nns4d0iXrKYgjy6myQzCsplFAMfOEVEiIuCl6rYVSAlk6l5PdPcF\n"
+            "PseKUgzbFbS9bZvlxrFUaKnjaZC2mqUPuLk/IH2uSrW4nOQdtqvmlKXBx4Ot2/Un\n"
+            "hw4EbNX/3aBd7YdStysVAq45pmp06drE57xNNB6pXE0zX5IJL4hmXXeXxx12E6nV\n"
+            "5fEWCRE11azbJHFwLJhWC9kXtNHjUStedejV0NxPNO3CBWaAocvmMw==\n"
+            "-----END CERTIFICATE-----\n");
+    fclose(fp);
+    return 0;
+}
+
 int write_trans_excep_log(char *fullname,int type,char *msg)
 {
     FILE *fp = 0;
@@ -239,10 +301,12 @@ filename=>server
 
                 curl_easy_setopt(curl, CURLOPT_USERAGENT, "asus-google-drive/0.1");
                 curl_easy_setopt(curl, CURLOPT_VERBOSE, 1);
-                curl_easy_setopt(curl, CURLOPT_USE_SSL, CURLUSESSL_ALL); // SSL
+                curl_easy_setopt(curl, CURLOPT_USE_SSL, CURLUSESSL_ALL);
+                curl_easy_setopt(curl, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1);
 
-                //curl_easy_setopt(curl,CURLOPT_SSL_VERIFYHOST,0L);
-                curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
+                curl_easy_setopt(curl,CURLOPT_SSL_VERIFYHOST,2L);
+                curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1L);
+                curl_easy_setopt(curl, CURLOPT_CAINFO, CA_INFO_FILE);
                 curl_easy_setopt(curl,CURLOPT_URL,"https://www.googleapis.com/drive/v2/files");
                 CURL_DEBUG;
                 curl_easy_setopt(curl,CURLOPT_HTTPHEADER,headerlist);
@@ -250,7 +314,6 @@ filename=>server
                 curl_easy_setopt(curl,CURLOPT_POSTFIELDS,postdata);
                 curl_easy_setopt(curl,CURLOPT_POSTFIELDSIZE_LARGE,bodydata_size);
                 curl_easy_setopt(curl,CURLOPT_POST,1L);
-                //curl_easy_setopt(curl,CURLOPT_SSL_VERIFYPEER,0);
 
                 //curl_easy_setopt(curl,CURLOPT_TIMEOUT,90);
                 curl_easy_setopt(curl,CURLOPT_WRITEDATA,fp);
@@ -499,6 +562,7 @@ void init_globar_var()
     my_mkdir("/tmp/smartsync/google/config");
     my_mkdir("/tmp/smartsync/google/script");
     my_mkdir("/tmp/smartsync/google/temp");
+    my_mkdir("/tmp/smartsync/google/cert");
 #ifdef NVRAM_
     my_mkdir("/tmp/smartsync/script");
 #endif
@@ -2548,6 +2612,9 @@ void run()
     create_sync_list();
     send_to_inotify();
 
+    if(set_iptables(1))
+        exit(-1);
+
     if(exit_loop == 0)
     {
         if( pthread_create(&newthid2,NULL,(void *)SyncLocal,NULL) != 0)
@@ -4486,6 +4553,7 @@ void sig_handler (int signum)
                 stop_progress = 1;
                 exit_loop = 1;
                 DEBUG("g->SIGTERM:exit_loop=%d\n", exit_loop);
+                set_iptables(0);
 
 #ifndef NVRAM_
                 char cmd_p[128] = {0};
@@ -4897,6 +4965,9 @@ int main(int args,char *argc[])
 
 
     read_config();
+    if(write_rootca() != 0)
+        exit(-1);
+
 #ifdef OAuth1
     auth_flag = do_auth();
 #else
@@ -4939,8 +5010,11 @@ int get_request_token(){
     curl=curl_easy_init();
     headerlist=curl_slist_append(headerlist,header);
     if(curl){
-        curl_easy_setopt(curl,CURLOPT_SSL_VERIFYHOST,0L);
-        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
+        curl_easy_setopt(curl,CURLOPT_SSL_VERIFYHOST,2L);
+        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1L);
+        curl_easy_setopt(curl, CURLOPT_CAINFO, CA_INFO_FILE);
+        curl_easy_setopt(curl, CURLOPT_USE_SSL, CURLUSESSL_ALL);
+        curl_easy_setopt(curl, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1);
         curl_easy_setopt(curl,CURLOPT_URL,"https://api.google.com/1/oauth/request_token");
         CURL_DEBUG;
         curl_easy_setopt(curl,CURLOPT_HTTPHEADER,headerlist);

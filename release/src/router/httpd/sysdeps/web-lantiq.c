@@ -817,7 +817,7 @@ show_wliface_info(webs_t wp, int unit, char *ifname, char *op_mode)
 	*tmpstr = '\0';
 	strcpy(tmpstr, getAPPhyModebyIface(ifname));
 	ret += websWrite(wp, "Phy Mode	: %s\n", tmpstr);
-	ret += websWrite(wp, "Channel		: %u\n", getAPChannelbyIface(ifname));
+	ret += websWrite(wp, "Channel		: %d\n", wave_get_radio_channel(unit));
 
 	return ret;
 }

@@ -8,7 +8,7 @@
 <meta HTTP-EQUIV="Expires" CONTENT="-1">
 <link rel="shortcut icon" href="images/favicon.png">
 <link rel="icon" href="images/favicon.png">
-<title><#Web_Title#> - Game Profile</title>
+<title><#Web_Title#> - <#Game_Profile#></title>
 <link rel="stylesheet" type="text/css" href="index_style.css"> 
 <link rel="stylesheet" type="text/css" href="form_style.css">
 <link rel="stylesheet" type="text/css" href="device-map/device-map.css">
@@ -469,7 +469,7 @@ function update_game_profile() {
 	<tr>
 		<td bgcolor="#4D595D" valign="top"  >
 		<div>&nbsp;</div>
-		<div class="formfonttitle">Game Profile</div>
+		<div class="formfonttitle"><#Game_Profile#></div>
 		<div style="margin-left:5px;margin-top:10px;margin-bottom:10px"><img src="/images/New_ui/export/line_export.png"></div>
 		<div>
 			<table width="700px" style="margin-left:25px;">
@@ -479,8 +479,8 @@ function update_game_profile() {
 					</td>
 					<td>&nbsp;&nbsp;</td>
 					<td style="font-size: 14px;">
-						<div class="formfontdesc" style="font-size:20px;">How will Profiles benefit me?</div>
-						<div class="formfontdesc">When playing console games, choosing a profile for this game will optimize your routing from this console to your modem. You don't need to have deep knowledge of networking, just by finger taps, it will help you to get this down.</div>
+						<div class="formfontdesc" style="font-size:20px;"><#Game_Profile_desc1#></div>
+						<div class="formfontdesc"><#Game_Profile_desc2#></div>
 
 					</td>
 				</tr>
@@ -488,8 +488,8 @@ function update_game_profile() {
 		</div>		
 		<div>
 			<div style="width:644px;height:175px;background:url('images/New_ui/game_logos.png');margin: 0 auto"></div>
-			<div style="margin: 10px 10px 10px 20px;font-size:13px;">All game trademarks, service marks, trade names, product names and logos appearing on this page are the property of their respective owners.</div>
-			<div style="margin: 10px 10px 10px 20px;text-align: right">powerer by Portforwarding.org</div>
+			<div style="margin: 10px 10px 10px 20px;font-size:13px;"><#Game_Profile_desc3#></div>
+			<div style="margin: 10px 10px 10px 20px;text-align: right"><#Game_Profile_desc4#></div>
 		</div>	
 		<table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" class="FormTable">
 					  <thead>

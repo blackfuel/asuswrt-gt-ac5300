@@ -67,6 +67,13 @@ function tableValid_block_chars(_value, keywordArray){
 	return HINTPASS;
 }
 
+function tableValid_getOriginalEditRuleArray($obj, _dataArray) {
+	var originalEditRuleArray = [];
+	var eleID = $obj.attr('id');
+	var colIdx = eleID.replace("edit_item_", "").split("_")[0];
+	var originalEditRuleArray = tableApi._attr.data[colIdx].slice();
+	return originalEditRuleArray;
+}
 function tableValid_getCurrentEditRuleArray($obj, _dataArray) {
 	var currentEditRuleArray = [];
 	var eleID = $obj.attr('id');
@@ -477,14 +484,111 @@ var tableValidator = {
 					hintMsg = HINTPASS;
 			}
 
-			if(_$obj.closest('.editFrame').siblings('.hint').length) {
-				_$obj.closest('.editFrame').siblings('.hint').remove();
+			if(_$obj.parent().siblings('.hint').length) {
+				_$obj.parent().siblings('.hint').remove();
 			}
 			if(hintMsg != HINTPASS) {
 				var $hintHtml = $('<div>');
 				$hintHtml.addClass("hint");
 				$hintHtml.html(hintMsg);
-				_$obj.closest('.editFrame').after($hintHtml);
+				_$obj.parent().parent().append($hintHtml);
+				_$obj.focus();
+				return false;
+			}
+			return true;
+		}
+	},
+
+	ipAddressDHCP : {
+		keyPress : function($obj,event) {
+			var objValue = $obj.val();
+			var keyPressed = event.keyCode ? event.keyCode : event.which;
+
+			var i, j;
+			if (tableValid_isFunctionButton(event)) {
+				return true;
+			}
+
+			if((keyPressed > 47 && keyPressed < 58)) {
+				j = 0;
+
+				for(i = 0; i < objValue.length; i += 1) {
+					if(objValue.charAt(i) == '.') {
+						j++;
+					}
+				}
+
+				if(j < 3 && i >= 3) {
+					if(objValue.charAt(i-3) != '.' && objValue.charAt(i-2) != '.' && objValue.charAt(i-1) != '.') {
+						$obj.val(objValue + ".");
+					}
+				}
+
+				return true;
+			}
+			else if(keyPressed == 46) {
+				j = 0;
+
+				for(i = 0; i < objValue.length; i += 1) {
+					if(objValue.charAt(i) == '.') {
+						j++;
+					}
+				}
+
+				if(objValue.charAt(i-1) == '.' || j == 3) {
+					return false;
+				}
+
+				return true;
+			}
+			else if(keyPressed == 13) {	// 'ENTER'
+				return true;
+			}
+
+			return false;
+		},
+		blur : function(_$obj) {
+			var validate_dhcp_range = function(_setIPAddr) {
+				var dhcp_range_flag = true;
+				var dhcpIPAddr = tableValid_ipAddrToIPDecimal('<% nvram_get("lan_ipaddr"); %>');
+				var dhcpMASKAddr = tableValid_ipAddrToIPDecimal('<% nvram_get("lan_netmask"); %>');
+				var dhcpSubnetStart = dhcpIPAddr-(dhcpIPAddr&~dhcpMASKAddr);
+				var dhcpSubnetEnd =  dhcpSubnetStart+~dhcpMASKAddr;
+				var setIPAddr = tableValid_ipAddrToIPDecimal(_setIPAddr);
+				if(setIPAddr <= dhcpSubnetStart || setIPAddr >= dhcpSubnetEnd)
+					dhcp_range_flag = false;
+
+				return dhcp_range_flag;
+			};
+
+			var hintMsg = "";
+			var _value = _$obj.val();
+			_value = $.trim(_value);
+			_$obj.val(_value);
+			if(_value == "") {
+				if(_$obj.hasClass("valueMust"))
+					hintMsg = "<#JS_fieldblank#>";
+				else 
+					hintMsg = HINTPASS;
+			}
+			else {
+				var ipformat = /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;  
+				if(!_value.match(ipformat))
+					hintMsg = _value + " <#JS_validip#>";
+				else if(!validate_dhcp_range(_value))
+					hintMsg = _value + " <#JS_validip#>";
+				else
+					hintMsg = HINTPASS;
+			}
+
+			if(_$obj.next().closest(".hint").length) {
+				_$obj.next().closest(".hint").remove();
+			}
+			if(hintMsg != HINTPASS) {
+				var $hintHtml = $('<div>');
+				$hintHtml.addClass("hint");
+				$hintHtml.html(hintMsg);
+				_$obj.after($hintHtml);
 				_$obj.focus();
 				return false;
 			}
@@ -510,8 +614,6 @@ var tableRuleDuplicateValidation = {
 
 		}
 		return true;
-
-
 	},
 	dualWANRoutingRules : function(_newRuleArray, _currentRuleArray) {
 		//check Source IP and Destination IP whether duplicate or not 
@@ -524,6 +626,30 @@ var tableRuleDuplicateValidation = {
 				var currentRuleArrayTemp = _currentRuleArray[i].slice();
 				currentRuleArrayTemp.splice(2, 1);
 				if(newRuleArrayTemp.toString() == currentRuleArrayTemp.toString())
+					return false;
+			}
+
+		}
+		return true;
+	},
+	vpncExceptionList  : function(_newRuleArray, _currentRuleArray) {
+		if(_currentRuleArray.length == 0)
+			return true;
+		else {
+			var newRuleArrayTempMAC = _newRuleArray.slice();
+			var newRuleArrayTempIP = _newRuleArray.slice();
+			newRuleArrayTempMAC.splice(1, 3);
+			newRuleArrayTempIP.splice(0, 1);
+			newRuleArrayTempIP.splice(1, 2);
+			for(var i = 0; i < _currentRuleArray.length; i += 1) {
+				var currentRuleArrayTempMAC = _currentRuleArray[i].slice();
+				var currentRuleArrayTempIP = _currentRuleArray[i].slice();
+				currentRuleArrayTempMAC.splice(1, 3);
+				currentRuleArrayTempIP.splice(0, 1);
+				currentRuleArrayTempIP.splice(1, 2);
+				if(newRuleArrayTempMAC.toString() == currentRuleArrayTempMAC.toString()) //compare mac
+					return false;
+				if(newRuleArrayTempIP.toString() == currentRuleArrayTempIP.toString()) //compare ip
 					return false;
 			}
 

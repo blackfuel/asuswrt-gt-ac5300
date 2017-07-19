@@ -83,14 +83,13 @@ CFLAGS += -I$(TOP)/libqcsapi_client_10g
 LIBS += -L$(TOP)/libqcsapi_client_10g -lqcsapi_client
 endif
 
-#all: $(EXEC) asusdiscovery arpstorm
 ifneq ($(AC2900),y)
 ifeq ($(wildcard $(SRCBASE)/router/networkmap/*.c),)
 all: 
 	-cp -f prebuilt/networkmap networkmap
 	-cp -f prebuilt/asusdiscovery asusdiscovery
 else
-all: $(EXEC) asusdiscovery
+all: $(EXEC) asusdiscovery arpstorm
 endif
 else
 ifeq ($(wildcard $(SRCBASE)/router/networkmap/*.c),)
@@ -104,8 +103,8 @@ endif
 $(EXEC): $(OBJS)
 	$(CC) -o $@ $^ $(LDFLAGS) $(CFLAGS)
 
-#arpstorm: shutils.o arpstorm.o
-#	$(CC) -o $@ $^ $(LDFLAGS) $(CFLAGS)
+arpstorm: arpstorm.o
+	$(CC) -o $@ $^ $(LDFLAGS) $(CFLAGS)
 
 ifneq ($(AC2900),y)
 asusdiscovery: packet.o ASUS_Discovery.o ASUS_Discovery_Debug.o
@@ -115,18 +114,20 @@ endif
 install:
 	install -D $(EXEC) $(INSTALLDIR)/usr/sbin/$(EXEC)
 	$(STRIP) $(INSTALLDIR)/usr/sbin/$(EXEC)
-#	install -D arpstorm $(INSTALLDIR)/usr/sbin/arpstorm
-#	$(STRIP) $(INSTALLDIR)/usr/sbin/arpstorm
 ifneq ($(AC2900),y)
 	install -D asusdiscovery $(INSTALLDIR)/usr/sbin/asusdiscovery
 	$(STRIP) $(INSTALLDIR)/usr/sbin/asusdiscovery
+ifneq ($(wildcard $(SRCBASE)/router/networkmap/*.c),)
+	install -D arpstorm $(INSTALLDIR)/usr/sbin/arpstorm
+	$(STRIP) $(INSTALLDIR)/usr/sbin/arpstorm
 endif
-	install -d $(TARGETDIR)/usr/networkmap
-	cp -f networkmap.oui.js $(TARGETDIR)/usr/networkmap/networkmap.oui.js
+endif
+	install -d $(INSTALLDIR)/usr/networkmap
+	cp -f networkmap.oui.js $(INSTALLDIR)/usr/networkmap/networkmap.oui.js
 
 clean:
 ifneq ($(AC2900),y)
-	rm -rf *.o $(EXEC) *~ asusdiscovery
+	rm -rf *.o $(EXEC) *~ asusdiscovery arpstorm
 else
 	rm -rf *.o $(EXEC) *~
 endif

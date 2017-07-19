@@ -2001,8 +2001,11 @@ int open_login_page_first()
         headers_l=curl_slist_append(headers_l,header3_l);
         headers_l=curl_slist_append(headers_l,header4_l);
         headers_l=curl_slist_append(headers_l,header6_l);
-        curl_easy_setopt(curl,CURLOPT_SSL_VERIFYHOST,0L);
-        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
+        curl_easy_setopt(curl,CURLOPT_SSL_VERIFYHOST,2L);
+        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1L);
+        curl_easy_setopt(curl, CURLOPT_CAINFO, CA_INFO_FILE);
+        curl_easy_setopt(curl, CURLOPT_USE_SSL, CURLUSESSL_ALL);
+        curl_easy_setopt(curl, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1);
         curl_easy_setopt(curl,CURLOPT_URL,Myurl);
         curl_easy_setopt(curl,CURLOPT_HTTPHEADER,headers_l);
         curl_easy_setopt(curl,CURLOPT_COOKIEJAR,Con(TMP_R,cookie_open.txt));
@@ -2049,14 +2052,16 @@ int
     headerlist=curl_slist_append(headerlist,buf);
 
     if(curl){
-        curl_easy_setopt(curl,CURLOPT_SSL_VERIFYHOST,0L);
-        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
+        curl_easy_setopt(curl,CURLOPT_SSL_VERIFYHOST,2L);
+        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1L);
+        curl_easy_setopt(curl, CURLOPT_CAINFO, CA_INFO_FILE);
+        curl_easy_setopt(curl, CURLOPT_USE_SSL, CURLUSESSL_ALL);
+        curl_easy_setopt(curl, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1);
         curl_easy_setopt(curl,CURLOPT_URL,Myurl);
         curl_easy_setopt(curl,CURLOPT_HTTPHEADER,headerlist);
         curl_easy_setopt(curl,CURLOPT_POSTFIELDS,data);
         curl_easy_setopt(curl,CURLOPT_COOKIEFILE,Con(TMP_R,cookie_open.txt));//send first saved cookie
         curl_easy_setopt(curl,CURLOPT_COOKIEJAR,Con(TMP_R,cookie_login.txt));
-        curl_easy_setopt(curl,CURLOPT_SSL_VERIFYPEER,0);
 
         fp=fopen(Con(TMP_R,xmldate2.xml),"w");
 
@@ -2209,14 +2214,16 @@ int login_second()
     headerlist=curl_slist_append(headerlist,buf);
 
     if(curl){
-        curl_easy_setopt(curl,CURLOPT_SSL_VERIFYHOST,0L);get_type
-        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
+        curl_easy_setopt(curl,CURLOPT_SSL_VERIFYHOST,2L);get_type
+        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1L);
+        curl_easy_setopt(curl, CURLOPT_CAINFO, CA_INFO_FILE);
+        curl_easy_setopt(curl, CURLOPT_USE_SSL, CURLUSESSL_ALL);
+        curl_easy_setopt(curl, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1);
         curl_easy_setopt(curl,CURLOPT_URL,Myurl);
         curl_easy_setopt(curl,CURLOPT_HTTPHEADER,headerlist);
         curl_easy_setopt(curl,CURLOPT_POSTFIELDS,data);
         curl_easy_setopt(curl,CURLOPT_COOKIEFILE,Con(TMP_R,cookie_login.txt));//send first saved cookie
         curl_easy_setopt(curl,CURLOPT_COOKIEJAR,Con(TMP_R,tmp/cookie_login_2.txt));
-        curl_easy_setopt(curl,CURLOPT_SSL_VERIFYPEER,0);
 
 #ifdef SKIP_HOSTNAME_VERFICATION
         curl_easy_setopt(curl,CURLOPT_SSL_VERIFYHOST,0L);
@@ -2305,14 +2312,16 @@ int login_second_submit()
     headerlist=curl_slist_append(headerlist,buf);
 
     if(curl){
-        curl_easy_setopt(curl,CURLOPT_SSL_VERIFYHOST,0L);
-        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
+        curl_easy_setopt(curl,CURLOPT_SSL_VERIFYHOST,2L);
+        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1L);
+        curl_easy_setopt(curl, CURLOPT_CAINFO, CA_INFO_FILE);
+        curl_easy_setopt(curl, CURLOPT_USE_SSL, CURLUSESSL_ALL);
+        curl_easy_setopt(curl, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1);
         curl_easy_setopt(curl,CURLOPT_URL,Myurl);
         curl_easy_setopt(curl,CURLOPT_HTTPHEADER,headerlist);
         curl_easy_setopt(curl,CURLOPT_POSTFIELDS,data);
         curl_easy_setopt(curl,CURLOPT_COOKIEFILE,Con(TMP_R,cookie_login.txt));//send first saved cookie
         curl_easy_setopt(curl,CURLOPT_COOKIEJAR,Con(TMP_R,tmp/cookie_login_3.txt));
-        curl_easy_setopt(curl,CURLOPT_SSL_VERIFYPEER,0);
 
 
 #ifdef SKIP_HOSTNAME_VERFICATION
@@ -2363,8 +2372,11 @@ int get_access_token()
         curl_easy_setopt(curl,CURLOPT_URL,"https://api.google.com/1/oauth/access_token");
         CURL_DEBUG;
         curl_easy_setopt(curl,CURLOPT_HTTPHEADER,headerlist);
-        curl_easy_setopt(curl,CURLOPT_SSL_VERIFYHOST,0L);
-        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
+        curl_easy_setopt(curl,CURLOPT_SSL_VERIFYHOST,2L);
+        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1L);
+        curl_easy_setopt(curl, CURLOPT_CAINFO, CA_INFO_FILE);
+        curl_easy_setopt(curl, CURLOPT_USE_SSL, CURLUSESSL_ALL);
+        curl_easy_setopt(curl, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1);
 
         fp=fopen(Con(TMP_R,data_2.txt),"w");
 
@@ -2604,8 +2616,11 @@ api_insert(char *folderid, char *name, char *newid)
     headerlist=curl_slist_append(headerlist, "Expect: " );
     if(curl){
         curl_easy_setopt(curl, CURLOPT_USERAGENT, "asus-google-drive/0.1");
-        curl_easy_setopt(curl, CURLOPT_USE_SSL, CURLUSESSL_ALL); // SSL
-        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
+        curl_easy_setopt(curl,CURLOPT_SSL_VERIFYHOST,2L);
+        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1L);
+        curl_easy_setopt(curl, CURLOPT_CAINFO, CA_INFO_FILE);
+        curl_easy_setopt(curl, CURLOPT_USE_SSL, CURLUSESSL_ALL);
+        curl_easy_setopt(curl, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1);
         curl_easy_setopt(curl,CURLOPT_URL,myUrl);
         CURL_DEBUG;
         curl_easy_setopt(curl,CURLOPT_HTTPHEADER,headerlist);
@@ -2673,20 +2688,24 @@ int api_accout_info()
     CURLcode res;
     FILE *fp, *hd;
     struct curl_slist *headerlist=NULL;
-    char *header1;
-    header1=(char *)malloc(128);
-    memset(header1,0,128);
-    sprintf(header1, "Authorization: Bearer %s", auth->oauth_token);
-    headerlist=curl_slist_append(headerlist, header1);
-    headerlist=curl_slist_append(headerlist, "Expect: " );
+    char *header1 = NULL;
 
     curl=curl_easy_init();
 
     if(curl){
+        header1=(char *)malloc(128);
+        memset(header1,0,128);
+        sprintf(header1, "Authorization: Bearer %s", auth->oauth_token);
+        headerlist=curl_slist_append(headerlist, header1);
+        headerlist=curl_slist_append(headerlist, "Expect: " );
+
         curl_easy_setopt(curl, CURLOPT_USERAGENT, "asus-google-drive/0.1");
-        curl_easy_setopt(curl, CURLOPT_USE_SSL, CURLUSESSL_ALL); // SSL
+        curl_easy_setopt(curl,CURLOPT_SSL_VERIFYHOST,2L);
+        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1L);
+        curl_easy_setopt(curl, CURLOPT_CAINFO, CA_INFO_FILE);
+        curl_easy_setopt(curl, CURLOPT_USE_SSL, CURLUSESSL_ALL);
+        curl_easy_setopt(curl, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1);
         curl_easy_setopt(curl, CURLOPT_HEADER, 1);
-        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
         curl_easy_setopt(curl,CURLOPT_URL,"https://www.googleapis.com/drive/v2/about");
         CURL_DEBUG;
         curl_easy_setopt(curl,CURLOPT_HTTPHEADER,headerlist);
@@ -2700,9 +2719,10 @@ int api_accout_info()
         curl_easy_cleanup(curl);
         fclose(fp);
         curl_slist_free_all(headerlist);
+        free(header1);
         if(res!=0){
             fclose(hd);
-            free(header1);
+            //free(header1);
             DEBUG("get server space failed , id [%d] !\n",res);
             return -1;
         }
@@ -2717,15 +2737,15 @@ int api_accout_info()
                 DEBUG("api_account_info, refresh_token\n");
                 api_refresh_token();
                 fclose(hd);
-                free(header1);
+                //free(header1);
                 return -1;
             }
             fclose(hd);
-            free(header1);
+            //free(header1);
             return 0;
         }
     }
-    free(header1);
+    //free(header1);
     return -1;
 }
 int api_metadata_one(char *parentref, char *phref,cJSON *(*cmd_data)(char *filename), char *URL,int index)
@@ -2764,9 +2784,12 @@ int api_metadata_one(char *parentref, char *phref,cJSON *(*cmd_data)(char *filen
 
     if(curl){
         curl_easy_setopt(curl, CURLOPT_USERAGENT, "asus-google-drive/0.1");
-        curl_easy_setopt(curl, CURLOPT_USE_SSL, CURLUSESSL_ALL); // SSL
+        curl_easy_setopt(curl,CURLOPT_SSL_VERIFYHOST,2L);
+        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1L);
+        curl_easy_setopt(curl, CURLOPT_CAINFO, CA_INFO_FILE);
+        curl_easy_setopt(curl, CURLOPT_USE_SSL, CURLUSESSL_ALL);
+        curl_easy_setopt(curl, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1);
         curl_easy_setopt(curl, CURLOPT_HEADER, 1);
-        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
         headerlist=curl_slist_append(headerlist, "Expect: " );
         headerlist=curl_slist_append(headerlist, header1);
 
@@ -2843,9 +2866,12 @@ int api_metadata_test_dir(char *id,proc_pt cmd_data)
     curl=curl_easy_init();
     if(curl){
         curl_easy_setopt(curl, CURLOPT_USERAGENT, "asus-google-drive/0.1");
-        curl_easy_setopt(curl, CURLOPT_USE_SSL, CURLUSESSL_ALL); // SSL
+        curl_easy_setopt(curl,CURLOPT_SSL_VERIFYHOST,2L);
+        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1L);
+        curl_easy_setopt(curl, CURLOPT_CAINFO, CA_INFO_FILE);
+        curl_easy_setopt(curl, CURLOPT_USE_SSL, CURLUSESSL_ALL);
+        curl_easy_setopt(curl, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1);
         curl_easy_setopt(curl, CURLOPT_HEADER, 1);
-        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
         headerlist=curl_slist_append(headerlist, "Expect: " );
         headerlist=curl_slist_append(headerlist, header1);
         curl_easy_setopt(curl,CURLOPT_URL,myUrl);
@@ -2926,6 +2952,11 @@ int api_metadata_test(char *phref)
         curl_easy_setopt(curl,CURLOPT_HTTPHEADER,headerlist);
         fp=fopen(Con(TMP_R,data_test.txt),"w");
         curl_easy_setopt(curl,CURLOPT_WRITEDATA,fp);
+        curl_easy_setopt(curl,CURLOPT_SSL_VERIFYHOST,2L);
+        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1L);
+        curl_easy_setopt(curl, CURLOPT_CAINFO, CA_INFO_FILE);
+        curl_easy_setopt(curl, CURLOPT_USE_SSL, CURLUSESSL_ALL);
+        curl_easy_setopt(curl, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1);
         res=curl_easy_perform(curl);
         DEBUG("get_metadata_test,res=%d\n", res);
         curl_easy_cleanup(curl);
@@ -2965,9 +2996,12 @@ int get_metadata(char *parentref, char *id, proc_pt cmd_data,CloudFile *FolderTm
 
     if(curl){
         curl_easy_setopt(curl, CURLOPT_USERAGENT, "asus-google-drive/0.1");
-        curl_easy_setopt(curl, CURLOPT_USE_SSL, CURLUSESSL_ALL); // SSL
+        curl_easy_setopt(curl,CURLOPT_SSL_VERIFYHOST,2L);
+        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1L);
+        curl_easy_setopt(curl, CURLOPT_CAINFO, CA_INFO_FILE);
+        curl_easy_setopt(curl, CURLOPT_USE_SSL, CURLUSESSL_ALL);
+        curl_easy_setopt(curl, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1);
         curl_easy_setopt(curl, CURLOPT_HEADER, 1);
-        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
         headerlist=curl_slist_append(headerlist, "Expect: " );
         headerlist=curl_slist_append(headerlist, header1);
 
@@ -3183,9 +3217,12 @@ int main_batch()
     if(curl){
         curl_easy_setopt(curl, CURLOPT_USERAGENT, "asus-google-drive/0.1");
         curl_easy_setopt(curl, CURLOPT_VERBOSE, 1);
-        curl_easy_setopt(curl, CURLOPT_USE_SSL, CURLUSESSL_ALL); // SSL
+        curl_easy_setopt(curl,CURLOPT_SSL_VERIFYHOST,2L);
+        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1L);
+        curl_easy_setopt(curl, CURLOPT_CAINFO, CA_INFO_FILE);
+        curl_easy_setopt(curl, CURLOPT_USE_SSL, CURLUSESSL_ALL);
+        curl_easy_setopt(curl, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1);
         curl_easy_setopt(curl, CURLOPT_HEADER, 1);
-        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
         headerlist=curl_slist_append(headerlist, "Expect: " );
         headerlist=curl_slist_append(headerlist, "Content-Type: multipart/mixed; boundary=END_OF_PART" );
         headerlist=curl_slist_append(headerlist, header1);
@@ -3258,10 +3295,13 @@ int part_batch(char *parentref, char *id, proc_pt cmd_data,CloudFile *FolderTmp,
     if(curl){
         curl_easy_setopt(curl, CURLOPT_USERAGENT, "asus-google-drive/0.1");
         curl_easy_setopt(curl, CURLOPT_VERBOSE, 1);
-        curl_easy_setopt(curl, CURLOPT_USE_SSL, CURLUSESSL_ALL); // SSL
+        curl_easy_setopt(curl,CURLOPT_SSL_VERIFYHOST,2L);
+        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1L);
+        curl_easy_setopt(curl, CURLOPT_CAINFO, CA_INFO_FILE);
+        curl_easy_setopt(curl, CURLOPT_USE_SSL, CURLUSESSL_ALL);
+        curl_easy_setopt(curl, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1);
         curl_easy_setopt(curl, CURLOPT_HEADER, 1);
 
-        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
         headerlist=curl_slist_append(headerlist, "--END_OF_PART" );
         headerlist=curl_slist_append(headerlist, header );
         headerlist=curl_slist_append(headerlist, "Expect: " );
@@ -3346,9 +3386,12 @@ int batch_metadata(char * parentref, char *phref,proc_pt cmd_data, int index)
 
     if(curl){
         curl_easy_setopt(curl, CURLOPT_USERAGENT, "asus-google-drive/0.1");
-        curl_easy_setopt(curl, CURLOPT_USE_SSL, CURLUSESSL_ALL); // SSL
+        curl_easy_setopt(curl,CURLOPT_SSL_VERIFYHOST,2L);
+        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1L);
+        curl_easy_setopt(curl, CURLOPT_CAINFO, CA_INFO_FILE);
+        curl_easy_setopt(curl, CURLOPT_USE_SSL, CURLUSESSL_ALL);
+        curl_easy_setopt(curl, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1);
         curl_easy_setopt(curl, CURLOPT_HEADER, 1);
-        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
         headerlist=curl_slist_append(headerlist, "Expect: " );
         headerlist=curl_slist_append(headerlist, header1);
 
@@ -3444,9 +3487,12 @@ int api_metadata(char * parentref, char *phref,proc_pt cmd_data, int index)
 
     if(curl){
         curl_easy_setopt(curl, CURLOPT_USERAGENT, "asus-google-drive/0.1");
-        curl_easy_setopt(curl, CURLOPT_USE_SSL, CURLUSESSL_ALL); // SSL
+        curl_easy_setopt(curl,CURLOPT_SSL_VERIFYHOST,2L);
+        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1L);
+        curl_easy_setopt(curl, CURLOPT_CAINFO, CA_INFO_FILE);
+        curl_easy_setopt(curl, CURLOPT_USE_SSL, CURLUSESSL_ALL);
+        curl_easy_setopt(curl, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1);
         curl_easy_setopt(curl, CURLOPT_HEADER, 1);
-        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
         headerlist=curl_slist_append(headerlist, "Expect: " );
         headerlist=curl_slist_append(headerlist, header1);
 
@@ -3570,8 +3616,11 @@ int g_move(char *oldname,char *newname,int index,int is_changed_time,char *newna
     if(curl){
         curl_easy_setopt(curl,CURLOPT_NOBODY,1L);
         curl_easy_setopt(curl, CURLOPT_USERAGENT, "asus-google-drive/0.1");
-        curl_easy_setopt(curl, CURLOPT_USE_SSL, CURLUSESSL_ALL); // SSL
-        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
+        curl_easy_setopt(curl,CURLOPT_SSL_VERIFYHOST,2L);
+        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1L);
+        curl_easy_setopt(curl, CURLOPT_CAINFO, CA_INFO_FILE);
+        curl_easy_setopt(curl, CURLOPT_USE_SSL, CURLUSESSL_ALL);
+        curl_easy_setopt(curl, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1);
         curl_easy_setopt(curl,CURLOPT_URL, myurl);
         CURL_DEBUG;
         curl_easy_setopt(curl,CURLOPT_HTTPHEADER,headerlist);
@@ -3771,8 +3820,11 @@ api_rename(CloudFile *FolderTmp,char *newname,int index,int is_changed_time,char
     if(curl){
         curl_easy_setopt(curl,CURLOPT_NOBODY,1L);
         curl_easy_setopt(curl, CURLOPT_USERAGENT, "asus-google-drive/0.1");
-        curl_easy_setopt(curl, CURLOPT_USE_SSL, CURLUSESSL_ALL); // SSL
-        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
+        curl_easy_setopt(curl,CURLOPT_SSL_VERIFYHOST,2L);
+        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1L);
+        curl_easy_setopt(curl, CURLOPT_CAINFO, CA_INFO_FILE);
+        curl_easy_setopt(curl, CURLOPT_USE_SSL, CURLUSESSL_ALL);
+        curl_easy_setopt(curl, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1);
         curl_easy_setopt(curl,CURLOPT_URL, myurl);
         CURL_DEBUG;
         curl_easy_setopt(curl,CURLOPT_HTTPHEADER,headerlist);
@@ -4013,8 +4065,11 @@ int g_download(CloudFile *filetmp, char *fullname,char *filename,int index)
     write_log(S_DOWNLOAD,"",fullname,index);
     if(curl){
         curl_easy_setopt(curl, CURLOPT_USERAGENT, "asus-google-drive/0.1");
-        curl_easy_setopt(curl, CURLOPT_USE_SSL, CURLUSESSL_ALL); // SSL
-        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
+        curl_easy_setopt(curl,CURLOPT_SSL_VERIFYHOST,2L);
+        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1L);
+        curl_easy_setopt(curl, CURLOPT_CAINFO, CA_INFO_FILE);
+        curl_easy_setopt(curl, CURLOPT_USE_SSL, CURLUSESSL_ALL);
+        curl_easy_setopt(curl, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1);
         curl_easy_setopt(curl,CURLOPT_URL,myUrl);
         CURL_DEBUG;
         curl_easy_setopt(curl,CURLOPT_HTTPHEADER,headerlist);
@@ -4211,8 +4266,11 @@ int api_upload_put( char *filename,char *serverpath,int flag,int index)
         curl_easy_setopt(curl, CURLOPT_HTTPHEADER,headerlist);
         curl_easy_setopt(curl, CURLOPT_USERAGENT, "asus-google-drive/0.1");
         curl_easy_setopt(curl, CURLOPT_VERBOSE, 1);
-        curl_easy_setopt(curl,CURLOPT_SSL_VERIFYHOST,0L);
-        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
+        curl_easy_setopt(curl,CURLOPT_SSL_VERIFYHOST,2L);
+        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1L);
+        curl_easy_setopt(curl, CURLOPT_CAINFO, CA_INFO_FILE);
+        curl_easy_setopt(curl, CURLOPT_USE_SSL, CURLUSESSL_ALL);
+        curl_easy_setopt(curl, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1);
         curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L);
         curl_easy_setopt(curl,CURLOPT_URL,myUrl);
         curl_easy_setopt(curl,CURLOPT_READDATA,fp_1);
@@ -4377,7 +4435,11 @@ int api_upload_post()
         curl_easy_setopt(curl,CURLOPT_POSTFIELDSIZE_LARGE,(curl_off_t)size);
         fp=fopen("upload.txt","w");
         curl_easy_setopt(curl,CURLOPT_WRITEDATA,fp);
-
+        curl_easy_setopt(curl,CURLOPT_SSL_VERIFYHOST,2L);
+        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1L);
+        curl_easy_setopt(curl, CURLOPT_CAINFO, CA_INFO_FILE);
+        curl_easy_setopt(curl, CURLOPT_USE_SSL, CURLUSESSL_ALL);
+        curl_easy_setopt(curl, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1);
         res=curl_easy_perform(curl);
 
         curl_easy_cleanup(curl);
@@ -4503,8 +4565,11 @@ int api_upload_chunk_put(char *buffer,char *upload_id,unsigned long offset,unsig
     LOCAL_FILE.index = index;
 
     if(curl){
-        curl_easy_setopt(curl,CURLOPT_SSL_VERIFYHOST,0L);
-        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
+        curl_easy_setopt(curl,CURLOPT_SSL_VERIFYHOST,2L);
+        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1L);
+        curl_easy_setopt(curl, CURLOPT_CAINFO, CA_INFO_FILE);
+        curl_easy_setopt(curl, CURLOPT_USE_SSL, CURLUSESSL_ALL);
+        curl_easy_setopt(curl, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1);
         curl_easy_setopt(curl,CURLOPT_URL,myUrl);
         CURL_DEBUG;
         curl_easy_setopt(curl,CURLOPT_HTTPHEADER,headerlist);
@@ -4608,8 +4673,11 @@ int api_upload_chunk_commit(char *upload_id,char *filename,int flag,int index)
     sprintf(myUrl,"%s%s?upload_id=%s&%s","https://api-content.google.com/1/commit_chunked_upload/google",filename,upload_id,header);
 
     if(curl){
-        curl_easy_setopt(curl,CURLOPT_SSL_VERIFYHOST,0L);
-        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
+        curl_easy_setopt(curl,CURLOPT_SSL_VERIFYHOST,2L);
+        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1L);
+        curl_easy_setopt(curl, CURLOPT_CAINFO, CA_INFO_FILE);
+        curl_easy_setopt(curl, CURLOPT_USE_SSL, CURLUSESSL_ALL);
+        curl_easy_setopt(curl, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1);
         curl_easy_setopt(curl,CURLOPT_URL,myUrl);
         CURL_DEBUG;
         curl_easy_setopt(curl,CURLOPT_POST,1L);
@@ -5013,8 +5081,11 @@ int api_refresh_token()
         headers=curl_slist_append(headers, "Content-Type: application/x-www-form-urlencoded" );
         curl_easy_setopt(curl, CURLOPT_HTTPHEADER,headers);
         curl_easy_setopt(curl,CURLOPT_URL, uri_code);
-        curl_easy_setopt(curl, CURLOPT_USE_SSL, CURLUSESSL_ALL); // SSL
-        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
+        curl_easy_setopt(curl,CURLOPT_SSL_VERIFYHOST,2L);
+        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1L);
+        curl_easy_setopt(curl, CURLOPT_CAINFO, CA_INFO_FILE);
+        curl_easy_setopt(curl, CURLOPT_USE_SSL, CURLUSESSL_ALL);
+        curl_easy_setopt(curl, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1);
          curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postdata);
          curl_easy_setopt(curl,CURLOPT_POSTFIELDSIZE_LARGE,bodydata_size);
          curl_easy_setopt(curl,CURLOPT_POST,1L);
@@ -5063,7 +5134,8 @@ int api_refresh_token()
     {
         cJSON_printf_new_access_token(json);
         DEBUG("aftercJSON_printf_new_access_token\n");
-        cJSON_Delete(json);
+        //cJSON_Delete(json);
+
         return 0;
     }
     else
@@ -5092,9 +5164,12 @@ int g_delete(char *herf,int index, char *delete_ids)
     headerlist=curl_slist_append(headerlist,header);
     if(curl){
         curl_easy_setopt(curl, CURLOPT_USERAGENT, "asus-google-drive/0.1");
-        curl_easy_setopt(curl, CURLOPT_USE_SSL, CURLUSESSL_ALL); // SSL
+        curl_easy_setopt(curl,CURLOPT_SSL_VERIFYHOST,2L);
+        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1L);
+        curl_easy_setopt(curl, CURLOPT_CAINFO, CA_INFO_FILE);
+        curl_easy_setopt(curl, CURLOPT_USE_SSL, CURLUSESSL_ALL);
+        curl_easy_setopt(curl, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1);
         curl_easy_setopt(curl, CURLOPT_HEADER, 1);
-        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
         curl_easy_setopt(curl,CURLOPT_URL,myurl);
         CURL_DEBUG;
         curl_easy_setopt(curl,CURLOPT_HTTPHEADER,headerlist);
@@ -5152,9 +5227,12 @@ int g_delete2(char *herf,int index)
     headerlist=curl_slist_append(headerlist,header);
     if(curl){
         curl_easy_setopt(curl, CURLOPT_USERAGENT, "asus-google-drive/0.1");
-        curl_easy_setopt(curl, CURLOPT_USE_SSL, CURLUSESSL_ALL); // SSL
+        curl_easy_setopt(curl,CURLOPT_SSL_VERIFYHOST,2L);
+        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1L);
+        curl_easy_setopt(curl, CURLOPT_CAINFO, CA_INFO_FILE);
+        curl_easy_setopt(curl, CURLOPT_USE_SSL, CURLUSESSL_ALL);
+        curl_easy_setopt(curl, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1);
         curl_easy_setopt(curl, CURLOPT_HEADER, 1);
-        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
         curl_easy_setopt(curl,CURLOPT_URL,myurl);
         CURL_DEBUG;
         curl_easy_setopt(curl,CURLOPT_HTTPHEADER,headerlist);
@@ -5253,10 +5331,12 @@ int g_delete2(char *herf,int index)
 
                 curl_easy_setopt(curl, CURLOPT_USERAGENT, "asus-google-drive/0.1");
                 curl_easy_setopt(curl, CURLOPT_VERBOSE, 1);
-                curl_easy_setopt(curl, CURLOPT_USE_SSL, CURLUSESSL_ALL); // SSL
+                curl_easy_setopt(curl,CURLOPT_SSL_VERIFYHOST,2L);
+                curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1L);
+                curl_easy_setopt(curl, CURLOPT_CAINFO, CA_INFO_FILE);
+                curl_easy_setopt(curl, CURLOPT_USE_SSL, CURLUSESSL_ALL);
+                curl_easy_setopt(curl, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1);
 
-                //curl_easy_setopt(curl,CURLOPT_SSL_VERIFYHOST,0L);
-                curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
                 curl_easy_setopt(curl,CURLOPT_URL,"https://www.googleapis.com/drive/v2/files");
                 CURL_DEBUG;
                 curl_easy_setopt(curl,CURLOPT_HTTPHEADER,headerlist);
@@ -5264,7 +5344,6 @@ int g_delete2(char *herf,int index)
                 curl_easy_setopt(curl,CURLOPT_POSTFIELDS,postdata);
                 curl_easy_setopt(curl,CURLOPT_POSTFIELDSIZE_LARGE,bodydata_size);
                 curl_easy_setopt(curl,CURLOPT_POST,1L);
-                //curl_easy_setopt(curl,CURLOPT_SSL_VERIFYPEER,0);
 
                 //curl_easy_setopt(curl,CURLOPT_TIMEOUT,90);
                 curl_easy_setopt(curl,CURLOPT_WRITEDATA,fp);
@@ -5453,8 +5532,11 @@ int g_create_folder(char *localpath,char *foldername,char *newfolderid, int inde
         sprintf(backup_file1, "create_folder_header%d.txt", i);
         fp_hd = fopen(Con(TMP_R,backup_file1),"w+");
         curl_easy_setopt(curl, CURLOPT_USERAGENT, "asus-google-drive/0.1");
-        curl_easy_setopt(curl, CURLOPT_USE_SSL, CURLUSESSL_ALL); // SSL
-        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
+        curl_easy_setopt(curl,CURLOPT_SSL_VERIFYHOST,2L);
+        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1L);
+        curl_easy_setopt(curl, CURLOPT_CAINFO, CA_INFO_FILE);
+        curl_easy_setopt(curl, CURLOPT_USE_SSL, CURLUSESSL_ALL);
+        curl_easy_setopt(curl, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1);
         curl_easy_setopt(curl,CURLOPT_URL,"https://www.googleapis.com/drive/v2/files");
         CURL_DEBUG;
         curl_easy_setopt(curl,CURLOPT_HTTPHEADER,headerlist);
@@ -5598,9 +5680,12 @@ time_t api_getmtime(char *id, char *phref,cJSON *(*cmd_data)(char *filename))
 
     if(curl){
         curl_easy_setopt(curl, CURLOPT_USERAGENT, "asus-google-drive/0.1");
-        curl_easy_setopt(curl, CURLOPT_USE_SSL, CURLUSESSL_ALL); // SSL
+        curl_easy_setopt(curl,CURLOPT_SSL_VERIFYHOST,2L);
+        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1L);
+        curl_easy_setopt(curl, CURLOPT_CAINFO, CA_INFO_FILE);
+        curl_easy_setopt(curl, CURLOPT_USE_SSL, CURLUSESSL_ALL);
+        curl_easy_setopt(curl, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1);
         curl_easy_setopt(curl, CURLOPT_HEADER, 1);
-        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
         headerlist=curl_slist_append(headerlist, "Expect: " );
         headerlist=curl_slist_append(headerlist, header);
 

@@ -11,7 +11,7 @@ enum {
 	SW_MODE_HOTSPOT
 };
 
-enum {
+enum wan_unit_e {
 	WAN_UNIT_NONE=-1,
 	WAN_UNIT_FIRST=0,
 #if defined(RTCONFIG_DUALWAN) || defined(RTCONFIG_USB_MODEM)

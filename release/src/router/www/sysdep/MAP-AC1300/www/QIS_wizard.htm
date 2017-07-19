@@ -1,0 +1,1174 @@
+﻿<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<meta http-equiv="X-UA-Compatible" content="IE=Edge"/>
+		<meta name=viewport content="width=device-width, target-densitydpi=device-dpi, initial-scale=1, user-scalable=no">
+		<title><#Web_Title#> - <#QIS_title#></title>
+		<link rel="stylesheet" href="css/jquery.mobile.css"></link>
+		<link rel="stylesheet" href="css/icon.css"></link>
+		<link rel="stylesheet" href="css/qis.css"></link>
+		<script type="text/javascript" src="js/jquery.js"></script>
+		<script type="text/javascript" src="js/verge.min.js"></script>
+		<script type="text/javascript" src="js/jquery.mobile.js"></script>
+		<script type="text/javascript" src="/require/require.min.js"></script>
+		<script type="text/javascript" src="/validator.js"></script>
+		<script>
+			if(location.hash != "")	location.href = "QIS_wizard.htm";
+			
+			document.querySelector("meta[name=viewport]").setAttribute(
+				'content', 'width=' + verge.viewportW() + ', target-densitydpi=device-dpi, initial-scale=' + (0.5*verge.viewportW())/375 + ', maximum-scale=1, user-scalable=no'
+			);
+			
+			/* String repeat function */
+			String.prototype.repeat = function(times) {
+			   return (new Array(times + 1)).join(this);
+			};
+			
+			var qisOriginData = {
+				/* user */
+				"http_username": '<% nvram_get("http_username"); %>',
+				"http_passwd": '<% nvram_get("http_passwd"); %>',
+			
+				/* wireless */
+				"wl0_ssid": decodeURIComponent('<% nvram_char_to_ascii("", "wl0_ssid"); %>'),
+				"wl0_wpa_psk": decodeURIComponent('<% nvram_char_to_ascii("", "wl0_wpa_psk"); %>'),
+				"wl0_auth_mode_x": '<% nvram_get("wl0_auth_mode_x"); %>',
+				"wl0_crypto": '<% nvram_get("wl0_crypto"); %>',
+				"wl1_ssid": decodeURIComponent('<% nvram_char_to_ascii("", "wl1_ssid"); %>'),
+				"wl1_wpa_psk": decodeURIComponent('<% nvram_char_to_ascii("", "wl1_wpa_psk"); %>'),
+				"wl1_auth_mode_x": '<% nvram_get("wl1_auth_mode_x"); %>',
+				"wl1_crypto": '<% nvram_get("wl1_crypto"); %>',
+				"wl2_ssid": decodeURIComponent('<% nvram_char_to_ascii("", "wl2_ssid"); %>'),
+				"wl2_wpa_psk": decodeURIComponent('<% nvram_char_to_ascii("", "wl2_wpa_psk"); %>'),
+				"wl2_auth_mode_x": '<% nvram_get("wl2_auth_mode_x"); %>',
+				"wl2_crypto": '<% nvram_get("wl2_crypto"); %>',
+			
+				/* wan */
+				"wan_unit": '<% nvram_get("wan_unit"); %>',
+				"wan_proto": '<% nvram_get("wan_proto"); %>', /* dhcp or pppoe */
+				"wan_dhcpenable_x": '<% nvram_get("wan_dhcpenable_x"); %>',
+				"wan_dnsenable_x": '<% nvram_get("wan_dnsenable_x"); %>',
+				"wan_pppoe_username": '<% nvram_get("wan_pppoe_username"); %>',
+				"wan_pppoe_passwd": '<% nvram_get("wan_pppoe_passwd"); %>',
+				"wan_ipaddr_x": '<% nvram_get("wan_ipaddr_x"); %>',
+				"wan_netmask_x": '<% nvram_get("wan_netmask_x"); %>',
+				"wan_gateway_x": '<% nvram_get("wan_gateway_x"); %>',
+				"wan_dns1_x": '<% nvram_get("wan_dns1_x"); %>',
+				"wan_dns2_x": '<% nvram_get("wan_dns2_x"); %>',
+			
+				/* general */
+				"time_zone": '<% nvram_get("time_zone"); %>',
+				"time_zone_dst": '<% nvram_get("time_zone_dst"); %>',
+				"sw_mode": '<% nvram_get("sw_mode"); %>',
+				"x_Setting": '<% nvram_get("x_Setting"); %>',
+				"w_Setting": '1',
+				"qis_Setting": '<% nvram_get("qis_Setting"); %>'
+			}
+			
+			var qisPostData = {
+				/* user */
+				"http_username": '<% nvram_get("http_username"); %>',
+				"http_passwd": '<% nvram_get("http_passwd"); %>',
+			
+				/* wireless */
+				"wl0_ssid": decodeURIComponent('<% nvram_char_to_ascii("", "wl0_ssid"); %>'),
+				"wl0_wpa_psk": decodeURIComponent('<% nvram_char_to_ascii("", "wl0_wpa_psk"); %>'),
+				"wl0_auth_mode_x": '<% nvram_get("wl0_auth_mode_x"); %>',
+				"wl0_crypto": '<% nvram_get("wl0_crypto"); %>',
+				"wl1_ssid": decodeURIComponent('<% nvram_char_to_ascii("", "wl1_ssid"); %>'),
+				"wl1_wpa_psk": decodeURIComponent('<% nvram_char_to_ascii("", "wl1_wpa_psk"); %>'),
+				"wl1_auth_mode_x": '<% nvram_get("wl1_auth_mode_x"); %>',
+				"wl1_crypto": '<% nvram_get("wl1_crypto"); %>',
+				"wl2_ssid": decodeURIComponent('<% nvram_char_to_ascii("", "wl2_ssid"); %>'),
+				"wl2_wpa_psk": decodeURIComponent('<% nvram_char_to_ascii("", "wl2_wpa_psk"); %>'),
+				"wl2_auth_mode_x": '<% nvram_get("wl2_auth_mode_x"); %>',
+				"wl2_crypto": '<% nvram_get("wl2_crypto"); %>',
+			
+				/* wan */
+				"wan_unit": '<% nvram_get("wan_unit"); %>',
+				"wan_proto": '<% nvram_get("wan_proto"); %>', /* dhcp or pppoe */
+				"wan_dhcpenable_x": '<% nvram_get("wan_dhcpenable_x"); %>',
+				"wan_dnsenable_x": '<% nvram_get("wan_dnsenable_x"); %>',
+				"wan_pppoe_username": '<% nvram_get("wan_pppoe_username"); %>',
+				"wan_pppoe_passwd": '<% nvram_get("wan_pppoe_passwd"); %>',
+				"wan_ipaddr_x": '<% nvram_get("wan_ipaddr_x"); %>',
+				"wan_netmask_x": '<% nvram_get("wan_netmask_x"); %>',
+				"wan_gateway_x": '<% nvram_get("wan_gateway_x"); %>',
+				"wan_dns1_x": '<% nvram_get("wan_dns1_x"); %>',
+				"wan_dns2_x": '<% nvram_get("wan_dns2_x"); %>',
+			
+				/* general */
+				"time_zone": '<% nvram_get("time_zone"); %>',
+				"time_zone_dst": '<% nvram_get("time_zone_dst"); %>',
+				"sw_mode": '1',
+				"x_Setting": '1',
+				"w_Setting": '1',
+				"qis_Setting": '1'
+			}
+			
+			var isDefault = ('<% nvram_get("x_Setting"); %>' == 0) ? true : false;
+			var forceChangePW = ('<% check_pw(); %>' == '1') ? true : false;
+			
+			$(document).ready(function(){
+				$("#model_welcome").html("");
+				$("#model_welcome_field").html("");
+
+				// setup time_zone
+				if(isDefault){
+					require(['/require/modules/timeZone.js'], function(timeZone) {
+						var timeZoneObj = new timeZone.get('<% nvram_get("preferred_lang"); %>');
+			
+						qisPostData.time_zone = timeZoneObj.time_zone;
+						qisPostData.time_zone_dst = (timeZoneObj.hasDst) ? 1 : 0;
+					});
+				}
+			});
+			
+			var wanType = "";
+			var detectWanType = (function(){
+				$.ajax({
+					url: '/detwan.cgi?action_mode=GetWanStatus',
+					dataType: 'json',
+					error: function(xhr) {
+						setTimeout(detectWanType, 2000);
+					},
+					
+					success: function(response){
+						if(response.state == 2 || response.state == 5){
+							wanType = "DHCP";
+						}
+						else if(response.state == 3 || response.state == 6){
+							wanType = "PPPoE";
+						}
+						else if(response.state == 1 || response.state == 4 || response.state == 7){
+							wanType = "Static";
+						}
+						else if(response.state == 0){
+							wanType = "Manual";
+						}
+						else{
+							setTimeout(detectWanType, 2000);
+						}
+					}
+				});	
+			})();
+			
+			function start_welcome(){
+				if(!forceChangePW)
+					goTo.setUpWan()
+				else
+					$.mobile.changePage("#login_name", {transition: "slide", changeHash: false});
+			}
+			
+			function pass_checked(obj, icon){
+				var switchType = function(obj, hide){
+					var _Type = hide ? "text" : "password";
+					if (obj.type != _Type) {
+						if (navigator.userAgent.indexOf("MSIE") != -1) {
+							var input2 = document.createElement('input');
+							input2.mergeAttributes(obj);
+							input2.id = obj.id? obj.id : obj.name;
+							input2.value = obj.value;
+							input2.type = _Type;
+							input2.name = obj.name;
+							obj.parentNode.replaceChild(input2 ,obj);
+							if (hide)
+								setTimeout(function(){document.getElementById(input2.id).focus();document.getElementById(input2.id).select();},10);
+						} else
+							obj.type= _Type;
+					}
+				}
+			
+				var _obj = document.getElementById(obj);
+				if(_obj.type == "text"){
+					switchType(_obj, false);
+					icon.className = "icon_eye_close";
+					if(obj == "http_passwd")
+						switchType(http_passwd_confirm, false);
+				}
+				else{
+					switchType(_obj, true);
+					icon.className = "icon_eye_open";
+					if(obj == "http_passwd")
+						switchType(http_passwd_confirm, true);
+				}
+			}
+			
+			// Convert a obj to post
+			var postData = function(obj, action_mode, action_script, action_wait,  flag){
+				var obj_tmp = obj;
+				obj_tmp.action_mode = action_mode;
+				obj_tmp.rc_service = action_script;
+				obj_tmp.action_wait = action_wait;
+				obj_tmp.flag = flag;
+				return obj_tmp;
+			}
+			
+			// Nvram Set
+			var nvramSet = function(postData, handler){
+				$.ajax({
+					url: '/applyapp.cgi',
+					dataType: 'json',
+					data: postData,
+			
+					error: function(response){
+						if(handler) handler.call(response);
+					},
+			
+					success: function(response){ 
+						if(handler) handler.call(response);
+					}
+				});
+			};
+			
+			function hasBlank(objArray){
+				$(".hint").remove();
+
+				objArray.forEach(function(idx){
+					if($("#"+idx).val() == ""){
+						$("<div class='hint'><#JS_fieldblank#></div>").appendTo($("#"+idx).parent());
+					}
+				})
+
+				if($(".hint").length > 0) return true;
+			}
+
+			var apply = {
+				"login": function(){
+					if(hasBlank(["http_username", "http_passwd", "http_passwd_confirm"])) return false;
+
+					var validForm = function(){
+						String.prototype.strReverse = function() {
+							var newstring = "";
+							for (var s=0; s < this.length; s++) {
+								newstring = this.charAt(s) + newstring;
+							}
+							return newstring;
+						};
+			
+						var check_common_string = function(pwd, flag){
+							//Sequential
+							var termAlphas = "abcdefghijklmnopqrstuvwxyz";
+							var termNumerics = "01234567890";
+							var termSymbols = "~!@#$%^&*()_+";
+							var termKeyboards1 = "qwertyuiop";
+							var termKeyboards2 = "asdfghjkl";
+							var termKeyboards3 = "zxcvbnm";
+							var termCommon5 = ["123123","abc123","letmein","master","qazwsx","admin"];
+							var termCommon8 = ["adminpassword","loginpassword","passw0rd","password","useradmin","userpassword"];
+							var nSeqString = 0;
+							if(flag == "httpd_password"){	//at lease length 5		
+								if(termAlphas.toLowerCase().indexOf(pwd) != -1 || termAlphas.strReverse().toLowerCase().indexOf(pwd) != -1) { nSeqString++; }
+								if(termNumerics.toLowerCase().indexOf(pwd) != -1 || termNumerics.strReverse().toLowerCase().indexOf(pwd) != -1) { nSeqString++; }
+								if(termSymbols.toLowerCase().indexOf(pwd) != -1 || termSymbols.strReverse().toLowerCase().indexOf(pwd) != -1) { nSeqString++; }
+								if(termKeyboards1.toLowerCase().indexOf(pwd) != -1 || termKeyboards1.strReverse().toLowerCase().indexOf(pwd) != -1) { nSeqString++; }
+								if(termKeyboards2.toLowerCase().indexOf(pwd) != -1 || termKeyboards2.strReverse().toLowerCase().indexOf(pwd) != -1) { nSeqString++; }
+								if(termKeyboards3.toLowerCase().indexOf(pwd) != -1 || termKeyboards3.strReverse().toLowerCase().indexOf(pwd) != -1) { nSeqString++; }
+								for(var s=0;s<termCommon5.length;s++){
+									if(pwd == termCommon5[s])	{ nSeqString++; }	
+								}
+								for(var t=0;t<termCommon8.length;t++){
+									if(pwd == termCommon8[t])	{ nSeqString++; }	
+								}		
+							}
+							else if(flag == "wpa_key"){	//at lease length 8
+								if(termAlphas.toLowerCase().indexOf(pwd) != -1 || termAlphas.strReverse().toLowerCase().indexOf(pwd) != -1) { nSeqString++; }
+								if(termNumerics.toLowerCase().indexOf(pwd) != -1 || termNumerics.strReverse().toLowerCase().indexOf(pwd) != -1) { nSeqString++; }
+								if(termSymbols.toLowerCase().indexOf(pwd) != -1 || termSymbols.strReverse().toLowerCase().indexOf(pwd) != -1) { nSeqString++; }
+								if(termKeyboards1.toLowerCase().indexOf(pwd) != -1 || termKeyboards1.strReverse().toLowerCase().indexOf(pwd) != -1) { nSeqString++; }
+								if(termKeyboards2.toLowerCase().indexOf(pwd) != -1 || termKeyboards2.strReverse().toLowerCase().indexOf(pwd) != -1) { nSeqString++; }
+								for(var s=0;s<termCommon8.length;s++){
+									if(pwd == termCommon8[s])	{ nSeqString++; }	
+								}		
+							}
+							
+							//pure repeat character string
+							if(pwd == pwd.charAt(0).repeat(pwd.length)) { nSeqString++; }
+							
+							if(nSeqString > 0)
+								return true;
+							else		
+								return false;
+						}
+			
+						var trim = function(val){
+							val = val+'';
+							for (var startIndex=0;startIndex<val.length && val.substring(startIndex,startIndex+1) == ' ';startIndex++);
+							for (var endIndex=val.length-1; endIndex>startIndex && val.substring(endIndex,endIndex+1) == ' ';endIndex--);
+							return val.substring(startIndex,endIndex+1);
+						}
+			
+						if(document.getElementById("http_username").value.length == 0){
+							alert("<#File_Pop_content_alert_desc1#>");
+							document.getElementById("http_username").focus();
+							document.getElementById("http_username").select();
+							return false;
+						}
+						else{
+							var alert_str = validator.hostName(document.getElementById("http_username"));
+			
+							if(alert_str != ""){
+								alert(alert_str);
+								document.getElementById("http_username").focus();
+								document.getElementById("http_username").select();
+								return false;
+							}
+			
+							document.getElementById("http_username").value = trim(document.getElementById("http_username").value);
+			
+							if(document.getElementById("http_username").value == "root"
+							|| document.getElementById("http_username").value == "guest"
+							|| document.getElementById("http_username").value == "anonymous"){
+								alert("<#USB_Application_account_alert#>");
+								document.getElementById("http_username").focus();
+								document.getElementById("http_username").select();
+								return false;
+							}
+						}
+			
+						var httpPassInput = document.getElementById("http_passwd");
+						var httpPassConfirmInput = document.getElementById("http_passwd_confirm");
+			
+						if(httpPassInput.value != httpPassConfirmInput.value){
+							alert("<#File_Pop_content_alert_desc7#>");
+							if(httpPassInput.value.length <= 0){
+								httpPassInput.focus();
+								httpPassInput.select();
+							}else{
+								httpPassConfirmInput.focus();
+								httpPassConfirmInput.select();
+							}
+							return false;
+						}
+			
+						if(httpPassInput.value.length <= 0 || httpPassConfirmInput.value.length <= 0){
+							alert("<#File_Pop_content_alert_desc6#>");
+							httpPassInput.focus();
+							httpPassInput.select();
+							return false;
+						}
+			
+						if(httpPassInput.value.length > 0 && httpPassConfirmInput.value.length < 5){
+							alert("<#JS_short_password#>");			
+							httpPassInput.focus();
+							httpPassInput.select();
+							return false;
+						}
+			
+						if(!validator.string(httpPassInput)){
+							httpPassInput.focus();
+							httpPassInput.select();
+							return false;
+						}	
+			
+						if(httpPassInput.value == '<% nvram_default_get("http_passwd"); %>'){
+							alert("* <#QIS_adminpass_confirm0#>");
+							httpPassInput.focus();
+							httpPassInput.select();
+							return false;
+						}	
+			
+						if(check_common_string(httpPassInput.value, "httpd_password")){
+							if(!confirm("<#JS_common_passwd#>")){
+								httpPassInput.focus();
+								httpPassInput.select();
+								return false;
+							}
+						}
+			
+						return true;
+					}
+			
+					if(validForm()){
+						qisPostData.http_username = $("#http_username").val();
+						qisPostData.http_passwd = $("#http_passwd").val();
+						
+						if(wanType == "DHCP"){
+							apply.dhcp();
+						}
+						else if(wanType == "PPPoE"){
+							$.mobile.changePage("#pppoe_setting", {transition: "slide", changeHash: false});
+						}
+						else if(wanType == "Static"){
+							$.mobile.changePage("#static_setting", {transition: "slide", changeHash: false});
+						}
+						else{
+							$.mobile.changePage("#wan_setting", {transition: "slide", changeHash: false});
+						}
+					}
+				},
+			
+				"dhcp": function(){
+					qisPostData.wan_proto = "dhcp";
+					qisPostData.wan_dhcpenable_x = "1";
+					qisPostData.wan_dnsenable_x = "1";
+
+					$.mobile.changePage("#wireless_setting", {transition: "slide", changeHash: false, reverse: false});
+				},
+			
+				"pppoe": function(){
+					if(hasBlank(["wan_pppoe_username", "wan_pppoe_passwd"])) return false;
+
+					qisPostData.wan_proto = "pppoe";
+					qisPostData.wan_pppoe_username = $("#wan_pppoe_username").val();
+					qisPostData.wan_pppoe_passwd = $("#wan_pppoe_passwd").val();
+			
+					$.mobile.changePage("#wireless_setting", {transition: "slide", changeHash: false, reverse: false});
+				},
+			
+				"static": function(){
+					if(hasBlank([
+						"pap_ip_advance_setting_ipaddr", 
+						"pap_ip_advance_setting_subnet", 
+						"pap_ip_advance_setting_gateway",
+						"pap_ip_advance_setting_dns1"
+					])) return false;
+
+					qisPostData.wan_proto = "static";
+					qisPostData.wan_unit = "0";
+					qisPostData.wan_dhcpenable_x = "0";
+					qisPostData.wan_ipaddr_x = $("#pap_ip_advance_setting_ipaddr").val()
+					qisPostData.wan_netmask_x = $("#pap_ip_advance_setting_subnet").val()
+					qisPostData.wan_gateway_x = $("#pap_ip_advance_setting_gateway").val()
+					qisPostData.wan_dnsenable_x = "0";
+					qisPostData.wan_dns1_x = $("#pap_ip_advance_setting_dns1").val();
+					qisPostData.wan_dns2_x = $("#pap_ip_advance_setting_dns2").val();
+			
+					$.mobile.changePage("#wireless_setting", {transition: "slide", changeHash: false, reverse: false});
+				},
+			
+				"wireless": function(){
+					if(hasBlank(["wireless_ssid"])) return false;
+
+					qisPostData.wl0_ssid = $("#wireless_ssid").val();
+					qisPostData.wl0_wpa_psk = $("#wireless_key").val();
+					qisPostData.wl0_auth_mode_x = (qisPostData.wl0_wpa_psk == "") ? "open" : "psk2";
+					qisPostData.wl0_crypto = "aes";
+
+					qisPostData.wl1_ssid = $("#wireless_ssid").val();
+					qisPostData.wl1_wpa_psk = $("#wireless_key").val();
+					qisPostData.wl1_auth_mode_x = ($("#wireless_key").val() == "") ? "open" : "psk2";
+					qisPostData.wl1_crypto = "aes";
+
+					qisPostData.wl2_ssid = $("#wireless_ssid").val();
+					qisPostData.wl2_wpa_psk = $("#wireless_key").val();
+					qisPostData.wl2_auth_mode_x = ($("#wireless_key").val() == "") ? "open" : "psk2";
+					qisPostData.wl2_crypto = "aes";
+
+					$("#ssidSummary").val(qisPostData.wl0_ssid);
+					$("#pskSummary").val((function(){
+						return (qisPostData.wl0_wpa_psk == "") ? "OPEN" : qisPostData.wl0_wpa_psk;
+					})());
+
+					nvramSet(new postData(qisPostData, "apply", "reboot", "", ""));
+					goTo.Finish();
+				},
+
+				"summary": function(){
+					$.mobile.changePage("#setmore_page", {transition: "slide", changeHash: false, reverse: false});
+				}
+			};
+			
+			var abort = {
+				"login": function(){
+					qisPostData.http_username = qisOriginData.http_username;
+					qisPostData.http_passwd = qisOriginData.http_passwd;
+			
+					$.mobile.changePage("#welcome", {transition: "slide", changeHash: false, reverse: true});
+				},
+			
+				"wan": function(){
+					qisPostData.wan_proto = qisOriginData.wan_proto;
+					qisPostData.wan_dhcpenable_x = qisOriginData.wan_dhcpenable_x;
+					qisPostData.wan_dnsenable_x = qisOriginData.wan_dnsenable_x;
+					qisPostData.wan_pppoe_username = qisOriginData.wan_pppoe_username;
+					qisPostData.wan_pppoe_passwd = qisOriginData.wan_pppoe_passwd;
+
+					if(!forceChangePW)
+						$.mobile.changePage("#welcome", {transition: "slide", changeHash: false, reverse: true});
+					else
+						$.mobile.changePage("#login_name", {transition: "slide", changeHash: false, reverse: true});
+				},
+			
+				"pppoe": function(){
+					qisPostData.wan_proto = qisOriginData.wan_proto;
+					qisPostData.wan_pppoe_username = qisOriginData.wan_pppoe_username;
+					qisPostData.wan_pppoe_passwd = qisOriginData.wan_pppoe_passwd;
+			
+					$.mobile.changePage("#wan_setting", {transition: "slide", changeHash: false, reverse: true});	
+				},
+			
+				"static": function(){
+					qisPostData.wan_proto = qisOriginData.wan_proto;
+					qisPostData.wan_unit = qisOriginData.wan_unit;
+					qisPostData.wan_dhcpenable_x = qisOriginData.wan_dhcpenable_x;
+					qisPostData.wan_ipaddr_x = qisOriginData.wan_ipaddr_x;
+					qisPostData.wan_netmask_x = qisOriginData.wan_netmask_x;
+					qisPostData.wan_gateway_x = qisOriginData.wan_gateway_x;
+					qisPostData.wan_dnsenable_x = qisOriginData.wan_dnsenable_x;
+					qisPostData.wan_dns1_x = qisOriginData.wan_dns1_x;
+					qisPostData.wan_dns2_x = qisOriginData.wan_dns2_x;
+			
+					$.mobile.changePage("#wan_setting", {transition: "slide", changeHash: false, reverse: true});	
+				},
+			
+				"wireless": function(){
+					qisPostData.wl0_ssid = qisOriginData.wl0_ssid;
+					qisPostData.wl0_wpa_psk = qisOriginData.wl0_wpa_psk;
+					qisPostData.wl0_auth_mode_x = qisOriginData.wl0_auth_mode_x;
+					qisPostData.wl0_crypto = qisOriginData.wl0_crypto;
+			
+					qisPostData.wl1_ssid = qisOriginData.wl1_ssid;
+					qisPostData.wl1_wpa_psk = qisOriginData.wl1_wpa_psk;
+					qisPostData.wl1_auth_mode_x = qisOriginData.wl1_auth_mode_x;
+					qisPostData.wl1_crypto = qisOriginData.wl1_crypto;
+			
+					if(wanType == "DHCP"){
+						if(!forceChangePW)
+							$.mobile.changePage("#welcome", {transition: "slide", changeHash: false, reverse: true});
+						else
+							$.mobile.changePage("#login_name", {transition: "slide", changeHash: false, reverse: true});
+					}
+					else if(wanType == "PPPoE"){
+						$.mobile.changePage("#pppoe_setting", {transition: "slide", changeHash: false, reverse: true});
+					}
+					else if(wanType == "Static"){
+						$.mobile.changePage("#static_setting", {transition: "slide", changeHash: false, reverse: true});
+					}
+					else{
+						$.mobile.changePage("#wan_setting", {transition: "slide", changeHash: false, reverse: true});
+					}
+				}
+			};
+			
+			var goTo = {
+				"setUpWan": function(){
+					if(wanType == "DHCP"){
+						apply.dhcp();
+					}
+					else if(wanType == "PPPoE"){
+						$.mobile.changePage("#pppoe_setting", {transition: "slide", changeHash: false});
+					}
+					else if(wanType == "Static"){
+						$.mobile.changePage("#static_setting", {transition: "slide", changeHash: false});
+					}
+					else{
+						$.mobile.changePage("#wan_setting", {transition: "slide", changeHash: false});
+					}
+				},
+
+				"PPPoE": function(){
+					$.mobile.changePage("#pppoe_setting", {transition: "slide", changeHash: false, reverse: false});
+				},
+			
+				"Finish": function(){
+					$.mobile.changePage("#summary_page", {transition: "slide", changeHash: false, reverse: false});	
+				},
+
+				"More": function(){
+					$.mobile.changePage("#setmore_page", {transition: "slide", changeHash: false, reverse: false});	
+				},
+			
+				"Static": function(){
+					$.mobile.changePage("#static_setting", {transition: "slide", changeHash: false, reverse: false});		
+				}	
+			}
+		</script>
+	</head>
+	<body>
+		<!-- Welcome Page -->
+		<div data-role="page" id="welcome" name="welcome" class="qisBackgroundIndex">
+			<div style="margin:34px 0 0 27px;">
+				<table style="width:100%">
+					<tr>
+						<td style="padding:0;width:17px;">
+							<div style="margin-right:20px;">
+								<a onclick="goTo.Finish()">
+									<div class="icon_menu" style="width:17px;height:17px;display:none"></div>
+								</a>
+							</div>
+						</td>
+						<td style="padding:0;width:130px;">
+							<div style="margin-right:35px;">
+								<div class="icon_logo"></div>
+							</div>
+						</td>
+						<td style="padding:0;">
+							<div class="model_welcome"></div>
+						</td>
+					</tr>
+				</table>
+			</div>
+			<div id="welcome_main_field">
+				<div style="font-family:Uni Sans Thin, Helvetica W01 Light, Arial;font-size:9em;color:#FFF;line-height:150px;margin:120px 46px 0 46px;text-align:center;">Welcome To Lyra</div>
+				<!--div style="font-family:Uni Sans Thin, Helvetica W01 Light, Arial;font-size:2.875em;color:#27D1A4;text-align:center;margin:36px 46px 0 46px;">ASUS Networking Family</div-->
+				<div id="model_image" class="model_image"></div>
+				<div id="model_welcome_field" style="text-align:center;color:#0ECDA4;font-size:30pt;font-family:HelveticaNeueW10-35Thin,Helvetica W01 Light,Arial;line-height:23px;margin:21px 0"></div>
+				<div style="text-align:center;margin:31px 0">
+					<div id="welcome_button" style="cursor:pointer;width:600px;height:88px;border-radius:4px;color:#FFF;background-color:#27D1A4;border:1px solid #27D1A4;font-size:2.25em;margin:auto;line-height:88px;" onclick="start_welcome();">Create A New Lyra Network</div>
+				</div>
+				<div style="color:#FFF;font-size:2em;text-align:center;"><a href="#" style="color:#27D1A4" onclick="goTo.More()">Login to existing Lyra Network</a></div>
+				<div style="visibility: hidden" class="led_intro loading"></div>
+			</div>
+		</div>
+		<div data-role="page" id="login_name" name="login_name" class="qisBackground">
+			<div style="margin:34px 0 0 27px;">
+				<table style="width:100%">
+					<tr>
+						<td style="padding:0;width:17px;">
+							<div style="margin-right:20px;">
+								<a href="#navigation">
+									<div class="icon_menu" style="width:17px;height:17px;display:none"></div>
+								</a>
+							</div>
+						</td>
+						<td style="padding:0;width:130px;">
+							<div style="margin-right:35px;">
+								<div class="icon_logo"></div>
+							</div>
+						</td>
+						<td style="padding:0;">
+							<div class="model_welcome"></div>
+						</td>
+					</tr>
+				</table>
+			</div>
+			<div class="desktop_left_field">
+				<div id="login_title">
+					<div style="font-size:60px;">Login</div>
+					<div style="font-size:32px;">Username/Passowrd</div>
+					<div style="font-size:32px;">Setting</div>
+				</div>
+			</div>
+			<div class="table_td">
+				<div id="login_desc" class="pageDesc">Create your Lyra account. The username and password will be used to login and manage your Lyra network</div>
+				<div id="login_field">
+					<div style="margin-left:17px;">
+						<div style="display:table;margin:18px 0 19px 30px;width:100%">
+							<div class="inputTitle"><#Router_Login_Name#></div>
+						</div>
+						<div class="inputContainer">
+							<input id="http_username" type="text" maxlength="64" class="textInput" data-role="none" value="" data-clear-btn="true"></input>
+						</div>
+					</div>
+					<div style="margin-left:17px;">
+						<div style="display:table;margin:18px 0 19px 30px;width:100%">
+							<div class="inputTitle"><#PASS_new#></div>
+							<div class="icon_eye_open" onclick="pass_checked('http_passwd', this)"></div>
+						</div>
+						<div class="inputContainer">
+							<input id="http_passwd" type="text" maxlength="64" class="textInput" data-role="none" value="" data-clear-btn="true"></input>
+						</div>
+					</div>
+					<div style="margin-left:17px;">
+						<div style="display:table;margin:18px 0 19px 30px;width:100%">
+							<div class="inputTitle"><#PASS_retype#></div>
+						</div>
+						<div class="inputContainer">
+							<input id="http_passwd_confirm" type="text" maxlength="64" class="textInput" data-role="none" value="" data-clear-btn="true"></input>
+						</div>
+					</div>
+					<!--for desktop-->
+					<div class="footer_desktop">
+						<div class="desktop_abortBtn" onclick='abort.login()'>CANCEL</div>
+						<div class="desktop_applyBtn" onclick="apply.login();">Next</div>
+					</div>
+					<div class="footer_mobile">
+						<table style="width:100%;" cellpadding="0" cellspacing="0">
+							<tr style="height:102px;text-align:center">
+								<td style="width:50%" onclick='abort.login()'>
+									<div class="mobile_abortBtn">CANCEL</div>
+								</td>
+								<td style="width:50%;background:#27D1A4" onclick="apply.login();">
+									<div class="mobile_applyBtn">Next</div>
+								</td>
+							</tr>
+						</table>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<!-- WAN Setting -->
+		<div id="wan_setting" data-role="page" class="qisBackground">
+			<div style="margin:34px 0 0 27px;">
+				<table style="width:100%">
+					<tr>
+						<td style="padding:0;width:17px;">
+							<div style="margin-right:20px;">
+								<a href="#navigation">
+									<div class="icon_menu" style="width:17px;height:17px;display:none"></div>
+								</a>
+							</div>
+						</td>
+						<td style="padding:0;width:130px;">
+							<div style="margin-right:35px;">
+								<div class="icon_logo"></div>
+							</div>
+						</td>
+						<td style="padding:0;">
+							<div class="model_welcome"></div>
+						</td>
+					</tr>
+				</table>
+			</div>
+			<div class="desktop_left_field">
+				<div>
+					<div style="font-size:60px;"><#Internet#></div>
+					<div style="font-size:32px;"><#Settings#></div>
+				</div>
+			</div>
+			<div class="table_td">
+				<div class="pageDesc"><#QIS_dualconnect_hint22#></div>
+				<div>
+					<div style="margin-left:35px;color:#888">
+						<div style="border-bottom:1px solid #999;padding:29px 0;display:table;width:100%">
+							<div style="display:table-row;font-family:HelveticaNeueW10-45Ligh,Helvetica,Arial;font-size:2.25em;">
+								<div style="display:table-cell;width:17px;">
+								</div>
+								<div class="selectBar" onclick="apply.dhcp()">
+									DHCP
+								</div>
+								<div style="display:table-cell;vertical-align:middle;width:30px;text-align:right;padding-right:28px;">
+									<div class="icon_arrow_right" style="width:20px;height:32px;"></div>
+								</div>
+							</div>
+						</div>
+						<div style="border-bottom:1px solid #999;padding:29px 0;display:table;width:100%">
+							<div style="display:table-row;font-family:HelveticaNeueW10-45Ligh,Helvetica,Arial;font-size:2.25em;">
+								<div style="display:table-cell;width:17px;">
+								</div>
+								<div class="selectBar" onclick="goTo.PPPoE()">
+									PPPoE
+								</div>
+								<div style="display:table-cell;vertical-align:middle;width:30px;text-align:right;padding-right:28px;">
+									<div class="icon_arrow_right" style="width:20px;height:32px;"></div>
+								</div>
+							</div>
+						</div>
+						<div style="border-bottom:1px solid #999;padding:29px 0;display:table;width:100%">
+							<div style="display:table-row;font-family:HelveticaNeueW10-45Ligh,Helvetica,Arial;font-size:2.25em;">
+								<div style="display:table-cell;width:17px;">
+								</div>
+								<div class="selectBar" onclick="goTo.Static()">
+									Static IP
+								</div>
+								<div style="display:table-cell;vertical-align:middle;width:30px;text-align:right;padding-right:28px;">
+									<div class="icon_arrow_right" style="width:20px;height:32px;"></div>
+								</div>
+							</div>
+						</div>
+					</div>
+					<!--for desktop-->
+					<div class="footer_desktop" style="color:#FFF;text-align:center;margin-top:30px;">
+						<div class="desktop_applyBtn" onclick='abort.wan()'>CANCEL</div>
+					</div>
+					<div class="footer_mobile">
+						<table style="width:100%;" cellpadding="0" cellspacing="0">
+							<tr style="height:102px;text-align:center">
+								<td style="width:100%;background:#27D1A4" onclick='abort.wan()'>
+									<div class="mobile_applyBtn">CANCEL</div>
+								</td>
+							</tr>
+						</table>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<!-- PPPoE Setting -->
+		<div data-role="page" id="pppoe_setting" name="pppoe_setting" class="qisBackground">
+			<div style="margin:34px 0 0 27px;">
+				<table style="width:100%">
+					<tr>
+						<td style="padding:0;width:17px;">
+							<div style="margin-right:20px;">
+								<a href="#navigation">
+									<div class="icon_menu" style="width:17px;height:17px;display:none"></div>
+								</a>
+							</div>
+						</td>
+						<td style="padding:0;width:130px;">
+							<div style="margin-right:35px;">
+								<div class="icon_logo"></div>
+							</div>
+						</td>
+						<td style="padding:0;">
+							<div class="model_welcome"></div>
+						</td>
+					</tr>
+				</table>
+			</div>
+			<div class="desktop_left_field">
+				<div id="login_title">
+					<div style="font-size:60px;"><#Internet#></div>
+					<div style="font-size:32px;"><#Settings#></div>
+				</div>
+			</div>
+			<div class="table_td">
+				<div id="pppoe_desc" class="pageDesc"><#qis_pppoe_desc1#></div>
+				<div id="pppoe_field">
+					<div style="margin-left:17px;">
+						<div style="display:table;margin:18px 0 19px 30px;width:100%">
+							<div class="inputTitle"><#HSDPAConfig_Username_itemname#></div>
+						</div>
+						<div class="inputContainer">
+							<input id="wan_pppoe_username" type="text" maxlength="64" class="textInput" data-role="none" value="" data-clear-btn="true"></input>
+						</div>
+					</div>
+					<div style="margin-left:17px;">
+						<div style="display:table;margin:18px 0 19px 30px;width:100%">
+							<div class="inputTitle"><#PPPConnection_Password_itemname#></div>
+							<div class="icon_eye_open" onclick="pass_checked('pppoe_password', this)"></div>
+						</div>
+						<div class="inputContainer">
+							<input id="wan_pppoe_passwd" type="text" maxlength="64" class="textInput" data-role="none" value="" data-clear-btn="true"></input>
+						</div>
+					</div>
+					<!--for desktop-->
+					<div class="footer_desktop">
+						<div class="desktop_abortBtn" onclick='abort.pppoe()'>CANCEL</div>
+						<div class="desktop_applyBtn" onclick="apply.pppoe();">Next</div>
+					</div>
+					<div class="footer_mobile">
+						<table style="width:100%;" cellpadding="0" cellspacing="0">
+							<tr style="height:102px;text-align:center">
+								<td style="width:50%" onclick='abort.pppoe()'>
+									<div class="mobile_abortBtn">CANCEL</div>
+								</td>
+								<td style="width:50%;background:#27D1A4" onclick="apply.pppoe();">
+									<div class="mobile_applyBtn">Next</div>
+								</td>
+							</tr>
+						</table>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<!-- Static Setting -->
+		<div data-role="page" id="static_setting" name="static_setting" class="qisBackground">
+			<div style="margin:34px 0 0 27px;">
+				<table style="width:100%">
+					<tr>
+						<td style="padding:0;width:17px;">
+							<div style="margin-right:20px;">
+								<a href="#navigation">
+									<div class="icon_menu" style="width:17px;height:17px;display:none"></div>
+								</a>
+							</div>
+						</td>
+						<td style="padding:0;width:130px;">
+							<div style="margin-right:35px;">
+								<div class="icon_logo"></div>
+							</div>
+						</td>
+						<td style="padding:0;">
+							<div class="model_welcome"></div>
+						</td>
+					</tr>
+				</table>
+			</div>
+			<div class="desktop_left_field">
+				<div id="login_title">
+					<div style="font-size:60px;"><#Internet#></div>
+					<div style="font-size:32px;"><#BOP_ctype_title5#></div>
+				</div>
+			</div>
+			<div class="table_td">
+				<div class="pageDesc"><#BOP_ctype_item5#></div>
+				<div>
+					<div style="margin-left:17px;">
+						<div style="display:table;margin:18px 0 19px 30px;width:100%">
+							<div class="inputTitle">IP Address</div>
+						</div>
+						<div class="inputContainer">
+							<input id="pap_ip_advance_setting_ipaddr" class="textInput" data-role="none" onkeypress="return validator.isIPAddr(this, event);" maxlength="15" type="text">
+						</div>
+					</div>
+					<div style="margin-left:17px;">
+						<div style="display:table;margin:18px 0 19px 30px;width:100%">
+							<div class="inputTitle">Subnet Mask</div>
+						</div>
+						<div class="inputContainer">
+							<input id="pap_ip_advance_setting_subnet" class="textInput" data-role="none" onkeypress="return validator.isIPAddr(this, event);" maxlength="15" type="text">
+						</div>
+					</div>
+					<div style="margin-left:17px;">
+						<div style="display:table;margin:18px 0 19px 30px;width:100%">
+							<div class="inputTitle">Default Gateway</div>
+						</div>
+						<div class="inputContainer">
+							<input id="pap_ip_advance_setting_gateway" class="textInput" data-role="none" onkeypress="return validator.isIPAddr(this, event);" maxlength="15" type="text">
+						</div>
+					</div>
+					<div style="margin-left:17px;">
+						<div style="display:table;margin:18px 0 19px 30px;width:100%">
+							<div class="inputTitle">DNS 1</div>
+						</div>
+						<div class="inputContainer">
+							<input id="pap_ip_advance_setting_dns1" class="textInput" data-role="none" onkeypress="return validator.isIPAddr(this, event);" maxlength="15" type="text">
+						</div>
+					</div>
+					<div style="margin-left:17px;">
+						<div style="display:table;margin:18px 0 19px 30px;width:100%">
+							<div class="inputTitle">DNS 2</div>
+						</div>
+						<div class="inputContainer">
+							<input id="pap_ip_advance_setting_dns2" class="textInput" data-role="none" onkeypress="return validator.isIPAddr(this, event);" maxlength="15" type="text">
+						</div>
+					</div>
+					<!--for desktop-->
+					<div class="footer_desktop">
+						<div class="desktop_abortBtn" onclick='abort.static()'>CANCEL</div>
+						<div class="desktop_applyBtn" onclick="apply.static();">Next</div>
+					</div>
+					<div class="footer_mobile">
+						<table style="width:100%;" cellpadding="0" cellspacing="0">
+							<tr style="height:102px;text-align:center">
+								<td style="width:50%" onclick='abort.static()'>
+									<div  class="mobile_abortBtn">CANCEL</div>
+								</td>
+								<td style="width:50%;background:#27D1A4" onclick="apply.static();">
+									<div  class="mobile_applyBtn">Next</div>
+								</td>
+							</tr>
+						</table>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<!-- Wireless SSID/Password Setting -->
+		<div id="wireless_setting" data-role="page" class="qisBackground">
+			<div style="margin:34px 0 0 27px;">
+				<table style="width:100%">
+					<tr>
+						<td style="padding:0;width:17px;">
+							<div style="margin-right:20px;">
+								<a href="#navigation">
+									<div class="icon_menu" style="width:17px;height:17px;display:none"></div>
+								</a>
+							</div>
+						</td>
+						<td style="padding:0;width:130px;">
+							<div style="margin-right:35px;">
+								<div class="icon_logo"></div>
+							</div>
+						</td>
+						<td style="padding:0;">
+							<div class="model_welcome"></div>
+						</td>
+					</tr>
+				</table>
+			</div>
+			<div class="desktop_left_field">
+				<div style="font-size:60px">Wireless</div>
+				<div style="font-size:32px">Setting</div>
+			</div>
+			<div class="table_td">
+				<div class="pageDesc"><#qis_wireless_setting#></div>
+				<div id="wireless_field" style="padding-bottom:35px;width:100%;">
+					<div style="margin:31px 48px 7px 46px">
+						<div>
+							<span style="font-family:HelveticaNeueW10-45Ligh,Helvetica,Arial;font-size:1.8em;color:#888;"><#QIS_finish_wireless_item1#></span>
+						</div>
+						<div style="display:table;margin:18px 0px 19px 0px;width:100%">
+							<input id="wireless_ssid" type="text" maxlength="32" onkeypress="return validator.isString(this, event)" class="textInput" data-role="none" data-clear-btn="true">
+						</div>
+					</div>
+					<div style="margin:31px 48px 7px 46px">
+						<div>
+							<table style="width:100%">
+								<tr>
+									<td>
+										<div style="font-family:HelveticaNeueW10-45Ligh,Helvetica,Arial;font-size:1.8em;color:#888;"><#QIS_finish_wireless_item2#></div>
+									</td>
+									<td style="width: 20px;">
+										<div class="icon_eye_open" onclick="pass_checked('wireless_key', this)"></div>
+									</td>
+								</tr>
+							</table>
+						</div>
+						<div style="margin-top:19px">
+							<input id="wireless_key" type="text" maxlength="64" class="textInput" data-role="none" value="" data-clear-btn="true"></input>
+						</div>
+					</div>
+				</div>
+				<!--for desktop-->
+				<div class="footer_desktop" style="color:#FFF;text-align:center;margin-top:0;max-width:1000px;">
+					<div class="desktop_abortBtn" onclick='abort.wireless();'>PREVIOUS</div>
+					<div class="desktop_applyBtn" onclick="apply.wireless();">APPLY</div>
+				</div>
+				<div class="footer_mobile">
+					<table style="width:100%;" cellpadding="0" cellspacing="0">
+						<tr style="height:102px;text-align:center">
+							<td style="width:50%" onclick='abort.wireless();'>
+								<div class="mobile_abortBtn">PREVIOUS</div>
+							</td>
+							<td style="width:50%;background:#27D1A4" onclick="apply.wireless();">
+								<div class="mobile_applyBtn">APPLY</div>
+							</td>
+						</tr>
+					</table>
+				</div>
+			</div>
+		</div>
+
+		<!-- Summary -->
+		<div id="summary_page" data-role="page" class="qisBackground">
+			<div style="margin:34px 0 0 27px;">
+				<table style="width:100%">
+					<tr>
+						<td style="padding:0;width:17px;">
+							<div style="margin-right:20px;">
+								<a href="#navigation">
+									<div class="icon_menu" style="width:17px;height:17px;display:none"></div>
+								</a>
+							</div>
+						</td>
+						<td style="padding:0;width:130px;">
+							<div style="margin-right:35px;">
+								<div class="icon_logo"></div>
+							</div>
+						</td>
+						<td style="padding:0;">
+							<div class="model_welcome"></div>
+						</td>
+					</tr>
+				</table>
+			</div>
+			<div class="desktop_left_field">
+				<div>
+					<div style="font-size:60px;">Summary</div>
+				</div>
+			</div>
+			<div class="table_td">
+				<div class="pageDesc">Congratulations! Your Lyra network is ready to go!</div>
+
+				<div>
+					<div style="margin-left:17px;">
+						<div style="display:table;margin:18px 0 19px 30px;width:100%">
+							<div class="inputTitle"><#QIS_finish_wireless_item1#></div>
+						</div>
+						<div class="inputContainer">
+							<input id="ssidSummary" type="text" class="textInput" data-role="none" disabled>
+						</div>
+					</div>
+					<div style="margin-left:17px;">
+						<div style="display:table;margin:18px 0 19px 30px;width:100%">
+							<div class="inputTitle"><#QIS_finish_wireless_item2#></div>
+						</div>
+						<div class="inputContainer">
+							<input id="pskSummary" type="text" class="textInput" data-role="none" disabled>
+						</div>
+					</div>
+				</div>
+
+				<div>
+					<div class="footer_desktop">
+						<div class="desktop_applyBtn" onclick="apply.summary();">Next</div>
+					</div>
+					<div class="footer_mobile">
+						<table style="width:100%;" cellpadding="0" cellspacing="0">
+							<tr style="height:102px;text-align:center">
+								<td style="width:50%;background:#27D1A4" onclick="apply.summary();">
+									<div class="mobile_applyBtn">Next</div>
+								</td>
+							</tr>
+						</table>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<!-- Set More -->
+		<div id="setmore_page" data-role="page" class="qisBackground">
+			<div style="margin:34px 0 0 27px;">
+				<table style="width:100%">
+					<tr>
+						<td style="padding:0;width:17px;">
+							<div style="margin-right:20px;">
+								<a href="#navigation">
+									<div class="icon_menu" style="width:17px;height:17px;display:none"></div>
+								</a>
+							</div>
+						</td>
+						<td style="padding:0;width:130px;">
+							<div style="margin-right:35px;">
+								<div class="icon_logo"></div>
+							</div>
+						</td>
+						<td style="padding:0;">
+							<div class="model_welcome"></div>
+						</td>
+					</tr>
+				</table>
+			</div>
+			<div class="desktop_left_field">
+				<div>
+					<div style="font-size:60px;">Tips</div>
+				</div>
+			</div>
+			<div class="table_td">
+				<div class="pageDesc">Login to existing Lyra Network</div>
+
+				<div style="margin:50px;font-size:2em">
+					<li style="line-height:70px;font-family: Helvetica, Arial;">
+						Please download the app in 
+						<div class="appIconContainer">
+							<div class="appIcon googlePlay"></div>
+							<div class="appQR googlePlayQR"></div>
+							<div class="appIcon itunesStore"></div>
+							<div class="appQR itunesStoreQR"></div>
+						</div>
+					</li>
+					
+					<script>
+						(function(){
+							var mobileOS = (function(){
+								var userAgent = navigator.userAgent || navigator.vendor || window.opera;
+								if (/android/i.test(userAgent)) return "Android";
+								if(/iPad|iPhone|iPod/.test(userAgent) && !window.MSStream) return "iOS";
+								return "unknown"; 
+							})();
+
+							switch(mobileOS){
+								case "Android":
+									$(".googlePlay").click(function(){
+										window.open("https://play.google.com/store/apps/details?id=com.asustek.aicloud");
+									})
+									$(".googlePlayQR").hide();
+									$(".itunesStore").hide();
+									$(".itunesStoreQR").hide();
+								break;
+
+								case "iOS":
+									$(".itunesStore").click(function(){
+										window.open("https://itunes.apple.com/us/app/aicloud-lite/id527118674");
+									})
+									$(".googlePlay").hide();
+									$(".googlePlayQR").hide();
+									$(".itunesStoreQR").hide();
+								break;
+
+								case "unknown":
+									$(".appIconContainer").css({
+										"margin-top": "0px",
+										"margin-left": "60px",
+										"padding-bottom": "20px",
+										"position": "relative"
+									})
+								break;
+							}
+						})()
+					</script>
+					<li style="line-height:50px;">Connect to your Wi-Fi, open the app and log in.</li>
+					<li style="line-height:50px;">Click + in the app and follow the procedure.</li>
+				</div>
+
+			</div>
+		</div>
+	</body>
+</html>

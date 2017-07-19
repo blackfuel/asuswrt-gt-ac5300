@@ -49,11 +49,11 @@ function initial(){
 	if(isSwMode("ew")){
 		if(wlc_express == "1"){
 			document.form.wl_unit.innerHTML = '<option class="content_input_fd" value="1" selected="">5 GHz</option>';
-			if(wl_unit_value != 1) change_wl_unit();
+			if(wl_unit_value != 1) _change_wl_unit();
 		}
 		else if(wlc_express == "2"){
 			document.form.wl_unit.innerHTML = '<option class="content_input_fd" value="0" selected="">2.4 GHz</option>';
-			if(wl_unit_value != 0) change_wl_unit();
+			if(wl_unit_value != 0) _change_wl_unit();
 		}
 	}
 
@@ -75,7 +75,7 @@ function initial(){
 	else
 		check_channel_2g();
 
-	if(sw_mode == "2"){
+	if(isSwMode("re")){
 		if((wlc0_ssid != "" && wl_unit_value == "0") || (wlc1_ssid != "" && wl_unit_value == "1")){
 			document.getElementById('wl_bw_field').style.display = "none";
 			document.getElementById('wl_channel_field').style.display = "none";
@@ -128,7 +128,7 @@ function initial(){
 		document.form.wl_subunit.value = (wl_unit_value == wlc_band_value) ? 1 : -1;	
 	
 	document.getElementById('WPS_hideSSID_hint').innerHTML = "<#WPS_hideSSID_hint#>";	
-	if("<% nvram_get("wl_closed"); %>" == 1){
+	if("<% nvram_get("wl_closed"); %>" == 1 && (isSwMode("rt") || isSwMode("ap"))){
 		document.getElementById('WPS_hideSSID_hint').style.display = "";	
 	}
 	
@@ -137,7 +137,7 @@ function initial(){
 		document.getElementById("auto_channel").innerHTML = "Current control channel: " + cur_control_channel[wl_unit_value];
 	}
 
-	if(concurrep_support && isSwMode("re")){
+	if(concurrep_support && (isSwMode("re") || isSwMode("ew"))){
 		inputCtrl(document.form.wl_nmode_x, 0);
 		document.form.wl_subunit.disabled = false;
 		document.form.wl_subunit.value = 1;
@@ -296,7 +296,7 @@ function applyRule(){
 		document.form.wl_wpa_psk.value = "";
 		
 	if(validForm()){
-		if(document.form.wl_closed[0].checked && document.form.wps_enable.value == 1){
+		if(document.form.wl_closed[0].checked && document.form.wps_enable.value == 1 && (isSwMode("rt") || isSwMode("ap"))){
 			if(confirm("<#wireless_JS_Hide_SSID#>")){
 				document.form.wps_enable.value = "0";	
 			}
@@ -451,7 +451,7 @@ function _change_wl_unit(val){
 	else
 		document.form.wl_subunit.value = -1;
 
-	if(concurrep_support && (isSwMode("re") || isSwMode("mb")))
+	if(concurrep_support && (isSwMode("re") || isSwMode("mb") || isSwMode("ew")))
 		document.form.wl_subunit.value = 1;
 
 	change_wl_unit();

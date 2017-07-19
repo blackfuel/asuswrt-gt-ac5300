@@ -16,6 +16,9 @@
  #include <shutils.h>
  #include <shared.h>
 #else /* DSL_ASUSWRT SDK */
+ #include <shared.h>
+ #include <tcutils.h>
+ #include <libtcapi.h>
 #endif
 
 #endif

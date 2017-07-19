@@ -229,14 +229,14 @@ function genClientList(){
 			clientList[thisClientMacAddr].name = clientList[thisClientMacAddr].mac;
 		}
 		clientList[thisClientMacAddr].nickName = thisClient.nickName.trim();
-		clientList[thisClientMacAddr].isGateway = thisClient.isGateway;
-		clientList[thisClientMacAddr].isWebServer = thisClient.isWebServer;
-		clientList[thisClientMacAddr].isPrinter = thisClient.isPrinter;
-		clientList[thisClientMacAddr].isITunes = thisClient.isITunes;
+		clientList[thisClientMacAddr].isGateway = (thisClient.isGateway == "1");
+		clientList[thisClientMacAddr].isWebServer = (thisClient.isWebServer == "1");
+		clientList[thisClientMacAddr].isPrinter = (thisClient.isPrinter == "1");
+		clientList[thisClientMacAddr].isITunes = (thisClient.isITunes == "1");
 		clientList[thisClientMacAddr].dpiDevice = ( thisClient.dpiDevice == "undefined") ? "" : thisClient.dpiDevice;
 		clientList[thisClientMacAddr].vendor = thisClient.vendor;
-		clientList[thisClientMacAddr].rssi = thisClient.rssi;
-		clientList[thisClientMacAddr].isWL = thisClient.isWL;
+		clientList[thisClientMacAddr].rssi = parseInt(thisClient.rssi);
+		clientList[thisClientMacAddr].isWL = parseInt(thisClient.isWL);
 		if(clientList[thisClientMacAddr].isWL > 0) {
 			totalClientNum.wireless += clientList[thisClientMacAddr].macRepeat;
 			totalClientNum.wireless_ifnames[clientList[thisClientMacAddr].isWL-1] += clientList[thisClientMacAddr].macRepeat;
@@ -244,6 +244,15 @@ function genClientList(){
 		else {
 			totalClientNum.wired += clientList[thisClientMacAddr].macRepeat;
 		}
+
+		clientList[thisClientMacAddr].opMode = parseInt(thisClient.opMode); //0:unknow, 1: router, 2: repeater, 3: AP, 4: Media Bridge
+		if(clientList[thisClientMacAddr].opMode == 2 && !downsize_4m_support) {
+			clientList[thisClientMacAddr].type = "24";
+			clientList[thisClientMacAddr].defaultType = "24";
+		}
+
+		clientList[thisClientMacAddr].isLogin = (thisClient.isLogin == "1");
+
 		clientList[thisClientMacAddr].isOnline = true;
 		totalClientNum.online++;
 
@@ -255,7 +264,7 @@ function genClientList(){
 
 		clientList[thisClientMacAddr].qosLevel = thisClient.qosLevel;
 
-		clientList[thisClientMacAddr].wtfast = thisClient.wtfast;
+		clientList[thisClientMacAddr].wtfast = parseInt(thisClient.wtfast);
 		clientList[thisClientMacAddr].internetMode = thisClient.internetMode;
 		clientList[thisClientMacAddr].internetState = thisClient.internetState;
 		if(stainfo_support) {

@@ -510,8 +510,6 @@ function switchPage(page){
 		location.href = "/Advanced_QOSUserRules_Content.asp";
 	else if(page == "4")	
 		location.href = "/Advanced_QOSUserPrio_Content.asp";
-	/*else if(page == "5")	
-		location.href = "/Bandwidth_Limiter.asp";*/
 	else
 		return false;
 }
@@ -545,7 +543,7 @@ function validForm(){
 				document.form.obw.select();
 				return false;
 			}
-			if( ((qos_type == 1 && document.form.bw_setting_name[1].checked == true ) || qos_type == 0) && !validator.range(document.form.obw, 1, 9999999999)){
+			if( ((qos_type == 1 && document.form.bw_setting_name[1].checked == true ) || qos_type == 0) && !validator.rangeFloat(document.form.obw, 0, 9999999999, "")){
 				return false;
 			}
 					
@@ -567,7 +565,7 @@ function validForm(){
 				document.form.ibw.select();
 				return false;
 			}
-			if( ((qos_type == 1 && document.form.bw_setting_name[1].checked == true ) || qos_type == 0) && !validator.range(document.form.ibw, 1, 9999999999)){
+			if( ((qos_type == 1 && document.form.bw_setting_name[1].checked == true ) || qos_type == 0) && !validator.rangeFloat(document.form.ibw, 0, 9999999999, "")){
 				return false;
 			}
 			
@@ -708,7 +706,6 @@ function change_qos_type(value){
 			document.form.action_script.value = "restart_qos;restart_firewall";
 		else{
 			document.form.action_script.value = "reboot";
-			//document.form.next_page.value = "Bandwidth_Limiter.asp";
 		}
 		
 		show_settings("NonAdaptive");
@@ -986,17 +983,20 @@ function addRow_main(obj, length){
 		return false;
 	}
 	
-	if(qos_bw_rulelist.search(PC_mac) > -1 && PC_mac != ""){		//check same target
-		alert("<#JS_duplicate#>");
-		document.form.PC_devicename.focus();
-		PC_mac = "";
-		return false;
+	if(PC_mac != ""){
+		if(qos_bw_rulelist.search(PC_mac+">") > -1 && PC_mac != ""){		//check same target
+			alert("<#JS_duplicate#>");
+			document.form.PC_devicename.focus();
+			PC_mac = "";
+			return false;
+		}
 	}
-	
-	if(qos_bw_rulelist.search(document.form.PC_devicename.value) > -1){
-		alert("<#JS_duplicate#>");
-		document.form.PC_devicename.focus();
-		return false;
+	else{
+		if(qos_bw_rulelist.search(document.form.PC_devicename.value+">") > -1){
+			alert("<#JS_duplicate#>");
+			document.form.PC_devicename.focus();
+			return false;
+		}	
 	}
 	
 	if(document.getElementById("download_rate").value == ""){
@@ -1004,8 +1004,7 @@ function addRow_main(obj, length){
 		document.getElementById("download_rate").focus();
 		return false;
 	}
-
-	if(document.getElementById("download_rate").value.split(".").length > 2 || document.getElementById("download_rate").value < 0.1){
+	else if(isNaN(document.getElementById("download_rate").value) || document.getElementById("download_rate").value < 0.1){
 		alert("<#min_bound#> : 0.1 Mb/s");
 		document.getElementById("download_rate").focus();
 		return false;
@@ -1016,8 +1015,7 @@ function addRow_main(obj, length){
 		document.getElementById("upload_rate").focus();
 		return false;
 	}
-        
-	if(document.getElementById("upload_rate").value.split(".").length > 2 || document.getElementById("upload_rate").value < 0.1){
+	else if(isNaN(document.getElementById("upload_rate").value) || document.getElementById("upload_rate").value < 0.1){
 		alert("<#min_bound#> : 0.1 Mb/s");
 		document.getElementById("upload_rate").focus();
 		return false;

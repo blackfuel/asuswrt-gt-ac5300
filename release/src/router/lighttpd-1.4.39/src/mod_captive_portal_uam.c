@@ -418,7 +418,7 @@ int aicloud_mod_captive_portal_uam_plugin_init(plugin *p) {
 	p->version     = LIGHTTPD_VERSION_ID;
 	p->name        = buffer_init_string("captive_portal_uam");
 
-	p->init        = mod_captive_portal_v_init;
+    p->init        = mod_captive_portal_uam_init;
 	p->set_defaults = mod_captive_portal_uam_set_defaults;
 	p->handle_physical = mod_captive_portal_uam_physical_handler;
 	p->cleanup     = mod_captive_portal_uam_free;

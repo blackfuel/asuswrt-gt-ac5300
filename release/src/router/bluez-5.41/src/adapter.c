@@ -5659,7 +5659,7 @@ static void adapter_remove_connection(struct btd_adapter *adapter,
 						struct btd_device *device,
 						uint8_t bdaddr_type)
 {
-	int conn_len;
+//	int conn_len;
 	DBG("");
 
 	if (!g_slist_find(adapter->connections, device)) {
@@ -5679,8 +5679,8 @@ static void adapter_remove_connection(struct btd_adapter *adapter,
 	adapter->connections = g_slist_remove(adapter->connections, device);
 
 #if defined(RTCONFIG_LP5523)
-	conn_len = g_slist_length(adapter->connections);
-	if(!conn_len)
+//	conn_len = g_slist_length(adapter->connections);
+//	if(!conn_len)
 		lp55xx_leds_proc(LP55XX_WHITE_LEDS, LP55XX_ACT_NONE);
 #endif
 
@@ -7555,7 +7555,7 @@ static void connected_callback(uint16_t index, uint16_t length,
 	uint16_t eir_len;
 	char addr[18];
 	bool name_known;
-	int conn_len;
+//	int conn_len;
 
 	if (length < sizeof(*ev)) {
 		btd_error(adapter->dev_id, "Too small device connected event");
@@ -7568,6 +7568,7 @@ static void connected_callback(uint16_t index, uint16_t length,
 		return;
 	}
 
+/*
 	conn_len = g_slist_length(adapter->connections);
 	if (conn_len)
 	{
@@ -7581,6 +7582,10 @@ static void connected_callback(uint16_t index, uint16_t length,
 		lp55xx_leds_proc(LP55XX_WHITE_LEDS, LP55XX_ACT_SBLINK);
 #endif
 	}
+*/
+#if defined(RTCONFIG_LP5523)
+	lp55xx_leds_proc(LP55XX_WHITE_LEDS, LP55XX_ACT_SBLINK);
+#endif
 
 	ba2str(&ev->addr.bdaddr, addr);
 	DBG("hci%u device %s connected eir_len %u!", index, addr, eir_len);

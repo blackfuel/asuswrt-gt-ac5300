@@ -1907,79 +1907,18 @@ void redirect_setting(void)
 	fclose(redirect_fp);
 }
 #endif
-
-/* Rules for LW Filter and MAC Filter
- * MAC ACCEPT
- *     ACCEPT -> MACS
- *             -> LW Disabled
- *                MACS ACCEPT
- *             -> LW Default Accept:
- *                MACS DROP in rules
- *                MACS ACCEPT Default
- *             -> LW Default Drop:
- *                MACS ACCEPT in rules
- *                MACS DROP Default
- *     DROP   -> FORWARD DROP
- *
- * MAC DROP
- *     DROP -> FORWARD DROP
- *     ACCEPT -> FORWARD ACCEPT
- */
-
-void 	// 0928 add
-start_default_filter(int lanunit)
+static void write_access_restriction(FILE *fp)
 {
-	// TODO: handle multiple lan
-	FILE *fp;
 	char *nv, *nvp, *b;
 	char *enable, *srcip, *accessType;
-	char *lan_if = nvram_safe_get("lan_ifname");
-
-	if ((fp = fopen("/tmp/filter.default", "w")) == NULL)
-		return;
-	fprintf(fp, "*filter\n"
-		":INPUT DROP [0:0]\n"
-		":FORWARD DROP [0:0]\n"
-		":OUTPUT ACCEPT [0:0]\n"
-		":ACCESS_RESTRICTION - [0:0]\n"
-		":logaccept - [0:0]\n"
-		":logdrop - [0:0]\n");
-#ifdef RTCONFIG_PROTECTION_SERVER
-	fprintf(fp, ":%s_WAN - [0:0]\n", PROTECT_SRV_RULE_CHAIN);
-	fprintf(fp, ":%s_LAN - [0:0]\n", PROTECT_SRV_RULE_CHAIN);
-#endif
-
-#ifdef RTCONFIG_RESTRICT_GUI
-	char word[PATH_MAX], *next_word;
-
-	if(nvram_get_int("fw_restrict_gui")){
-		foreach(word, nvram_safe_get("wl_ifnames"), next_word){
-			eval("ebtables", "-t", "broute", "-D", "BROUTING", "-i", word, "-j", "mark", "--mark-set", BIT_RES_GUI, "--mark-target", "ACCEPT");
-			eval("ebtables", "-t", "broute", "-A", "BROUTING", "-i", word, "-j", "mark", "--mark-set", BIT_RES_GUI, "--mark-target", "ACCEPT");
-		}
-
-		fprintf(fp, "-A INPUT -i %s -m mark --mark %s -d %s -p tcp -m multiport --dport 23,%d,%d,9999 -j DROP\n",
-				lan_if, BIT_RES_GUI, nvram_safe_get("lan_ipaddr"),
-				/*nvram_get_int("http_lanport") ? :*/ 80,
-				nvram_get_int("https_lanport") ? : 443);
-	}
-#endif
-
-#ifdef RTCONFIG_PORT_BASED_VLAN
-	/* Deny none br0 to access br0 subnet */
-	if (vlan_enable() && strlen(nvram_safe_get("subnet_rulelist")))
-		fprintf(fp, "-A INPUT ! -i br0 -d %s/%s -j DROP\n", nvram_safe_get("lan_ipaddr"), nvram_safe_get("lan_netmask"));
-
-	/* Write input rule for vlan */
-	vlan_subnet_filter_input(fp);
-#endif
+	int  https_port = 0;
+	int  http_port = 0;
+	int  cnt = 0;
+	char webports[16];
+	char sshport[8];
+	
 	if (nvram_match("enable_acc_restriction", "1"))
 	{
-		int  https_port = 0;
-		int  http_port = 0;
-		int  cnt = 0;
-		char webports[16];
-		char sshport[8];
 #ifdef RTCONFIG_HTTPS
 		int en = nvram_get_int("http_enable");
 		if (en != 0)
@@ -2044,6 +1983,77 @@ start_default_filter(int lanunit)
 			fprintf(fp, "-A ACCESS_RESTRICTION -j DROP\n");
 		}
 	}
+}
+
+/* Rules for LW Filter and MAC Filter
+ * MAC ACCEPT
+ *     ACCEPT -> MACS
+ *             -> LW Disabled
+ *                MACS ACCEPT
+ *             -> LW Default Accept:
+ *                MACS DROP in rules
+ *                MACS ACCEPT Default
+ *             -> LW Default Drop:
+ *                MACS ACCEPT in rules
+ *                MACS DROP Default
+ *     DROP   -> FORWARD DROP
+ *
+ * MAC DROP
+ *     DROP -> FORWARD DROP
+ *     ACCEPT -> FORWARD ACCEPT
+ */
+
+void 	// 0928 add
+start_default_filter(int lanunit)
+{
+	// TODO: handle multiple lan
+	FILE *fp;
+	char *lan_if = nvram_safe_get("lan_ifname");
+
+	if ((fp = fopen("/tmp/filter.default", "w")) == NULL)
+		return;
+	fprintf(fp, "*filter\n"
+		":INPUT DROP [0:0]\n"
+		":FORWARD DROP [0:0]\n"
+		":OUTPUT ACCEPT [0:0]\n"
+		":ACCESS_RESTRICTION - [0:0]\n"
+		":logaccept - [0:0]\n"
+		":logdrop - [0:0]\n");
+#ifdef RTCONFIG_PROTECTION_SERVER
+	fprintf(fp, ":%s_WAN - [0:0]\n", PROTECT_SRV_RULE_CHAIN);
+	fprintf(fp, ":%s_LAN - [0:0]\n", PROTECT_SRV_RULE_CHAIN);
+#endif
+
+#ifdef RTCONFIG_RESTRICT_GUI
+	char word[PATH_MAX], *next_word;
+
+	if(nvram_get_int("fw_restrict_gui")){
+		foreach(word, nvram_safe_get("wl_ifnames"), next_word){
+			eval("ebtables", "-t", "broute", "-D", "BROUTING", "-i", word, "-j", "mark", "--mark-set", BIT_RES_GUI, "--mark-target", "ACCEPT");
+			eval("ebtables", "-t", "broute", "-A", "BROUTING", "-i", word, "-j", "mark", "--mark-set", BIT_RES_GUI, "--mark-target", "ACCEPT");
+		}
+
+		fprintf(fp, "-A INPUT -i %s -m mark --mark %s -d %s -p tcp -m multiport --dport 23,%d,%d,9999 -j DROP\n",
+				lan_if, BIT_RES_GUI, nvram_safe_get("lan_ipaddr"),
+				/*nvram_get_int("http_lanport") ? :*/ 80,
+				nvram_get_int("https_lanport") ? : 443);
+	}
+#endif
+
+#ifdef RTCONFIG_PORT_BASED_VLAN
+	/* Deny none br0 to access br0 subnet */
+	if (vlan_enable() && strlen(nvram_safe_get("subnet_rulelist")))
+		fprintf(fp, "-A INPUT ! -i br0 -d %s/%s -j DROP\n", nvram_safe_get("lan_ipaddr"), nvram_safe_get("lan_netmask"));
+
+	/* Write input rule for vlan */
+	vlan_subnet_filter_input(fp);
+#endif
+	
+	fprintf(fp, "-A INPUT -m state --state RELATED,ESTABLISHED -j ACCEPT\n");
+	fprintf(fp, "-A INPUT -m state --state INVALID -j DROP\n");
+	
+	/* Specific IP access restriction */
+	write_access_restriction(fp);
 
 #ifdef RTCONFIG_PROTECTION_SERVER
 	if (nvram_get_int("telnetd_enable") != 0
@@ -2055,9 +2065,6 @@ start_default_filter(int lanunit)
 		fprintf(fp, "-A INPUT -i %s -j %s_LAN\n", lan_if, PROTECT_SRV_RULE_CHAIN);
 	}
 #endif
-
-	fprintf(fp, "-A INPUT -m state --state RELATED,ESTABLISHED -j ACCEPT\n");
-	fprintf(fp, "-A INPUT -m state --state INVALID -j DROP\n");
 	fprintf(fp, "-A INPUT -i %s -m state --state NEW -j ACCEPT\n", lan_if);
 	fprintf(fp, "-A INPUT -i %s -m state --state NEW -j ACCEPT\n", "lo");
 	//fprintf(fp, "-A FORWARD -m state --state INVALID -j DROP\n");
@@ -2117,7 +2124,7 @@ start_default_filter(int lanunit)
 #endif
 }
 
-#if defined(HIVEDOT) || defined(HIVESPOT)
+#if defined(MAPAC1300) || defined(MAPAC2200)
 void reset_filter(void)
 {
 	const char *filter_rules = "/tmp/hive_filter.default";
@@ -2596,7 +2603,6 @@ filter_setting(char *wan_if, char *wan_ip, char *lan_if, char *lan_ip, char *log
 	char *setting = NULL;
 	char macaccept[32], chain[32];
 	char prefix[32], tmp[100], *wan_proto, *wan_ipaddr;
-	char *enable, *accessType;
 	int i;
 #ifdef RTCONFIG_IPV6
 	FILE *fp_ipv6 = NULL;
@@ -2735,77 +2741,19 @@ TRACE_PT("writing Parental Control\n");
 			fprintf(fp, "-A INPUT -i %s -p icmp --icmp-type 8 -j %s\n", wan_if, logdrop);
 		}
 
-		if (nvram_match("enable_acc_restriction", "1"))
-		{
-			int  https_port = 0;
-			int  http_port = 0;
-			int  cnt = 0;
-			char webports[16];
-			char sshport[8];
-#ifdef RTCONFIG_HTTPS
-			int en = nvram_get_int("http_enable");
-			if (en != 0)
-				https_port = nvram_get_int("https_lanport") ? : 443;
-
-			if (en != 1)
-#endif
-			{
-				http_port = 80;
-			}
-			if (http_port != 0 && https_port != 0)
-				snprintf(webports, sizeof(webports), "%d,%d", http_port, https_port);
-			else
-				snprintf(webports, sizeof(webports), "%d", http_port != 0 ? http_port : https_port);
-
-#ifdef RTCONFIG_SSH
-			if (nvram_get_int("sshd_enable") != 0)
-				snprintf(sshport, sizeof(sshport), ",%d", nvram_get_int("sshd_port") ? : 22);
-			else
-#endif
-				strcpy(sshport, "");
-
-			fprintf(fp, "-A INPUT -p tcp -m multiport --dport %s%s%s -j ACCESS_RESTRICTION\n",
-				    webports, sshport, nvram_get_int("telnetd_enable") == 1 ? ",23" : "");
-
-			nvp = nv = strdup(nvram_safe_get("restrict_rulelist"));
-			while (nv && (b = strsep(&nvp, "<")) != NULL) {
-				if ((vstrsep(b, ">", &enable, &srcip, &accessType) != 3)) continue;
-				if (!strcmp(enable, "0")) continue;
-
-				cnt++;
-				if (!(atoi(accessType) ^ ACCESS_ALL)) {
-#ifdef RTCONFIG_PROTECTION_SERVER
-					fprintf(fp, "-A ACCESS_RESTRICTION -s %s -j RETURN\n", srcip);
+#ifdef RTCONFIG_IPV6
+		write_UrlFilter("INPUT", lan_if, lan_ip, logdrop, fp, fp_ipv6);
 #else
-					fprintf(fp, "-A ACCESS_RESTRICTION -s %s -j ACCEPT\n", srcip);
+		write_UrlFilter("INPUT", lan_if, lan_ip, logdrop, fp);
 #endif
-					continue;
-				}
-				if (atoi(accessType) & ACCESS_WEBUI) {
-					fprintf(fp, "-A ACCESS_RESTRICTION -s %s -p tcp -m multiport --dport %s -j ACCEPT\n", srcip, webports);
-				}
-#ifdef RTCONFIG_SSH
-				if ((atoi(accessType) & ACCESS_SSH) && nvram_get_int("sshd_enable") != 0 ) {
-#ifdef RTCONFIG_PROTECTION_SERVER
-					fprintf(fp, "-A ACCESS_RESTRICTION -s %s -p tcp --dport %d -j RETURN\n", srcip, nvram_get_int("sshd_port") ? : 22);
-#else
-					fprintf(fp, "-A ACCESS_RESTRICTION -s %s -p tcp --dport %d -j ACCEPT\n", srcip, nvram_get_int("sshd_port") ? : 22);
-#endif
-				}
-#endif
-				if ((atoi(accessType) & ACCESS_TELNET) && nvram_get_int("telnetd_enable") == 1) {
-#ifdef RTCONFIG_PROTECTION_SERVER
-					fprintf(fp, "-A ACCESS_RESTRICTION -s %s -p tcp --dport 23 -j RETURN\n", srcip);
-#else
-					fprintf(fp, "-A ACCESS_RESTRICTION -s %s -p tcp --dport 23 -j ACCEPT\n", srcip);
-#endif
-				}
-			}
-			free(nv);
-			if(cnt) {
-				fprintf(fp, "-A ACCESS_RESTRICTION -j %s\n", logdrop);
-			}
-		}
+
+		/* Filter known SPI state */
+		fprintf(fp, "-A INPUT -m state --state RELATED,ESTABLISHED -j %s\n", logaccept);
+		fprintf(fp, "-A INPUT -m state --state INVALID -j %s\n", logdrop);
+		
+		/* Specific IP access restriction */
+		write_access_restriction(fp);
+		
 #ifdef RTCONFIG_PROTECTION_SERVER
 		if (nvram_get_int("telnetd_enable") != 0
 #ifdef RTCONFIG_SSH
@@ -2816,17 +2764,6 @@ TRACE_PT("writing Parental Control\n");
 			fprintf(fp, "-A INPUT -i %s -j %s_LAN\n", lan_if, PROTECT_SRV_RULE_CHAIN);
 		}
 #endif
-
-TRACE_PT("write url filter in INPUT\n");
-#ifdef RTCONFIG_IPV6
-		write_UrlFilter("INPUT", lan_if, lan_ip, logdrop, fp, fp_ipv6);
-#else
-		write_UrlFilter("INPUT", lan_if, lan_ip, logdrop, fp);
-#endif
-
-		/* Filter known SPI state */
-		fprintf(fp, "-A INPUT -m state --state RELATED,ESTABLISHED -j %s\n", logaccept);
-		fprintf(fp, "-A INPUT -m state --state INVALID -j %s\n", logdrop);
 		fprintf(fp, "-A INPUT -i %s -m state --state NEW -j %s\n", lan_if, "ACCEPT");
 		fprintf(fp, "-A INPUT -i %s -m state --state NEW -j %s\n", "lo", "ACCEPT");
 #ifdef RTCONFIG_IPV6
@@ -3462,7 +3399,6 @@ TRACE_PT("write wl filter\n");
 		  "-A logdrop -j DROP\n");
 #endif
 
-TRACE_PT("write url filter in FORWARD\n");
 #ifdef RTCONFIG_IPV6
 	write_UrlFilter("FORWARD", lan_if, lan_ip, logdrop, fp, fp_ipv6);
 #else
@@ -3565,7 +3501,6 @@ filter_setting2(char *lan_if, char *lan_ip, char *logaccept, char *logdrop)
 	char *setting;
 	char macaccept[32], chain[32];
 	char *wan_proto = "";
-	char *enable, *accessType;
 	int i;
 //2008.09 magic{
 #ifdef WEBSTRFILTER
@@ -3708,77 +3643,19 @@ TRACE_PT("writing Parental Control\n");
 			}
 		}
 
-		if (nvram_match("enable_acc_restriction", "1"))
-		{
-			int  https_port = 0;
-			int  http_port = 0;
-			int  cnt = 0;
-			char webports[16];
-			char sshport[8];
-#ifdef RTCONFIG_HTTPS
-			int en = nvram_get_int("http_enable");
-			if (en != 0)
-				https_port = nvram_get_int("https_lanport") ? : 443;
-
-			if (en != 1)
-#endif
-			{
-				http_port = 80;
-			}
-			if (http_port != 0 && https_port != 0)
-				snprintf(webports, sizeof(webports), "%d,%d", http_port, https_port);
-			else
-				snprintf(webports, sizeof(webports), "%d", http_port != 0 ? http_port : https_port);
-
-#ifdef RTCONFIG_SSH
-			if (nvram_get_int("sshd_enable") != 0)
-				snprintf(sshport, sizeof(sshport), ",%d", nvram_get_int("sshd_port") ? : 22);
-			else
-#endif
-				strcpy(sshport, "");
-
-			fprintf(fp, "-A INPUT -p tcp -m multiport --dport %s%s%s -j ACCESS_RESTRICTION\n",
-				    webports, sshport, nvram_get_int("telnetd_enable") == 1 ? ",23" : "");
-
-			nvp = nv = strdup(nvram_safe_get("restrict_rulelist"));
-			while (nv && (b = strsep(&nvp, "<")) != NULL) {
-				if ((vstrsep(b, ">", &enable, &srcip, &accessType) != 3)) continue;
-				if (!strcmp(enable, "0")) continue;
-
-				cnt++;
-				if (!(atoi(accessType) ^ ACCESS_ALL)) {
-#ifdef RTCONFIG_PROTECTION_SERVER
-					fprintf(fp, "-A ACCESS_RESTRICTION -s %s -j RETURN\n", srcip);
+#ifdef RTCONFIG_IPV6
+		write_UrlFilter("INPUT", lan_if, lan_ip, logdrop, fp, fp_ipv6);
 #else
-					fprintf(fp, "-A ACCESS_RESTRICTION -s %s -j ACCEPT\n", srcip);
+		write_UrlFilter("INPUT", lan_if, lan_ip, logdrop, fp);
 #endif
-					continue;
-				}
-				if (atoi(accessType) & ACCESS_WEBUI) {
-					fprintf(fp, "-A ACCESS_RESTRICTION -s %s -p tcp -m multiport --dport %s -j ACCEPT\n", srcip, webports);
-				}
-#ifdef RTCONFIG_SSH
-				if ((atoi(accessType) & ACCESS_SSH) && nvram_get_int("sshd_enable") != 0 ) {
-#ifdef RTCONFIG_PROTECTION_SERVER
-					fprintf(fp, "-A ACCESS_RESTRICTION -s %s -p tcp --dport %d -j RETURN\n", srcip, nvram_get_int("sshd_port") ? : 22);
-#else
-					fprintf(fp, "-A ACCESS_RESTRICTION -s %s -p tcp --dport %d -j ACCEPT\n", srcip, nvram_get_int("sshd_port") ? : 22);
-#endif
-				}
-#endif
-				if ((atoi(accessType) & ACCESS_TELNET) && nvram_get_int("telnetd_enable") == 1) {
-#ifdef RTCONFIG_PROTECTION_SERVER
-					fprintf(fp, "-A ACCESS_RESTRICTION -s %s -p tcp --dport 23 -j RETURN\n", srcip);
-#else
-					fprintf(fp, "-A ACCESS_RESTRICTION -s %s -p tcp --dport 23 -j ACCEPT\n", srcip);
-#endif
-				}
-			}
-			free(nv);
-			if(cnt) {
-				fprintf(fp, "-A ACCESS_RESTRICTION -j %s\n", logdrop);
-			}
-		}
+
+		/* Filter known SPI state */
+		fprintf(fp, "-A INPUT -m state --state RELATED,ESTABLISHED -j %s\n", logaccept);
+		fprintf(fp, "-A INPUT -m state --state INVALID -j %s\n", logdrop);
+		
+		/* Specific IP access restriction */
+		write_access_restriction(fp);
+		
 #ifdef RTCONFIG_PROTECTION_SERVER
 		if (nvram_get_int("telnetd_enable") != 0
 #ifdef RTCONFIG_SSH
@@ -3789,18 +3666,6 @@ TRACE_PT("writing Parental Control\n");
 			fprintf(fp, "-A INPUT -i %s -j %s_LAN\n", lan_if, PROTECT_SRV_RULE_CHAIN);
 		}
 #endif
-
-
-TRACE_PT("write url filter in INPUT\n");
-#ifdef RTCONFIG_IPV6
-		write_UrlFilter("INPUT", lan_if, lan_ip, logdrop, fp, fp_ipv6);
-#else
-		write_UrlFilter("INPUT", lan_if, lan_ip, logdrop, fp);
-#endif
-
-		/* Filter known SPI state */
-		fprintf(fp, "-A INPUT -m state --state RELATED,ESTABLISHED -j %s\n", logaccept);
-		fprintf(fp, "-A INPUT -m state --state INVALID -j %s\n", logdrop);
 		fprintf(fp, "-A INPUT -i %s -m state --state NEW -j %s\n", lan_if, "ACCEPT");
 		fprintf(fp, "-A INPUT -i %s -m state --state NEW -j %s\n", "lo", "ACCEPT");
 #ifdef RTCONFIG_IPV6
@@ -4531,7 +4396,6 @@ TRACE_PT("write wl filter\n");
 		  "-A logdrop -j DROP\n");
 #endif
 
-TRACE_PT("write url filter in FORWARD\n");
 #ifdef RTCONFIG_IPV6
 	write_UrlFilter("FORWARD", lan_if, lan_ip, logdrop, fp, fp_ipv6);
 #else

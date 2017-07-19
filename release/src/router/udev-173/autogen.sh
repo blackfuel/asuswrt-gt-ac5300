@@ -28,8 +28,8 @@ args="--prefix=/usr \
 --libdir=$(libdir /usr/lib) \
 --with-rootlibdir=$(libdir /lib) \
 --libexecdir=/lib/udev \
---with-selinux \
---enable-gtk-doc"
+--without-selinux \
+--disable-gtk-doc"
 
 export CFLAGS="$CFLAGS $MYCFLAGS"
 ./configure $args $@

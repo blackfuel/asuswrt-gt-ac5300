@@ -146,6 +146,8 @@ bcm_br_iqoshdl_wrapper(struct net_device *dev, void *pNBuff)
 }
 
 
+#define DEV_ISWAN(dev) (dev ? (dev->priv_flags & IFF_WANDEV) : 0)
+
 /* net device transmit always called with BH disabled */
 netdev_tx_t br_dev_xmit(struct sk_buff *skb, struct net_device *dev)
 {
@@ -275,7 +277,7 @@ netdev_tx_t br_dev_xmit(struct sk_buff *skb, struct net_device *dev)
 	 * fcache based execution stack.
 	 */
 		if (BROADSTREAM_IQOS_ENABLE()) {
-			if (blog_ptr(skb)) {
+			if (blog_ptr(skb) && (((struct net_device *)(blog_ptr(skb)->rx.dev_p))->priv_flags & IFF_WANDEV)) {
 	       		blog_emit( skb, dev, TYPE_ETH, 0, BLOG_ENETPHY); /* CONFIG_BLOG */
 			}
 		}

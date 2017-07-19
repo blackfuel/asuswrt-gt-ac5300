@@ -1,5 +1,5 @@
  /*
- * Copyright 2016, ASUSTeK Inc.
+ * Copyright 2017, ASUSTeK Inc.
  * All Rights Reserved.
  *
  * THIS SOFTWARE IS OFFERED "AS IS", AND ASUS GRANTS NO WARRANTIES OF ANY
@@ -8,6 +8,10 @@
  * FOR A SPECIFIC PURPOSE OR NONINFRINGEMENT CONCERNING THIS SOFTWARE.
  *
  */
+
+/*
+	2017/04/12 lantiq : include/list.h will conflict with trendmicro's list.h, so move some defination and extern function here
+*/
 
 /* DEBUG DEFINE */
 #define BWDPI_DEBUG             "/tmp/BWDPI_DEBUG"
@@ -51,3 +55,86 @@
 		snprintf(info, sizeof(info), "echo \"[BWMON]"fmt"\" >> /tmp/BWMON.log", ##args); \
 		system(info); \
 	}
+
+// signature check
+#define APPDB           nvram_get_int("bwdpi_debug_path") ? "/jffs/TM/bwdpi.app.db" : "/tmp/bwdpi/bwdpi.app.db"
+#define CATDB           nvram_get_int("bwdpi_debug_path") ? "/jffs/TM/bwdpi.cat.db" : "/tmp/bwdpi/bwdpi.cat.db"
+#define RULEV           nvram_get_int("bwdpi_debug_path") ? "/jffs/TM/rule.version" : "/tmp/bwdpi/rule.version"
+
+// log and tmp file
+#define WRS_FULL_LOG    "/tmp/wrs_full.txt"
+#define VP_FULL_LOG     "/tmp/vp_full.txt"
+#define TMP_WRS_LOG     "/tmp/tmp_wrs.txt"
+#define TMP_VP_LOG      "/tmp/tmp_vp.txt"
+#define WRS_VP_LOG      "/jffs/wrs_vp.txt"
+#define SIG_VER         "/proc/nk_policy"
+#define DPI_VER         "/proc/ips_info"
+#define WAN_TMP         nvram_get_int("bwdpi_debug_path") ? "/jffs/TM/dev_wan" : "/tmp/bwdpi/dev_wan"
+
+// database hidden path and function path
+#define BWDPI_DB_DIR    "/jffs/.sys"
+#define BWDPI_ANA_DIR   BWDPI_DB_DIR"/TrafficAnalyzer"
+#define BWDPI_HIS_DIR   BWDPI_DB_DIR"/WebHistory"
+#define BWDPI_MON_DIR   BWDPI_DB_DIR"/AiProtectionMonitor"
+
+// AiProtection Monitor database
+#define BWDPI_MON_DB    (strcmp(nvram_safe_get("bwdpi_mon_path"), "")) ? nvram_safe_get("bwdpi_mon_path") : BWDPI_MON_DIR"/AiProtectionMonitor.db"
+#define BWDPI_MON_CC    BWDPI_MON_DIR"/AiProtectionMonitorCCevent.txt"
+#define BWDPI_MON_VP    BWDPI_MON_DIR"/AiProtectionMonitorVPevent.txt"
+#define BWDPI_MON_MALS  BWDPI_MON_DIR"/AiProtectionMonitorMALSevent.txt"
+
+// Avoid the trigger event loop issue, add a copy file for nt_center usage
+#define NT_MON_CC    BWDPI_MON_DIR"/NT-AiMonitorCCevent.txt"
+#define NT_MON_VP    BWDPI_MON_DIR"/NT-AiMonitorVPevent.txt"
+#define NT_MON_MALS  BWDPI_MON_DIR"/NT-AiMonitorMALSevent.txt"
+
+//iqos.c
+extern void check_qosd_wan_setting(char *dev_wan, int len);
+extern void setup_qos_conf();
+extern void stop_tm_qos();
+extern void start_tm_qos();
+extern int tm_qos_main(char *cmd);
+extern void start_qosd();
+extern void stop_qosd();
+extern void restart_qosd();
+extern int qosd_main(char *cmd);
+
+//wrs.c
+extern void setup_wrs_conf();
+extern void stop_wrs();
+extern void start_wrs();
+extern int wrs_main(char *cmd);
+extern void setup_vp_conf();
+
+//stat.c
+extern int stat_main(char *mode, char *name, char *dura, char *date);
+extern int device_main(char *MAC);
+extern int device_info_main(char *MAC);
+extern int wrs_url_main();
+extern int get_anomaly_main(char *cmd);
+extern int get_app_patrol_main();
+
+//dpi.c
+extern int check_daulwan_mode();
+extern void stop_dpi_engine_service(int forced);
+extern void run_dpi_engine_service();
+extern void start_dpi_engine_service();
+extern void save_version_of_bwdpi();
+extern void setup_dev_wan();
+
+//wrs_app.c
+extern int wrs_app_main(char *cmd);
+extern int wrs_app_service(int cmd);
+
+//data_collect.c
+extern void stop_dc();
+extern void start_dc(char *path);
+extern int data_collect_main(char *cmd, char *path);
+
+//tools.c
+extern void check_filesize(char *path, long int size);
+
+//watchdog_check.c
+extern void auto_sig_check();
+extern void sqlite_db_check();
+extern void tm_eula_check();

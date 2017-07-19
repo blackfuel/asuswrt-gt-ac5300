@@ -74,7 +74,7 @@ extern char *wlc_nvname(char *keyword);
 
 #if defined(RTCONFIG_RALINK)
 extern int getWscStatus(int unit);
-#elif defined(RTCONFIG_QCA)
+#elif defined(RTCONFIG_QCA) || defined(RTCONFIG_ALPINE) || defined(RTCONFIG_LANTIQ)
 extern char *getWscStatus(int unit);
 #endif
 

@@ -1,0 +1,237 @@
+﻿.ui-page-theme-a .ui-panel-wrapper {
+	background-color: #FFF;
+}
+a.ui-btn{
+	height:30px;
+}
+.filter_effect{
+	-webkit-filter: blur(5px);
+}
+#nav_rp:hover, #nav_ap:hover, #nav_mb:hover, #nav_info:hover, #nav_express_2g:hover, #nav_express_5g:hover, #nav_back:hover{
+	background-color:#555;
+}
+#pap_manual_band_option-button, #pap_manual_auth_option-button, #pap_ip_advanced_option-button{
+	padding: 22px;
+}
+.ui-panel-dismiss-open.ui-panel-dismiss-position-left{
+	left:30em;
+}
+.desktop_left_field{
+	display:none;
+}
+.table_td{
+	display:table-cell;
+}
+.footer_mobile{
+	position:fixed;
+	bottom:0;
+	margin-top: 20px;
+	width:100%;
+	height:102px;
+	background:#FFF;
+	border-top: 3px solid #0ECDA4;
+	z-index:2;
+}
+.footer_desktop{
+	margin-top: 20px;
+	display:none;
+	color:#FFF;
+	text-align:center;
+}
+.mobile_applyBtn{
+	font-family: HelveticaNeueW10-45Ligh, Helvetica W01 Light, Arial;
+	font-size:1.875em;
+	color:#FFF;
+	cursor:pointer
+}
+.mobile_abortBtn{
+	font-family: HelveticaNeueW10-45Ligh, Helvetica W01 Light, Arial;
+	font-size: 1.875em;
+	color:#7E8593;
+	cursor:pointer
+}
+.desktop_applyBtn{
+	display: inline-block;
+	width: 300px;
+	border: 2px solid #27D1A4;
+	border-radius: 35px;
+	height: 66px;
+	line-height: 66px;
+	margin: 0 20px;
+	font-size:1.5em;
+	cursor:pointer;
+	color: #FFF;
+	background: #27D1A4;
+}
+.desktop_abortBtn{
+	display: inline-block;
+	width: 300px;
+	border: 2px solid #27D1A4;
+	border-radius: 35px;
+	height: 66px;
+	line-height: 66px;
+	margin: 0 20px;
+	font-size:1.5em;
+	cursor:pointer;
+	color: #27D1A4;
+	background: #FFF;
+}
+.textInput{
+	width: 95%;
+	height: 55px;
+	max-width: 900px;
+	padding-left: 18px;
+	margin-bottom: 35px;
+	font-family: HelveticaNeueW10-45Ligh, Helvetica, Arial;
+	font-size:1.875em;
+	background: #FFF;
+	border: 0px solid;
+	border-bottom: 1px solid #777;
+	border-radius: 0px;
+}
+.inputContainer{
+	margin: 0px 55px 0px 30px;
+}
+.ui-input-text input, .ui-input-search input{
+	background-color: #FFF;
+	border-color: #0ECDA4;
+	color: #333332;
+}
+.model_welcome{
+	color: #000;
+	font-family:Arial Bold;
+	font-size:1.875em;
+	background-color:rgba(79,79,79,62);
+	padding-left:11px;"	
+}
+.pageDesc{
+	font-family: Helvetica, Arial;
+	font-size: 2em;
+	color: #000;
+	margin: 34px 0 40px 46px;
+	text-align: left;
+	font-weight: bolder;
+	width: 90%;
+	max-width: 1000px;
+}
+.inputTitle{
+	font-family: HelveticaNeueLT45_Light_regular, Helvetica_regular, Arial;
+	font-size:1.8em;
+	color:#888;
+	display:table-cell;
+}
+.icon_eye_open{
+	width:32px;
+	height:32px;
+	display:table-cell;
+	padding-right:110px;	
+}
+.icon_eye_close{
+	width:32px;
+	height:32px;
+	display:table-cell;
+	padding-right:110px;	
+}
+.qisBackgroundIndex{
+	background:url('../images/qis/asus_hive_bg.png') #FFF no-repeat;
+}
+.qisBackground{
+	background:url('../images/qis/asus_hive_action_bar.png') #FFF no-repeat;
+}
+.selectBar{
+	display: table-cell;
+	width: 100%;
+	padding-left: 12px;
+	cursor: pointer;"
+	color: #000;
+}
+.icon_logo{
+	width: 130px;
+	height: 38px;
+	margin-left: -25px;
+}
+.model_image{
+	height:334px;
+	width:auto;
+	background:url('../images/Model_product.png') no-repeat;
+	background-size:350px;
+	background-position:center;
+	margin-top:36px;"	
+}
+.appIconContainer{
+	display: table;
+	margin-left: 480px;
+	margin-top: -60px;
+	position: absolute;
+}
+.appIcon{
+	display: table-cell;
+	width: 180px;
+	height: 60px;
+	cursor: pointer;
+}
+.appQR{
+	display: table-cell;
+	width: 75px;
+	height: 75px;
+	cursor: pointer;
+	margin-right: 30px;
+}
+.googlePlay{
+	background:url('../images/googleplay.png') no-repeat;
+}
+.itunesStore{
+	background:url('../images/AppStore.png') no-repeat;
+}
+.googlePlayQR{
+	background:url('../images/New_ui/asus_router_android_qr.png') no-repeat;
+	display: none;
+}
+.itunesStoreQR{
+	background:url('../images/New_ui/asus_router_ios_qr.png') no-repeat;
+	display: none;
+}
+.hint{
+	color: #F00;
+	position: absolute;
+	margin-top: -25px;
+	font-size: 1.4em;
+	font-style: italic;
+}
+/*for Desktop*/
+@media screen and (min-width: 1000px){
+	.desktop_left_field{
+		display:table-cell;
+		width:250px;
+		color:#0ECDA4;
+		text-align:right;		
+	}
+	.wireless_field{
+		display:table-cell;
+		width:550px;
+	}
+	.wireless_field_5g{
+		padding-left:30px;
+	}
+	.footer_mobile{
+		display:none;
+	}
+	.footer_desktop{
+		display:block;
+		margin-top:30px;
+	}
+	#wireless_field{
+		border-bottom:0px solid #0ECDA4;
+	}
+	.desktop_sort{
+		display:table-cell;
+		width:300px;
+		padding-left:200px;
+	}
+	.googlePlayQR{
+		display: block;
+	}
+	.itunesStoreQR{
+		display: block;
+	}
+}

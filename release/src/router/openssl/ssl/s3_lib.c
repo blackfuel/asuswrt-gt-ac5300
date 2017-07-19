@@ -2383,7 +2383,7 @@ OPENSSL_GLOBAL SSL_CIPHER ssl3_ciphers[] = {
      },*/
 
     /* Cipher C014 */
-    {
+    /*{
      1,
      TLS1_TXT_ECDHE_RSA_WITH_AES_256_CBC_SHA,
      TLS1_CK_ECDHE_RSA_WITH_AES_256_CBC_SHA,
@@ -2396,7 +2396,7 @@ OPENSSL_GLOBAL SSL_CIPHER ssl3_ciphers[] = {
      SSL_HANDSHAKE_MAC_DEFAULT | TLS1_PRF,
      256,
      256,
-     },
+     },*/
 
     /* Cipher C015 */
     {
