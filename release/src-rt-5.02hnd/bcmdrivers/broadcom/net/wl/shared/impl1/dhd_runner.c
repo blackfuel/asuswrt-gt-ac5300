@@ -1510,6 +1510,12 @@ dhd_runner_attach(dhd_pub_t *dhd, bcmpcie_soft_doorbell_t *soft_doobells)
 	hw_mem_size = 0;
 	hw_mem_addr = NULL;
 
+#ifdef CATHY_HW_ACC_DIS
+	if (dhd->hw_acc_disabled) {
+		printk("%s: dhd%d: force tx offload disabled\n", __FUNCTION__, dhd->unit);
+	}
+	else
+#endif /* CATHY_HW_ACC_DIS */
 	/* Initialize txsts ring offload if reserved memory is available */
 	if (BcmMemReserveGetByName(dhd_name,
 	    (void **)&hw_mem_addr, &hw_mem_size) == 0)
@@ -1848,6 +1854,14 @@ dhd_runner_flowmgr_init(dhd_runner_hlp_t *dhd_hlp, int max_h2d_rings,
 	/* Fetch the reserved memory by dhd radio instance */
 	snprintf(dhd_name, sizeof(dhd_name), "dhd%d", dhdp->unit);
 	dhd_name[4] = '\0';
+#ifdef CATHY_HW_ACC_DIS
+	if (dhdp->hw_acc_disabled) {
+	    flowmgr->hw_mem_addr = (void*)NULL;
+	    flowmgr->hw_mem_size = 0;
+	    printk("%s: %s: force tx offload disabled\n", __FUNCTION__, dhd_name);
+	}
+	else
+#endif /* CATHY_HW_ACC_DIS */
 	if (BcmMemReserveGetByName(dhd_name,
 	    (void **)&flowmgr->hw_mem_addr, &flowmgr->hw_mem_size)) {
 	    DHD_INFO(("BcmMemReserveGetByName returned no memory\n"));
@@ -2869,6 +2883,13 @@ dhd_runner_rxoffl_init(struct dhd_runner_hlp *dhd_hlp,
 	/* Set the default values */
 	ring_cfg->offload = DHD_RNR_DEF_RX_OFFLOAD;
 	ring_cfg->size = D2HRING_RXCMPLT_MAX_ITEM;
+
+#ifdef CATHY_HW_ACC_DIS
+	if (dhd_hlp->dhd->hw_acc_disabled) {
+		ring_cfg->offload = 0;
+		goto done;
+	}
+#endif /* CATHY_HW_ACC_DIS */
 
 	/* Fetch the Rx Ring Configuration information of the radio, if present */
 	memset(buff, 0, sizeof(buff));

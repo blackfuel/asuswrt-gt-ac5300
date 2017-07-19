@@ -518,6 +518,7 @@ int nvram_commit(void)
 	// system("cp -f /tmp/nvram.txt /jffs/nvram.txt");
 	sync_file(PATH_DEV_NVRAM);
 	sync_file(PATH_DEV_NVRAM_FLASH);
+	sync(); sync(); sync();
 
 	if(lock_shm(LOCK_UN) < 0) {
 		fprintf(stderr, "%s: unlock fail \n", __FUNCTION__);

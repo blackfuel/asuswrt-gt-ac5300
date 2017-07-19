@@ -8344,18 +8344,18 @@ __PACKING_ATTRIBUTE_STRUCT_END__ RDD_US_CONNECTION_BUFFER_TABLE_DTS;
 #define RDD_US_CONNECTION_BUFFER_TABLE_PTR()	( RDD_US_CONNECTION_BUFFER_TABLE_DTS * )(DEVICE_ADDRESS( RUNNER_COMMON_1_OFFSET ) + US_CONNECTION_BUFFER_TABLE_ADDRESS - 0x8000 )
 
 #endif
-#define RDD_DUMMY_RATE_CONTROLLER_DESCRIPTOR_RESERVED_FW_ONLY_NUMBER	16
+#if defined WL4908
 
+#define RDD_IPV6_HOST_ADDRESS_CRC_TABLE_SIZE     16
 typedef struct
 {
-#ifndef FIRMWARE_LITTLE_ENDIAN
-	uint32_t	reserved_fw_only[RDD_DUMMY_RATE_CONTROLLER_DESCRIPTOR_RESERVED_FW_ONLY_NUMBER];
-#else
-	uint32_t	reserved_fw_only[RDD_DUMMY_RATE_CONTROLLER_DESCRIPTOR_RESERVED_FW_ONLY_NUMBER];
-#endif
+	RDD_FOUR_BYTES_DTS	entry[ RDD_IPV6_HOST_ADDRESS_CRC_TABLE_SIZE ];
 }
-__PACKING_ATTRIBUTE_STRUCT_END__ RDD_DUMMY_RATE_CONTROLLER_DESCRIPTOR_DTS;
+__PACKING_ATTRIBUTE_STRUCT_END__ RDD_IPV6_HOST_ADDRESS_CRC_TABLE_DTS;
 
+#define RDD_IPV6_HOST_ADDRESS_CRC_TABLE_PTR()	( RDD_IPV6_HOST_ADDRESS_CRC_TABLE_DTS * )(DEVICE_ADDRESS( RUNNER_COMMON_1_OFFSET ) + IPV6_HOST_ADDRESS_CRC_TABLE_ADDRESS - 0x8000 )
+
+#endif
 
 typedef struct
 {
@@ -9344,17 +9344,17 @@ __PACKING_ATTRIBUTE_STRUCT_END__ RDD_EPON_DDR_QUEUE_DESCRIPTORS_TABLE_DTS;
 #define RDD_EPON_DDR_QUEUE_DESCRIPTORS_TABLE_PTR()	( RDD_EPON_DDR_QUEUE_DESCRIPTORS_TABLE_DTS * )(DEVICE_ADDRESS( RUNNER_COMMON_1_OFFSET ) + EPON_DDR_QUEUE_DESCRIPTORS_TABLE_ADDRESS - 0x8000 )
 
 #endif
-#define RDD_LAN_INGRESS_FIFO_ENTRY_RESERVED_FW_ONLY_NUMBER	32
+#define RDD_DUMMY_RATE_CONTROLLER_DESCRIPTOR_RESERVED_FW_ONLY_NUMBER	16
 
 typedef struct
 {
 #ifndef FIRMWARE_LITTLE_ENDIAN
-	uint16_t	reserved_fw_only[RDD_LAN_INGRESS_FIFO_ENTRY_RESERVED_FW_ONLY_NUMBER];
+	uint32_t	reserved_fw_only[RDD_DUMMY_RATE_CONTROLLER_DESCRIPTOR_RESERVED_FW_ONLY_NUMBER];
 #else
-	uint16_t	reserved_fw_only[RDD_LAN_INGRESS_FIFO_ENTRY_RESERVED_FW_ONLY_NUMBER];
+	uint32_t	reserved_fw_only[RDD_DUMMY_RATE_CONTROLLER_DESCRIPTOR_RESERVED_FW_ONLY_NUMBER];
 #endif
 }
-__PACKING_ATTRIBUTE_STRUCT_END__ RDD_LAN_INGRESS_FIFO_ENTRY_DTS;
+__PACKING_ATTRIBUTE_STRUCT_END__ RDD_DUMMY_RATE_CONTROLLER_DESCRIPTOR_DTS;
 
 #if defined WL4908
 
@@ -9368,32 +9368,6 @@ __PACKING_ATTRIBUTE_STRUCT_END__ RDD_GPON_SKB_ENQUEUED_INDEXES_FREE_PTR_DTS;
 #define RDD_GPON_SKB_ENQUEUED_INDEXES_FREE_PTR_PTR()	( RDD_GPON_SKB_ENQUEUED_INDEXES_FREE_PTR_DTS * )(DEVICE_ADDRESS( RUNNER_COMMON_1_OFFSET ) + GPON_SKB_ENQUEUED_INDEXES_FREE_PTR_ADDRESS - 0x8000 )
 
 #endif
-#if defined WL4908
-
-#define RDD_IPV6_HOST_ADDRESS_CRC_TABLE_SIZE     8
-typedef struct
-{
-	RDD_FOUR_BYTES_DTS	entry[ RDD_IPV6_HOST_ADDRESS_CRC_TABLE_SIZE ];
-}
-__PACKING_ATTRIBUTE_STRUCT_END__ RDD_IPV6_HOST_ADDRESS_CRC_TABLE_DTS;
-
-#define RDD_IPV6_HOST_ADDRESS_CRC_TABLE_PTR()	( RDD_IPV6_HOST_ADDRESS_CRC_TABLE_DTS * )(DEVICE_ADDRESS( RUNNER_COMMON_1_OFFSET ) + IPV6_HOST_ADDRESS_CRC_TABLE_ADDRESS - 0x8000 )
-
-#endif
-#if defined WL4908
-
-#define RDD_GPON_SKB_ENQUEUED_INDEXES_PUT_PTR_SIZE     40
-typedef struct
-{
-	RDD_TWO_BYTES_DTS	entry[ RDD_GPON_SKB_ENQUEUED_INDEXES_PUT_PTR_SIZE ];
-}
-__PACKING_ATTRIBUTE_STRUCT_END__ RDD_GPON_SKB_ENQUEUED_INDEXES_PUT_PTR_DTS;
-
-#define RDD_GPON_SKB_ENQUEUED_INDEXES_PUT_PTR_PTR()	( RDD_GPON_SKB_ENQUEUED_INDEXES_PUT_PTR_DTS * )(DEVICE_ADDRESS( RUNNER_COMMON_1_OFFSET ) + GPON_SKB_ENQUEUED_INDEXES_PUT_PTR_ADDRESS - 0x8000 )
-
-#endif
-#define RDD_US_CPU_REASON_TO_CPU_RX_QUEUE_TABLE_PTR()	( RDD_US_CPU_REASON_TO_CPU_RX_QUEUE_TABLE_DTS * )(DEVICE_ADDRESS( RUNNER_COMMON_1_OFFSET ) + US_CPU_REASON_TO_CPU_RX_QUEUE_TABLE_ADDRESS - 0x8000 )
-
 #if defined WL4908
 
 #define RDD_BRIDGE_PORT_TO_BROADCOM_SWITCH_PORT_MAPPING_TABLE_SIZE     8
@@ -9429,6 +9403,20 @@ typedef struct
 }
 __PACKING_ATTRIBUTE_STRUCT_END__ RDD_BRIDGE_PORT_TO_BROADCOM_SWITCH_PORT_MAPPING_TABLE_PTR_DTS;
 
+#if defined WL4908
+
+#define RDD_GPON_SKB_ENQUEUED_INDEXES_PUT_PTR_SIZE     40
+typedef struct
+{
+	RDD_TWO_BYTES_DTS	entry[ RDD_GPON_SKB_ENQUEUED_INDEXES_PUT_PTR_SIZE ];
+}
+__PACKING_ATTRIBUTE_STRUCT_END__ RDD_GPON_SKB_ENQUEUED_INDEXES_PUT_PTR_DTS;
+
+#define RDD_GPON_SKB_ENQUEUED_INDEXES_PUT_PTR_PTR()	( RDD_GPON_SKB_ENQUEUED_INDEXES_PUT_PTR_DTS * )(DEVICE_ADDRESS( RUNNER_COMMON_1_OFFSET ) + GPON_SKB_ENQUEUED_INDEXES_PUT_PTR_ADDRESS - 0x8000 )
+
+#endif
+#define RDD_US_CPU_REASON_TO_CPU_RX_QUEUE_TABLE_PTR()	( RDD_US_CPU_REASON_TO_CPU_RX_QUEUE_TABLE_DTS * )(DEVICE_ADDRESS( RUNNER_COMMON_1_OFFSET ) + US_CPU_REASON_TO_CPU_RX_QUEUE_TABLE_ADDRESS - 0x8000 )
+
 #define RDD_PACKET_SRAM_TO_DDR_COPY_BUFFER_RESERVED_FW_ONLY_NUMBER	32
 
 typedef struct
@@ -9440,6 +9428,18 @@ typedef struct
 #endif
 }
 __PACKING_ATTRIBUTE_STRUCT_END__ RDD_PACKET_SRAM_TO_DDR_COPY_BUFFER_DTS;
+
+#define RDD_LAN_INGRESS_FIFO_ENTRY_RESERVED_FW_ONLY_NUMBER	32
+
+typedef struct
+{
+#ifndef FIRMWARE_LITTLE_ENDIAN
+	uint16_t	reserved_fw_only[RDD_LAN_INGRESS_FIFO_ENTRY_RESERVED_FW_ONLY_NUMBER];
+#else
+	uint16_t	reserved_fw_only[RDD_LAN_INGRESS_FIFO_ENTRY_RESERVED_FW_ONLY_NUMBER];
+#endif
+}
+__PACKING_ATTRIBUTE_STRUCT_END__ RDD_LAN_INGRESS_FIFO_ENTRY_DTS;
 
 #if defined WL4908
 
@@ -9534,8 +9534,7 @@ typedef struct
 	uint32_t	wfd_idx                                                              	:2	__PACKING_ATTRIBUTE_FIELD_LEVEL__;
 	uint32_t	egress_phy                                                           	:2	__PACKING_ATTRIBUTE_FIELD_LEVEL__;
 	uint32_t	ip_addresses_table_index                                             	:3	__PACKING_ATTRIBUTE_FIELD_LEVEL__;
-	uint32_t	reserved3                                                            	:2	__PACKING_ATTRIBUTE_FIELD_LEVEL__;
-	uint32_t	link_specific_union                                                  	:16	__PACKING_ATTRIBUTE_FIELD_LEVEL__;
+	uint32_t	link_specific_union                                                  	:18	__PACKING_ATTRIBUTE_FIELD_LEVEL__;
 	uint8_t	command_list[RDD_FC_UCAST_FLOW_CONTEXT_ENTRY_COMMAND_LIST_NUMBER];
 	uint32_t	valid                                                                	:8	__PACKING_ATTRIBUTE_FIELD_LEVEL__;
 	uint32_t	command_list_length_64                                               	:4	__PACKING_ATTRIBUTE_FIELD_LEVEL__;
@@ -9553,8 +9552,7 @@ typedef struct
 	uint32_t	is_routed                                                            	:1	__PACKING_ATTRIBUTE_FIELD_LEVEL__;
 	uint32_t	overflow                                                             	:1	__PACKING_ATTRIBUTE_FIELD_LEVEL__;
 	uint32_t	multicast_flag                                                       	:1	__PACKING_ATTRIBUTE_FIELD_LEVEL__;
-	uint32_t	link_specific_union                                                  	:16	__PACKING_ATTRIBUTE_FIELD_LEVEL__;
-	uint32_t	reserved3                                                            	:2	__PACKING_ATTRIBUTE_FIELD_LEVEL__;
+	uint32_t	link_specific_union                                                  	:18	__PACKING_ATTRIBUTE_FIELD_LEVEL__;
 	uint32_t	ip_addresses_table_index                                             	:3	__PACKING_ATTRIBUTE_FIELD_LEVEL__;
 	uint32_t	egress_phy                                                           	:2	__PACKING_ATTRIBUTE_FIELD_LEVEL__;
 	uint32_t	wfd_idx                                                              	:2	__PACKING_ATTRIBUTE_FIELD_LEVEL__;
@@ -9636,10 +9634,10 @@ __PACKING_ATTRIBUTE_STRUCT_END__ RDD_FC_UCAST_FLOW_CONTEXT_ENTRY_DTS;
 #define RDD_FC_UCAST_FLOW_CONTEXT_ENTRY_IP_ADDRESSES_TABLE_INDEX_WRITE_G(v, g, addr, idx)   GROUP_FIELD_MWRITE_8(g, (uint8_t *)(addr + idx*sizeof(RDD_FC_UCAST_FLOW_CONTEXT_ENTRY_DTS)) + 13, 2, 3, v)
 #define RDD_FC_UCAST_FLOW_CONTEXT_ENTRY_IP_ADDRESSES_TABLE_INDEX_READ(r, p)                 FIELD_MREAD_8((uint8_t *)p + 13, 2, 3, r)
 #define RDD_FC_UCAST_FLOW_CONTEXT_ENTRY_IP_ADDRESSES_TABLE_INDEX_WRITE(v, p)                FIELD_MWRITE_8((uint8_t *)p + 13, 2, 3, v)
-#define RDD_FC_UCAST_FLOW_CONTEXT_ENTRY_LINK_SPECIFIC_UNION_READ_G(r, g, addr, idx)         GROUP_MREAD_16(g, (uint8_t *)(addr + idx*sizeof(RDD_FC_UCAST_FLOW_CONTEXT_ENTRY_DTS)) + 14, r)
-#define RDD_FC_UCAST_FLOW_CONTEXT_ENTRY_LINK_SPECIFIC_UNION_WRITE_G(v, g, addr, idx)        GROUP_MWRITE_16(g, (uint8_t *)(addr + idx*sizeof(RDD_FC_UCAST_FLOW_CONTEXT_ENTRY_DTS)) + 14, v)
-#define RDD_FC_UCAST_FLOW_CONTEXT_ENTRY_LINK_SPECIFIC_UNION_READ(r, p)                      MREAD_16((uint8_t *)p + 14, r)
-#define RDD_FC_UCAST_FLOW_CONTEXT_ENTRY_LINK_SPECIFIC_UNION_WRITE(v, p)                     MWRITE_16((uint8_t *)p + 14, v)
+#define RDD_FC_UCAST_FLOW_CONTEXT_ENTRY_LINK_SPECIFIC_UNION_READ_G(r, g, addr, idx)         GROUP_FIELD_MREAD_32(g, (uint8_t *)(addr + idx*sizeof(RDD_FC_UCAST_FLOW_CONTEXT_ENTRY_DTS)) + 12, 0, 18, r)
+#define RDD_FC_UCAST_FLOW_CONTEXT_ENTRY_LINK_SPECIFIC_UNION_WRITE_G(v, g, addr, idx)        GROUP_FIELD_MWRITE_32(g, (uint8_t *)(addr + idx*sizeof(RDD_FC_UCAST_FLOW_CONTEXT_ENTRY_DTS)) + 12, 0, 18, v)
+#define RDD_FC_UCAST_FLOW_CONTEXT_ENTRY_LINK_SPECIFIC_UNION_READ(r, p)                      FIELD_MREAD_32((uint8_t *)p + 12, 0, 18, r)
+#define RDD_FC_UCAST_FLOW_CONTEXT_ENTRY_LINK_SPECIFIC_UNION_WRITE(v, p)                     FIELD_MWRITE_32((uint8_t *)p + 12, 0, 18, v)
 #define RDD_FC_UCAST_FLOW_CONTEXT_ENTRY_COMMAND_LIST_READ_G(r, g, addr, idx, i)             GROUP_MREAD_I_8(g, (uint8_t *)(addr + idx*sizeof(RDD_FC_UCAST_FLOW_CONTEXT_ENTRY_DTS)) + 16, i, r)
 #define RDD_FC_UCAST_FLOW_CONTEXT_ENTRY_COMMAND_LIST_WRITE_G(v, g, addr, idx, i)            GROUP_MWRITE_I_8(g, (uint8_t *)(addr + idx*sizeof(RDD_FC_UCAST_FLOW_CONTEXT_ENTRY_DTS)) + 16, i, v)
 #define RDD_FC_UCAST_FLOW_CONTEXT_ENTRY_COMMAND_LIST_READ(r, p, i)                          MREAD_I_8((uint8_t *)p + 16, i, r)
@@ -9667,9 +9665,9 @@ typedef struct
 	uint32_t	reserved1      	:32	__PACKING_ATTRIBUTE_FIELD_LEVEL__;
 	uint32_t	reserved2      	:32	__PACKING_ATTRIBUTE_FIELD_LEVEL__;
 	uint32_t	reserved3      	:32	__PACKING_ATTRIBUTE_FIELD_LEVEL__;
-	uint32_t	reserved4      	:16	__PACKING_ATTRIBUTE_FIELD_LEVEL__;
-	uint32_t	egress_port    	:6	__PACKING_ATTRIBUTE_FIELD_LEVEL__;
+	uint32_t	reserved4      	:14	__PACKING_ATTRIBUTE_FIELD_LEVEL__;
 	uint32_t	lag_port       	:2	__PACKING_ATTRIBUTE_FIELD_LEVEL__;
+	uint32_t	egress_port    	:8	__PACKING_ATTRIBUTE_FIELD_LEVEL__;
 	uint32_t	traffic_class  	:3	__PACKING_ATTRIBUTE_FIELD_LEVEL__;
 	uint32_t	rate_controller	:5	__PACKING_ATTRIBUTE_FIELD_LEVEL__;
 #else
@@ -9678,21 +9676,21 @@ typedef struct
 	uint32_t	reserved3      	:32	__PACKING_ATTRIBUTE_FIELD_LEVEL__;
 	uint32_t	rate_controller	:5	__PACKING_ATTRIBUTE_FIELD_LEVEL__;
 	uint32_t	traffic_class  	:3	__PACKING_ATTRIBUTE_FIELD_LEVEL__;
+	uint32_t	egress_port    	:8	__PACKING_ATTRIBUTE_FIELD_LEVEL__;
 	uint32_t	lag_port       	:2	__PACKING_ATTRIBUTE_FIELD_LEVEL__;
-	uint32_t	egress_port    	:6	__PACKING_ATTRIBUTE_FIELD_LEVEL__;
-	uint32_t	reserved4      	:16	__PACKING_ATTRIBUTE_FIELD_LEVEL__;
+	uint32_t	reserved4      	:14	__PACKING_ATTRIBUTE_FIELD_LEVEL__;
 #endif
 }
 __PACKING_ATTRIBUTE_STRUCT_END__ RDD_FC_UCAST_FLOW_CONTEXT_ETH_XTM_ENTRY_DTS;
 
-#define RDD_FC_UCAST_FLOW_CONTEXT_ETH_XTM_ENTRY_EGRESS_PORT_READ_G(r, g, addr, idx)        GROUP_FIELD_MREAD_8(g, (uint8_t *)(addr + idx*sizeof(RDD_FC_UCAST_FLOW_CONTEXT_ETH_XTM_ENTRY_DTS)) + 14, 2, 6, r)
-#define RDD_FC_UCAST_FLOW_CONTEXT_ETH_XTM_ENTRY_EGRESS_PORT_WRITE_G(v, g, addr, idx)       GROUP_FIELD_MWRITE_8(g, (uint8_t *)(addr + idx*sizeof(RDD_FC_UCAST_FLOW_CONTEXT_ETH_XTM_ENTRY_DTS)) + 14, 2, 6, v)
-#define RDD_FC_UCAST_FLOW_CONTEXT_ETH_XTM_ENTRY_EGRESS_PORT_READ(r, p)                     FIELD_MREAD_8((uint8_t *)p + 14, 2, 6, r)
-#define RDD_FC_UCAST_FLOW_CONTEXT_ETH_XTM_ENTRY_EGRESS_PORT_WRITE(v, p)                    FIELD_MWRITE_8((uint8_t *)p + 14, 2, 6, v)
-#define RDD_FC_UCAST_FLOW_CONTEXT_ETH_XTM_ENTRY_LAG_PORT_READ_G(r, g, addr, idx)           GROUP_FIELD_MREAD_8(g, (uint8_t *)(addr + idx*sizeof(RDD_FC_UCAST_FLOW_CONTEXT_ETH_XTM_ENTRY_DTS)) + 14, 0, 2, r)
-#define RDD_FC_UCAST_FLOW_CONTEXT_ETH_XTM_ENTRY_LAG_PORT_WRITE_G(v, g, addr, idx)          GROUP_FIELD_MWRITE_8(g, (uint8_t *)(addr + idx*sizeof(RDD_FC_UCAST_FLOW_CONTEXT_ETH_XTM_ENTRY_DTS)) + 14, 0, 2, v)
-#define RDD_FC_UCAST_FLOW_CONTEXT_ETH_XTM_ENTRY_LAG_PORT_READ(r, p)                        FIELD_MREAD_8((uint8_t *)p + 14, 0, 2, r)
-#define RDD_FC_UCAST_FLOW_CONTEXT_ETH_XTM_ENTRY_LAG_PORT_WRITE(v, p)                       FIELD_MWRITE_8((uint8_t *)p + 14, 0, 2, v)
+#define RDD_FC_UCAST_FLOW_CONTEXT_ETH_XTM_ENTRY_LAG_PORT_READ_G(r, g, addr, idx)           GROUP_FIELD_MREAD_8(g, (uint8_t *)(addr + idx*sizeof(RDD_FC_UCAST_FLOW_CONTEXT_ETH_XTM_ENTRY_DTS)) + 13, 0, 2, r)
+#define RDD_FC_UCAST_FLOW_CONTEXT_ETH_XTM_ENTRY_LAG_PORT_WRITE_G(v, g, addr, idx)          GROUP_FIELD_MWRITE_8(g, (uint8_t *)(addr + idx*sizeof(RDD_FC_UCAST_FLOW_CONTEXT_ETH_XTM_ENTRY_DTS)) + 13, 0, 2, v)
+#define RDD_FC_UCAST_FLOW_CONTEXT_ETH_XTM_ENTRY_LAG_PORT_READ(r, p)                        FIELD_MREAD_8((uint8_t *)p + 13, 0, 2, r)
+#define RDD_FC_UCAST_FLOW_CONTEXT_ETH_XTM_ENTRY_LAG_PORT_WRITE(v, p)                       FIELD_MWRITE_8((uint8_t *)p + 13, 0, 2, v)
+#define RDD_FC_UCAST_FLOW_CONTEXT_ETH_XTM_ENTRY_EGRESS_PORT_READ_G(r, g, addr, idx)        GROUP_MREAD_8(g, (uint8_t *)(addr + idx*sizeof(RDD_FC_UCAST_FLOW_CONTEXT_ETH_XTM_ENTRY_DTS)) + 14, r)
+#define RDD_FC_UCAST_FLOW_CONTEXT_ETH_XTM_ENTRY_EGRESS_PORT_WRITE_G(v, g, addr, idx)       GROUP_MWRITE_8(g, (uint8_t *)(addr + idx*sizeof(RDD_FC_UCAST_FLOW_CONTEXT_ETH_XTM_ENTRY_DTS)) + 14, v)
+#define RDD_FC_UCAST_FLOW_CONTEXT_ETH_XTM_ENTRY_EGRESS_PORT_READ(r, p)                     MREAD_8((uint8_t *)p + 14, r)
+#define RDD_FC_UCAST_FLOW_CONTEXT_ETH_XTM_ENTRY_EGRESS_PORT_WRITE(v, p)                    MWRITE_8((uint8_t *)p + 14, v)
 #define RDD_FC_UCAST_FLOW_CONTEXT_ETH_XTM_ENTRY_TRAFFIC_CLASS_READ_G(r, g, addr, idx)      GROUP_FIELD_MREAD_8(g, (uint8_t *)(addr + idx*sizeof(RDD_FC_UCAST_FLOW_CONTEXT_ETH_XTM_ENTRY_DTS)) + 15, 5, 3, r)
 #define RDD_FC_UCAST_FLOW_CONTEXT_ETH_XTM_ENTRY_TRAFFIC_CLASS_WRITE_G(v, g, addr, idx)     GROUP_FIELD_MWRITE_8(g, (uint8_t *)(addr + idx*sizeof(RDD_FC_UCAST_FLOW_CONTEXT_ETH_XTM_ENTRY_DTS)) + 15, 5, 3, v)
 #define RDD_FC_UCAST_FLOW_CONTEXT_ETH_XTM_ENTRY_TRAFFIC_CLASS_READ(r, p)                   FIELD_MREAD_8((uint8_t *)p + 15, 5, 3, r)
@@ -9810,8 +9808,7 @@ typedef struct
 	uint32_t	wfd_idx                                                                 	:2	__PACKING_ATTRIBUTE_FIELD_LEVEL__;
 	uint32_t	egress_phy                                                              	:2	__PACKING_ATTRIBUTE_FIELD_LEVEL__;
 	uint32_t	ip_addresses_table_index                                                	:3	__PACKING_ATTRIBUTE_FIELD_LEVEL__;
-	uint32_t	reserved3                                                               	:2	__PACKING_ATTRIBUTE_FIELD_LEVEL__;
-	uint32_t	link_specific_union                                                     	:16	__PACKING_ATTRIBUTE_FIELD_LEVEL__;
+	uint32_t	link_specific_union                                                     	:18	__PACKING_ATTRIBUTE_FIELD_LEVEL__;
 	uint8_t	command_list[RDD_FC_L2_UCAST_FLOW_CONTEXT_ENTRY_COMMAND_LIST_NUMBER];
 	uint32_t	valid                                                                   	:8	__PACKING_ATTRIBUTE_FIELD_LEVEL__;
 	uint32_t	command_list_length_64                                                  	:4	__PACKING_ATTRIBUTE_FIELD_LEVEL__;
@@ -9829,8 +9826,7 @@ typedef struct
 	uint32_t	is_routed                                                               	:1	__PACKING_ATTRIBUTE_FIELD_LEVEL__;
 	uint32_t	overflow                                                                	:1	__PACKING_ATTRIBUTE_FIELD_LEVEL__;
 	uint32_t	multicast_flag                                                          	:1	__PACKING_ATTRIBUTE_FIELD_LEVEL__;
-	uint32_t	link_specific_union                                                     	:16	__PACKING_ATTRIBUTE_FIELD_LEVEL__;
-	uint32_t	reserved3                                                               	:2	__PACKING_ATTRIBUTE_FIELD_LEVEL__;
+	uint32_t	link_specific_union                                                     	:18	__PACKING_ATTRIBUTE_FIELD_LEVEL__;
 	uint32_t	ip_addresses_table_index                                                	:3	__PACKING_ATTRIBUTE_FIELD_LEVEL__;
 	uint32_t	egress_phy                                                              	:2	__PACKING_ATTRIBUTE_FIELD_LEVEL__;
 	uint32_t	wfd_idx                                                                 	:2	__PACKING_ATTRIBUTE_FIELD_LEVEL__;
@@ -9912,10 +9908,10 @@ __PACKING_ATTRIBUTE_STRUCT_END__ RDD_FC_L2_UCAST_FLOW_CONTEXT_ENTRY_DTS;
 #define RDD_FC_L2_UCAST_FLOW_CONTEXT_ENTRY_IP_ADDRESSES_TABLE_INDEX_WRITE_G(v, g, addr, idx)   GROUP_FIELD_MWRITE_8(g, (uint8_t *)(addr + idx*sizeof(RDD_FC_L2_UCAST_FLOW_CONTEXT_ENTRY_DTS)) + 13, 2, 3, v)
 #define RDD_FC_L2_UCAST_FLOW_CONTEXT_ENTRY_IP_ADDRESSES_TABLE_INDEX_READ(r, p)                 FIELD_MREAD_8((uint8_t *)p + 13, 2, 3, r)
 #define RDD_FC_L2_UCAST_FLOW_CONTEXT_ENTRY_IP_ADDRESSES_TABLE_INDEX_WRITE(v, p)                FIELD_MWRITE_8((uint8_t *)p + 13, 2, 3, v)
-#define RDD_FC_L2_UCAST_FLOW_CONTEXT_ENTRY_LINK_SPECIFIC_UNION_READ_G(r, g, addr, idx)         GROUP_MREAD_16(g, (uint8_t *)(addr + idx*sizeof(RDD_FC_L2_UCAST_FLOW_CONTEXT_ENTRY_DTS)) + 14, r)
-#define RDD_FC_L2_UCAST_FLOW_CONTEXT_ENTRY_LINK_SPECIFIC_UNION_WRITE_G(v, g, addr, idx)        GROUP_MWRITE_16(g, (uint8_t *)(addr + idx*sizeof(RDD_FC_L2_UCAST_FLOW_CONTEXT_ENTRY_DTS)) + 14, v)
-#define RDD_FC_L2_UCAST_FLOW_CONTEXT_ENTRY_LINK_SPECIFIC_UNION_READ(r, p)                      MREAD_16((uint8_t *)p + 14, r)
-#define RDD_FC_L2_UCAST_FLOW_CONTEXT_ENTRY_LINK_SPECIFIC_UNION_WRITE(v, p)                     MWRITE_16((uint8_t *)p + 14, v)
+#define RDD_FC_L2_UCAST_FLOW_CONTEXT_ENTRY_LINK_SPECIFIC_UNION_READ_G(r, g, addr, idx)         GROUP_FIELD_MREAD_32(g, (uint8_t *)(addr + idx*sizeof(RDD_FC_L2_UCAST_FLOW_CONTEXT_ENTRY_DTS)) + 12, 0, 18, r)
+#define RDD_FC_L2_UCAST_FLOW_CONTEXT_ENTRY_LINK_SPECIFIC_UNION_WRITE_G(v, g, addr, idx)        GROUP_FIELD_MWRITE_32(g, (uint8_t *)(addr + idx*sizeof(RDD_FC_L2_UCAST_FLOW_CONTEXT_ENTRY_DTS)) + 12, 0, 18, v)
+#define RDD_FC_L2_UCAST_FLOW_CONTEXT_ENTRY_LINK_SPECIFIC_UNION_READ(r, p)                      FIELD_MREAD_32((uint8_t *)p + 12, 0, 18, r)
+#define RDD_FC_L2_UCAST_FLOW_CONTEXT_ENTRY_LINK_SPECIFIC_UNION_WRITE(v, p)                     FIELD_MWRITE_32((uint8_t *)p + 12, 0, 18, v)
 #define RDD_FC_L2_UCAST_FLOW_CONTEXT_ENTRY_COMMAND_LIST_READ_G(r, g, addr, idx, i)             GROUP_MREAD_I_8(g, (uint8_t *)(addr + idx*sizeof(RDD_FC_L2_UCAST_FLOW_CONTEXT_ENTRY_DTS)) + 16, i, r)
 #define RDD_FC_L2_UCAST_FLOW_CONTEXT_ENTRY_COMMAND_LIST_WRITE_G(v, g, addr, idx, i)            GROUP_MWRITE_I_8(g, (uint8_t *)(addr + idx*sizeof(RDD_FC_L2_UCAST_FLOW_CONTEXT_ENTRY_DTS)) + 16, i, v)
 #define RDD_FC_L2_UCAST_FLOW_CONTEXT_ENTRY_COMMAND_LIST_READ(r, p, i)                          MREAD_I_8((uint8_t *)p + 16, i, r)
@@ -10183,8 +10179,7 @@ typedef struct
 	uint32_t	wfd_idx                                                                   	:2	__PACKING_ATTRIBUTE_FIELD_LEVEL__;
 	uint32_t	egress_phy                                                                	:2	__PACKING_ATTRIBUTE_FIELD_LEVEL__;
 	uint32_t	ip_addresses_table_index                                                  	:3	__PACKING_ATTRIBUTE_FIELD_LEVEL__;
-	uint32_t	reserved3                                                                 	:2	__PACKING_ATTRIBUTE_FIELD_LEVEL__;
-	uint32_t	link_specific_union                                                       	:16	__PACKING_ATTRIBUTE_FIELD_LEVEL__;
+	uint32_t	link_specific_union                                                       	:18	__PACKING_ATTRIBUTE_FIELD_LEVEL__;
 	uint8_t	command_list[RDD_FC_NATC_UCAST_FLOW_CONTEXT_ENTRY_COMMAND_LIST_NUMBER];
 	uint32_t	context_continuation_table_index                                          	:16	__PACKING_ATTRIBUTE_FIELD_LEVEL__;
 	uint32_t	command_list_remaining_length                                             	:16	__PACKING_ATTRIBUTE_FIELD_LEVEL__;
@@ -10205,8 +10200,7 @@ typedef struct
 	uint32_t	is_routed                                                                 	:1	__PACKING_ATTRIBUTE_FIELD_LEVEL__;
 	uint32_t	context_continuation_flag                                                 	:1	__PACKING_ATTRIBUTE_FIELD_LEVEL__;
 	uint32_t	multicast_flag                                                            	:1	__PACKING_ATTRIBUTE_FIELD_LEVEL__;
-	uint32_t	link_specific_union                                                       	:16	__PACKING_ATTRIBUTE_FIELD_LEVEL__;
-	uint32_t	reserved3                                                                 	:2	__PACKING_ATTRIBUTE_FIELD_LEVEL__;
+	uint32_t	link_specific_union                                                       	:18	__PACKING_ATTRIBUTE_FIELD_LEVEL__;
 	uint32_t	ip_addresses_table_index                                                  	:3	__PACKING_ATTRIBUTE_FIELD_LEVEL__;
 	uint32_t	egress_phy                                                                	:2	__PACKING_ATTRIBUTE_FIELD_LEVEL__;
 	uint32_t	wfd_idx                                                                   	:2	__PACKING_ATTRIBUTE_FIELD_LEVEL__;
@@ -10289,10 +10283,10 @@ __PACKING_ATTRIBUTE_STRUCT_END__ RDD_FC_NATC_UCAST_FLOW_CONTEXT_ENTRY_DTS;
 #define RDD_FC_NATC_UCAST_FLOW_CONTEXT_ENTRY_IP_ADDRESSES_TABLE_INDEX_WRITE_G(v, g, addr, idx)           GROUP_FIELD_MWRITE_8(g, (uint8_t *)(addr + idx*sizeof(RDD_FC_NATC_UCAST_FLOW_CONTEXT_ENTRY_DTS)) + 13, 2, 3, v)
 #define RDD_FC_NATC_UCAST_FLOW_CONTEXT_ENTRY_IP_ADDRESSES_TABLE_INDEX_READ(r, p)                         FIELD_MREAD_8((uint8_t *)p + 13, 2, 3, r)
 #define RDD_FC_NATC_UCAST_FLOW_CONTEXT_ENTRY_IP_ADDRESSES_TABLE_INDEX_WRITE(v, p)                        FIELD_MWRITE_8((uint8_t *)p + 13, 2, 3, v)
-#define RDD_FC_NATC_UCAST_FLOW_CONTEXT_ENTRY_LINK_SPECIFIC_UNION_READ_G(r, g, addr, idx)                 GROUP_MREAD_16(g, (uint8_t *)(addr + idx*sizeof(RDD_FC_NATC_UCAST_FLOW_CONTEXT_ENTRY_DTS)) + 14, r)
-#define RDD_FC_NATC_UCAST_FLOW_CONTEXT_ENTRY_LINK_SPECIFIC_UNION_WRITE_G(v, g, addr, idx)                GROUP_MWRITE_16(g, (uint8_t *)(addr + idx*sizeof(RDD_FC_NATC_UCAST_FLOW_CONTEXT_ENTRY_DTS)) + 14, v)
-#define RDD_FC_NATC_UCAST_FLOW_CONTEXT_ENTRY_LINK_SPECIFIC_UNION_READ(r, p)                              MREAD_16((uint8_t *)p + 14, r)
-#define RDD_FC_NATC_UCAST_FLOW_CONTEXT_ENTRY_LINK_SPECIFIC_UNION_WRITE(v, p)                             MWRITE_16((uint8_t *)p + 14, v)
+#define RDD_FC_NATC_UCAST_FLOW_CONTEXT_ENTRY_LINK_SPECIFIC_UNION_READ_G(r, g, addr, idx)                 GROUP_FIELD_MREAD_32(g, (uint8_t *)(addr + idx*sizeof(RDD_FC_NATC_UCAST_FLOW_CONTEXT_ENTRY_DTS)) + 12, 0, 18, r)
+#define RDD_FC_NATC_UCAST_FLOW_CONTEXT_ENTRY_LINK_SPECIFIC_UNION_WRITE_G(v, g, addr, idx)                GROUP_FIELD_MWRITE_32(g, (uint8_t *)(addr + idx*sizeof(RDD_FC_NATC_UCAST_FLOW_CONTEXT_ENTRY_DTS)) + 12, 0, 18, v)
+#define RDD_FC_NATC_UCAST_FLOW_CONTEXT_ENTRY_LINK_SPECIFIC_UNION_READ(r, p)                              FIELD_MREAD_32((uint8_t *)p + 12, 0, 18, r)
+#define RDD_FC_NATC_UCAST_FLOW_CONTEXT_ENTRY_LINK_SPECIFIC_UNION_WRITE(v, p)                             FIELD_MWRITE_32((uint8_t *)p + 12, 0, 18, v)
 #define RDD_FC_NATC_UCAST_FLOW_CONTEXT_ENTRY_COMMAND_LIST_READ_G(r, g, addr, idx, i)                     GROUP_MREAD_I_8(g, (uint8_t *)(addr + idx*sizeof(RDD_FC_NATC_UCAST_FLOW_CONTEXT_ENTRY_DTS)) + 16, i, r)
 #define RDD_FC_NATC_UCAST_FLOW_CONTEXT_ENTRY_COMMAND_LIST_WRITE_G(v, g, addr, idx, i)                    GROUP_MWRITE_I_8(g, (uint8_t *)(addr + idx*sizeof(RDD_FC_NATC_UCAST_FLOW_CONTEXT_ENTRY_DTS)) + 16, i, v)
 #define RDD_FC_NATC_UCAST_FLOW_CONTEXT_ENTRY_COMMAND_LIST_READ(r, p, i)                                  MREAD_I_8((uint8_t *)p + 16, i, r)

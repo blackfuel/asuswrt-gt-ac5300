@@ -50,6 +50,9 @@
 #include "bcmTag.h"
 #include "bcm63xx_util.h"
 
+#ifdef AC2900
+#include "bcm63xx_nvram.h"
+#endif
 
 /** Externs. **/
 
@@ -685,6 +688,13 @@ static char parse_post_data( int s, unsigned char *post_data_start,
     unsigned char *p = post_data_start;
     int boundary_size = 0;
     int misc_partition_to_write=-1;
+
+#ifdef AC2900
+    if (NVRAM.noUpdatingFirmware) {
+        printf("no Updating!\n");
+        return 99;
+    }
+#endif
 
     /* Convert the start boundary field into a string.  It will be compared
      * against the end boundary field below.

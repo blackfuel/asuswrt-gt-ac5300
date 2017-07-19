@@ -2,6 +2,7 @@ AC_PREREQ([2.63])
 AC_INIT([igmpproxy], [0.1.2])
 AM_INIT_AUTOMAKE
 AM_MAINTAINER_MODE
+
 AC_CONFIG_SRCDIR([src/igmpproxy.c])
 AC_CONFIG_HEADERS([config.h])
 AC_PROG_CC_C99
@@ -26,11 +27,11 @@ AC_CHECK_MEMBERS([struct sockaddr_in.sin_len], [], [], [[
 #include <netinet/in.h>
 ]])
 
-AC_CHECK_DECL(CLOCK_MONOTONIC, [
-	AC_SEARCH_LIBS([clock_gettime], [rt])
-	AC_DEFINE(HAVE_CLOCK_MONOTONIC,,Have monotonic clock)], [], [[
-#include <time.h>
-]])
+AC_CHECK_DECL([CLOCK_MONOTONIC], [
+	AC_SEARCH_LIBS([clock_gettime], [rt], [
+		AC_DEFINE([HAVE_CLOCK_MONOTONIC], [1], [Define to 1 if clock_gettime supports CLOCK_MONOTONIC.])
+	])
+], [], [[#include <time.h>]])
 
 AC_CONFIG_FILES([
 	Makefile

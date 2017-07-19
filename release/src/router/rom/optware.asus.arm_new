@@ -12,27 +12,27 @@ Description: Download tools
 URL: 
 
 Package: asuslighttpd
-Version: 3.1.0.88
+Version: 9.1.0.97
 Depends: pcre, zlib, libstdc++, spawn-fcgi, bzip2
 OptionalUtility: 1.0.0.2
 Section: net
 Architecture: arm
 Maintainer: ASUS
-Size: 158016
-Filename: asuslighttpd_3.1.0.88_arm.ipk
+Size: 292758
+Filename: asuslighttpd_9.1.0.97_arm.ipk
 Source: http://dlcdnet.asus.com/pub/ASUS/wireless/ASUSWRT
 Description: 
 URL: 
 
 Package: downloadmaster
-Version: 3.1.0.95
+Version: 9.1.0.101
 Depends: zlib, libevent, ncurses, libxml2, libstdc++, libsigc++, libpar2, pcre, spawn-fcgi, readline, asuslighttpd, wxbase, libiconv
 OptionalUtility: 1.0.0.2+
 Section: net
 Architecture: arm
 Maintainer: ASUS
-Size: 3286042
-Filename: downloadmaster_3.1.0.95_arm.ipk
+Size: 3038770
+Filename: downloadmaster_9.1.0.101_arm.ipk
 Source: http://dlcdnet.asus.com/pub/ASUS/wireless/ASUSWRT
 Description: Download tools
 URL: http://www.asusnetwork.net:8081/downloadmaster/index.asp

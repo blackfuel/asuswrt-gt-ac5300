@@ -209,10 +209,6 @@ function initial(){
 
 	set_default_choice();
 
-	var get_client_detail_info = '<% get_client_detail_info(); %>'.replace(/&#62/g, ">").replace(/&#60/g, "<");
-	show_client_status(get_client_detail_info.split('<').length - 1);
-	document.networkmapdRefresh.client_info_tmp.value = get_client_detail_info.replace(/\s/g, "");
-
 	if(!parent.usb_support || usbPortMax == 0){
 		document.getElementById("line3_td").height = '40px';
 		document.getElementById("line3_img").src = '/images/New_ui/networkmap/line_dualwan.png';
@@ -945,6 +941,21 @@ function check_dualwan(flag){
 }
 
 function validForm(){
+	var time_scheduling_array = new Array();
+	//initial time_scheduling
+	var time_scheduling_enable = decodeURIComponent('<% nvram_char_to_ascii("", "MULTIFILTER_ENABLE"); %>').replace(/&#62/g, ">").replace(/&#60/g, "<").split('>');
+	var time_scheduling_mac = decodeURIComponent('<% nvram_char_to_ascii("", "MULTIFILTER_MAC"); %>').replace(/&#62/g, ">").replace(/&#60/g, "<").split('>');
+	var time_scheduling_daytime = decodeURIComponent('<% nvram_char_to_ascii("", "MULTIFILTER_MACFILTER_DAYTIME"); %>').replace(/&#62/g, ">").replace(/&#60/g, "<").split('>');
+	
+	for(var schedulingIdx = 0; schedulingIdx < time_scheduling_mac.length; schedulingIdx += 1) {
+		if(time_scheduling_mac[schedulingIdx] != "") {
+			var scheduling_array = new Array();
+			scheduling_array[0] =  time_scheduling_enable[schedulingIdx];
+			scheduling_array[1] = time_scheduling_daytime[schedulingIdx];
+			time_scheduling_array[time_scheduling_mac[schedulingIdx]] = scheduling_array;
+		}
+	}
+
 	var validateIpRange = function(ip_obj){
 		var retFlag = 1
 		var ip_num = inet_network(ip_obj.value);
@@ -1698,7 +1709,7 @@ function check_usb3(){
 	if(based_modelid == "DSL-AC68U" || based_modelid == "RT-AC3200" || based_modelid == "RT-AC87U" || based_modelid == "RT-AC68U" || based_modelid == "RT-AC68A" || based_modelid == "RT-AC56S" || based_modelid == "RT-AC56U" || based_modelid == "RT-AC55U" || based_modelid == "RT-AC55UHP" || based_modelid == "RT-N18U" || based_modelid == "RT-AC88U" || based_modelid == "RT-AC86U" || based_modelid == "AC2900" || based_modelid == "RT-AC3100" || based_modelid == "RT-AC5300" || based_modelid == "RP-AC68U" || based_modelid == "RT-AC58U"  || based_modelid == "RT-AC82U" || based_modelid == "RT-AC85U" || based_modelid == "RT-AC65U"|| based_modelid == "4G-AC68U"){
 		document.getElementById('usb_text_1').innerHTML = "USB 3.0";
 	}
-	else if(based_modelid == "RT-AC88Q" || based_modelid == "RT-N65U" || based_modelid == "GT-AC5300"){
+	else if(based_modelid == "RT-AC88Q" || based_modelid == "RT-N65U" || based_modelid == "GT-AC5300" || based_modelid == "GT-AC9600"){
 		document.getElementById('usb_text_1').innerHTML = "USB 3.0";
 		document.getElementById('usb_text_2').innerHTML = "USB 3.0";
 	}
@@ -1921,11 +1932,11 @@ function updateClientsCount() {
 			if(lastName != "iconClient") {
 				if(document.getElementById("clientlist_viewlist_content")) {
 					if(document.getElementById("clientlist_viewlist_content").style.display == "none") {
-						show_client_status(fromNetworkmapd.length - 1);
+						show_client_status(fromNetworkmapd.maclist.length);
 					}
 				}
 				else {
-					show_client_status(fromNetworkmapd.length - 1);
+					show_client_status(fromNetworkmapd.maclist.length);
 				}
 			}
 			setTimeout("updateClientsCount();", 3000);
@@ -2033,7 +2044,6 @@ function closeClientDetailView() {
 	<input type="hidden" name="action_wait" value="1">
 	<input type="hidden" name="current_page" value="httpd_check.xml">
 	<input type="hidden" name="next_page" value="httpd_check.xml">
-	<input type="hidden" name="client_info_tmp" value="">	
 </form>
 <!-- stop networkmapd -->
 <form method="post" name="stopNetworkmapd" action="/start_apply.htm" target="hidden_frame">
@@ -2508,9 +2518,6 @@ function closeClientDetailView() {
 	var manualUpdate = false;
 	if(parseInt((JS_timeObj.getTime()-cookie.get("nwmapRefreshTime"))/60000) > 1){
 		setTimeout(function(){
-			var local_mac = '<% nvram_get("lan_hwaddr"); %>';
-			cookie.set("wireless_list_" + local_mac + "_temp", cookie.get("wireless_list_" + local_mac));
-			cookie.unset("wireless_list_" + local_mac);
 			document.networkmapdRefresh.submit();
 		}, 3500);
 	}

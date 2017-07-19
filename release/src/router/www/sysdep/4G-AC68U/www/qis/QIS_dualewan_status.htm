@@ -23,7 +23,7 @@ if(parent.dual_ewan){
 	var autodet1_auxstate = '<% nvram_get("autodet1_auxstate"); %>';
 }
 else{
-	if(parent.wans_dualwan.length != 0){
+	if(parent.dualwan_enabled){
 		var autodet_state = (parent.ewan_index == 0)? '<% nvram_get("autodet_state"); %>': '<% nvram_get("autodet1_state"); %>';
 		var autodet_auxstate = (parent.ewan_index == 0)? '<% nvram_get("autodet_auxstate"); %>': '<% nvram_get("autodet1_auxstate"); %>';
 	}

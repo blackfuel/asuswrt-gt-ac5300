@@ -255,11 +255,24 @@ var isSwMode = function(mode){
 	var wlc_psta = '<% nvram_get("wlc_psta"); %>';
 	var wlc_express = '<% nvram_get("wlc_express"); %>';
 
-	if(((sw_mode == '3' || sw_mode == '2') && wlc_psta == '1') || (sw_mode == '3' && wlc_psta == '3')) ui_sw_mode = "mb"; // MediaBridge
-	else if(sw_mode == '2' && wlc_express != '0') ui_sw_mode = "ew"; // Express Way
-	else if(sw_mode == '2' && wlc_express == '0' && wlc_psta == '0') ui_sw_mode = "re"; // Repeater
-	else if(sw_mode == '3' && (wlc_psta == '0' || wlc_psta == '')) ui_sw_mode = "ap"; // AP
-	else if(sw_mode == '5') ui_sw_mode = 'hs'; // Hotspot
+	if(sw_mode == '2' && wlc_psta == '0' && wlc_express == '0'){	// Repeater
+		ui_sw_mode = "re";
+	} 
+	else if((sw_mode == '3' && wlc_psta == '0') || (sw_mode == '3' && wlc_psta == '')){	// Access Point
+		ui_sw_mode = "ap";
+	}
+	else if((sw_mode == '3' && wlc_psta == '1' && wlc_express == '0') || (sw_mode == '3' && wlc_psta == '3' && wlc_express == '0') || (sw_mode == '2' && wlc_psta == '1' && wlc_express == '0')){	// MediaBridge
+		ui_sw_mode = "mb";
+	}
+	else if(sw_mode == '2' && wlc_psta == '0' && wlc_express == '1'){	// Express Way 2G
+		ui_sw_mode = "ew2";
+	}
+	else if(sw_mode == '2' && wlc_psta == '0' && wlc_express == '2'){	// Express Way 5G
+		ui_sw_mode = "ew5";
+	}
+	else if(sw_mode == '5'){	// Hotspot
+		ui_sw_mode = 'hs'; 
+	}
 	else ui_sw_mode = "rt"; // Router
 
 	return (ui_sw_mode == mode);
@@ -393,11 +406,11 @@ function isSupport(_ptn){
 	else if(_ptn == "traffic_analyzer"){
 		if(!bwdpi_support) return false;
 
-		if((based_modelid == "RT-AC3200" || based_modelid == "RT-AC87U" || based_modelid == "RT-AC88U" || based_modelid == "RT-AC86U" || 
-			based_modelid == "AC2900" || based_modelid == "RT-AC3100" || based_modelid == "RT-AC5300" || based_modelid == "GT-AC5300" || 
-			based_modelid == "DSL-AC68U" || based_modelid == "RT-AC68U" || based_modelid == "4G-AC68U" || based_modelid == "RT-AC68R" || 
+		if(( based_modelid == "BRT-AC828" || based_modelid == "GT-AC5300" || based_modelid == "RT-AC5300" || based_modelid == "RT-AC3200" || based_modelid == "RT-AC3100" || 
+			based_modelid == "RT-AC88U" || based_modelid == "RT-AC87U" || based_modelid == "RT-AC86U" || based_modelid == "AC2900" || based_modelid == "RT-AC85U" ||
+			based_modelid == "4G-AC68U" || based_modelid == "DSL-AC68U" || based_modelid == "RT-AC68U" || based_modelid == "RT-AC68R" || 
 			based_modelid == "RT-AC68W" || based_modelid == "RT-AC68RW" || based_modelid == "RT-AC1900P" || 
-			based_modelid == "RT-AC67U" || based_modelid == "RT-AC56U" || based_modelid == "RT-AC56R"  || based_modelid == "BRT-AC828")
+			based_modelid == "RT-AC67U" || based_modelid == "RT-AC56U" || based_modelid == "RT-AC56R")
 		){
 			return true;
 		}
@@ -470,7 +483,7 @@ var IPv6_Passthrough_support = isSupport("ipv6pt");
 var ParentalCtrl2_support = isSupport("PARENTAL2");
 var pptpd_support = isSupport("pptpd"); 
 var openvpnd_support = isSupport("openvpnd"); 
-var vpnc_support = isSupport("vpnc"); 
+var vpnc_support = isSupport("vpnc");
 var WebDav_support = isSupport("webdav"); 
 var HTTPS_support = isSupport("HTTPS"); 
 var nodm_support = isSupport("nodm"); 
@@ -497,7 +510,21 @@ var tmo_support = isSupport("tmo");
 var atf_support = isSupport("atf");
 var wl_mfp_support = isSupport("wl_mfp");	// For Protected Management Frames, ARM platform
 var bwdpi_support = isSupport("bwdpi");
+var ipsec_support = isSupport("ipsec");
 var traffic_analyzer_support = isSupport("traffic_analyzer");
+/* MODELDEP */
+if(based_modelid == "AC2900"){	//MODELDEP: AC2900(RT-AC86U)
+	noiTunes_support = true;
+	cloudsync_support = false;
+	aicloudipk_support = false;
+	dualWAN_support = false;
+	ssh_support = false;
+	pptpd_support = false;
+	openvpnd_support = false;
+	vpnc_support = false;
+	feedback_support = false;
+	traffic_analyzer_support = false;
+}
 var traffic_limiter_support = isSupport("traffic_limiter");
 var force_upgrade_support = isSupport("fupgrade");
 
@@ -528,13 +555,10 @@ var nz_isp_support = isSupport("nz_isp");
 var app_support = false;
 var pm_support = isSupport("permission_management");
 
-if( based_modelid == "RT-AC5300" || based_modelid == "GT-AC5300" || based_modelid == "RT-AC3100" || based_modelid == "RT-AC88U" || based_modelid == "RT-AC86U" || based_modelid == "AC2900"
- || based_modelid == "RT-AC3200"
- || based_modelid == "RT-AC87U" || based_modelid == "RT-AC87R"
- || based_modelid == "RT-AC68U" || based_modelid == "RT-AC68A" || based_modelid == "4G-AC68U" || based_modelid == "RT-AC68R" || based_modelid == "RT-AC68P" || based_modelid == "RT-AC68W"
- || based_modelid == "RT-AC66U" || based_modelid == "RT-AC66R"
- || based_modelid == "RT-AC56U"
- || based_modelid == "RT-N66U" || based_modelid == "RT-N66R" || based_modelid == "RT-N66W"){
+if( based_modelid == "RT-AC5300" || based_modelid == "GT-AC5300" || based_modelid == "RT-AC3100" || based_modelid == "RT-AC88U" || based_modelid == "RT-AC86U" || 
+	based_modelid == "RT-AC3200" || based_modelid == "RT-AC87U" || based_modelid == "RT-AC87R" || based_modelid == "RT-AC68U" || based_modelid == "RT-AC68A" || 
+	based_modelid == "4G-AC68U" || based_modelid == "RT-AC68R" || based_modelid == "RT-AC68P" || based_modelid == "RT-AC68W" || based_modelid == "RT-AC66U" || 
+	based_modelid == "RT-AC66R" || based_modelid == "RT-AC56U" || based_modelid == "RT-N66U" || based_modelid == "RT-N66R" || based_modelid == "RT-N66W"){
 	app_support = true;	 
  }
 
@@ -544,6 +568,7 @@ var QISWIZARD = "QIS_wizard.htm";
 var wl_version = "<% nvram_get("wl_version"); %>";
 var sdk_version_array = new Array();
 sdk_version_array = wl_version.split(".");
+var sdk_9 = sdk_version_array[0] == 9 ? true : false;
 var sdk_7 = sdk_version_array[0] == 7 ? true : false;
 var sdk_5 = sdk_version_array[0] == 5 ? true : false;
 var bcm_mumimo_support = isSupport("mumimo");		//Broadcom MU-MIMOs
@@ -774,7 +799,7 @@ function show_banner(L3){// L3 = The third Level of Menu
  	banner_code +='<td valign="center" class="titledown" width="auto">';
 
 	// dsl does not support operation mode
-	if (!dsl_support) {
+	if (!dsl_support && based_modelid != "AC2900") {	//MODELDEP: AC2900(RT-AC86U)
 		banner_code +='<span style="font-family:Verdana, Arial, Helvetica, sans-serif;"><#menu5_6_1_title#>:</sapn><span class="title_link" style="text-decoration: none;" id="op_link"><a href="/Advanced_OperationMode_Content.asp" style="color:white"><span id="sw_mode_span" style="text-decoration: underline;"></span></a></span>\n';
 	}
 	banner_code +='<span style="font-family:Verdana, Arial, Helvetica, sans-serif;"><#General_x_FirmwareVersion_itemname#></sapn><a href="/Advanced_FirmwareUpgrade_Content.asp" style="color:white;"><span id="firmver" class="title_link"></span></a>\n';
@@ -1418,7 +1443,8 @@ function showMenuTree(menuList, menuExclude){
 				if( dsl_support && (current_url.indexOf("Advanced_DSL_Content") == 0 || current_url.indexOf("Advanced_VDSL_Content") == 0 || current_url.indexOf("Advanced_WAN_Content") == 0)){
 					tab_code += (j == 1) ? 'tabClicked' : 'tab';	//show 1st tab css as class 'tabClicked'
 				}
-				else if(based_modelid != "RT-AC65U" && (current_url.indexOf("AiProtection_WebProtector") == 0 || current_url.indexOf("ParentalControl") == 0)){
+				else if((based_modelid != "RT-AC65U" && based_modelid != "BRT-AC828") && (current_url.indexOf("AiProtection_WebProtector") == 0 || current_url.indexOf("ParentalControl") == 0)){
+					//Should remove these MODELDEP issue after we have dpi_support supported to display bwdpi related pages.
 					tab_code += (j == 5) ? 'tabClicked' : 'tab';	//show 1st tab css as class 'tabClicked'
 				}
 				else{
@@ -1556,7 +1582,10 @@ function show_footer(){
 		footer_code += '&nbsp|&nbsp<a id="fb_link" href="'+location_href+'" target="_blank" style="font-weight: bolder;text-decoration:underline;cursor:pointer;"><#menu_feedback#></a>';
 	}
 	
-	footer_code += '&nbsp|&nbsp<a id="registration_link" target="_blank" href="https://account.asus.com/" target="_self" style="font-weight: bolder;text-decoration:underline;cursor:pointer;"><#Product_Registration#></a>';
+	/* MODELDEP */
+	if(based_modelid != "AC2900"){	//MODELDEP: AC2900(RT-AC86U)
+		footer_code += '&nbsp|&nbsp<a id="registration_link" target="_blank" href="https://account.asus.com/" target="_self" style="font-weight: bolder;text-decoration:underline;cursor:pointer;"><#Product_Registration#></a>';
+	}	
 	
 	footer_code += '</td>';
 	footer_code += '<td width="270" id="bottom_help_FAQ" align="right" style="font-family:Arial, Helvetica, sans-serif;">FAQ&nbsp&nbsp<input type="text" id="FAQ_input" class="input_FAQ_table" maxlength="40" onKeyPress="submitenter(this,event);" autocorrect="off" autocapitalize="off"></td>';
@@ -1859,7 +1888,8 @@ function show_top_status(){
   }
 	
 	// no_op_mode
-	if (!dsl_support) {
+	if (!dsl_support && based_modelid != "AC2900"){	//MODELDEP: AC2900(RT-AC86U)
+
 		if(sw_mode == "1")  // Show operation mode in banner, Viz 2011.11
 			document.getElementById("sw_mode_span").innerHTML = "<#wireless_router#>";
 		else if(sw_mode == "2"){
@@ -2631,7 +2661,7 @@ function refreshStatus(xhr){
 		document.getElementById("bwdpi_status").onmouseover = function(){overHint("A");}
 		document.getElementById("bwdpi_status").onmouseout = function(){nd();}
 		
-		if(based_modelid == "RT-AC68A" || based_modelid == "RT-AC65U"){	//MODELDEP : Spec special fine tune
+		if(based_modelid == "AC2900" || based_modelid == "RT-AC85U" || based_modelid == "RT-AC68A" || based_modelid == "RT-AC65U"){	//MODELDEP : Spec special fine tune
 			document.getElementById("bwdpi_status").style.display = "none";
 		}	
 	}
@@ -3362,6 +3392,160 @@ function decodeURIComponentSafe(_ascii){
 	catch(err){
 		return _ascii;
 	}
+}
+
+/*check the source IP conflict with the compare item whether it or not
+CompareItem: WAN, LAN, OpenVPN PPTP, OpenVPN, VLAN LAN1~LAN8
+sourceIP: User keyin IP
+sourceMask: User keyin Mask
+*/
+function checkIPConflict(CompareItem, sourceIP, sourceMask, compareIP, compareMask)
+{
+	//create Constructor
+	var SetIPConflictAttr = function () {
+		this.state = false;
+		this.ipAddr = "";
+		this.mask = "";
+		this.netRangeStart = "";
+		this.netRangeEnd = "";
+		this.netLegalRangeStart = "";
+		this.netLegalRangeEnd = "";
+	};
+
+	var ipConflict = new SetIPConflictAttr();
+
+	var calculatorNetworkSegmentRange = function (compareIP, compareMask) {
+		var gatewayIPArray = compareIP.split(".");
+		var netMaskArray = compareMask.split(".");
+		var ipPoolStartArray  = new Array();
+		var ipPoolEndArray  = new Array();
+		var ipActualRange = "";
+		var ipLegalRange = "";
+
+		ipPoolStartArray[0] = (gatewayIPArray[0] & 0xFF) & (netMaskArray[0] & 0xFF);
+		ipPoolStartArray[1] = (gatewayIPArray[1] & 0xFF) & (netMaskArray[1] & 0xFF);
+		ipPoolStartArray[2] = (gatewayIPArray[2] & 0xFF) & (netMaskArray[2] & 0xFF);
+		ipPoolStartArray[3] = (gatewayIPArray[3] & 0xFF) & (netMaskArray[3] & 0xFF);
+
+		ipPoolEndArray[0] = (gatewayIPArray[0] & 0xFF) | (~netMaskArray[0] & 0xFF);
+		ipPoolEndArray[1] = (gatewayIPArray[1] & 0xFF) | (~netMaskArray[1] & 0xFF);
+		ipPoolEndArray[2] = (gatewayIPArray[2] & 0xFF) | (~netMaskArray[2] & 0xFF);
+		ipPoolEndArray[3] = (gatewayIPArray[3] & 0xFF) | (~netMaskArray[3] & 0xFF);
+
+		//actual range ex. 192.168.1.0>192.168.1.255
+		ipActualRange = ipPoolStartArray[0] + "." + ipPoolStartArray[1] + "." + ipPoolStartArray[2] + "." + ipPoolStartArray[3] + ">" + 
+			ipPoolEndArray[0] + "." + ipPoolEndArray[1] + "." + ipPoolEndArray[2] + "." + ipPoolEndArray[3];
+		//legal range ex. 192.168.1.1>192.168.1.254
+		ipLegalRange = ipPoolStartArray[0] + "." + ipPoolStartArray[1] + "." + ipPoolStartArray[2] + "." + (ipPoolStartArray[3] + 1) + ">" + 
+			ipPoolEndArray[0] + "." + ipPoolEndArray[1] + "." + ipPoolEndArray[2] + "." + (ipPoolEndArray[3] - 1);
+
+		return ipActualRange + ">" + ipLegalRange;	
+	};
+
+	var checkRangeConflict = function (sourceRangeStart, sourceRangeEnd, compareRangeStart, compareRangeEnd) {
+		var sourceNetStartNum = inet_network(sourceRangeStart);
+		var sourceNetEndNum = inet_network(sourceRangeEnd);
+
+		var compareNetStartNum = inet_network(compareRangeStart);
+		var compareNetEndNum = inet_network(compareRangeEnd);
+
+		//case 1 source start in compare range, case 2 source end in compare range, case 3, compare in source range
+		if( (sourceNetStartNum >= compareNetStartNum && sourceNetStartNum <= compareNetEndNum) || //case 1
+			(sourceNetEndNum >= compareNetStartNum && sourceNetEndNum <= compareNetEndNum) || //case 2
+			(sourceNetStartNum <= compareNetStartNum && sourceNetStartNum <= compareNetEndNum && //case 3
+			sourceNetEndNum >= compareNetStartNum && sourceNetEndNum >= compareNetEndNum) ) { 
+			return true;
+		}
+		else {
+			return false;
+		}
+	};
+
+	var setIPConflictValue = function (compareIP, compareMask, sourceIP, sourceMask) {
+		var compareNetRangeArray = "";
+		var sourceNetRangeArray = "";
+
+		ipConflict.ipAddr = compareIP;
+		ipConflict.mask = compareMask;
+
+		compareNetRangeArray = calculatorNetworkSegmentRange(ipConflict.ipAddr, ipConflict.mask).split(">");
+
+		ipConflict.netRangeStart = compareNetRangeArray[0];
+		ipConflict.netRangeEnd = compareNetRangeArray[1];
+		ipConflict.netLegalRangeStart = compareNetRangeArray[2];
+		ipConflict.netLegalRangeEnd = compareNetRangeArray[3];
+
+		sourceNetRangeArray = calculatorNetworkSegmentRange(sourceIP, sourceMask).split(">");
+	
+		ipConflict.state = checkRangeConflict(sourceNetRangeArray[0], sourceNetRangeArray[1], ipConflict.netRangeStart, ipConflict.netRangeEnd);
+	};
+
+	var iSourceIndex = 0;
+
+	if(CompareItem.search("VLAN") !== -1)
+	{
+		iSourceIndex = parseInt(CompareItem.substring(4,5));
+		CompareItem = CompareItem.substring(0,4);
+	}
+
+	if(CompareItem.search("subnet") !== -1)
+	{
+		iSourceIndex = parseInt(CompareItem.substring(6,7));
+		CompareItem = CompareItem.substring(0,6).toUpperCase();
+	}	
+
+	switch(CompareItem)
+	{
+		case "WAN":
+			var wanIP = wanlink_ipaddr();
+			var wanMask = wanlink_netmask();
+			if(wanIP != "0.0.0.0" && wanIP != "" && wanMask != "0.0.0.0" && wanMask != "") {
+				setIPConflictValue(wanIP, wanMask, sourceIP, sourceMask);
+			}
+			break;
+		case "LAN":
+			setIPConflictValue('<% nvram_get("lan_ipaddr"); %>', '<% nvram_get("lan_netmask"); %>', sourceIP, sourceMask);
+			break;
+		case "PPTP":
+			var pptpIP = '<% nvram_get("pptpd_clients"); %>';
+			pptpIP = pptpIP.split("-")[0];
+			setIPConflictValue(pptpIP, "255.255.255.0", sourceIP, sourceMask);
+			break;
+		case "OpenVPN":
+			setIPConflictValue('<% nvram_get("vpn_server_sn"); %>', '<% nvram_get("vpn_server_nm"); %>', sourceIP, sourceMask);
+			break;
+		case "VLAN":
+			var subnet_rulelist_array = decodeURIComponent("<% nvram_char_to_ascii("","subnet_rulelist"); %>");
+			var subnet_rulelist_row = subnet_rulelist_array.split('<');
+			var subnet_rulelist_col = subnet_rulelist_row[iSourceIndex].split('>');
+
+			var vlanIP = subnet_rulelist_col[1];
+			var vlanMask = subnet_rulelist_col[2];
+			setIPConflictValue(vlanIP, vlanMask, sourceIP, sourceMask);
+			break;
+		case "SUBNET":
+			var gatewayIP = "";
+			var netMask = "";
+			if(tagged_based_vlan){
+				gatewayIP = compareIP;
+				netMask = compareMask;
+			}
+			else{
+				var subnet_rulelist_array = decodeURIComponent("<% nvram_char_to_ascii("","subnet_rulelist"); %>");
+				var subnet_rulelist_row = subnet_rulelist_array.split('<');
+				for(var i = 1; i < subnet_rulelist_row.length; i++) {
+					var subnet_rulelist_col = subnet_rulelist_row[i].split('>');
+					if(subnet_rulelist_col[0].substring(6, 7) == iSourceIndex){
+						gatewayIP = subnet_rulelist_col[1];
+						netMask = subnet_rulelist_col[2];
+					}
+				}
+			}
+			setIPConflictValue(gatewayIP, netMask, sourceIP, sourceMask);
+			break;
+	}
+
+	return ipConflict;
 }
 
 var isNewFW = function(FWVer, check_path, current_path){	//path> 0:stable, 1:beta

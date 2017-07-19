@@ -323,6 +323,14 @@ static void build_wan_lan_mask(int stb)
 	else
 		f_write_string("/proc/sys/net/edma/merge_wan_into_lan", "0", 0, 0);
 
+#ifdef RTCONFIG_DETWAN
+	if(nvram_get_int("x_Setting") && sw_mode() == SW_MODE_ROUTER)
+	{
+		wan_mask = nvram_get_int("wanports_mask");
+		lan_mask = nvram_get_int("lanports_mask");
+		return;
+	}
+#endif	/* RTCONFIG_DETWAN */
 #if 0	/* TODO: no WAN port */
 	if ((get_wans_dualwan() & (WANSCAP_LAN | WANSCAP_WAN)) == 0)
 		stb = 7; // no WAN?

@@ -62,9 +62,11 @@
 #define GATT_DESC_IFACE		"org.bluez.GattDescriptor1"
 
 #define UUID_GAP	0x1800
-#define UUID_GATT	0x180A
+#define UUID_GATT	0x1801
+#define UUID_ASUS	0xAB00	
+
 /* ASUS Definition */
-#define MAX_ASUS_SERVICE	5
+#define MAX_ASUS_SERVICE	4
 /* END */
 
 #ifndef MIN
@@ -78,14 +80,6 @@ int ble_count_len = 0;
 unsigned char ble_data[MAX_PACKET_SIZE];
 
 extern void asus_gatt_service(struct btd_gatt_database *database);
-
-typedef struct {
-	bt_uuid_t uuid;
-	uint8_t *value;
-	size_t value_len;
-	int     iswrite;
-} gatt_service_asus_array;
-/* END */
 
 struct btd_gatt_database {
 	struct btd_adapter *adapter;
@@ -104,10 +98,13 @@ struct btd_gatt_database {
 	struct queue *profiles;
 
 /* ASUS Definition */
-	gatt_service_asus_array asus_array[MAX_ASUS_SERVICE];
-	struct bt_att *asus_att;
+	uint8_t asus_value[MAX_PACKET_SIZE];
+	size_t asus_value_len;
 	uint16_t asus_nvram_handle;
+	struct bt_att *asus_att;
+/*
 	bool asus_nvram_enabled;
+*/
 /* END */
 };
 
@@ -556,22 +553,34 @@ done:
 	gatt_db_attribute_read_result(attrib, id, error, value, len);
 }
 
-static void gatt_firmware_version_read_cb(struct gatt_db_attribute *attrib,
+static void gap_appearance_read_cb(struct gatt_db_attribute *attrib,
 					unsigned int id, uint16_t offset,
 					uint8_t opcode, struct bt_att *att,
 					void *user_data)
 {
+	struct btd_gatt_database *database = user_data;
 	uint8_t error = 0;
-	size_t len = 0;
+	size_t len = 2;
 	const uint8_t *value = NULL;
-	char *fw_version;
+	uint8_t appearance[2];
+	uint32_t dev_class;
 
-	sprintf(fw_version, "%s.%s_%s", nvram_safe_get("firmver"), nvram_safe_get("buildno"), nvram_safe_get("extendno"));
-	len = strlen(fw_version);
+	DBG("GAP Appearance read request\n");
+
+	dev_class = btd_adapter_get_class(database->adapter);
+
+	if (offset > 2) {
+		error = BT_ATT_ERROR_INVALID_OFFSET;
+		goto done;
+	}
+
+	appearance[0] = dev_class & 0x00ff;
+	appearance[1] = (dev_class >> 8) & 0x001f;
 
 	len -= offset;
-	value = len ? (uint8_t *) &fw_version[offset] : NULL;
-	
+	value = len ? (uint8_t *)&appearance[offset] : NULL;
+
+done:
 	gatt_db_attribute_read_result(attrib, id, error, value, len);
 }
 
@@ -661,6 +670,38 @@ static uint32_t database_add_record(struct btd_gatt_database *database,
 
 	sdp_record_free(record);
 	return 0;
+}
+
+static void populate_gap_service(struct btd_gatt_database *database)
+{
+	bt_uuid_t uuid;
+	struct gatt_db_attribute *service;
+
+	/* Add the GAP service */
+	bt_uuid16_create(&uuid, UUID_GAP);
+	service = gatt_db_add_service(database->db, &uuid, true, 5);
+	database->gap_handle = database_add_record(database, UUID_GAP, service,
+						"Generic Access Profile");
+
+	/*
+	 * Device Name characteristic.
+	 */
+	bt_uuid16_create(&uuid, GATT_CHARAC_DEVICE_NAME);
+	database->svc_chngd = gatt_db_service_add_characteristic(service, &uuid, BT_ATT_PERM_READ,
+							BT_GATT_CHRC_PROP_READ,
+							gap_device_name_read_cb,
+							NULL, database);
+
+	/*
+	 * Device Appearance characteristic.
+	 */
+	bt_uuid16_create(&uuid, GATT_CHARAC_APPEARANCE);
+	gatt_db_service_add_characteristic(service, &uuid, BT_ATT_PERM_READ,
+							BT_GATT_CHRC_PROP_READ,
+							gap_appearance_read_cb,
+							NULL, database);
+
+	gatt_db_service_set_active(service, true);
 }
 
 static bool get_dst_info(struct bt_att *att, bdaddr_t *dst, uint8_t *dst_type)
@@ -836,30 +877,6 @@ btd_gatt_database_add_ccc(struct btd_gatt_database *database,
 								destroy);
 }
 
-static void populate_gap_service(struct btd_gatt_database *database)
-{
-	bt_uuid_t uuid;
-	struct gatt_db_attribute *service;
-
-	/* Add the GAP service */
-	bt_uuid16_create(&uuid, UUID_GAP);
-	service = gatt_db_add_service(database->db, &uuid, true, 5);
-	database->gap_handle = database_add_record(database, UUID_GAP, service,
-						"Generic Access Profile");
-
-	/*
-	 * Device Name characteristic.
-	 */
-	bt_uuid16_create(&uuid, GATT_CHARAC_DEVICE_NAME);
-	database->svc_chngd = gatt_db_service_add_characteristic(service, &uuid, BT_ATT_PERM_READ,
-							BT_GATT_CHRC_PROP_READ,
-							gap_device_name_read_cb,
-							NULL, database);
-	database->svc_chngd_ccc = service_add_ccc(service, database, NULL, NULL, NULL);
-
-	gatt_db_service_set_active(service, true);
-}
-
 static void populate_gatt_service(struct btd_gatt_database *database)
 {
 	bt_uuid_t uuid;
@@ -867,17 +884,18 @@ static void populate_gatt_service(struct btd_gatt_database *database)
 
 	/* Add the GATT service */
 	bt_uuid16_create(&uuid, UUID_GATT);
-	service = gatt_db_add_service(database->db, &uuid, true, 5);
+	service = gatt_db_add_service(database->db, &uuid, true, 4);
 	database->gatt_handle = database_add_record(database, UUID_GATT,
 						service,
 						"Generic Attribute Profile");
 
-	bt_uuid16_create(&uuid, GATT_CHARAC_FIRMWARE_REVISION_STRING);
+	bt_uuid16_create(&uuid, GATT_CHARAC_SERVICE_CHANGED);
 	database->svc_chngd = gatt_db_service_add_characteristic(service, &uuid,
-				BT_ATT_PERM_READ, BT_GATT_CHRC_PROP_READ,
-				gatt_firmware_version_read_cb,
-				NULL, database);
-	database->svc_chngd_ccc = service_add_ccc(service, database, NULL, NULL, NULL);
+				BT_ATT_PERM_READ, BT_GATT_CHRC_PROP_INDICATE,
+				NULL, NULL, database);
+
+	database->svc_chngd_ccc = service_add_ccc(service, database, NULL, NULL,
+									NULL);
 
 	gatt_db_service_set_active(service, true);
 }
@@ -1512,7 +1530,8 @@ static bool parse_uuid(GDBusProxy *proxy, bt_uuid_t *uuid)
 		error("GATT service must be handled by BlueZ");
 		return false;
 	}
-	bt_uuid16_create(&tmp, ASUS_UUID);
+
+	bt_uuid16_create(&tmp, UUID_ASUS);
 	if (!bt_uuid_cmp(&tmp, uuid)) {
 		error("GATT service must be handled by BlueZ");
 		return false;
@@ -2705,35 +2724,15 @@ static void print_uuid(const bt_uuid_t *uuid)
 }
 */
 
-static void asus_nvram_ccc_read_cb(struct gatt_db_attribute *attrib,
-					unsigned int id, uint16_t offset,
-					uint8_t opcode, struct bt_att *att,
-					void *user_data)
-{
-	struct btd_gatt_database *database = user_data;
-	uint8_t value[2];
-
-	DBG("asus_nvram_ccc_read_cb");
-	value[0] = database->asus_nvram_enabled ? 0x01 : 0x00;
-	value[1] = 0x00;
-
-	gatt_db_attribute_read_result(attrib, id, 0, value, 2);
-}
-
 static bool asus_nvram_cb(void *user_data)
 	
 {
 	struct btd_gatt_database *database = user_data;
 	struct btd_device *device;
-	struct gatt_db_attribute *service;
 	struct bt_gatt_server *server;
 	bdaddr_t bdaddr;
 	uint8_t bdaddr_type, *value = NULL;
 	size_t len = 0, index;
-	int service_index;
-
-	if (!database->asus_nvram_enabled)
-		return false;
 
 	if (!get_dst_info(database->asus_att, &bdaddr, &bdaddr_type))
 		return false;
@@ -2743,20 +2742,14 @@ static bool asus_nvram_cb(void *user_data)
 		return false;
 
 	server = btd_device_get_gatt_server(device);
-	service = gatt_db_get_attribute(database->db, database->asus_nvram_handle);
-	for (service_index=0; service_index<=MAX_ASUS_SERVICE; service_index++)
-		if( !bt_uuid_cmp(gatt_db_attribute_get_type(service), &database->asus_array[service_index].uuid))
-			break;
 
-	if (service_index >=MAX_ASUS_SERVICE || service_index < 0)
-		return false;
 
-	len = database->asus_array[service_index].value_len;
+	len = database->asus_value_len;
 
 	if (len <= 0)
 		return false;
 
-	value = database->asus_array[service_index].value;
+	value = database->asus_value;
 	if(GATTDATABASE_DEBUG) {
 		printf("\n==========Svr Send ============= Total Data Length: %d\n", (int)len);
 	}
@@ -2778,46 +2771,6 @@ static bool asus_nvram_cb(void *user_data)
 	return true;
 }
 
-static void asus_nvram_ccc_write_cb(struct gatt_db_attribute *attrib,
-					unsigned int id, uint16_t offset,
-					const uint8_t *value, size_t len,
-					uint8_t opcode, struct bt_att *att,
-					void *user_data)
-{
-	struct btd_gatt_database *database = user_data;
-	uint8_t ecode = 0;
-
-	if (!value || len != 2) {
-		ecode = BT_ATT_ERROR_INVALID_ATTRIBUTE_VALUE_LEN;
-		goto done;
-	}
-
-	if (offset) {
-		ecode = BT_ATT_ERROR_INVALID_OFFSET;
-		goto done;
-	}
-
-	if (value[0] == 0x00)
-		database->asus_nvram_enabled = false;
-	else if (value[0] == 0x01) {
-		database->asus_att = att;
-
-		if (database->asus_nvram_enabled) {
-			DBG("ASUS NVRAM Already Enabled");
-			goto done;
-		}
-		else 
-			database->asus_nvram_enabled = true;
-	} else
-		ecode = 0x80;
-
-	DBG("ASUS NVRAM Enabled: %s\n",
-				database->asus_nvram_enabled ? "true" : "false");
-
-done:
-	gatt_db_attribute_write_result(attrib, id, ecode);
-}
-
 static void asus_write_value(struct gatt_db_attribute *attrib,
 					unsigned int id, uint16_t offset,
 					const uint8_t *value, size_t len,
@@ -2826,18 +2779,9 @@ static void asus_write_value(struct gatt_db_attribute *attrib,
 {
 	struct btd_gatt_database *database = user_data;
 	uint8_t error = 0;
-	int service_index;
-
-	for (service_index=0; service_index<MAX_ASUS_SERVICE; service_index++)
-		if (!bt_uuid_cmp(gatt_db_attribute_get_type(attrib), &database->asus_array[service_index].uuid))
-			break;
 
 	if ( !value || !len || len > MAX_LE_DATALEN) {
 		error = BT_ATT_ERROR_INVALID_ATTRIBUTE_VALUE_LEN;
-		goto done;
-	}
-	if (offset > database->asus_array[service_index].value_len || service_index >=MAX_ASUS_SERVICE || service_index < 0) {
-		error = BT_ATT_ERROR_INVALID_OFFSET;
 		goto done;
 	}
 
@@ -2854,13 +2798,16 @@ static void asus_write_value(struct gatt_db_attribute *attrib,
 	}
 	ble_count_len += (int)len;
 
-	if (ble_count_len<ble_data_len) {
+	if (ble_count_len < ble_data_len) {
 		goto done2;
+	}
+	else if (ble_count_len > ble_data_len) {
+		error = BT_ATT_ERROR_INVALID_ATTRIBUTE_VALUE_LEN;
+		goto done;
 	}
 
 	if (ble_data_len) {
 		unsigned char *uchar_out=malloc(MAX_PACKET_SIZE);
-		uint8_t *uint8_tmp;
 		int len_out;
 
 		memset(uchar_out, '\0', MAX_PACKET_SIZE);
@@ -2875,19 +2822,12 @@ static void asus_write_value(struct gatt_db_attribute *attrib,
 			goto done;
 		}
 
-		if (!database->asus_array[service_index].iswrite) {
-			database->asus_array[service_index].iswrite = 1;
-			uint8_tmp = malloc(len_out);
-		}
-		else
-			uint8_tmp = realloc((database->asus_array[service_index].value), len_out);
-		database->asus_array[service_index].value = uint8_tmp;
-
-		memcpy(database->asus_array[service_index].value, uchar_out, len_out);
-		database->asus_array[service_index].value_len = len_out;
+		memset(database->asus_value, '\0', MAX_PACKET_SIZE);
+		memcpy(database->asus_value, uchar_out, len_out);
+		database->asus_value_len = len_out;
+		database->asus_att = att;
 		free(uchar_out);
 	}
-
 
 	asus_nvram_cb(database);
 done:
@@ -2897,50 +2837,27 @@ done2:
 	gatt_db_attribute_write_result(attrib, id, error);
 }
 
-static void def_asus_value(struct btd_gatt_database *database, 
-						bt_uuid_t uuid,
-						char *def_value,
-						int service_index)
-{
-	int def_val_len = strlen(def_value);
-
-	database->asus_array[service_index].uuid = uuid;
-	database->asus_array[service_index].value = (uint8_t *)def_value; 
-	database->asus_array[service_index].value_len = def_val_len;
-	database->asus_array[service_index].iswrite = 0;
-}
-
 void asus_gatt_service(struct btd_gatt_database *database)
 {
 	bt_uuid_t uuid;
 	struct gatt_db_attribute *service;
-	int service_index = 0;
 
 	/* Service */
-	bt_uuid16_create(&uuid, ASUS_UUID);
+	bt_uuid16_create(&uuid, UUID_ASUS);
 	service = gatt_db_add_service(database->db, &uuid, true, MAX_ASUS_SERVICE);
-	database->asus_handle = database_add_record(database, ASUS_UUID,
+	database->asus_handle = database_add_record(database, UUID_ASUS,
 						service,
 						"ASUS Definition Profile");
 	/* Product Value */
 	bt_uuid16_create(&uuid, GATT_CHARAC_ASUS_PRODUCT);
-	def_asus_value(database, uuid, "ASUS HIVE Dot", service_index);
-	service_index++;
-	database->svc_chngd = gatt_db_service_add_characteristic(service, &uuid, BT_ATT_PERM_WRITE,
-						BT_GATT_CHRC_PROP_WRITE | BT_GATT_CHRC_PROP_NOTIFY | BT_GATT_CHRC_PROP_WRITE_WITHOUT_RESP,
+	database->svc_chngd = gatt_db_service_add_characteristic(service, &uuid,
+						BT_ATT_PERM_WRITE, BT_GATT_CHRC_PROP_WRITE | BT_GATT_CHRC_PROP_NOTIFY | BT_GATT_CHRC_PROP_WRITE_WITHOUT_RESP,
 						NULL,
 						asus_write_value,
 						database);
 	database->asus_nvram_handle = gatt_db_attribute_get_handle(database->svc_chngd);
 
-	bt_uuid16_create(&uuid, GATT_CLIENT_CHARAC_CFG_UUID);
-	database->svc_chngd_ccc = gatt_db_service_add_descriptor(service, &uuid,
-			      BT_ATT_PERM_READ | BT_ATT_PERM_WRITE,
-			      asus_nvram_ccc_read_cb,
-			      asus_nvram_ccc_write_cb, database);
-
 	ble_key_act("Server", "Init");
 	gatt_db_service_set_active(service, true);
 }
-
 /*ASUS END*/

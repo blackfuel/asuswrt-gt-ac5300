@@ -77,11 +77,7 @@ function initial(){
 	
 	show_menu();		
 	addOnlineHelp(document.getElementById("faq"), ["ASUSWRT", "VPN"]);
-	//if support pptpd and openvpnd then show switch button
-	if(pptpd_support && openvpnd_support) {
-		document.getElementById("divSwitchMenu").style.display = "";
-	}
-	
+
 	formShowAndHide(document.form.pptpd_enable.value, "pptpd");	
 	if(wans_mode == "lb"){
 		var wan0_ipaddr = wanlink_ipaddr();
@@ -165,6 +161,18 @@ function initial(){
 	/* MPPE end */		
 	check_vpn_conflict();
 	/* Advanced Setting end */
+
+	var vpn_server_array = { "PPTP" : ["PPTP", "Advanced_VPN_PPTP.asp"], "OpenVPN" : ["OpenVPN", "Advanced_VPN_OpenVPN.asp"], "IPSEC" : ["IPSec VPN", "Advanced_VPN_IPSec.asp"]};
+	if(!pptpd_support) {
+		delete vpn_server_array.PPTP;
+	}
+	if(!openvpnd_support) {
+		delete vpn_server_array.OpenVPN;
+	}
+	if(!ipsec_support) {
+		delete vpn_server_array.IPSEC;
+	}
+	$('#divSwitchMenu').html(gen_switch_menu(vpn_server_array, "PPTP"));
 }
 
 var MAX_RETRY_NUM = 5;
@@ -882,16 +890,7 @@ function update_pptp_client_status(){
 								<td bgcolor="#4D595D" valign="top">
 									<div>&nbsp;</div>
 									<div id="divVPNTitle" class="formfonttitle"><#BOP_isp_heart_item#> - PPTP</div>
-									<div id="divSwitchMenu" style="margin-top:-40px;float:right;display:none;">
-										<div style="width:173px;height:30px;border-top-left-radius:8px;border-bottom-left-radius:8px;" class="block_filter_pressed">
-											<div class="tab_font_color" style="text-align:center;padding-top:5px;font-size:14px">PPTP</div>
-										</div>
-										<div style="width:172px;height:30px;margin:-32px 0px 0px 173px;border-top-right-radius:8px;border-bottom-right-radius:8px;" class="block_filter">
-											<a href="Advanced_VPN_OpenVPN.asp">	
-												<div class="block_filter_name">OpenVPN</div>
-											</a>
-										</div>
-									</div>
+									<div id="divSwitchMenu" style="margin-top:-40px;float:right;"></div>
 									<div style="margin-left:5px;margin-top:10px;margin-bottom:10px"><img src="/images/New_ui/export/line_export.png"></div>
 									<div id="privateIP_notes" class="formfontdesc" style="display:none;color:#FC0;"><#vpn_privateIP_hint#></div>
 									<table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="FormTable">

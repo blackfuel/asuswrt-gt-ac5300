@@ -48,8 +48,10 @@
 #ifdef RTCONFIG_USB
 #include <disk_io_tools.h>
 #endif
-#if defined(RTCONFIG_NOTIFICATION_CENTER)
+#ifdef RTCONFIG_NOTIFICATION_CENTER
 #include <libnt.h>
+
+int sent_unpublic = 0;
 #endif
 
 
@@ -218,7 +220,9 @@ char current_lan_dns[256];
 char current_lan_subnet[11];
 
 int current_wan_unit = WAN_UNIT_FIRST;
+#if defined(RTCONFIG_DUALWAN) || defined(RTCONFIG_USB_MODEM)
 int other_wan_unit = WAN_UNIT_SECOND;
+#endif
 int current_state[WAN_UNIT_MAX];
 
 char nvram_state[WAN_UNIT_MAX][16], nvram_sbstate[WAN_UNIT_MAX][16], nvram_auxstate[WAN_UNIT_MAX][16];

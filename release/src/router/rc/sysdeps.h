@@ -84,6 +84,12 @@ extern void config_switch_dsl(void);
 extern void config_switch_dsl_set_lan(void);
 #endif
 
+#if defined(RTCONFIG_REALTEK)
+#if defined(RTCONFIG_BT_CONN)
+extern void gen_rtlbt_fw_config(void);
+#endif
+#endif
+
 #ifdef RTCONFIG_BCMFA
 #include <etioctl.h>
 #define	ARPHRD_ETHER		1	/* ARP Header */

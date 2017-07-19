@@ -62,6 +62,7 @@ void util_debug(util_debug_func_t function, void *user_data,
 	if (!function || !format)
 		return;
 
+	usleep(20*1000);
 	va_start(ap, format);
 	vsnprintf(str, sizeof(str), format, ap);
 	va_end(ap);

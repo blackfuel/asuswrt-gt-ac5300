@@ -436,6 +436,19 @@ var validator = {
 		}
 	},
 
+	isContainblanksStr: function(obj) {
+		var obj_value = obj.value;
+		if(obj_value.replace(/^\s+|\s+$/g,"").match(/\x20/i)) {
+			obj.focus();
+			obj.select();
+			alert("The Name can not contain blanks");
+			return false;
+		}
+		else {
+			return true;
+		}
+	},
+
 	isIPAddr: function(o,event){
 		var keyPressed = event.keyCode ? event.keyCode : event.which;
 		var i, j;
@@ -665,6 +678,147 @@ var validator = {
 			netmask_obj.focus();
 			netmask_obj.select();
 			return false;
+		}
+	},
+
+	isLegalIPAndMask: function(obj_name) {
+		// A : 1.0.0.0~126.255.255.255
+		// B : 127.0.0.0~127.255.255.255 (forbidden)
+		// C : 128.0.0.0~255.255.255.254
+		var A_class_start = inet_network("1.0.0.0");
+		var A_class_end = inet_network("126.255.255.255");
+		var B_class_start = inet_network("127.0.0.0");
+		var B_class_end = inet_network("127.255.255.255");
+		var C_class_start = inet_network("128.0.0.0");
+		var C_class_end = inet_network("255.255.255.255");		
+		var ip_obj = obj_name;
+		var ip_mask_array = ip_obj.value.split("/");
+
+		var vaildMaskRange = function() {
+			var mask = parseInt(ip_mask_array[1]);
+
+			if(parseInt(ip_mask_array[1]) == "" || isNaN(mask)) {
+				alert("This is not a valid IP/Mask address!");
+				ip_obj.focus();
+				ip_obj.select();
+				return false;
+			}
+			else if(parseInt(ip_mask_array[1]) < 0 || parseInt(ip_mask_array[1]) > 32) {
+				alert(ip_mask_array[1] + " is not a valid Mask address!");
+				ip_obj.focus();
+				ip_obj.select();
+				return false;
+			}
+			else {
+				return true;
+			}
+		};
+
+		if(ip_mask_array.length != 2) {
+			alert("This is not a valid IP/Mask address!");
+			ip_obj.focus();
+			ip_obj.select();
+			return false;
+		}
+		var ip_num = inet_network(ip_mask_array[0]);
+
+		if(ip_num > A_class_start && ip_num < A_class_end){
+			if(vaildMaskRange()) {
+				obj_name.value = ipFilterZero(ip_mask_array[0]) + "/" + ip_mask_array[1];
+				return true;
+			}
+		}
+		else if(ip_num > B_class_start && ip_num < B_class_end){
+			alert(ip_mask_array[0]+" <#JS_validip#>");
+			ip_obj.focus();
+			ip_obj.select();
+			return false;
+		}
+		else if(ip_num > C_class_start && ip_num < C_class_end){
+			if(vaildMaskRange()) {
+				obj_name.value = ipFilterZero(ip_mask_array[0]) + "/" + ip_mask_array[1];
+				return true;
+			}
+		}
+		else{
+			alert(ip_mask_array[0]+" <#JS_validip#>");
+			ip_obj.focus();
+			ip_obj.select();
+			return false;
+		}	
+	},
+
+	isLegal_ipv6: function(obj) {
+		// check whether every char of the str is a Hex char(0~9,a~f,A~F)
+		var isHex = function(str) {
+			if(str.length == 0 || str.length > 4) {
+				return false;
+			}
+			str = str.toLowerCase();
+			var ch;
+			for(var i=0; i< str.length; i++) {
+				ch = str.charAt(i);
+				if(!(ch >= '0' && ch <= '9') && !(ch >= 'a' && ch <= 'f')) {
+					return false;
+				}
+			}
+			return true;
+		}
+
+		var idx = obj.value.indexOf("::");
+		// there is no "::" in the ip address
+		if (idx == -1) {
+			var items = obj.value.split(":");
+			if (items.length != 8) {
+				alert(obj.value + " <#JS_validip#>");
+				obj.focus();
+				return false;
+			}
+			else {
+				for (var key = 0; key < items.length; key += 1) {
+					if (!isHex(items[key])) {
+						alert(obj.value + " <#JS_validip#>");
+						obj.focus();
+						return false;
+					}
+				}
+				return true;
+			}
+		}
+		else {
+			// at least, there are two "::" in the ip address
+			if (idx != obj.value.lastIndexOf("::")) {
+				alert(obj.value + " <#JS_validip#>");
+				obj.focus();
+				return false;
+			}
+			else {
+				var items = obj.value.split("::");
+				var items0 = items[0].split(":");
+				var items1 = items[1].split(":");
+				if ((items0.length + items1.length) > 7) {
+					alert(obj.value + " <#JS_validip#>");
+					obj.focus();
+					return false;
+				}
+				else {
+					for (var key = 0; key < items0.length; key += 1) {
+						if (!isHex(items0[key])) {
+							alert(obj.value + " <#JS_validip#>");
+							obj.focus();
+							return false;
+						}
+					}
+					for (var key = 0; key < items1.length; key += 1) {
+						if (!isHex(items1[key])) {
+							alert(obj.value + " <#JS_validip#>");
+							obj.focus();
+							return false;
+						}
+					}
+					return true;
+				}
+			}
 		}
 	},
 

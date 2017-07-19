@@ -44,7 +44,7 @@ for f in $APPS_RUN_DIR/S*; do
 	[ -e "$s" ] && rm -f $s
 	if [ "$APP_FS_TYPE" == "fuseblk" ] ; then
 		sed -e "s,\(chmod.*\),echo skip \1," -e "s,\(chown.*\),echo skip \1," -e "s,/opt/etc/init\.d/\(S50[^. ]*\),/opt/\1.1," $f > $s
-	else
+	elif [ "$RT_MODEL" != "GT-AC5300" ]; then
 		cp -f $f $s
 	fi
 done
@@ -97,7 +97,10 @@ for f in $APPS_RUN_DIR/S*; do
 		fi
 	fi
 
-	if [ "$RT_MODEL" != "GT-AC5300" ]; then
+	if [ "$RT_MODEL" == "GT-AC5300" ]; then
+		echo "sh $s $2"
+		sh $s $2
+	else
 		echo "$nice_cmd sh $s $2" | logger -c
 		$nice_cmd sh $s $2
 	fi
@@ -108,7 +111,10 @@ for f in $APPS_RUN_DIR/S*; do
 		i=0
 		while [ ! -z "$ms_pid" ] && [ $i -lt 10 ] ; do
 			i=$((i+1))
-			if [ "$RT_MODEL" != "GT-AC5300" ]; then
+			if [ "$RT_MODEL" == "GT-AC5300" ]; then
+				echo "$i: sh $s $2"
+				sh $s $2
+			else
 				echo "$i: $nice_cmd sh $s $2" | logger -c
 				$nice_cmd sh $s $2
 			fi

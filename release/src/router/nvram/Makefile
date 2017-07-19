@@ -1,7 +1,7 @@
 include ../common.mak
 
 ifeq ($(RTCONFIG_REALTEK),y)
-CFLAGS  += -I. -Wall -fPIC $(EXTRACFLAGS)
+CFLAGS  += -I. -Wall -fPIC $(EXTRACFLAGS) -lgcc_s -lc
 CFLAGS  += -I$(LINUXDIR)/include/nvram
 else
 CFLAGS  += -I. -I$(SRCBASE)/include -Wall -fPIC $(EXTRACFLAGS)

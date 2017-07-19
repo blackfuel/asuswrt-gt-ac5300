@@ -357,6 +357,7 @@ const char * strBlogRequest[BLOG_REQUEST_MAX] =
     BLOG_ARY_INIT(NETDEV_ADDR)
     BLOG_ARY_INIT(FLOW_EVENT_ACTIVATE)
     BLOG_ARY_INIT(FLOW_EVENT_DEACTIVATE)
+    BLOG_DECL(CHK_HOST_DEV_MAC)
 };
 
 const char * strBlogEncap[PROTO_MAX] =
@@ -1375,20 +1376,17 @@ unsigned long blog_request( BlogRequest_t request, void * net_p,
             /* check pld connections for any corruptions*/
             if((param2 != BLOG_KEY_FC_TUNNEL_IPV6) && (param2 != BLOG_KEY_FC_TUNNEL_IPV4))
             {
-# if 0
                 if(param2 != BLOG_KEY_FC_INVALID)
                 {
                     /*check blog_key[param1] should be BLOG_KEY_FC_INVALID */
                     if(((struct nf_conn *)net_p)->blog_key[param1] != BLOG_KEY_FC_INVALID )
                     {
-                        blog_error("blog_key corruption when adding flow net_p=%p"
-                            "dir=%ld old_key=0x%08x new_key=0x%08lx\n", net_p, param1,
+                        blog_error("blog_key corruption when adding flow net_p=%p "
+                            " dir=%ld old_key=0x%08x new_key=0x%08lx\n", net_p, param1,
                              ((struct nf_conn *)net_p)->blog_key[param1], param2);
                     }
                 }
                 else
-#endif
-		if (param2 == BLOG_KEY_FC_INVALID)
                 {
                     if(((struct nf_conn *)net_p)->blog_key[param1] == BLOG_KEY_FC_INVALID )
                     {
@@ -1633,6 +1631,11 @@ unsigned long blog_request( BlogRequest_t request, void * net_p,
             return 0;
         }
 
+	case CHK_HOST_DEV_MAC:
+	{
+	    return blog_is_config_netdev_mac(net_p);
+	}
+
         default:
             return 0;
     }
@@ -1838,7 +1841,7 @@ BlogAction_t blog_finit_locked( struct fkbuff * fkb_p, void * dev_p,
 	if (blog_gre_tunnel_accelerated() && gre_rcv_version == PPTP_GRE_VER_1)
 	{
 		int pptp_status;
-#if 1 //cathy
+#ifdef CATHY_PPTP_DL_ACC
 	uint32_t rcv_pktSeq, rcv_pktAck = 0;
 	pptp_status = blog_pptp_rcv( fkb_p, encap, &rcv_pktSeq , &rcv_pktAck );
 #else
@@ -1850,7 +1853,7 @@ BlogAction_t blog_finit_locked( struct fkbuff * fkb_p, void * dev_p,
             case BLOG_PPTP_RCV_NOT_PPTP:
             case BLOG_PPTP_RCV_NO_SEQNO:
             case BLOG_PPTP_RCV_IN_SEQ:
-#if 1 //cathy
+#ifdef CATHY_PPTP_DL_ACC
             if (rcv_pktAck)
                 blogHash.flags.grerx_ackIe = 1;
 #endif
@@ -1872,7 +1875,7 @@ BlogAction_t blog_finit_locked( struct fkbuff * fkb_p, void * dev_p,
 
             case BLOG_PPTP_RCV_OOS_GT:
                 blog_print( "RX PPTP out-of-seq GT pkt seqno <%u>", rcv_pktSeq );
-#if 1 //cathy
+#ifdef CATHY_PPTP_DL_ACC
             if (rcv_pktAck)
                 blogHash.flags.grerx_ackIe = 1;
 #endif
@@ -3353,7 +3356,7 @@ void blog_gre_xmit(struct sk_buff *skb_p, uint32_t h_proto)
 #endif
 
 #if defined(CONFIG_ACCEL_PPTP) 
-#if 1 //cathy
+#ifdef CATHY_PPTP_DL_ACC
 int blog_pptp_rcv( struct fkbuff *fkb_p, uint32_t h_proto, uint32_t *rcv_pktSeq, uint32_t *rcv_pktAck)
 #else
 int blog_pptp_rcv( struct fkbuff *fkb_p, uint32_t h_proto, uint32_t *rcv_pktSeq) 
@@ -3364,7 +3367,7 @@ int blog_pptp_rcv( struct fkbuff *fkb_p, uint32_t h_proto, uint32_t *rcv_pktSeq)
     uint16_t *grehdr_p;
     BlogGreIeFlagsVer_t gre_flags = {.u16 = 0 };
 	uint16_t call_id = 0;
-#if 1 //cathy
+#ifdef CATHY_PPTP_DL_ACC
 	uint32_t saddr;
 #else
 	uint32_t saddr, rcv_pktAck = 0;
@@ -3409,7 +3412,7 @@ int blog_pptp_rcv( struct fkbuff *fkb_p, uint32_t h_proto, uint32_t *rcv_pktSeq)
             	blog_print( "\nincoming pptp pkt's seq = %d, callid= %d\n", *rcv_pktSeq , call_id);
             	if(gre_flags.ackIe) /* the pkt is PPTP with ack number */
                 {	
-#if 1 //cathy
+#ifdef CATHY_PPTP_DL_ACC
 			*rcv_pktAck = ntohl(*(uint32_t*) (grehdr_p + 6));
                         blog_print( "rcv_pktAck = %d \n", *rcv_pktAck );
 #else
@@ -3418,7 +3421,7 @@ int blog_pptp_rcv( struct fkbuff *fkb_p, uint32_t h_proto, uint32_t *rcv_pktSeq)
 #endif
                 }
                 
-#if 1 //cathy
+#ifdef CATHY_PPTP_DL_ACC
 		if (blog_pptp_rcv_check_fn != NULL)
 		   ret = blog_pptp_rcv_check_fn(call_id, rcv_pktSeq,
 		                             *rcv_pktAck, saddr );
@@ -3545,6 +3548,24 @@ int blog_dm(BlogDpiType_t type, uint32_t param1, uint32_t param2)
 
     return ret;
 }
+
+/*
+ *------------------------------------------------------------------------------
+ * Function     : blog_is_config_netdev_mac
+ * Description  : This function checks whether the device's MAC address should be
+ *                used for addition/deletion to/from host MAC address table.
+ *                On the LAN side, the bridge device MAC address is used instead
+ *                of each LAN device's MAC address.
+ *                There are some device's which are ignored like: point-to-point, 
+ *                PPP, etc.
+ *                Important devices are: WAN and LAN bridge.
+ * Parameters   :
+ *  ptr         : Pointer to the net device
+ * Return values:
+ *  1           : Use the device MAC address 
+ *  0           : Ignore the device MAC address 
+ *------------------------------------------------------------------------------
+ */
 
 int blog_is_config_netdev_mac(void *ptr)
 {

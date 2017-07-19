@@ -326,6 +326,26 @@ int wl_ioctl(const char *ifname, int cmd, struct iwreq *pwrq)
 	return ret;
 }
 
+char *wl_vifname_wave(int unit, int subunit)
+{
+	static char tmp[128];
+	int wave_unit;
+
+	if(unit == 0)
+		wave_unit=0;	/* 2G */
+	else if(unit ==1)
+		wave_unit=1;	/* 5G */
+
+	if ((subunit > 0) && (subunit < 4))
+	{
+		sprintf(tmp, "wlan%d_%d", wave_unit, subunit);
+		return strdup(tmp);
+	}else{
+		sprintf(tmp, "wlan%d", wave_unit);
+		return strdup(tmp);
+	}
+}
+
 unsigned int get_radio_status(char *ifname)
 {
 	struct ifreq ifr;

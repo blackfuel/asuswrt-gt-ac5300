@@ -1,11 +1,12 @@
 #!/bin/sh
 
 kernel_version=`uname -r`
-ver_head=`echo -n $kernel_version |awk 'BEGIN{FS="."}{print $1}'`
+ver_1st=`echo -n $kernel_version |awk 'BEGIN{FS="."}{print $1}'`
+ver_2nd=`echo -n $kernel_version |awk 'BEGIN{FS="."}{print $2}'`
 
 
 echo ">"
-if [ "$ver_head" -ge "4" ]; then
+if [ "$ver_1st" -ge "3" ] && [ "$ver_2nd" -ge "2" ]; then
 	cat /sys/kernel/debug/usb/devices
 else
 	cat /proc/bus/usb/devices

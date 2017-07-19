@@ -41,7 +41,6 @@ start_wps_method(void)
 		notify_rc("start_wps_method");
 		return 0;
 	}
-
 #ifdef RTCONFIG_CONCURRENTREPEATER
 	int sw_mode = sw_mode();
 
@@ -65,7 +64,6 @@ start_wps_method(void)
 int 
 stop_wps_method(void)
 {
-
 	if(getpid()!=1) {
 		notify_rc("stop_wps_method");
 		return 0;
@@ -83,24 +81,6 @@ stop_wps_method(void)
 #ifdef RTCONFIG_WPS_ENROLLEE
 	if (nvram_match("wps_enrollee", "1")) {
 		stop_wsc_enrollee();
-
-#if defined(HIVEDOT) || defined(HIVESPOT)
-                _dprintf("=> wps stop! restart range extender!!\n");
-	 	if (sw_mode() == SW_MODE_ROUTER) //default
-         	{
-                	_dprintf("=> switch to ap mode.\n");
-			nvram_set("lan_proto", "dhcp");
-			nvram_set("lan_dnsenable_x", "1");
-			nvram_set("w_Setting", "1");
-			nvram_set("x_Setting", "1");
-			nvram_set("sw_mode", "3");
-			nvram_set("cfg_alias", "1");
-			nvram_commit();
-			notify_rc_and_wait("restart_allnet");
-         	}
-                start_re(2);
-#endif
-
 	}
 	else
 #endif
@@ -151,8 +131,8 @@ int is_wps_stopped(void)
 			nvram_set("wps_success", "1");
 #endif
 #if defined(RTCONFIG_LP5523)
-			lp55xx_leds_proc(LP55XX_ALL_LEDS_OFF, LP55XX_WPS_SUCCESS);
-			usleep(3990 * 1000); // flashing 4 times is about 3990 ms
+//			lp55xx_leds_proc(LP55XX_ALL_LEDS_OFF, LP55XX_WPS_SUCCESS);
+//			usleep(3990 * 1000); // flashing 4 times is about 3990 ms
 #endif
 #if (defined(RTCONFIG_WPS_ENROLLEE) && defined(RTCONFIG_WIFI_CLONE))
 			if (nvram_match("wps_enrollee", "1")) {

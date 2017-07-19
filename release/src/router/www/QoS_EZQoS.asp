@@ -405,7 +405,11 @@ function initial(){
 	}
 
 	/* MODELDEP */
-	if(based_modelid == "RT-AC65U"){
+	if(based_modelid == "RT-AC85U" || based_modelid == "RT-AC65U"){		
+		if(document.form.qos_type_orig.value == "1"){
+			document.getElementById('bandwidth_setting_tr').style.display = "none";
+			document.form.qos_type_radio[1].checked = true;
+		}
 		document.getElementById('function_int_desc').style.display = "none";
 		document.getElementById('int_type').style.display = "none";
 		document.getElementById('int_type_link').style.display = "none";
@@ -648,6 +652,10 @@ function submitQoS(){
 }
 
 function change_qos_type(value){
+	/* MODELDEP */
+	if(value=="1" && (based_modelid == "RT-AC85U" || based_modelid == "RT-AC65U")){	//Force change to 0 
+		value = 0;
+	}
 	if(value == 0){		//Traditional QoS
 		document.getElementById('int_type').checked = false;
 		document.getElementById('trad_type').checked = true;

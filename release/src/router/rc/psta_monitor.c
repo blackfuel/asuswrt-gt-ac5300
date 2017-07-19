@@ -39,7 +39,7 @@
 
 #include <wlscan.h>
 #include <bcmendian.h>
-#ifdef RTCONFIG_BCM_7114
+#if defined(RTCONFIG_BCM_7114) || defined(HND_ROUTER)
 #include <bcmutils.h>
 #include <security_ipc.h>
 #endif
@@ -88,7 +88,7 @@ static bool g_swap = FALSE;
 #define htod32(i) (g_swap?bcmswap32(i):(uint32)(i))
 #define dtoh32(i) (g_swap?bcmswap32(i):(uint32)(i))
 
-#ifdef RTCONFIG_BCM_7114
+#if defined(RTCONFIG_BCM_7114) || defined(HND_ROUTER)
 typedef struct escan_wksp_s {
 	uint8 packet[4096];
 	int event_fd;
@@ -324,8 +324,8 @@ wl_get_scan_results_escan(int unit)
 {
 	int ret, retry_times = 0;
 	wl_escan_params_t *params = NULL;
-	int params_size = WL_SCAN_PARAMS_FIXED_SIZE + NUMCHANS * sizeof(uint16);
-	wlc_ssid_t wst = {0, ""};
+	int params_size = WL_SCAN_PARAMS_FIXED_SIZE + OFFSETOF(wl_escan_params_t, params) + NUMCHANS * sizeof(uint16);
+	wlc_ssid_t wst = { 0, "" };
 	int org_scan_time = 20, scan_time = 40;
 	char tmp[NVRAM_BUFSIZE], prefix[] = "wlXXXXXXXXXX_";
 	char *ifname = NULL;
@@ -367,31 +367,24 @@ wl_get_scan_results_escan(int unit)
 	if (org_scan_time < scan_time)
 		wl_ioctl(ifname, WLC_SET_SCAN_CHANNEL_TIME, &scan_time,	sizeof(scan_time));
 
-retry:
-	ret = wl_iovar_set(ifname, "escan", params, params_size);
-	if (ret < 0) {
-		if (retry_times++ < WLC_SCAN_RETRY_TIMES) {
-			if (psta_debug)
-			dbg("set escan command failed, retry %d\n", retry_times);
-			sleep(1);
-			goto retry;
-		}
-	}
-
-	sleep(2);
-
-	ret = get_scan_escan(scan_result, WLC_SCAN_RESULT_BUF_LEN);
-	if (ret < 0 && retry_times++ < WLC_SCAN_RETRY_TIMES) {
-		if (psta_debug)
-		dbg("get scan result failed, retry %d\n", retry_times);
+	while ((ret = wl_iovar_set(ifname, "escan", params, params_size)) < 0 &&
+				retry_times++ < WLC_SCAN_RETRY_TIMES) {
+		dbg("set escan command failed, retry %d\n", retry_times);
 		sleep(1);
-		goto retry;
 	}
 
 	free(params);
 
 	/* restore original scan channel time */
 	wl_ioctl(ifname, WLC_SET_SCAN_CHANNEL_TIME, &org_scan_time, sizeof(org_scan_time));
+
+	if (ret == 0) {
+		ret = get_scan_escan(scan_result, WLC_SCAN_RESULT_BUF_LEN);
+		if (ret < 0) {
+			if (psta_debug)
+			dbg("get escan result failed, retry %d\n", retry_times);
+		}
+	}
 
 	if (ret < 0)
 		return NULL;
@@ -408,7 +401,7 @@ wl_get_scan_results(int unit)
 	wl_scan_params_t *params;
 	wl_scan_results_t *list = (wl_scan_results_t*)scan_result;
 	int params_size = WL_SCAN_PARAMS_FIXED_SIZE + NUMCHANS * sizeof(uint16);
-	wlc_ssid_t wst = {0, ""};
+	wlc_ssid_t wst = { 0, "" };
 	int org_scan_time = 20, scan_time = 40;
 	char tmp[NVRAM_BUFSIZE], prefix[] = "wlXXXXXXXXXX_";
 	char *ifname = NULL;
@@ -442,32 +435,27 @@ wl_get_scan_results(int unit)
 	if (org_scan_time < scan_time)
 		wl_ioctl(ifname, WLC_SET_SCAN_CHANNEL_TIME, &scan_time,	sizeof(scan_time));
 
-retry:
-	ret = wl_ioctl(ifname, WLC_SCAN, params, params_size);
-	if (ret < 0) {
-		if (retry_times++ < WLC_SCAN_RETRY_TIMES) {
-			if (psta_debug)
-			dbg("set scan command failed, retry %d\n", retry_times);
-			sleep(1);
-			goto retry;
-		}
-	}
-
-	sleep(2);
-
-	list->buflen = WLC_SCAN_RESULT_BUF_LEN;
-	ret = wl_ioctl(ifname, WLC_SCAN_RESULTS, scan_result, WLC_SCAN_RESULT_BUF_LEN);
-	if (ret < 0 && retry_times++ < WLC_SCAN_RETRY_TIMES) {
-		if (psta_debug)
-		dbg("get scan result failed, retry %d\n", retry_times);
+	while ((ret = wl_ioctl(ifname, WLC_SCAN, params, params_size)) < 0 &&
+				retry_times++ < WLC_SCAN_RETRY_TIMES) {
+		dbg("set scan command failed, retry %d\n", retry_times);
 		sleep(1);
-		goto retry;
 	}
 
 	free(params);
 
 	/* restore original scan channel time */
 	wl_ioctl(ifname, WLC_SET_SCAN_CHANNEL_TIME, &org_scan_time, sizeof(org_scan_time));
+
+	sleep(2);
+
+	if (ret == 0) {
+		list->buflen = WLC_SCAN_RESULT_BUF_LEN;
+		ret = wl_ioctl(ifname, WLC_SCAN_RESULTS, scan_result, WLC_SCAN_RESULT_BUF_LEN);
+		if (ret < 0) {
+			if (psta_debug)
+			dbg("get scan result failed, retry %d\n", retry_times);
+		}
+	}
 
 	if (ret < 0)
 		return NULL;
@@ -485,7 +473,7 @@ wl_scan(int unit)
 	uint i, ap_count = 0;
 	char ssid_str[128], macstr[18];
 
-#ifdef RTCONFIG_BCM_7114
+#if defined(RTCONFIG_BCM_7114) || defined(HND_ROUTER)
 	if (wl_get_scan_results_escan(unit) == NULL)
 #else
 	if (wl_get_scan_results(unit) == NULL)
@@ -494,7 +482,7 @@ wl_scan(int unit)
 
 	if (list->count == 0)
 		return 0;
-#ifndef RTCONFIG_BCM_7114
+#if !(defined(RTCONFIG_BCM_7114) || defined(HND_ROUTER))
 	else if (list->version != WL_BSS_INFO_VERSION &&
 			list->version != LEGACY_WL_BSS_INFO_VERSION &&
 			list->version != LEGACY2_WL_BSS_INFO_VERSION) {
@@ -628,7 +616,7 @@ psta_keepalive(int unit)
 	int mac_list_size, i;
 	int psta = 0;
 	struct ether_addr bssid;
-	unsigned char bssid_null[6] = {0x0, 0x0, 0x0, 0x0, 0x0, 0x0};
+	unsigned char bssid_null[6] = { 0x0, 0x0, 0x0, 0x0, 0x0, 0x0 };
 	char macaddr[18];
 
 	if (unit == -1) return;

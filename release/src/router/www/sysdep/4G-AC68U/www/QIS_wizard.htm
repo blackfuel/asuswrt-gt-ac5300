@@ -310,7 +310,7 @@ function QIS_load_body(){
 	document.getElementById("language_menu").innerHTML = '<% shown_language_css(); %>';
 	show_selected_language();
 	
-	if(/*based_modelid == "4G-AC55U"*/gobiSupport && sim_state == "1" && modem_autoapn == "1" && usb_modem_auto_spn.length == 0)
+	if(gobiSupport && sim_state == "1" && modem_autoapn == "1" && usb_modem_auto_spn.length == 0)
 		update_apn_progress();
 	else
 		document.getElementById("apn_div").style.display = "none";	
@@ -322,7 +322,6 @@ function QIS_load_body(){
 
 
 	showCase = (document.getElementById("flag").value == "") ? getDefaultCase() : document.getElementById("flag").value;
-	console.log("wizard: showCase = "+showCase);
 	with(document.redirectForm){
 		switch(showCase){
 			case "remind":

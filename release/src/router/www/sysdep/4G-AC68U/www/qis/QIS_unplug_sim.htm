@@ -135,8 +135,9 @@ function detect_if_sim_plug(flag){
 			}
 			else{
 				if(flag == null){
-					document.getElementById("loadingIcon").style.display = "none";
-					document.getElementById("skipButton").style.display = "";
+					setTimeout(function(){
+								document.getElementById("loadingIcon").style.display = "none";
+								document.getElementById("skipButton").style.display = "";}, 1000);
 				}
 				setTimeout('detect_if_sim_plug(1);', 1000);
 			}

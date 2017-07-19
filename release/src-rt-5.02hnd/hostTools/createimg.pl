@@ -58,6 +58,7 @@ my $arg_mapper = {
     'gponpw' => sub { my $dstruct=shift; my $val=shift; $dstruct->{'gponPassword'}=$val; },
 #    'inputfile' => sub { my $dstruct=shift; my $val=shift; $inputfile=$val; },
 #    'outputfile' => sub { my $dstruct=shift; my $val=shift; $outputfile=$val; },
+    'noUpdatingFirmware' => sub { my $dstruct=shift; my $val=shift; $dstruct->{'noUpdatingFirmware'}=$val; },
 	
 };
 
@@ -103,6 +104,7 @@ my $flashBlkSize = 64;
 my $auxFSPercent = 0;
 my $pmc_flag_bit=1;
 my $token_len=20;
+my $noUpdatingFirmware=0;
 
 my $pre_defs = {
        'image_base' => sub { my $val=shift; $image_base=eval($val);},
@@ -115,6 +117,7 @@ my $pre_defs = {
         'auxFSPerc' => sub { my $val=shift; $auxFSPercent=eval($val);},
         'token_len' => sub { my $val=shift; $token_len=eval($val);},
         'pmc_flag_bit' => sub { my $val=shift; $pmc_flag_bit=eval($val);},
+	'noUpdatingFirmware' => sub { my $val=shift; $noUpdatingFirmware=eval($val);}
 };
 
 open nvdefines_file, $nvram_defs_file;
@@ -160,6 +163,7 @@ $dstruct->{'ulPsiSize'}=$psi_size;
 $dstruct->{'backupPsi'}=$backupPsi;
 $dstruct->{'ulSyslogSize'}=$logSize;
 $dstruct->{'ucFlashBlkSize'}=$flashBlkSize;
+$dstruct->{'noUpdatingFirmware'}=0;
 
 
     foreach (@alloptions) {

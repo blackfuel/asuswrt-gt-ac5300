@@ -128,7 +128,7 @@ static int fileExists(char *FileName)
 void print_uint8(uint8_t *value, int val_len, int row_len, int val_index, int flag)
 {
 	uint8_t *val_tmp=malloc(MAX_PACKET_SIZE);
-	char *str_tmp=malloc(MAX_PACKET_SIZE);
+	char str_tmp[MAX_PACKET_SIZE];
 	size_t index;
 
 	memset(val_tmp, '\0', val_len);
@@ -136,16 +136,15 @@ void print_uint8(uint8_t *value, int val_len, int row_len, int val_index, int fl
 	memcpy(val_tmp, value, val_len);
 	for(index=0; index<val_len; index++)
 		if (flag == 1)
-			sprintf(str_tmp, "%s%02x%c", str_tmp, val_tmp[index], (((index+1)%row_len)==0 && index!=0)?'\n':' ');
+			snprintf(str_tmp, sizeof(str_tmp), "%s%02x%c", str_tmp, val_tmp[index], (((index+1)%row_len)==0 && index!=0)?'\n':' ');
 		else
-			sprintf(str_tmp, "%s%02x%c", str_tmp, val_tmp[index], ' ');
+			snprintf(str_tmp, sizeof(str_tmp), "%s%02x%c", str_tmp, val_tmp[index], ' ');
 
 	if (flag == 1)
 		printf("Data length: %d, Data value:\n%s\n", val_len, str_tmp);
 	else
 		printf("[%5d] %s\n", val_index, str_tmp);
 
-	free(str_tmp);
 	free(val_tmp);
 
 	return;

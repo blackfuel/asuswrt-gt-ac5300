@@ -120,8 +120,14 @@ static char *AdvInet_NCtoA(
 	unsigned char *inaddr,
 	char *buff)
 {
-	sprintf(buff, "%d.%d.%d.%d", 
+	char tmp[32];
+
+	memset(tmp, '\0', sizeof(tmp));
+
+	snprintf(tmp, sizeof(tmp), "%d.%d.%d.%d", 
 		(inaddr[3] & 255), (inaddr[2] & 255), (inaddr[1] & 255), (inaddr[0] & 255));
+
+	memcpy(buff, tmp, sizeof(tmp));
 	return buff;
 }
 //---------------------------------------------------------------------------

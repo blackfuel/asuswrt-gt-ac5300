@@ -20,7 +20,7 @@ clean: generic_clean
 
 fsbuild_install: generic_public_lib_install
 	mkdir -p $(INCLUDE_DIR)
-	install -m 444 $(HEADER) $(INCLUDE_DIR)
+	-install -m 444 $(HEADER) $(INCLUDE_DIR)
    
 install:
 	@echo done
@@ -60,13 +60,13 @@ CUSTOM_CFLAGS += -Werror -Wfatal-errors
 # Implicit rule is $(CC) -c $(CPPFLAGS) $(CFLAGS)
 # See Section 10.2 of Gnu Make manual
 # 
-ifneq ($(PREBUILT_BCMBIN),1)
+#ifneq ($(PREBUILT_BCMBIN),1)
 $(LIB): $(OBJS)
 	$(CC) -shared $(BCM_LD_FLAGS) -Wl,--whole-archive,-soname,$(notdir $@) -o $@ $(OBJS) -Wl,--no-whole-archive
-else
-$(LIB): 
-	-cp -f $(TOP)/$(shell pwd | sed 's/\(.*router\/\)//')/$(PRBM_DIR)/$@ ./
-endif
+#else
+#$(LIB): 
+#	-cp -f $(TOP)/$(shell pwd | sed 's/\(.*router\/\)//')/$(PRBM_DIR)/$@ ./
+#endif
 
 
 

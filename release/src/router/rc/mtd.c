@@ -1054,7 +1054,10 @@ bca_sys_upgrade(const char *path)
 {
 	int ret = 0;
 	pid_t pid = getpid();
-	int imgsz, spsz, ulimgsz = 0;
+	int imgsz, ulimgsz = 0;
+#if 0
+	int spsz;
+#endif
 	int r_count, w_count;
 	FILE *fp = NULL;
 	char *buf = NULL;
@@ -1071,6 +1074,7 @@ bca_sys_upgrade(const char *path)
 	}
 
 	/* HTTPD parent process supposed to send the image size. reading it. */
+#if 0
 	if (nvram_match("uup", "1")) {
 		r_count = safe_fread((void*)&imgsz, 1, sizeof(imgsz), fp);
 		if (r_count < sizeof(imgsz)) {
@@ -1088,12 +1092,18 @@ bca_sys_upgrade(const char *path)
 		nvram_set("spsz", "0");
 		nvram_set("fakelive", "0");
 	} else {	// liveupdate
+#else
+	{
+#endif
+#if 0
 		nvram_set("fakelive", "0");
+#endif
 		fseek(fp, 0, SEEK_END);
 
 		imgsz = ftell(fp);
+#if 0
 		_dprintf("\nnonui update: imgsz is %d\n", imgsz);
-
+#endif
 		fseek(fp, 0, SEEK_SET);
 	}
 

@@ -1590,8 +1590,7 @@ void init_switch()
 	eval("insmod", "igs");
 #endif
 
-	if (nvram_match("runner_disable", "1"))
-		eval("runner", "disable");
+	hnd_nat_ac_init(1);
 
 #ifdef RTCONFIG_LACP
 	config_lacp();
@@ -3063,6 +3062,10 @@ void generate_wl_para(char *ifname, int unit, int subunit)
 			nvram_set(strcat_r(prefix, "mode", tmp), "wet");
 		else nvram_set(strcat_r(prefix, "mode", tmp), "ap");
 
+#if defined(RTCONFIG_BCMARM) && defined(RTCONFIG_PROXYSTA)
+		nvram_set(strcat_r(prefix, "psr_mrpt", tmp), is_psr(unit) ? "1" : "0");
+#endif
+
 		// TODO use lazwds directly
 		//if (!nvram_match(strcat_r(prefix, "wdsmode_ex", tmp), "2"))
 		//	nvram_set(strcat_r(prefix, "lazywds", tmp), "1");
@@ -3626,7 +3629,7 @@ set_wan_tag(char *interface) {
 	char tag_register[sizeof("0xffffffff")], vlan_entry[sizeof("0xffffffff")];
 	int gmac3_enable = 0;
 #ifdef HND_ROUTER
-	char wan_if[10];
+	char wan_if[10], ethPort1[10], ethPort2[10], vlanDev1[10], vlanDev2[10];
 #endif
 
 	model = get_model();
@@ -4604,6 +4607,18 @@ _dprintf("*** Multicast IPTV: config Singtel TR069 on wan port ***\n");
 				/*      P3   P2   P1   P0   [P4(P0) P5(P1&P2) P8(P3)]		  */
 				/* eth0 eth4 eth3 eth2 eth1					  */
 				/* WAN  L1   L2   L3   L4   CPU					  */
+		if (nvram_match("iptv_port_settings", "12")) {
+			sprintf(ethPort1, "eth2");
+			sprintf(ethPort2, "eth1");
+			sprintf(vlanDev1, "eth2.v0");
+			sprintf(vlanDev2, "eth1.v0");
+		}
+		else {
+			sprintf(ethPort1, "eth4");
+			sprintf(ethPort2, "eth3");
+			sprintf(vlanDev1, "eth4.v0");
+			sprintf(vlanDev2, "eth3.v0");
+		}
 		/* Using vlanctl to handle vlan forwarding */
 		if (wan_vid) { /* config wan port */
 #if 0
@@ -4647,151 +4662,146 @@ _dprintf("*** Multicast IPTV: config Singtel TR069 on wan port ***\n");
 			}
 		}
 
-		if (nvram_match("switch_stb_x", "3")) {  // L2:eth1, w:eth0
-			if (nvram_match("switch_wantag", "vodafone")) { // L1:eth2
-				/* L1:eth2 */
-				/* Forward packets from wan:eth0 to L1:eth2 (leave tag) */
+		if (nvram_match("switch_stb_x", "3")) {  // w:eth0
+			if (nvram_match("switch_wantag", "vodafone")) {
+				/* Forward packets from wan:eth0 to vlanDev1 (leave tag) */
 				eval("vlanctl", "--if", "eth0", "--rx", "--tags", "1", "--filter-vid", "101", "0", "--set-rxif", "eth0.v0", "--rule-append");
-				eval("vlanctl", "--mcast", "--if-create", "eth2", "0");
+				eval("vlanctl", "--mcast", "--if-create", ethPort1, "0");
 				/* rx pop tag */
-				eval("vlanctl", "--if", "eth2", "--rx", "--tags", "1", "--filter-vid", port_id, "0", "--pop-tag", "--set-rxif", "eth2.v0", "--rule-append");
+				eval("vlanctl", "--if", ethPort1, "--rx", "--tags", "1", "--filter-vid", port_id, "0", "--pop-tag", "--set-rxif", vlanDev1, "--rule-append");
 				/* tx push tag */
 				/* Set Wan PRIO */
 				if (nvram_invmatch("switch_wan0prio", "0"))
-					eval("vlanctl", "--if", "eth2", "--tx", "--tags", "0", "--filter-txif", "eth2.v0", "--push-tag", "--set-vid", port_id, "0", "--set-pbits", nvram_get("switch_wan0prio"), "0", "--rule-append");
+					eval("vlanctl", "--if", ethPort1, "--tx", "--tags", "0", "--filter-txif", vlanDev1, "--push-tag", "--set-vid", port_id, "0", "--set-pbits", nvram_get("switch_wan0prio"), "0", "--rule-append");
 				else
-					eval("vlanctl", "--if", "eth2", "--tx", "--tags", "0", "--filter-txif", "eth2.v0", "--push-tag", "--set-vid", port_id, "0", "--rule-append");
+					eval("vlanctl", "--if", ethPort1, "--tx", "--tags", "0", "--filter-txif", vlanDev1, "--push-tag", "--set-vid", port_id, "0", "--rule-append");
 				/* bridge */
-				eval("vlanctl", "--if", "eth2", "--rx", "--tags", "1", "--filter-vid", "101", "0", "--set-rxif", "eth2.v0", "--rule-append");
-				eval("vlanctl", "--if", "eth2", "--rx", "--tags", "1", "--filter-vid", "105", "0", "--set-rxif", "eth2.v0", "--rule-append");
-				eval("ifconfig", "eth2.v0", "allmulti", "up");
-				eval("brctl", "addif", "br1", "eth2.v0");
+				eval("vlanctl", "--if", ethPort1, "--rx", "--tags", "1", "--filter-vid", "101", "0", "--set-rxif", vlanDev1, "--rule-append");
+				eval("vlanctl", "--if", ethPort1, "--rx", "--tags", "1", "--filter-vid", "105", "0", "--set-rxif", vlanDev1, "--rule-append");
+				eval("ifconfig", vlanDev1, "allmulti", "up");
+				eval("brctl", "addif", "br1", vlanDev1);
 			}
 			if (nvram_match("switch_wantag", "m1_fiber") ||
 			   nvram_match("switch_wantag", "maxis_fiber_sp")
 			) {
-				/* Just forward packets between WAN & L2:eth1, without untag */
+				/* Just forward packets between WAN & vlanDev2, without untag */
 				sprintf(vlan_entry, "0x%x", voip_vid);
 				_dprintf("vlan entry: %s\n", vlan_entry);
 				eval("vlanctl", "--if", "eth0", "--rx", "--tags", "1", "--filter-vid", vlan_entry, "0", "--set-rxif", "eth0.v0", "--rule-append");
-				eval("vlanctl", "--mcast", "--if-create", "eth1", "0");
-				eval("vlanctl", "--if", "eth1", "--rx", "--tags", "1", "--filter-vid", vlan_entry, "0", "--set-rxif", "eth1.v0", "--rule-append");
-				eval("ifconfig", "eth1.v0", "allmulti", "up");
-				eval("brctl", "addif", "br1", "eth1.v0");
+				eval("vlanctl", "--mcast", "--if-create", ethPort2, "0");
+				eval("vlanctl", "--if", ethPort2, "--rx", "--tags", "1", "--filter-vid", vlan_entry, "0", "--set-rxif", vlanDev2, "--rule-append");
+				eval("ifconfig", vlanDev2, "allmulti", "up");
+				eval("brctl", "addif", "br1", vlanDev2);
 			}
 			else if (nvram_match("switch_wantag", "maxis_fiber")) {
-				/* Just forward packets between WAN & L2:eth1, without untag */
+				/* Just forward packets between WAN & vlanDev2, without untag */
 				eval("vlanctl", "--if", "eth0", "--rx", "--tags", "1", "--filter-vid", "0x0335", "0", "--set-rxif", "eth0.v0", "--rule-append");
 				eval("vlanctl", "--if", "eth0", "--rx", "--tags", "1", "--filter-vid", "0x0336", "0", "--set-rxif", "eth0.v0", "--rule-append");
-				eval("vlanctl", "--mcast", "--if-create", "eth1", "0");
-				eval("vlanctl", "--if", "eth1", "--rx", "--tags", "1", "--filter-vid", "0x0335", "0", "--set-rxif", "eth1.v0", "--rule-append");
-				eval("vlanctl", "--if", "eth1", "--rx", "--tags", "1", "--filter-vid", "0x0336", "0", "--set-rxif", "eth1.v0", "--rule-append");
-				eval("ifconfig", "eth1.v0", "allmulti", "up");
-				eval("brctl", "addif", "br1", "eth1.v0");
+				eval("vlanctl", "--mcast", "--if-create", ethPort2, "0");
+				eval("vlanctl", "--if", ethPort2, "--rx", "--tags", "1", "--filter-vid", "0x0335", "0", "--set-rxif", vlanDev2, "--rule-append");
+				eval("vlanctl", "--if", ethPort2, "--rx", "--tags", "1", "--filter-vid", "0x0336", "0", "--set-rxif", vlanDev2, "--rule-append");
+				eval("ifconfig", vlanDev2, "allmulti", "up");
+				eval("brctl", "addif", "br1", vlanDev2);
 			}
 			else {  /* Nomo case. */
 				sprintf(vlan_entry, "0x%x", voip_vid);
 				_dprintf("vlan entry: %s\n", vlan_entry);
-				/* L2:eth1 */
-				/* Forward packets from wan:eth0 to L2:eth1 (untag) */
+				/* Forward packets from wan:eth0 to vlanDev2 (untag) */
 				eval("vlanctl", "--if", "eth0", "--rx", "--tags", "1", "--filter-vid", vlan_entry, "0", "--set-rxif", "eth0.v0", "--rule-append");
-				eval("vlanctl", "--mcast", "--if-create", "eth1", "0");
+				eval("vlanctl", "--mcast", "--if-create", ethPort2, "0");
 				/* rx push tag */
 				/* Set VOIP PRIO */
 				if (nvram_invmatch("switch_wan2prio", "0"))
-					eval("vlanctl", "--if", "eth1", "--rx", "--tags", "0", "--push-tag", "--set-vid", vlan_entry, "0", "--set-pbits", nvram_get("switch_wan2prio"), "0", "--set-rxif", "eth1.v0", "--rule-append");
+					eval("vlanctl", "--if", ethPort2, "--rx", "--tags", "0", "--push-tag", "--set-vid", vlan_entry, "0", "--set-pbits", nvram_get("switch_wan2prio"), "0", "--set-rxif", vlanDev2, "--rule-append");
 				else
-					eval("vlanctl", "--if", "eth1", "--rx", "--tags", "0", "--push-tag", "--set-vid", vlan_entry, "0", "--set-rxif", "eth1.v0", "--rule-append");
+					eval("vlanctl", "--if", ethPort2, "--rx", "--tags", "0", "--push-tag", "--set-vid", vlan_entry, "0", "--set-rxif", vlanDev2, "--rule-append");
 				/* tx pop tag */
-				eval("vlanctl", "--if", "eth1", "--tx", "--tags", "1", "--filter-vid", vlan_entry, "0", "--filter-txif", "eth1.v0", "--pop-tag", "--rule-append");
-				eval("ifconfig", "eth1.v0", "allmulti", "up");
-				eval("brctl", "addif", "br1", "eth1.v0");
+				eval("vlanctl", "--if", ethPort2, "--tx", "--tags", "1", "--filter-vid", vlan_entry, "0", "--filter-txif", vlanDev2, "--pop-tag", "--rule-append");
+				eval("ifconfig", vlanDev2, "allmulti", "up");
+				eval("brctl", "addif", "br1", vlanDev2);
 			}
 		}
-		else if (nvram_match("switch_stb_x", "4")) { // L1:eth2
-			/* config LAN 5 = IPTV */
+		else if (nvram_match("switch_stb_x", "4")) { 
+			/* config ethPort1 = IPTV */
 			if (nvram_match("switch_wantag", "meo")) {
-				/* Just forward wan vid packets between wan & L1:eth2, without untag */
+				/* Just forward wan vid packets between wan & vlanDev1, without untag */
 				sprintf(vlan_entry, "0x%x", iptv_vid);
 				_dprintf("vlan entry: %s\n", vlan_entry);
-				eval("vlanctl", "--mcast", "--if-create", "eth2", "0");
+				eval("vlanctl", "--mcast", "--if-create", ethPort1, "0");
 				/* pop tag (lan bridge) */
-				eval("vlanctl", "--if", "eth2", "--rx", "--tags", "1", "--filter-vid", vlan_entry, "0", "--pop-tag", "--set-rxif", "eth2.v0", "--rule-append");
+				eval("vlanctl", "--if", ethPort1, "--rx", "--tags", "1", "--filter-vid", vlan_entry, "0", "--pop-tag", "--set-rxif", vlanDev1, "--rule-append");
 				/* tx push tag */
-				eval("vlanctl", "--if", "eth2", "--tx", "--tags", "0", "--filter-txif", "eth2.v0", "--push-tag", "--set-vid", vlan_entry, "0", "--rule-append");
-				eval("ifconfig", "eth2.v0", "allmulti", "up");
-				eval("brctl", "addif", "br1", "eth2.v0");
+				eval("vlanctl", "--if", ethPort1, "--tx", "--tags", "0", "--filter-txif", vlanDev1, "--push-tag", "--set-vid", vlan_entry, "0", "--rule-append");
+				eval("ifconfig", vlanDev1, "allmulti", "up");
+				eval("brctl", "addif", "br1", vlanDev1);
 			}
 			else {  /* Nomo case, untag it. */
-				/* config LAN 5 = IPTV */
+				/* config ethPort1 = IPTV */
 				sprintf(vlan_entry, "0x%x", iptv_vid);
 				_dprintf("vlan entry: %s\n", vlan_entry);
-				/* L1:eth2 */
-				/* Forward packets from wan:eth0 to L1:eth2 (untag) */
+				/* Forward packets from wan:eth0 to vlanDev1 (untag) */
 				eval("vlanctl", "--if", "eth0", "--rx", "--tags", "1", "--filter-vid", vlan_entry, "0", "--set-rxif", "eth0.v0", "--rule-append");
-				eval("vlanctl", "--mcast", "--if-create", "eth2", "0");
+				eval("vlanctl", "--mcast", "--if-create", ethPort1, "0");
 				/* rx push tag */
 				/* Set IPTV PRIO */
 				if (nvram_invmatch("switch_wan1prio", "0"))
-					eval("vlanctl", "--if", "eth2", "--rx", "--tags", "0", "--push-tag", "--set-vid", vlan_entry, "0", "--set-pbits", nvram_get("switch_wan1prio"), "0", "--set-rxif", "eth2.v0", "--rule-append");
+					eval("vlanctl", "--if", ethPort1, "--rx", "--tags", "0", "--push-tag", "--set-vid", vlan_entry, "0", "--set-pbits", nvram_get("switch_wan1prio"), "0", "--set-rxif", vlanDev1, "--rule-append");
 				else
-					eval("vlanctl", "--if", "eth2", "--rx", "--tags", "0", "--push-tag", "--set-vid", vlan_entry, "0", "--set-rxif", "eth2.v0", "--rule-append");
+					eval("vlanctl", "--if", ethPort1, "--rx", "--tags", "0", "--push-tag", "--set-vid", vlan_entry, "0", "--set-rxif", vlanDev1, "--rule-append");
 				/* tx pop tag */
-				eval("vlanctl", "--if", "eth2", "--tx", "--tags", "1", "--filter-vid", vlan_entry, "0", "--filter-txif", "eth2.v0", "--pop-tag", "--rule-append");
-				eval("ifconfig", "eth2.v0", "allmulti", "up");
-				eval("brctl", "addif", "br1", "eth2.v0");
+				eval("vlanctl", "--if", ethPort1, "--tx", "--tags", "1", "--filter-vid", vlan_entry, "0", "--filter-txif", vlanDev1, "--pop-tag", "--rule-append");
+				eval("ifconfig", vlanDev1, "allmulti", "up");
+				eval("brctl", "addif", "br1", vlanDev1);
 			}
 		}
-		else if (nvram_match("switch_stb_x", "6")) {	// L1:eth2, L2:eth1
-			/* config LAN 6 = VoIP */
+		else if (nvram_match("switch_stb_x", "6")) {
+			/* config ethPort2 = VoIP */
 			if (nvram_match("switch_wantag", "singtel_mio")) {
-				/* Just forward packets between WAN & L2:eth1, without untag */
+				/* Just forward packets between WAN & vlanDev2, without untag */
 				sprintf(vlan_entry, "0x%x", voip_vid);
 				_dprintf("vlan entry: %s\n", vlan_entry);
 				eval("vlanctl", "--if", "eth0", "--rx", "--tags", "1", "--filter-vid", vlan_entry, "0", "--set-rxif", "eth0.v0", "--rule-append");
-				eval("vlanctl", "--mcast", "--if-create", "eth1", "0");
-				eval("vlanctl", "--if", "eth1", "--rx", "--tags", "1", "--filter-vid", vlan_entry, "0", "--set-rxif", "eth1.v0", "--rule-append");
-				eval("ifconfig", "eth1.v0", "allmulti", "up");
-				eval("brctl", "addif", "br1", "eth1.v0");
+				eval("vlanctl", "--mcast", "--if-create", ethPort2, "0");
+				eval("vlanctl", "--if", ethPort2, "--rx", "--tags", "1", "--filter-vid", vlan_entry, "0", "--set-rxif", vlanDev2, "--rule-append");
+				eval("ifconfig", vlanDev2, "allmulti", "up");
+				eval("brctl", "addif", "br1", vlanDev2);
 			}
 			else {
 				if (voip_vid) {
 					sprintf(vlan_entry, "0x%x", voip_vid);
 					_dprintf("vlan entry: %s\n", vlan_entry);
-					/* L2:eth1 */
-					/* Forward packets from wan:eth0 to L2:eth1 (untag) */
+					/* Forward packets from wan:eth0 to vlanDev2 (untag) */
 					eval("vlanctl", "--if", "eth0", "--rx", "--tags", "1", "--filter-vid", vlan_entry, "0", "--set-rxif", "eth0.v0", "--rule-append");
-					eval("vlanctl", "--mcast", "--if-create", "eth1", "0");
+					eval("vlanctl", "--mcast", "--if-create", ethPort2, "0");
 					/* rx push tag */
 					/* Set VOIP PRIO */
 					if (nvram_invmatch("switch_wan2prio", "0"))
-						eval("vlanctl", "--if", "eth1", "--rx", "--tags", "0", "--push-tag", "--set-vid", vlan_entry, "0", "--set-pbits", nvram_get("switch_wan2prio"), "0", "--set-rxif", "eth1.v0", "--rule-append");
+						eval("vlanctl", "--if", ethPort2, "--rx", "--tags", "0", "--push-tag", "--set-vid", vlan_entry, "0", "--set-pbits", nvram_get("switch_wan2prio"), "0", "--set-rxif", vlanDev2, "--rule-append");
 					else
-						eval("vlanctl", "--if", "eth1", "--rx", "--tags", "0", "--push-tag", "--set-vid", vlan_entry, "0", "--set-rxif", "eth1.v0", "--rule-append");
+						eval("vlanctl", "--if", ethPort2, "--rx", "--tags", "0", "--push-tag", "--set-vid", vlan_entry, "0", "--set-rxif", vlanDev2, "--rule-append");
 					/* tx pop tag */
-					eval("vlanctl", "--if", "eth1", "--tx", "--tags", "1", "--filter-vid", vlan_entry, "0", "--filter-txif", "eth1.v0", "--pop-tag", "--rule-append");
-					eval("ifconfig", "eth1.v0", "allmulti", "up");
-					eval("brctl", "addif", "br1", "eth1.v0");
+					eval("vlanctl", "--if", ethPort2, "--tx", "--tags", "1", "--filter-vid", vlan_entry, "0", "--filter-txif", vlanDev2, "--pop-tag", "--rule-append");
+					eval("ifconfig", vlanDev2, "allmulti", "up");
+					eval("brctl", "addif", "br1", vlanDev2);
 				}
 			}
-			/* config LAN 5 = IPTV */
+			/* config ethPort1 = IPTV */
 			if (iptv_vid) {
 				sprintf(vlan_entry, "0x%x", iptv_vid);
 				_dprintf("vlan entry: %s\n", vlan_entry);
-				/* L1:eth2 */
-				/* Forward packets from wan:eth0 to L1:eth2 (untag) */
+				/* Forward packets from wan:eth0 to vlanDev1 (untag) */
 				eval("vlanctl", "--if", "eth0", "--rx", "--tags", "1", "--filter-vid", vlan_entry, "0", "--set-rxif", "eth0.v0", "--rule-append");
-				eval("vlanctl", "--mcast", "--if-create", "eth2", "0");
+				eval("vlanctl", "--mcast", "--if-create", ethPort1, "0");
 				/* rx push tag */
 				/* Set IPTV PRIO */
 				if (nvram_invmatch("switch_wan1prio", "0"))
-					eval("vlanctl", "--if", "eth2", "--rx", "--tags", "0", "--push-tag", "--set-vid", vlan_entry, "0", "--set-pbits", nvram_get("switch_wan1prio"), "0", "--set-rxif", "eth2.v0", "--rule-append");
+					eval("vlanctl", "--if", ethPort1, "--rx", "--tags", "0", "--push-tag", "--set-vid", vlan_entry, "0", "--set-pbits", nvram_get("switch_wan1prio"), "0", "--set-rxif", vlanDev1, "--rule-append");
 				else
-					eval("vlanctl", "--if", "eth2", "--rx", "--tags", "0", "--push-tag", "--set-vid", vlan_entry, "0", "--set-rxif", "eth2.v0", "--rule-append");
+					eval("vlanctl", "--if", ethPort1, "--rx", "--tags", "0", "--push-tag", "--set-vid", vlan_entry, "0", "--set-rxif", vlanDev1, "--rule-append");
 				/* tx pop tag */
-				eval("vlanctl", "--if", "eth2", "--tx", "--tags", "1", "--filter-vid", vlan_entry, "0", "--filter-txif", "eth2.v0", "--pop-tag", "--rule-append");
-				eval("ifconfig", "eth2.v0", "allmulti", "up");
-				eval("brctl", "addif", "br1", "eth2.v0");
+				eval("vlanctl", "--if", ethPort1, "--tx", "--tags", "1", "--filter-vid", vlan_entry, "0", "--filter-txif", vlanDev1, "--pop-tag", "--rule-append");
+				eval("ifconfig", vlanDev1, "allmulti", "up");
+				eval("brctl", "addif", "br1", vlanDev1);
 			}
 		}
 #ifdef RTCONFIG_MULTICAST_IPTV
@@ -6865,10 +6875,14 @@ void set_port_based_vlan_config(char *interface)
 #ifdef HND_ROUTER
 void fc_init()
 {
-	int fc_enable = 1;
+	int unit, fc_enable = !nvram_get_int("fc_disable");
 
-	if (nvram_match("fc_disable", "1"))
-		fc_enable = 0;
+	for (unit = WAN_UNIT_FIRST; unit < WAN_UNIT_MAX; unit++) {
+		if (dualwan_unit__usbif(unit)) {
+			fc_enable = 0;
+			break;
+		}
+	}
 
 	eval("fc", fc_enable ? "enable" : "disable");
 }
@@ -6877,5 +6891,25 @@ void fc_fini()
 {
 	eval("fc", "disable");
 	eval("fc", "flush");
+}
+
+void hnd_nat_ac_init(int bootup)
+{
+	int qos_en = nvram_match("qos_enable", "1");
+	int routing_mode = is_routing_enabled();
+
+	// traditional qos / bandwidth limter: disable fc
+	nvram_set_int("fc_disable", nvram_get_int("fc_disable_force") || (routing_mode && qos_en && (nvram_get_int("qos_type") != 1)) ? 1 : 0);
+	nvram_set_int("runner_disable", nvram_get_int("runner_disable_force") || (routing_mode && qos_en) ? 1 : 0);
+
+	if (nvram_match("fc_disable", "1"))
+		fc_fini();
+	else if (!bootup)
+		fc_init();
+
+	if (nvram_match("runner_disable", "1"))
+		eval("runner", "disable");
+	else if (!bootup)
+		eval("runner", "enable");
 }
 #endif

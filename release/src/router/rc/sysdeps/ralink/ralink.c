@@ -909,7 +909,7 @@ int gen_ralink_config(int band, int is_iNIC)
 			sprintf(tmpstr, "SSID1=%s\n",  nvram_safe_get("wl0.1_ssid"));
 		else
 			sprintf(tmpstr, "SSID1=%s\n",  nvram_safe_get("wl1.1_ssid"));
-		fprintf(fp, "%s", tmpstr);
+		fprintf(fp, "%s", tmpstr);				
 	}
 	else
 #endif	/* RTCONFIG_WIRELESSREPEATER */
@@ -1045,20 +1045,34 @@ int gen_ralink_config(int band, int is_iNIC)
 	}
 
 	//Channel
-	str = nvram_safe_get(strcat_r(prefix, "country_code", tmp));
-//	if (sw_mode != SW_MODE_REPEATER) && nvram_invmatch(strcat_r(prefix, "channel", tmp), "0"))
-	{
-		str = nvram_safe_get(strcat_r(prefix, "channel", tmp));
-
-		if (str && strlen(str))
-			fprintf(fp, "Channel=%d\n", atoi(str));
-		else
+		int cht = 0;				
+		for (i = 0; i < MAX_NO_MSSID; i++)
 		{
-			warning = 8;
-			fprintf(fp, "Channel=%d\n", 0);
-		}
-	}
+			if (sw_mode == SW_MODE_REPEATER
+	#if defined(RTCONFIG_WIRELESSREPEATER) && defined(RTCONFIG_CONCURRENTREPEATER)
+				&& (wlc_express == 0 || (wlc_express - 1) != band)
+	#else
+				&& wlc_band == band
+	#endif
+				&& i != 1)
+					continue;
+				
+			if (i && sw_mode == SW_MODE_REPEATER)
+			{
+				sprintf(prefix_mssid, "wl%d.%d_", band, i);
 
+				if (!nvram_match(strcat_r(prefix_mssid, "bss_enabled", temp), "1"))
+					continue;	
+				cht =  nvram_get_int(strcat_r(prefix_mssid, "channel", temp));					
+			}
+			else {
+				sprintf(prefix_mssid, "wl%d_", band);
+				cht =  nvram_get_int(strcat_r(prefix_mssid, "channel", temp));	
+			}
+			
+		}
+		fprintf(fp, "Channel=%d\n", cht);
+		
 	//BasicRate
 	if (!band)
 	{
@@ -1343,7 +1357,7 @@ int gen_ralink_config(int band, int is_iNIC)
 #else
 			&& wlc_band == band
 #endif
-			)
+			) 
 			fprintf(fp, "AutoChannelSelect=%d\n", 1);
 		else if (str && strlen(str))
 		{
@@ -1396,7 +1410,74 @@ int gen_ralink_config(int band, int is_iNIC)
 
 				}
 #endif
-
+#if defined(RTCONFIG_NO_SELECT_CHANNEL)
+			char *t_code_noselect_2G[]={"EU", "RU", "EE", "UK", "DE", "TR", "CZ", "JP", "SG", "CN", "UA", "KR", "AU"};
+			char *t_code_noselect_5G[]={"CA", "TW", "EU", "RU", "EE", "UK", "DE", "TR", "CZ", "JP", "KR"};
+			char *t_code_noselect3_5G[]={"UA"}; //5G_BAND123, Skip Band3 only
+			char *reg_2g[]={"2G_CH11", "2G_CH13", "2G_CH14"};
+			char *reg_5g[]={"5G_BAND14", "5G_BAND123", "5G_BAND1", "5G_BAND24", "5G_BAND4", "5G_BAND124"};	
+	
+			if(!band) {
+				nvram_set("skip_channel_2g", "0");	//for GUI checkbox
+				//2G_CH13, 2G No Selection T-Code, Skip channel 12, 13
+				if(!strcmp(nvram_safe_get("wl_reg_2g"), &reg_2g[1][0])) { 
+					for(i=0; i < (sizeof(t_code_noselect_2G)/sizeof(&t_code_noselect_2G[0][0])); i++) {
+						if(!strncmp(nvram_safe_get("territory_code"),&t_code_noselect_2G[i][0],2)) {
+							if(atoi(nvram_safe_get("acs_ch13")) == 0) {
+								memset(tmpstr, 0x00, sizeof(tmpstr));
+								sprintf(tmpstr,"%d;%d",12,13);	
+								fprintf(fp,"AutoChannelSkipList=%s\n",tmpstr);							
+							}
+							nvram_set("skip_channel_2g", "CH13");	
+						}
+					}
+				}
+			}
+			else {
+				nvram_set("skip_channel_5g", "0");	//for GUI checkbox
+				//5G_BAND14, 5G No Selection T-Code, skip band1
+				if(!strcmp(nvram_safe_get("wl_reg_5g"), &reg_5g[0][0])) {   
+					for(i=0; i < (sizeof(t_code_noselect_5G)/sizeof(&t_code_noselect_5G[0][0])); i++) {
+						if(!strncmp(nvram_safe_get("territory_code"),&t_code_noselect_5G[i][0],2)) {
+							if(atoi(nvram_safe_get("acs_band1")) == 0) {
+								memset(tmpstr, 0x00, sizeof(tmpstr));
+								sprintf(tmpstr,"%d;%d;%d;%d",36,40,44,48);	
+								fprintf(fp,"AutoChannelSkipList=%s\n",tmpstr);
+							}
+							nvram_set("skip_channel_5g", "band1");	
+						}
+					}
+				}
+				
+				//5G_BAND123, 5G No Selection T-Code
+				if(!strcmp(nvram_safe_get("wl_reg_5g"), &reg_5g[1][0])) 
+				{ 
+					//skip band3
+					for(i=0; i < (sizeof(t_code_noselect3_5G)/sizeof(&t_code_noselect3_5G[0][0])); i++) {
+						if(!strncmp(nvram_safe_get("territory_code"),&t_code_noselect3_5G[i][0],2)) {
+							if(atoi(nvram_safe_get("acs_band3")) == 0) {
+								memset(tmpstr, 0x00, sizeof(tmpstr));
+								sprintf(tmpstr,"%d;%d;%d;%d;%d;%d;%d;%d;%d;%d;%d", 100,104,108,112,116,120,124,128,132,136,140);	
+								fprintf(fp,"AutoChannelSkipList=%s\n",tmpstr);
+							}
+							nvram_set("skip_channel_5g", "band3");	
+						}
+					}
+					//skip band2,band3		
+					for(i=0; i < (sizeof(t_code_noselect_5G)/sizeof(&t_code_noselect_5G[0][0])); i++) {
+						if(!strncmp(nvram_safe_get("territory_code"),&t_code_noselect_5G[i][0],2)){
+							if(atoi(nvram_safe_get("acs_dfs")) == 0) {							
+								memset(tmpstr, 0x00, sizeof(tmpstr));
+								sprintf(tmpstr,"%d;%d;%d;%d;%d;%d;%d;%d;%d;%d;%d",52,56,60,64,100,104,108,112,116,120,124,128,132,136,140);	
+								fprintf(fp,"AutoChannelSkipList=%s\n",tmpstr);	
+							}
+							nvram_set("skip_channel_5g", "band23");								
+						}
+					}
+				}	
+			}					
+#else
+				
         //only band 4 for auto channel select if support band 4
 				if(band)
 				{
@@ -1412,7 +1493,8 @@ int gen_ralink_config(int band, int is_iNIC)
 					}
 				}
 
-				fprintf(fp,"AutoChannelSkipList=%s\n",tmpstr);
+				fprintf(fp,"AutoChannelSkipList=%s\n",tmpstr);			
+#endif	
 			}
 			else
 				fprintf(fp, "AutoChannelSelect=%d\n", 0);
@@ -1422,7 +1504,8 @@ int gen_ralink_config(int band, int is_iNIC)
 			warning = 21;
 			fprintf(fp, "AutoChannelSelect=%d\n", 2);
 		}
-	}
+	}				
+
 
 	//IEEE8021X
 	memset(tmpstr, 0x0, sizeof(tmpstr));
@@ -2245,39 +2328,60 @@ int gen_ralink_config(int band, int is_iNIC)
 
 	//HT_BW
 	//str = nvram_safe_get(strcat_r(prefix, "bw", tmp));
+		for (i = 0; i < MAX_NO_MSSID; i++)
+		{
+			if (sw_mode == SW_MODE_REPEATER
+	#if defined(RTCONFIG_WIRELESSREPEATER) && defined(RTCONFIG_CONCURRENTREPEATER)
+				&& (wlc_express == 0 || (wlc_express - 1) != band)
+	#else
+				&& wlc_band == band
+	#endif
+				&& i != 1) 
+					continue;
+					
+				if (i && sw_mode == SW_MODE_REPEATER)
+				{
+					sprintf(prefix_mssid, "wl%d.%d_", band, i);
 
-	if (sw_mode == SW_MODE_REPEATER
-#if defined(RTCONFIG_WIRELESSREPEATER) && defined(RTCONFIG_CONCURRENTREPEATER)
-		&& (wlc_express == 0 || (wlc_express - 1) != band)
-#else
-		&& wlc_band == band
-#endif
-		)
-		fprintf(fp, "HT_BW=%d\n", 1);
-	else if ((wl_bw > 0) && (HTBW_MAX == 1))
-		fprintf(fp, "HT_BW=%d\n", 1);
-#if defined(RTCONFIG_WIRELESSREPEATER) && defined(RTCONFIG_CONCURRENTREPEATER)
-	else if ((wlc_express - 1) == band)   //express way (apclii0)
-		fprintf(fp, "HT_BW=%d\n", 1);
-#endif
-	else
-	{
-//		warning = 34;
-		fprintf(fp, "HT_BW=%d\n", 0);
-	}
+					if (!nvram_match(strcat_r(prefix_mssid, "bss_enabled", temp), "1"))
+						continue;
+					wl_bw = nvram_get_int(strcat_r(prefix_mssid, "bw", temp));
+					
+				}
+				else {
+					sprintf(prefix_mssid, "wl%d_", band);
+					wl_bw = get_bw_via_channel(band, Channel);
+				}			
+		} // for	
+	
 
-	//HT_BSSCoexistence
-	if ((wl_bw > 1) && (HTBW_MAX == 1) &&
-		!((sw_mode == SW_MODE_REPEATER)
-#if defined(RTCONFIG_WIRELESSREPEATER) && defined(RTCONFIG_CONCURRENTREPEATER)
-		&& (wlc_express == 0 || (wlc_express - 1) != band)
-#else
-		&& (wlc_band == band)
-#endif
-		))
-		fprintf(fp, "HT_BSSCoexistence=%d\n", 0);
-	else
-		fprintf(fp, "HT_BSSCoexistence=%d\n", 1);
+		if(wl_bw == 0)
+				fprintf(fp, "HT_BW=%d\n", 0);
+		else if ((wl_bw > 0) && (HTBW_MAX == 1))
+			fprintf(fp, "HT_BW=%d\n", 1);
+	#if defined(RTCONFIG_WIRELESSREPEATER) && defined(RTCONFIG_CONCURRENTREPEATER)
+		else if ((wlc_express - 1) == band)   //express way (apclii0)
+			fprintf(fp, "HT_BW=%d\n", 1);
+	#endif
+		else
+		{
+	//		warning = 34;
+			fprintf(fp, "HT_BW=%d\n", 0);
+		}
+		
+		//HT_BSSCoexistence
+		if ((wl_bw > 1) && (HTBW_MAX == 1) &&
+			!((sw_mode == SW_MODE_REPEATER)
+	#if defined(RTCONFIG_WIRELESSREPEATER) && defined(RTCONFIG_CONCURRENTREPEATER)
+			&& (wlc_express == 0 || (wlc_express - 1) != band)
+	#else
+			&& (wlc_band == band)
+	#endif
+			))
+			fprintf(fp, "HT_BSSCoexistence=%d\n", 0);
+		else
+			fprintf(fp, "HT_BSSCoexistence=%d\n", 1);	
+							
 
 	//HT_AutoBA
 	str = nvram_safe_get(strcat_r(prefix, "HT_AutoBA", tmp));
@@ -2405,6 +2509,7 @@ int gen_ralink_config(int band, int is_iNIC)
 	fprintf(fp, "HT_DisallowTKIP=%d\n", 1);
 
 #if defined(VHT_SUPPORT)
+#if 0	
 	//VHT_BW, VHT_DisallowNonVHT
 	//str = nvram_safe_get(strcat_r(prefix, "bw", tmp));
 	if(band != 1)
@@ -2429,11 +2534,59 @@ int gen_ralink_config(int band, int is_iNIC)
 	else
 		fprintf(fp, "VHT_BW=%d\n", 0);
 
-	str = nvram_get(strcat_r(prefix, "VHT_DisallowNonVHT", tmp));
-	if (str && strlen(str))
-		fprintf(fp, "VHT_DisallowNonVHT=%d\n", atoi(str));
-	else
-		fprintf(fp, "VHT_DisallowNonVHT=%d\n", 0);
+
+#endif
+
+		int vbw = 0;						
+		for (i = 0; i < MAX_NO_MSSID; i++)
+		{
+			if (sw_mode == SW_MODE_REPEATER
+	#if defined(RTCONFIG_WIRELESSREPEATER) && defined(RTCONFIG_CONCURRENTREPEATER)
+				&& (wlc_express == 0 || (wlc_express - 1) != band)
+	#else
+				&& wlc_band == band
+	#endif
+				&& i != 1)
+					continue;
+				
+			if (i && sw_mode == SW_MODE_REPEATER)
+			{
+				sprintf(prefix_mssid, "wl%d.%d_", band, i);
+
+				if (!nvram_match(strcat_r(prefix_mssid, "bss_enabled", temp), "1"))
+					continue;
+				
+				vbw = nvram_safe_get(strcat_r(prefix_mssid, "bw", temp));
+
+			}
+			else {
+				sprintf(prefix_mssid, "wl%d_", band);
+				vbw = nvram_safe_get(strcat_r(prefix_mssid, "bw", temp));
+			}
+		}
+		
+		if (band) {
+			if (vbw > 0)
+			{
+				if (vbw == 2)						
+					fprintf(fp, "VHT_BW=%d\n", 0);
+				else //str == 3, 1
+					fprintf(fp, "VHT_BW=%d\n", 1);
+			}
+			else
+			{
+				warning = 8;
+				fprintf(fp, "VHT_BW=%d\n", 0);
+			}
+			
+			str = nvram_get(strcat_r(prefix_mssid, "VHT_DisallowNonVHT", tmp));
+			if (str && strlen(str))
+				fprintf(fp, "VHT_DisallowNonVHT=%d\n", atoi(str));
+			else
+				fprintf(fp, "VHT_DisallowNonVHT=%d\n", 0);
+		}
+		
+
 #endif
 
 #if !defined (RTCONFIG_WLMODULE_MT7615E_AP)

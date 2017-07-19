@@ -311,6 +311,8 @@ extern void kerSysNvRamGetBootline(char *bootline);
 extern void kerSysNvRamGetBootlineLocked(char *bootline);
 extern void kerSysNvRamGetBoardId(char *boardId);
 extern void kerSysNvRamGetBoardIdLocked(char *boardId);
+extern void kerSysNvRamGetNoUpdatingFirmwareLocked(unsigned char *noUpdatingFirmware);
+extern void kerSysNvRamGetNoUpdatingFirmware(unsigned char *noUpdatingFirmware);
 extern void kerSysNvRamGetBaseMacAddr(unsigned char *baseMacAddr);
 extern unsigned long kerSysNvRamGetVersion(void);
 

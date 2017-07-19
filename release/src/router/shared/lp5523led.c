@@ -59,16 +59,15 @@ void split(char **arr, char *str, char *del) {
 
 void pattern_combine(char *initial, char *color, char *behavior, int brightness, char *output)
 {
-	char *result=malloc(MALLOC_STRLEN);
+	char result[MALLOC_STRLEN];
 	int color_val = (int)strtol(color, NULL, 16);
 	memset(result, '\0', MALLOC_STRLEN);
 
 	color_val = color_val * brightness / 100;
-	sprintf(result, "%s%s%x%s", initial, color_val<16?"0":"", color_val, behavior);
+	snprintf(result, sizeof(result), "%s%s%x%s", initial, color_val<16?"0":"", color_val, behavior);
 
 	memcpy(output, result, strlen(result));
 
-	free(result);
 	return;
 }
 
@@ -80,18 +79,17 @@ void pattern_combine(char *initial, char *color, char *behavior, int brightness,
 */
 void engine_combine_save(int engine_index, char *str_type, char *value)
 {
-	char *str_final = malloc(MALLOC_STRLEN);
+	char result[MALLOC_STRLEN];
+	memset(result, '\0', MALLOC_STRLEN);
 
-	memset(str_final, '\0', MALLOC_STRLEN);
-	sprintf(str_final, "%sengine%d_%s", lp55xx_path, engine_index, str_type);
+	snprintf(result, sizeof(result), "%sengine%d_%s", lp55xx_path, engine_index, str_type);
 
-	f_write_string( str_final, value, 0, 0);
+	f_write_string( result, value, 0, 0);
 
-	free(str_final);
 	return;
 }
 
-void lp55xx_set_pattern_led(int ptc_mode, int ptb_mode)
+void lp55xx_set_pattern_led(int col_mode, int beh_mode)
 {
 	char *initial[3] = {"9d8040", "9d8044", "9d8048"};
 	struct lp55xx_leds_pattern *blnk_leds_col = lp55xx_leds_col;
@@ -107,20 +105,20 @@ void lp55xx_set_pattern_led(int ptc_mode, int ptb_mode)
 	memset(tmp3, '\0', MALLOC_STRLEN);
 	if (nvram_match("lp55xx_lp5523_sch_enable", "2"))
 		brightness = nvram_get_int("lp55xx_lp5523_sch_brightness");
-	else if (nvram_match("lp55xx_lp5523_user_enable", "1") && ptc_mode==LP55XX_LIGHT_CYAN_LEDS)
+	else if (nvram_match("lp55xx_lp5523_user_enable", "1") && col_mode==LP55XX_LIGHT_CYAN_LEDS)
 	{
-		ptc_mode = nvram_get_int("lp55xx_lp5523_user_col");
-		ptb_mode = nvram_get_int("lp55xx_lp5523_user_beh");
+		col_mode = nvram_get_int("lp55xx_lp5523_user_col");
+		beh_mode = nvram_get_int("lp55xx_lp5523_user_beh");
 		brightness = nvram_get_int("lp55xx_lp5523_user_brightness");
 	}
 	else
 		brightness = 100;
 
-	if (ptc_mode==LP55XX_ALL_BREATH_LEDS) ptb_mode=LP55XX_ACT_BREATH;
+	if (col_mode==LP55XX_ALL_BREATH_LEDS) beh_mode=LP55XX_ACT_BREATH;
 
 	for (; blnk_leds_beh->ptn_mode!=LP55XX_END_BLINK; blnk_leds_beh++) {
-		if (ptb_mode == blnk_leds_beh->ptn_mode){
-			if (ptc_mode==LP55XX_MANUAL_COL)
+		if (beh_mode == blnk_leds_beh->ptn_mode){
+			if (col_mode==LP55XX_MANUAL_COL)
 			{
 				char lp55xx_lp5523_manual[MALLOC_STRLEN];
 				char *arr[3];
@@ -130,19 +128,19 @@ void lp55xx_set_pattern_led(int ptc_mode, int ptb_mode)
 				split(arr, lp55xx_lp5523_manual, "_");
 
 				pattern_combine(initial[i], arr[0], blnk_leds_beh->ptn1, brightness, tmp1);
-				if (ptc_mode==LP55XX_ALL_BREATH_LEDS) i++;
+				if (col_mode==LP55XX_ALL_BREATH_LEDS) i++;
 				pattern_combine(initial[i], arr[1], strlen(blnk_leds_beh->ptn2)>0?blnk_leds_beh->ptn2:blnk_leds_beh->ptn1, brightness, tmp2);
-				if (ptc_mode==LP55XX_ALL_BREATH_LEDS) i++;
+				if (col_mode==LP55XX_ALL_BREATH_LEDS) i++;
 				pattern_combine(initial[i], arr[2], strlen(blnk_leds_beh->ptn3)>0?blnk_leds_beh->ptn3:blnk_leds_beh->ptn1, brightness, tmp3);
 			}
 			else
 			{
 				for (; blnk_leds_col->ptn_mode!=LP55XX_END_COLOR; blnk_leds_col++) {
-					if (ptc_mode == blnk_leds_col->ptn_mode){
+					if (col_mode == blnk_leds_col->ptn_mode){
 						pattern_combine(initial[i], blnk_leds_col->ptn1, blnk_leds_beh->ptn1, brightness, tmp1);
-						if (ptc_mode==LP55XX_ALL_BREATH_LEDS) i++;
+						if (col_mode==LP55XX_ALL_BREATH_LEDS) i++;
 						pattern_combine(initial[i], blnk_leds_col->ptn2, strlen(blnk_leds_beh->ptn2)>0?blnk_leds_beh->ptn2:blnk_leds_beh->ptn1, brightness, tmp2);
-						if (ptc_mode==LP55XX_ALL_BREATH_LEDS) i++;
+						if (col_mode==LP55XX_ALL_BREATH_LEDS) i++;
 						pattern_combine(initial[i], blnk_leds_col->ptn3, strlen(blnk_leds_beh->ptn3)>0?blnk_leds_beh->ptn3:blnk_leds_beh->ptn1, brightness, tmp3);
 					}
 				}
@@ -175,7 +173,7 @@ void lp55xx_set_pattern_led(int ptc_mode, int ptb_mode)
 	}
 }
 
-void lp55xx_blink_leds(int ptc_mode, int ptb_mode)
+void lp55xx_blink_leds(int col_mode, int beh_mode)
 {
 	int i;
 
@@ -185,66 +183,78 @@ void lp55xx_blink_leds(int ptc_mode, int ptb_mode)
 	for (i = LP55XX_ENGINE_1; i <= LP55XX_ENGINE_3; i++)
 		engine_combine_save(i, "mode", "load");
 
-	lp55xx_set_pattern_led(ptc_mode, ptb_mode);
+	lp55xx_set_pattern_led(col_mode, beh_mode);
 
 	for (i = LP55XX_ENGINE_1; i <= LP55XX_ENGINE_3; i++)
 		engine_combine_save(i, "mode", "run");
 }
 
-void lp55xx_leds_proc(int ptc_mode, int ptb_mode)
+void lp55xx_leds_proc(int col_mode, int beh_mode)
 {
-	int ptc_mode_tmp = ptc_mode;
-	int ptb_mode_tmp = ptb_mode;
+	int beh_mode_tmp = beh_mode;
+	int col_old = nvram_get_int("lp55xx_lp5523_col");
+	int beh_old = nvram_get_int("lp55xx_lp5523_beh");
 
-	switch (ptb_mode_tmp)
+	if (col_mode==col_old && beh_mode_tmp==beh_old)
+		return;
+
+	switch (beh_mode_tmp)
 	{
 		case LP55XX_PREVIOUS_STATE:
-		case LP55XX_WPS_FAIL:
-			ptc_mode_tmp = nvram_get_int("lp55xx_lp5523_col");
-			ptb_mode_tmp = nvram_get_int("lp55xx_lp5523_beh");
+			col_mode = col_old;
+			beh_mode_tmp = beh_old;
 			break;
 		case LP55XX_WPS_TRIG:
-			ptc_mode_tmp = nvram_get_int("lp55xx_lp5523_col");
-			ptb_mode_tmp = LP55XX_ACT_3ON1OFF;
+			col_mode = col_old;
+			beh_mode_tmp = LP55XX_ACT_3ON1OFF;
 			break;
 		case LP55XX_WPS_SUCCESS:
-			ptc_mode_tmp = nvram_get_int("lp55xx_lp5523_col");
-			ptb_mode_tmp = LP55XX_ACT_SBLINK;
+			col_mode = col_old;
+			beh_mode_tmp = LP55XX_ACT_SBLINK;
+			break;
+		case LP55XX_RESET_TRIG:
+			beh_mode_tmp = LP55XX_ACT_NONE;
+			break;
+		case LP55XX_RESET_SUCCESS:
+			beh_mode_tmp = LP55XX_ACT_SBLINK;
+			break;
+		case LP55XX_WIFI_PARAM_SYNC:
+		case LP55XX_WPS_PARAM_SYNC:
+			beh_mode_tmp = LP55XX_ACT_3ON1OFF;
 			break;
 		case LP55XX_SCH_ENABLE:
-			ptc_mode_tmp = nvram_get_int("lp55xx_lp5523_sch_col");
-			ptb_mode_tmp = nvram_get_int("lp55xx_lp5523_sch_beh");
+			col_mode = nvram_get_int("lp55xx_lp5523_sch_col");
+			beh_mode_tmp = nvram_get_int("lp55xx_lp5523_sch_beh");
 			break;
 		default:
-			nvram_set_int("lp55xx_lp5523_col", ptc_mode_tmp);
-			nvram_set_int("lp55xx_lp5523_beh", ptb_mode_tmp);
-			if (nvram_match("x_Setting", "1"))
-				nvram_commit();
+			nvram_set_int("lp55xx_lp5523_col", col_mode);
+			nvram_set_int("lp55xx_lp5523_beh", beh_mode_tmp);
+			nvram_commit();
 			break;
 	}
 
 	if (nvram_match("lp55xx_lp5523_sch_enable", "2"))
 	{
-		if (ptb_mode!=LP55XX_SCH_ENABLE)
+		if (beh_mode!=LP55XX_SCH_ENABLE)
 			return;
 	}
 
 	lp55xx_blink_leds(LP55XX_ALL_LEDS_OFF, LP55XX_ACT_NONE);
-	if (ptc_mode_tmp != LP55XX_ALL_LEDS_OFF)
-		lp55xx_blink_leds(ptc_mode_tmp, ptb_mode_tmp);
+	if (col_mode != LP55XX_ALL_LEDS_OFF)
+		lp55xx_blink_leds(col_mode, beh_mode_tmp);
 
 	return;
 }
 
 void lp55xx_leds_sch(int start, int end)
 {
-	char time_tmp[128];
+	char result[128];
 	int flag=0;
 	int start_day=0, end_day=0;
 	int start_time=0, end_time=0;
 	int week, hour;
 
-	memset(time_tmp, '\0', 128);
+	memset(result, '\0', 128);
 
 	for (week=0;week<7;week++) {
 		for (hour=0;hour<24;hour++) {
@@ -262,7 +272,7 @@ void lp55xx_leds_sch(int start, int end)
 						end_day = week;
 						end_time = hour;
 
-						sprintf(time_tmp, "%s%s%d%d%s%d%s%d", time_tmp, strlen(time_tmp)?"<":"", start_day, end_day, start_time<10?"0":"", start_time, end_time<10?"0":"", end_time);
+						snprintf(result, sizeof(result), "%s%s%d%d%s%d%s%d", result, strlen(result)?"<":"", start_day, end_day, start_time<10?"0":"", start_time, end_time<10?"0":"", end_time);
 					}
 				}
 			}
@@ -280,7 +290,7 @@ void lp55xx_leds_sch(int start, int end)
 						end_day = week;
 						end_time = hour;
 
-						sprintf(time_tmp, "%s%s%d%d%s%d%s%d", time_tmp, strlen(time_tmp)?"<":"", start_day, end_day, start_time<10?"0":"", start_time, end_time<10?"0":"", end_time);
+						snprintf(result, sizeof(result), "%s%s%d%d%s%d%s%d", result, strlen(result)?"<":"", start_day, end_day, start_time<10?"0":"", start_time, end_time<10?"0":"", end_time);
 					}
 				}
 			}
@@ -288,9 +298,9 @@ void lp55xx_leds_sch(int start, int end)
 	}
 
 	if (flag == 1)
-		sprintf(time_tmp, "%s%s%d%s%s%d%s", time_tmp, strlen(time_tmp)?"<":"", start_day, "0", start_time<10?"0":"", start_time, "00");
+		snprintf(result, sizeof(result), "%s%s%d%s%s%d%s", result, strlen(result)?"<":"", start_day, "0", start_time<10?"0":"", start_time, "00");
 
-	nvram_set("lp55xx_lp5523_sch", time_tmp);
+	nvram_set("lp55xx_lp5523_sch", result);
 
 	return;
 }

@@ -274,6 +274,7 @@
  *******************************************************************************
  */
 
+#define CATHY_PPTP_DL_ACC
 #define BLOG_VERSION            "v3.0"
 
 #if defined(__KERNEL__)                 /* Kernel space compilation           */
@@ -563,7 +564,7 @@ typedef enum {
         BLOG_DECL(NETDEV_ADDR)          /* Device MAC addr                    */
         BLOG_DECL(FLOW_EVENT_ACTIVATE)  /* Flow Activation event              */
         BLOG_DECL(FLOW_EVENT_DEACTIVATE)/* Flow Deactivation event            */
-	BLOG_DECL(CHK_HOST_DEV_MAC)
+	BLOG_DECL(CHK_HOST_DEV_MAC)	/* Check Dev HostMAC for addition     */
         BLOG_DECL(BLOG_REQUEST_MAX)
 } BlogRequest_t;
 
@@ -1460,7 +1461,7 @@ typedef struct blogHeader_t BlogHeader_t;           /* L2 and L3+4 tuple */
 union blogHash_t {
     uint32_t        match;
     struct {
-#if 1 //cathy
+#ifdef CATHY_PPTP_DL_ACC
 	struct {
 	    uint8_t grerx_ackIe : 1;
             uint8_t unused : 7;
@@ -2161,7 +2162,7 @@ extern void blog_gre_xmit( struct sk_buff *skb_p, uint32_t h_proto );
 #define BLOG_PPTP_RCV_CHKSUM_ERR         -3
 #define BLOG_PPTP_RCV_OOS_LT             -4
 #define BLOG_PPTP_RCV_OOS_GT             -5
-#if 1 //cathy
+#ifdef CATHY_PPTP_DL_ACC
 extern int blog_pptp_rcv( struct fkbuff *fkb_p, uint32_t h_proto,
                           uint32_t *rcv_pktSeq, uint32_t *rcv_pktAck);
 #else

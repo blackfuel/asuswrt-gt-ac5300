@@ -380,6 +380,14 @@ function validForm(){
 		if(!validator.string(document.form.wan_pppoe_service)
 				|| !validator.string(document.form.wan_pppoe_ac))
 			return false;
+
+		//pppoe hostuniq
+		if(!validator.hex(document.form.wan_pppoe_hostuniq)) {
+			alert("Host-uniq should be hexadecimal digits.");
+			document.form.wan_pppoe_hostuniq.focus();
+			document.form.wan_pppoe_hostuniq.select();
+			return false;
+		}
 	}
 
 	if(productid == "DSL-AC68U" || productid == "DSL-AC68R"){      //MODELDEP: DSL-AC68U,DSL-AC68R
@@ -1032,6 +1040,10 @@ function ppp_echo_control(flag){
               	<th><a class="hintstyle" href="javascript:void(0);" onClick="openHint(7,10);"><#PPPConnection_x_AccessConcentrator_itemname#></a></th>
               	<td><input type="text" maxlength="32" class="input_32_table" name="wan_pppoe_ac" value="<% nvram_get("wan_pppoe_ac"); %>" onkeypress="return validator.isString(this, event)" autocorrect="off" autocapitalize="off"/></td>
             	</tr>
+				<tr>
+					<th><a class="hintstyle" href="javascript:void(0);" onClick="openHint(7,18);">Host-Uniq (Hexadecimal)</a><!--untranslated--></th>
+					<td><input type="text" maxlength="32" class="input_32_table" name="wan_pppoe_hostuniq" value="<% nvram_get("wan_pppoe_hostuniq"); %>" onkeypress="return validator.isString(this, event);" autocorrect="off" autocapitalize="off"/></td>
+				</tr>
             	<!-- 2008.03 James. patch for Oleg's patch. { -->
 		<tr>
 		<th><a class="hintstyle" href="javascript:void(0);" onClick="openHint(7,17);"><#PPPConnection_x_PPTPOptions_itemname#></a></th>

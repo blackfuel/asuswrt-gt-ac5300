@@ -748,6 +748,13 @@ static int ui_cmd_flash_image(ui_cmdline_t *cmd,int argc,char *argv[])
     int res = -1;
     uint8_t *ptr = (uint8_t*) cfe_get_mempool_ptr();
 
+#ifdef AC2900
+    if (NVRAM.noUpdatingFirmware) {
+        printf("no Updating!\n");
+        return -1;
+    }
+#endif
+
     g_processing_cmd = 1;
 
     imageName = cmd_getarg(cmd, 0);
@@ -810,6 +817,13 @@ static int ui_cmd_load_dtb(ui_cmdline_t *cmd,int argc,char *argv[])
     int len;
     uint8_t *ptr = (uint8_t*) cfe_get_mempool_ptr();
 
+#ifdef AC2900
+    if (NVRAM.noUpdatingFirmware) {
+        printf("no Updating!\n");
+        return -1;
+    }
+#endif
+
     dtbName = cmd_getarg(cmd, 0);
     
     if (dtbName)
@@ -847,6 +861,13 @@ static int ui_cmd_write_whole_image(ui_cmdline_t *cmd,int argc,char *argv[])
     uint8_t *ptr = (uint8_t *) cfe_get_mempool_ptr();
     int res;
     int i;
+
+#ifdef AC2900
+    if (NVRAM.noUpdatingFirmware) {
+        printf("no Updating!\n");
+        return -1;
+    }
+#endif
 
     g_processing_cmd = 1;
 
@@ -2207,6 +2228,13 @@ static int ui_cmd_write_data(ui_cmdline_t *cmd, int argc, char *argv[])
     unsigned char data;
     flash_write_data_t fwd;
 
+#ifdef AC2900
+    if (NVRAM.noUpdatingFirmware) {
+        printf("no Updating!\n");
+        return 0;
+    }
+#endif
+
     if ((NULL == pszBlock) || (NULL == pszPage) || (NULL == pszOffset) || (NULL == pszData))
     {
         printf("wrong number of arguments, need to provide block, page, offset and data to change\n");
@@ -2634,6 +2662,13 @@ static int ui_cmd_write_loaded_pmc(ui_cmdline_t *cmd,int argc,char *argv[])
     char *pszAddr = cmd_getarg(cmd, 0);
     char *pszSize = cmd_getarg(cmd, 1);
     int res;
+
+#ifdef AC2900
+    if (NVRAM.noUpdatingFirmware) {
+        printf("no Updating!\n");
+        return -1;
+    }
+#endif
     
     if( pszAddr )
         address = xtoul(pszAddr);
@@ -2700,6 +2735,13 @@ static int  ui_cmd_write_bpcm_reg(ui_cmdline_t *cmd,int argc,char *argv[]) {
     char *pszVal = cmd_getarg(cmd, 3);
     int res;
 
+#ifdef AC2900
+    if (NVRAM.noUpdatingFirmware) {
+        printf("no Updating!\n");
+        return -1;
+    }
+#endif
+
     if (!pszBusId || !pszAddrId || !pszOffset || !pszVal) {
         printf("did not specify enough parameter\n");
         return -1;
@@ -2763,6 +2805,13 @@ static int ui_cmd_write_loaded_imge(ui_cmdline_t *cmd,int argc,char *argv[])
     char *pszAddr = cmd_getarg(cmd, 0);
     char *pszSize = cmd_getarg(cmd, 1);
     int res;
+
+#ifdef AC2900
+    if (NVRAM.noUpdatingFirmware) {
+        printf("no Updating!\n");
+        return -1;
+    }
+#endif
     
     if( pszAddr )
         address = xtoul(pszAddr);
@@ -2794,6 +2843,13 @@ static int ui_cmd_loadb(ui_cmdline_t *cmd,int argc,char *argv[])
     char *pszOpt = cmd_getarg(cmd, 0);
     char *pszAddr = cmd_getarg(cmd, 1);
     char *pszFileName = cmd_getarg(cmd, 2);
+
+#ifdef AC2900
+    if (NVRAM.noUpdatingFirmware) {
+        printf("no Updating!\n");
+        return -1;
+    }
+#endif
 
     if( pszOpt == NULL )
     {
@@ -4102,7 +4158,11 @@ void bcm63xx_run(int breakIntoCfe, int autorun)
 
     g_in_cfe = 1;
 
-   if (!breakIntoCfe && autorun && (ret != 0)) {
+   if (!breakIntoCfe && autorun && (ret != 0)
+#ifdef AC2900
+       && !NVRAM.noUpdatingFirmware
+#endif
+   ) {
        printf("\nEnter Rescue Mode ...\n\n");
 
        if (BpGetBootloaderPowerOnLedGpio(&gpio) != BP_SUCCESS)

@@ -56,6 +56,10 @@ int scaling_factor=70;
 #define  percent_rate_min 30
 #define  percent_rate_max 70
 
+#define	WSPLCD_CONF	"/tmp/wsplcd.conf"
+#define	CMP_CONF	"/tmp/wscmp"
+#define	CMP_CONF_NEW	"/tmp/wscmp_new"
+
 int dbg_m=0;
 int check_period=40;
 
@@ -65,7 +69,7 @@ int check_period=40;
 //int lbd_enable=1-wifi_son_mode; //stop lbd daemon(also disable wifi steering) when running wifi-son mode
 
 
-
+int cfg_re_syncing=0;
 int cfg_changed=0;
 char QCA_DRV[] = "athr" ;
 
@@ -320,7 +324,7 @@ char *translate_bcn(char *val)
 
 
 //generate wsplcd.conf 
-void gen_wsplcd_conf(int role)
+static void gen_wsplcd_conf(int role, char *filename, int cmp_only)
 {
 	int t1,t2;
 	char word[PATH_MAX], *next_word;
@@ -328,15 +332,17 @@ void gen_wsplcd_conf(int role)
 	FILE *fp;
 	char *gkey=NULL;
 
-	if (!(fp = fopen("/tmp/wsplcd.conf", "w+")))
+	if (!(fp = fopen(filename, "w+")))
 	{
-		_dprintf("gen wsplcd.conf file fails!\n");
+		_dprintf("gen %s file fails!\n", filename);
 		return;
 	}
 
-	gkey=nvram_get("hive_group_key");
+	gkey=nvram_get("cfg_group");
+	if (!cmp_only) {
 	fprintf(fp, "# Config file for wsplcd, automatically created by script\n");
 	fprintf(fp, "debug_level=%d\n",nvram_get_int("hive_dbg")?0:3); //normal: 3
+	} /* end of cmp_only */
 	fprintf(fp, "bridge=%s\n",nvram_get("lan_ifname"));
 	memset(tmp1,0,sizeof(tmp1));
 	memset(tmp2,0,sizeof(tmp2));
@@ -374,6 +380,7 @@ void gen_wsplcd_conf(int role)
 	fprintf(fp,"%s\n",tmp1);
 	fprintf(fp,"%s\n",tmp2);
 	//#role: 0=>register 1:emrollee 2:none
+	if (!cmp_only) {
 	fprintf(fp, "role=%d\n",role);
 	fprintf(fp, "designated_pb_ap=0\n");
 	fprintf(fp, "WPS_method=M2\n");
@@ -413,17 +420,20 @@ void gen_wsplcd_conf(int role)
 	fprintf(fp, "cfg_restart_long_timeout=%d\n",nvram_get_int("hive_rst_ltime")?60:20);
 	fprintf(fp, "cfg_restart_short_timeout=%d\n",nvram_get_int("hive_rst_stime")?20:5);
 	fprintf(fp, "cfg_apply_timeout=%d\n",nvram_get_int("hive_apply_time")?20:10);
+	} /* end of cmp_only */
 	//wifi0
-	fprintf(fp, "RADIO.1.Channel=%d\n",get_ch(get_freq(0)));
+	fprintf(fp, "RADIO.1.Channel=%d\n",nvram_get_int("wl0_channel"));
 	fprintf(fp, "RADIO.1.RadioEnabled=1\n"); 
 	//2G,ath
 	fprintf(fp, "WLAN.1.Enable=%s\n",nvram_get("wl0_radio")); 
 	fprintf(fp, "WLAN.1.X_ATH-COM_RadioIndex=1\n");
 	fprintf(fp, "WLAN.1.BSSID=%s\n",nvram_get("wl0_hwaddr")); 
 	fprintf(fp, "WLAN.1.SSID=%s\n",nvram_get("wl0_ssid"));
+	if (!cmp_only) {
 	fprintf(fp, "WLAN.1.Standard=%s\n",translate_hwmode(WIF_2G));
+	} /* end of cmp_only */
 	//fprintf(fp, "WLAN.1.Standard=ng20\n");
-	fprintf(fp, "WLAN.1.Channel=%d\n",get_ch(get_freq(0)));
+	fprintf(fp, "WLAN.1.Channel=%d\n",nvram_get_int("wl0_channel"));
 	fprintf(fp, "WLAN.1.BeaconType=%s\n",translate_bcn("wl0_crypto"));
 	fprintf(fp, "WLAN.1.BasicEncryptionModes=\n");
 	fprintf(fp, "WLAN.1.BasicAuthenticationMode=\n");
@@ -439,16 +449,23 @@ void gen_wsplcd_conf(int role)
 	fprintf(fp, "WLAN.1.X_ATH-COM_WPSConfigured=CONFIGURED\n");
 	fprintf(fp, "WLAN.1.X_ATH-COM_HT40Coexist=1\n");
 	fprintf(fp, "WLAN.1.WsplcdUnmanaged=0\n");
+	if (!cmp_only) {
+	fprintf(fp, "WLAN.1.INFORE=%d\n",cfg_re_syncing);
 	if (gkey && strlen(gkey))
 		fprintf(fp, "WLAN.1.GROUPKEY=%s\n",gkey);
 	//2G,sta
 	fprintf(fp, "WLAN.3.Enable=%d\n",role?1:0); 
 	fprintf(fp, "WLAN.3.X_ATH-COM_RadioIndex=1\n");
-	fprintf(fp, "WLAN.3.BSSID=%s\n",get_stamac(0)?get_stamac(0):""); //self mac 
+	if(role)
+		fprintf(fp, "WLAN.3.BSSID=%s\n",get_stamac(0)?get_stamac(0):""); //self mac 
+	else
+		fprintf(fp, "WLAN.3.BSSID=\n"); 
 	fprintf(fp, "WLAN.3.SSID=%s\n",nvram_get("wl0_ssid"));  //use ath's ssid
-	fprintf(fp, "WLAN.3.Standard=%s\n",translate_hwmode(get_staifname(0)));          
-	//fprintf(fp, "WLAN.3.Standard=ng20\n");
-	fprintf(fp, "WLAN.3.Channel=%d\n",get_ch(get_freq(0)));
+	if(role)
+		fprintf(fp, "WLAN.3.Standard=%s\n",translate_hwmode(get_staifname(0)));
+	else          
+		fprintf(fp, "WLAN.3.Standard=\n");
+	fprintf(fp, "WLAN.3.Channel=%d\n",nvram_get_int("wl0_channel"));
 	fprintf(fp, "WLAN.3.BeaconType=%s\n",translate_bcn("wl0_crypto"));
 	fprintf(fp, "WLAN.3.BasicEncryptionModes=\n");
 	fprintf(fp, "WLAN.3.BasicAuthenticationMode=\n");
@@ -460,23 +477,30 @@ void gen_wsplcd_conf(int role)
 	fprintf(fp, "WLAN.3.DeviceOperationMode=WDSStation\n"); //wds station
 	fprintf(fp, "WLAN.3.X_ATH-COM_APModuleEnable=%d\n",role?1:0);
 	fprintf(fp, "WLAN.3.X_ATH-COM_WPSPin=12345670\n");
-	fprintf(fp, "WLAN.3.X_ATH-COM_VapIfname=%s\n", get_staifname(0));
+	if(role)
+		fprintf(fp, "WLAN.3.X_ATH-COM_VapIfname=%s\n", get_staifname(0));
+	else
+		fprintf(fp, "WLAN.3.X_ATH-COM_VapIfname=\n");
 	fprintf(fp, "WLAN.3.X_ATH-COM_WPSConfigured=CONFIGURED\n");
 	fprintf(fp, "WLAN.3.X_ATH-COM_HT40Coexist=1\n");
 	fprintf(fp, "WLAN.3.WsplcdUnmanaged=0\n");
+	fprintf(fp, "WLAN.3.INFORE=%d\n",cfg_re_syncing);
 	if (gkey && strlen(gkey))
 		fprintf(fp, "WLAN.3.GROUPKEY=%s\n",gkey);
+	} /* end of cmp_only */
 	//wifi1
-	fprintf(fp, "RADIO.2.Channel=%d\n",get_ch(get_freq(1)));
+	fprintf(fp, "RADIO.2.Channel=%d\n",nvram_get_int("wl1_channel"));
 	fprintf(fp, "RADIO.2.RadioEnabled=1\n");
 	//5G,ath
 	fprintf(fp, "WLAN.2.Enable=%s\n",nvram_get("wl1_radio")); 
 	fprintf(fp, "WLAN.2.X_ATH-COM_RadioIndex=2\n");
 	fprintf(fp, "WLAN.2.BSSID=%s\n",nvram_get("wl1_hwaddr")); 
 	fprintf(fp, "WLAN.2.SSID=%s\n",nvram_get("wl1_ssid"));
+	if (!cmp_only) {
 	fprintf(fp, "WLAN.2.Standard=%s\n",translate_hwmode(WIF_5G)); 
 	//fprintf(fp, "WLAN.2.Standard=acvht80\n");
-	fprintf(fp, "WLAN.2.Channel=%d\n",get_ch(get_freq(1)));
+	} /* end of cmp_only */
+	fprintf(fp, "WLAN.2.Channel=%d\n",nvram_get_int("wl1_channel"));
 	fprintf(fp, "WLAN.2.BeaconType=%s\n",translate_bcn("wl1_crypto"));
 	fprintf(fp, "WLAN.2.BasicEncryptionModes=\n");
 	fprintf(fp, "WLAN.2.BasicAuthenticationMode=\n");
@@ -492,17 +516,24 @@ void gen_wsplcd_conf(int role)
 	fprintf(fp, "WLAN.2.X_ATH-COM_WPSConfigured=CONFIGURED\n");
 	fprintf(fp, "WLAN.2.X_ATH-COM_HT40Coexist=1\n");
 	fprintf(fp, "WLAN.2.WsplcdUnmanaged=0\n");
+	if (!cmp_only) {
+	fprintf(fp, "WLAN.2.INFORE=%d\n",cfg_re_syncing);
 	if (gkey && strlen(gkey))
 		fprintf(fp, "WLAN.2.GROUPKEY=%s\n",gkey);
 
 	//5G,sta
 	fprintf(fp, "WLAN.4.Enable=%d\n",role?1:0); 
 	fprintf(fp, "WLAN.4.X_ATH-COM_RadioIndex=2\n");
-	fprintf(fp, "WLAN.4.BSSID=%s\n",get_stamac(1)?get_stamac(1):""); //self mac 
+	if(role)
+		fprintf(fp, "WLAN.4.BSSID=%s\n",get_stamac(1)?get_stamac(1):""); //self mac 
+	else
+		fprintf(fp, "WLAN.4.BSSID=\n"); 
 	fprintf(fp, "WLAN.4.SSID=%s\n",nvram_get("wl1_ssid")); //use ath's ssid
-	fprintf(fp, "WLAN.4.Standard=%s\n",translate_hwmode(get_staifname(1)));
-	//fprintf(fp, "WLAN.4.Standard=acvht80\n");
-	fprintf(fp, "WLAN.4.Channel=%d\n",get_ch(get_freq(1)));
+	if(role)
+		fprintf(fp, "WLAN.4.Standard=%s\n",translate_hwmode(get_staifname(1)));
+	else
+		fprintf(fp, "WLAN.4.Standard=\n");
+	fprintf(fp, "WLAN.4.Channel=%d\n",nvram_get_int("wl1_channel"));
 	fprintf(fp, "WLAN.4.BeaconType=%s\n",translate_bcn("wl1_crypto"));
 	fprintf(fp, "WLAN.4.BasicEncryptionModes=\n");
 	fprintf(fp, "WLAN.4.BasicAuthenticationMode=\n");
@@ -514,24 +545,31 @@ void gen_wsplcd_conf(int role)
 	fprintf(fp, "WLAN.4.DeviceOperationMode=WDSStation\n"); //wds station
 	fprintf(fp, "WLAN.4.X_ATH-COM_APModuleEnable=%d\n",role?1:0);
 	fprintf(fp, "WLAN.4.X_ATH-COM_WPSPin=12345670\n");
-	fprintf(fp, "WLAN.4.X_ATH-COM_VapIfname=%s\n", get_staifname(1));
+	if(role)
+		fprintf(fp, "WLAN.4.X_ATH-COM_VapIfname=%s\n", get_staifname(1));
+	else
+		fprintf(fp, "WLAN.4.X_ATH-COM_VapIfname=\n");
 	fprintf(fp, "WLAN.4.X_ATH-COM_WPSConfigured=CONFIGURED\n");
 	fprintf(fp, "WLAN.4.X_ATH-COM_HT40Coexist=1\n");
 	fprintf(fp, "WLAN.4.WsplcdUnmanaged=0\n");
+	fprintf(fp, "WLAN.4.INFORE=%d\n",cfg_re_syncing);
 	if (gkey && strlen(gkey))
 		fprintf(fp, "WLAN.4.GROUPKEY=%s\n",gkey);
+	} /* end of cmp_only */
 #if defined(HIVESPOT)
 	//wifi2
-	fprintf(fp, "RADIO.3.Channel=%d\n",get_ch(get_freq(2)));
+	fprintf(fp, "RADIO.3.Channel=%d\n",nvram_get_int("wl2_channel"));
 	fprintf(fp, "RADIO.3.RadioEnabled=1\n");
 	//5G-2,ath
 	fprintf(fp, "WLAN.5.Enable=%s\n",nvram_get("wl2_radio")); 
 	fprintf(fp, "WLAN.5.X_ATH-COM_RadioIndex=3\n");
 	fprintf(fp, "WLAN.5.BSSID=%s\n",nvram_get("wl2_hwaddr")); 
 	fprintf(fp, "WLAN.5.SSID=%s\n",nvram_get("wl2_ssid"));
+	if (!cmp_only) {
 	fprintf(fp, "WLAN.5.Standard=%s\n",translate_hwmode(WIF_5G2)); 
 	//fprintf(fp, "WLAN.5.Standard=acvht80\n");
-	fprintf(fp, "WLAN.5.Channel=%d\n",get_ch(get_freq(2)));
+	} /* end of cmp_only */
+	fprintf(fp, "WLAN.5.Channel=%d\n",nvram_get_int("wl2_channel"));
 	fprintf(fp, "WLAN.5.BeaconType=%s\n",translate_bcn("wl2_crypto"));
 	fprintf(fp, "WLAN.5.BasicEncryptionModes=\n");
 	fprintf(fp, "WLAN.5.BasicAuthenticationMode=\n");
@@ -547,9 +585,11 @@ void gen_wsplcd_conf(int role)
 	fprintf(fp, "WLAN.5.X_ATH-COM_WPSConfigured=CONFIGURED\n");
 	fprintf(fp, "WLAN.5.X_ATH-COM_HT40Coexist=1\n");
 	//WLAN.2 (ap,5G-1), WLAN.5(ap,5G-2): One of them can do sync. Disable 5G-2 sync by wsplcdunmanaged=1!!
+	if (!cmp_only) {
 	fprintf(fp, "WLAN.5.WsplcdUnmanaged=1\n");
 	if (gkey && strlen(gkey))
 		fprintf(fp, "WLAN.5.GROUPKEY=%s\n",gkey);
+	} /* end of cmp_only */
 
 #endif
 	fclose(fp);
@@ -926,30 +966,58 @@ void gen_hyd_conf(int role)
 }
 
 
+int wsplcd_exec=1;
 void wsplcd_enable(void)
 {
 	pid_t pid;
-	char *wsplcd[]={"wsplcd","-c","/tmp/wsplcd.conf",NULL};
+	char *wsplcd[]={"wsplcd","-c",WSPLCD_CONF,NULL};
+	if(!wsplcd_exec)
+	{
+		_dprintf("WSPLCD: skip the start event\n");		
+		return;
+	}
+
         //run wsplcd
-        sleep(2);
 	doSystem("touch /var/run/wsplcd.lock");
+	sleep(2);
 	_eval(wsplcd, ">>/dev/null", 0, &pid);
 }
 
-
+int hyd_exec=1;
 void hyd_stop(void)
 {
-	
+	char tmp[100];
+	time_t now ,hyd_uptime;
+	now = uptime();
+	hyd_uptime = strtoul(nvram_safe_get("hyd_uptime"), NULL, 10);
+	sprintf(tmp, "%lu", uptime());
+	nvram_set("hyd_uptime", tmp);
+	_dprintf("HYD:now_time=%lu,save_time=%lu\n",now,hyd_uptime);
+	if(hyd_uptime==0) //just for first boot
+		hyd_exec=1;
+	else if ((now - hyd_uptime) <50)
+	{
+		_dprintf("HYD: skip the stop event\n");
+		hyd_exec=0;
+		return;
+	}
+
         doSystem("echo 0 >> /proc/sys/net/bridge/bridge-nf-call-custom");
 	doSystem("hyctl detach %s",nvram_get("lan_ifname")); 
         sleep(1);
 	//kill daemon
- 	doSystem("killall hyd");
+ 	doSystem("killall -9 hyd");
 	doSystem("rm -rf /tmp/hyd.conf");
+	hyd_exec=1;
 }
 
 void hyd_start(int role)
 {	
+	if(!hyd_exec)
+	{
+		_dprintf("HYD: skip the start event\n");
+		return;
+	}
 	gen_hyd_conf(role);
         doSystem("echo 1 >> /proc/sys/net/bridge/bridge-nf-call-custom");
 	doSystem("hyctl attach %s",nvram_get("lan_ifname")); //after br0 is up
@@ -1067,7 +1135,7 @@ void gen_sta_conf(int band)
 	fprintf(fp4, "}\n");
         fclose(fp4);
 }
-
+#if 0
 void wpa_cli_enable(int band)
 {
 	FILE *fp;
@@ -1101,6 +1169,7 @@ void wps_enable(int role)
 	}
 	
 }
+#endif 
 
 //4 vaps: ath0(pre-created) ath1(pre-crated) 
 //      : sta0(pre-created) sta1(pre-crated) 
@@ -1290,6 +1359,120 @@ void setWscInfo_enrollee(int band)
 	
 }
 
+#if defined(HIVESPOT)
+int get_wifi_quality(const char *ifname)
+{
+	FILE *fp;
+	char line[256];
+	int ret = -1;
+	int len;
+
+
+	if((len = strlen(ifname)) <= 0)
+		return -1;
+	if((fp = fopen("/proc/net/wireless", "r")) == NULL)
+		return -1;
+
+	while(fgets(line, sizeof(line), fp) != NULL)
+	{
+		char *p1, *p2;
+		int status;
+		int quality;
+		p1 = strstr(line, ifname);
+		if(p1 == NULL || *(p1+len) != ':' || (p1 != line && *(p1-1) != ' '))
+			continue;
+		p1 = p1 + len + 1;
+		while(*p1 == ' ')
+			p1++;
+		status = strtoul(p1, &p2, 16);
+		while(*p2 == ' ')
+			p2++;
+		quality = strtoul(p2, NULL, 0);
+		ret = quality;
+		break;
+	}
+	fclose(fp);
+	return ret;
+}
+
+
+void set_5g_antenna(void)
+{
+	int sum;
+	int max_idx, max_sum;
+	int i,j;
+	int quality;
+	int retry;
+
+	struct _gpio_ {
+		unsigned char gpio;
+		unsigned char value;
+	};
+	struct _gpio_ gpio_arr[4][4] = {
+			{{44, 0}, {45, 1}, {46, 0}, {47, 1}},	//DPDT type 0
+			{{44, 1}, {45, 0}, {46, 0}, {47, 1}},	//DPDT type 1
+			{{44, 1}, {45, 0}, {46, 1}, {47, 0}},	//DPDT type 2
+			{{44, 0}, {45, 1}, {46, 1}, {47, 0}},	//DPDT type 3
+	};
+
+
+	max_idx = 0;
+	max_sum = 0;
+	for(i = 0; i < 4; i++)
+	{
+		for(j = 0; j < 4; j++)
+		{
+			set_gpio(gpio_arr[i][j].gpio, gpio_arr[i][j].value);
+		}
+		sleep(2);	//wait for getting the applied link quality
+
+		sum = 0;
+		for(retry = 0; retry < 10; retry++)
+		{
+#define CHK_INTERVAL_MS	400
+			if(retry != 0)
+				usleep(CHK_INTERVAL_MS * 1000);
+			quality = get_wifi_quality("sta1");
+			sum += quality;
+		}
+		//cprintf("## i(%d) sum(%04u) max_sum(%04u) max_idx(%d)\n", i, sum, max_sum, max_idx);
+		if(sum > max_sum)
+		{
+			max_sum = sum;
+			max_idx = i;
+		}
+	}
+
+	{
+		logmessage("dpdt", "antenna set to type %d, %d (%d/%d/%d/%d)\n", max_idx, max_sum
+			, gpio_arr[max_idx][0].value, gpio_arr[max_idx][1].value
+			, gpio_arr[max_idx][2].value, gpio_arr[max_idx][3].value
+			);
+		for(j = 0; j < 4; j++)
+		{
+			set_gpio(gpio_arr[max_idx][j].gpio, gpio_arr[max_idx][j].value);
+		}
+		nvram_set_int("dpdt_ant", max_idx);
+	}
+}
+
+int dpdt_ant_main(int argc, char **argv)
+{
+	char res[32];
+	//cprintf("## run %s()\n", __func__);
+	while(1)
+	{
+		getWscStatus_keywd(1,"wpa_state",res);
+		if(!strcmp(res,"COMPLETED")){
+			set_5g_antenna();
+			return 0;
+		}
+		sleep(5);
+	}
+	return -1;
+}
+#endif	/* HIVESPOT */
+
 //check the status of sta0/sta1 connection ,max_sec> 6
 //if connect, update 2G/5G current bssid and save them as wl0_sta_bssid/wl1_sta_bssid
 int check_wsc_enrollee_status(int max_sec)
@@ -1338,15 +1521,33 @@ void wifimon_up(void)
 {
 	pid_t pid;
 	char *wifimon[]={"wifimon_check","20",NULL};
-	doSystem("killall wifimon_check");
+	doSystem("killall -9 wifimon_check");
 	_eval(wifimon, ">>/dev/null", 0, &pid);
 }
 
 void wsplcd_stop(void)
 {
+	char tmp[100];
+	time_t now,wsplcd_uptime;
+	now = uptime();
+	wsplcd_uptime = strtoul(nvram_safe_get("wsplcd_uptime"), NULL, 10);
+	sprintf(tmp, "%lu", uptime());
+	nvram_set("wsplcd_uptime", tmp);
+	_dprintf("WSPLCD:now_time=%lu,save_time=%lu\n",now,wsplcd_uptime);
+
+	if(wsplcd_uptime==0) //just for first boot
+		wsplcd_exec=1;
+	else if ((now - wsplcd_uptime) <50)
+	{
+		_dprintf("WSPLCD: skip the stop event\n");
+		wsplcd_exec=0;
+		return;
+	}
+
 	doSystem("killall wsplcd");
-	doSystem("rm -rf /tmp/wsplcd.conf");
+	doSystem("rm -rf "WSPLCD_CONF);
 	doSystem("rm -rf /tmp/wsplcd.apply");
+	wsplcd_exec=1;
 }
 
 void wpa_supplicant_stop(int band)
@@ -1385,7 +1586,32 @@ void duplicate_5g2(void)
 	_dprintf("=> duplicate 5G-1 to 5G-2\n");
 }
 
-void start_cap(int c)
+// return 0 : file content is same
+// return -1 : readfile error
+// return 1 : content is different
+static int cmp_file(char *fname1, char *fname2)
+{
+	char *buf1, *buf2;
+	int fsize1, fsize2;
+	int ret = -1;
+	buf1 = readfile(fname1, &fsize1);
+	buf2 = readfile(fname2, &fsize2);
+	if (buf1 && buf2) {
+		if ((fsize1 == fsize2) && memcmp(buf1, buf2, fsize1)==0)
+			ret = 0;
+		else
+			ret = 1;
+	}
+	if (buf1)
+		free(buf1);
+	if (buf2)
+		free(buf2);
+	return ret;
+}
+
+// return 0: normal case
+// return 1: nothing changed
+int start_cap(int c)
 {
 	if(c==0) //first start, for user
 	{
@@ -1405,8 +1631,10 @@ void start_cap(int c)
 		doSystem("ifconfig %s up",nvram_get("lan_ifname"));
 		doSystem("hyctl attach %s",nvram_get("lan_ifname")); //after br0 is up
 	
+		gen_wsplcd_conf(0, CMP_CONF, 1);
+		cfg_re_syncing=0;
 		cfg_changed=0;  
-		gen_wsplcd_conf(0);
+		gen_wsplcd_conf(0, WSPLCD_CONF, 0);
 		wsplcd_enable();
 		hyd_start(0);
 		//wps_enable(0);
@@ -1414,10 +1642,20 @@ void start_cap(int c)
 	else if(c==1) //config change , for user
 	{
 		_dprintf("CAP: restart after config change\n");
-		wsplcd_stop();
-		cfg_changed=1;
-		gen_wsplcd_conf(0);
-		wsplcd_enable();
+		gen_wsplcd_conf(0, CMP_CONF_NEW, 1);
+		if (cmp_file(CMP_CONF, CMP_CONF_NEW)) {
+			unlink(CMP_CONF);
+			rename(CMP_CONF_NEW, CMP_CONF);
+			cfg_re_syncing=1;
+			cfg_changed=1;
+			wsplcd_stop();
+			gen_wsplcd_conf(0, WSPLCD_CONF, 0);
+			wsplcd_enable();
+			sleep(6);
+			nvram_set("cap_syncing","1");
+			lp55xx_leds_proc(LP55XX_GREENERY_LEDS, LP55XX_WIFI_PARAM_SYNC);
+		} else
+			return 1;
 	}
 	else if(c==2) //restart, for wsplcd daemon
 	{
@@ -1429,12 +1667,19 @@ void start_cap(int c)
 		duplicate_5g2();
 #endif
 		wsplcd_stop();
+		gen_wsplcd_conf(0, CMP_CONF, 1);
+		cfg_re_syncing=0;
 		cfg_changed=0;
-		gen_wsplcd_conf(0);
+		gen_wsplcd_conf(0, WSPLCD_CONF, 0);
 		wsplcd_enable();
 		nvram_commit();
 		gen_qca_wifi_cfgs();
+		nvram_set("cap_syncing","0");
+		sleep(30); //estimate wifi-restart time
+		//_dprintf("=>CAP: config change stop\n");
+		lp55xx_leds_proc(LP55XX_ALL_LEDS_OFF, LP55XX_PREVIOUS_STATE);
 	}
+	return 0;
 }
 
 void start_re(int c)
@@ -1453,7 +1698,7 @@ void start_re(int c)
         set_vap(1,1); //config for 5G range extender
 #if defined(HIVESPOT)
        	set_vap(1,2); //config for 5G-2 range extender
-	if(c==2)//restart
+	if(c==2)//only for wsplcd restart
 	{
 		duplicate_5g2();
   		nvram_commit();     
@@ -1486,10 +1731,16 @@ void start_re(int c)
 	doSystem("ifconfig %s up",nvram_get("lan_ifname"));
 	doSystem("hyctl attach %s",nvram_get("lan_ifname")); //after br0 is up
 
-	if(c==2)//restart
+	if(c==2) //only for wsplcd restart
+	{
+		nvram_set("re_syncing","0");
+		sleep(10); //estimate
+		//_dprintf("RE: config change stop\n");
+		lp55xx_leds_proc(LP55XX_ALL_LEDS_OFF, LP55XX_PREVIOUS_STATE);
 		check_wsc_enrollee_status(20);
+	}
 	//gen config and run daemon
-	gen_wsplcd_conf(1);
+	gen_wsplcd_conf(1, WSPLCD_CONF, 0);
 	wsplcd_enable();
 	hyd_start(1);
 	wifimon_up();
@@ -1500,8 +1751,6 @@ void start_hyfi(void)
 {
 	int i,role;
 	role=get_role();
-	for(i=0;i<2;i++)
-		wpa_supplicant_start(i);
 	if(role==0)
 	{
 		set_vap(0,0); //config for 2G CAP
@@ -1510,17 +1759,22 @@ void start_hyfi(void)
         	set_vap(0,2); //config for 5G-2 CAP
 #endif
 		hyd_start(0);
-		gen_wsplcd_conf(0);
+		gen_wsplcd_conf(0, CMP_CONF, 1);
+		gen_wsplcd_conf(0, WSPLCD_CONF, 0);
 	}
 	else if(role==1)
 	{
+
+		for(i=0;i<2;i++)
+			wpa_supplicant_start(i);
 		set_vap(1,0); //config for 2G range extender
         	set_vap(1,1); //config for 5G range extender
 #if defined(HIVESPOT)
       		set_vap(1,2); //config for 5G-2 range extender
 #endif
 		hyd_start(1);
-		gen_wsplcd_conf(1);
+		gen_wsplcd_conf(1, WSPLCD_CONF, 0);
+		//wifimon_up();
 	}
 	else
 		_dprintf("error mode!!\n");
@@ -1884,7 +2138,7 @@ void start_wifimon_check(int delay)
 			_dprintf("=> RE:restart hyd/wsplcd/wifimon process after reset 2G or 5G\n");
 			wsplcd_stop();
 			hyd_stop();
-                	gen_wsplcd_conf(1);
+			gen_wsplcd_conf(1, WSPLCD_CONF, 0);
                 	wsplcd_enable();
 			hyd_start(1);
 		}
@@ -1904,7 +2158,7 @@ void start_wifimon_check(int delay)
 			restart_process=0;
 			
 		}
-		else if(assoc_timeout>=2)  //2G and 5G are not assoc for more than 90 seconds
+		else if(assoc_timeout>=2)  //2G and 5G are not assoc for more than 80 seconds
 		{
 			if(sta_is_assoc(1))
 			{
@@ -1932,6 +2186,14 @@ void start_wifimon_check(int delay)
 		}
 		else
 			restart_process=0;
+
+		if(!pids("watchdog"))
+		{
+			 nvram_set("wps_syncing","0");
+                         lp55xx_leds_proc(LP55XX_ALL_LEDS_OFF, LP55XX_PREVIOUS_STATE);
+			 start_watchdog();
+		}
+
 	}
 }
 #endif

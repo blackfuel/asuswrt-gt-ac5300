@@ -46,6 +46,10 @@
 #include "../fb_wifi/fbwifi.h"
 #endif
 
+#ifdef RTCONFIG_PROTECTION_SERVER
+#include <protect_srv.h>
+#endif
+
 #define WEBSTRFILTER 1
 #define CONTENTFILTER 1
 
@@ -1250,7 +1254,7 @@ void write_port_forwarding(FILE *fp, char *config, char *lan_ip)
 			if (enable != 0) {
 				wan_port = nvram_get_int("misc_httpsport_x") ? : 8443;
 				fprintf(fp, "-A VSERVER -p tcp -m tcp --dport %d -j DNAT --to-destination %s:%d\n",
-					wan_port, lan_ip, nvram_get_int("https_lanport") ? : 433);
+					wan_port, lan_ip, nvram_get_int("https_lanport") ? : 443);
 			}
 			if (enable != 1)
 #endif
@@ -1927,6 +1931,8 @@ start_default_filter(int lanunit)
 {
 	// TODO: handle multiple lan
 	FILE *fp;
+	char *nv, *nvp, *b;
+	char *enable, *srcip, *accessType;
 	char *lan_if = nvram_safe_get("lan_ifname");
 
 	if ((fp = fopen("/tmp/filter.default", "w")) == NULL)
@@ -1935,8 +1941,13 @@ start_default_filter(int lanunit)
 		":INPUT DROP [0:0]\n"
 		":FORWARD DROP [0:0]\n"
 		":OUTPUT ACCEPT [0:0]\n"
+		":ACCESS_RESTRICTION - [0:0]\n"
 		":logaccept - [0:0]\n"
 		":logdrop - [0:0]\n");
+#ifdef RTCONFIG_PROTECTION_SERVER
+	fprintf(fp, ":%s_WAN - [0:0]\n", PROTECT_SRV_RULE_CHAIN);
+	fprintf(fp, ":%s_LAN - [0:0]\n", PROTECT_SRV_RULE_CHAIN);
+#endif
 
 #ifdef RTCONFIG_RESTRICT_GUI
 	char word[PATH_MAX], *next_word;
@@ -1961,6 +1972,88 @@ start_default_filter(int lanunit)
 
 	/* Write input rule for vlan */
 	vlan_subnet_filter_input(fp);
+#endif
+	if (nvram_match("enable_acc_restriction", "1"))
+	{
+		int  https_port = 0;
+		int  http_port = 0;
+		int  cnt = 0;
+		char webports[16];
+		char sshport[8];
+#ifdef RTCONFIG_HTTPS
+		int en = nvram_get_int("http_enable");
+		if (en != 0)
+			https_port = nvram_get_int("https_lanport") ? : 443;
+
+		if (en != 1)
+#endif
+		{
+			http_port = 80;
+		}
+		if (http_port != 0 && https_port != 0)
+			snprintf(webports, sizeof(webports), "%d,%d", http_port, https_port);
+		else
+			snprintf(webports, sizeof(webports), "%d", http_port != 0 ? http_port : https_port);
+
+#ifdef RTCONFIG_SSH
+		if (nvram_get_int("sshd_enable") != 0)
+			snprintf(sshport, sizeof(sshport), ",%d", nvram_get_int("sshd_port") ? : 22);
+		else
+#endif
+			strcpy(sshport, "");
+
+		fprintf(fp, "-A INPUT -p tcp -m multiport --dport %s%s%s -j ACCESS_RESTRICTION\n",
+			    webports, sshport, nvram_get_int("telnetd_enable") == 1 ? ",23" : "");
+
+		nvp = nv = strdup(nvram_safe_get("restrict_rulelist"));
+		while (nv && (b = strsep(&nvp, "<")) != NULL) {
+			if ((vstrsep(b, ">", &enable, &srcip, &accessType) != 3)) continue;
+			if (!strcmp(enable, "0")) continue;
+
+			cnt++;
+			if (!(atoi(accessType) ^ ACCESS_ALL)) {
+#ifdef RTCONFIG_PROTECTION_SERVER
+				fprintf(fp, "-A ACCESS_RESTRICTION -s %s -j RETURN\n", srcip);
+#else
+				fprintf(fp, "-A ACCESS_RESTRICTION -s %s -j ACCEPT\n", srcip);
+#endif
+				continue;
+			}
+				if (atoi(accessType) & ACCESS_WEBUI) {
+					fprintf(fp, "-A ACCESS_RESTRICTION -s %s -p tcp -m multiport --dport %s -j ACCEPT\n", srcip, webports);
+				}
+#ifdef RTCONFIG_SSH
+			if ((atoi(accessType) & ACCESS_SSH) && nvram_get_int("sshd_enable") != 0 ) {
+#ifdef RTCONFIG_PROTECTION_SERVER
+				fprintf(fp, "-A ACCESS_RESTRICTION -s %s -p tcp --dport %d -j RETURN\n", srcip, nvram_get_int("sshd_port") ? : 22);
+#else
+				fprintf(fp, "-A ACCESS_RESTRICTION -s %s -p tcp --dport %d -j ACCEPT\n", srcip, nvram_get_int("sshd_port") ? : 22);
+#endif
+			}
+#endif
+			if ((atoi(accessType) & ACCESS_TELNET) && nvram_get_int("telnetd_enable") == 1) {
+#ifdef RTCONFIG_PROTECTION_SERVER
+				fprintf(fp, "-A ACCESS_RESTRICTION -s %s -p tcp --dport 23 -j RETURN\n", srcip);
+#else
+				fprintf(fp, "-A ACCESS_RESTRICTION -s %s -p tcp --dport 23 -j ACCEPT\n", srcip);
+#endif
+			}
+		}
+		free(nv);
+		if(cnt) {
+			fprintf(fp, "-A ACCESS_RESTRICTION -j DROP\n");
+		}
+	}
+
+#ifdef RTCONFIG_PROTECTION_SERVER
+	if (nvram_get_int("telnetd_enable") != 0
+#ifdef RTCONFIG_SSH
+	    || nvram_get_int("sshd_enable") != 0
+#endif
+	) {
+		fprintf(fp, "-A INPUT ! -i %s -j %s_WAN\n", lan_if, PROTECT_SRV_RULE_CHAIN);
+		fprintf(fp, "-A INPUT -i %s -j %s_LAN\n", lan_if, PROTECT_SRV_RULE_CHAIN);
+	}
 #endif
 
 	fprintf(fp, "-A INPUT -m state --state RELATED,ESTABLISHED -j ACCEPT\n");
@@ -2023,6 +2116,29 @@ start_default_filter(int lanunit)
 	eval("ip6tables-restore", "/tmp/filter_ipv6.default");
 #endif
 }
+
+#if defined(HIVEDOT) || defined(HIVESPOT)
+void reset_filter(void)
+{
+	const char *filter_rules = "/tmp/hive_filter.default";
+	FILE *fp;
+	if ((fp = fopen(filter_rules, "w")) == NULL)
+		return;
+	fprintf(fp, "*filter\n"
+		":INPUT ACCEPT [0:0]\n"
+		":FORWARD ACCEPT [0:0]\n"
+		":OUTPUT ACCEPT [0:0]\n"
+		);
+	fprintf(fp, "COMMIT\n\n");
+	fclose(fp);
+
+	eval("iptables-restore", filter_rules);
+#ifdef RTCONFIG_IPV6
+	eval("ip6tables-restore", filter_rules);
+#endif	/* RTCONFIG_IPV6 */
+}
+#endif
+
 
 #ifdef WEBSTRFILTER
 /* url filter corss midnight patch start */
@@ -2530,6 +2646,11 @@ filter_setting(char *wan_if, char *wan_ip, char *lan_if, char *lan_ip, char *log
 	    ":logaccept - [0:0]\n"
 	    ":logdrop - [0:0]\n");
 
+#ifdef RTCONFIG_PROTECTION_SERVER
+	fprintf(fp, ":%s_WAN - [0:0]\n", PROTECT_SRV_RULE_CHAIN);
+	fprintf(fp, ":%s_LAN - [0:0]\n", PROTECT_SRV_RULE_CHAIN);
+#endif
+
 #ifdef RTCONFIG_IPV6
 	if (ipv6_enabled()) {
 		fprintf(fp_ipv6, "*filter\n"
@@ -2624,7 +2745,7 @@ TRACE_PT("writing Parental Control\n");
 #ifdef RTCONFIG_HTTPS
 			int en = nvram_get_int("http_enable");
 			if (en != 0)
-				https_port = nvram_get_int("https_lanport") ? : 433;
+				https_port = nvram_get_int("https_lanport") ? : 443;
 
 			if (en != 1)
 #endif
@@ -2653,7 +2774,11 @@ TRACE_PT("writing Parental Control\n");
 
 				cnt++;
 				if (!(atoi(accessType) ^ ACCESS_ALL)) {
+#ifdef RTCONFIG_PROTECTION_SERVER
+					fprintf(fp, "-A ACCESS_RESTRICTION -s %s -j RETURN\n", srcip);
+#else
 					fprintf(fp, "-A ACCESS_RESTRICTION -s %s -j ACCEPT\n", srcip);
+#endif
 					continue;
 				}
 				if (atoi(accessType) & ACCESS_WEBUI) {
@@ -2661,11 +2786,19 @@ TRACE_PT("writing Parental Control\n");
 				}
 #ifdef RTCONFIG_SSH
 				if ((atoi(accessType) & ACCESS_SSH) && nvram_get_int("sshd_enable") != 0 ) {
+#ifdef RTCONFIG_PROTECTION_SERVER
+					fprintf(fp, "-A ACCESS_RESTRICTION -s %s -p tcp --dport %d -j RETURN\n", srcip, nvram_get_int("sshd_port") ? : 22);
+#else
 					fprintf(fp, "-A ACCESS_RESTRICTION -s %s -p tcp --dport %d -j ACCEPT\n", srcip, nvram_get_int("sshd_port") ? : 22);
+#endif
 				}
 #endif
 				if ((atoi(accessType) & ACCESS_TELNET) && nvram_get_int("telnetd_enable") == 1) {
+#ifdef RTCONFIG_PROTECTION_SERVER
+					fprintf(fp, "-A ACCESS_RESTRICTION -s %s -p tcp --dport 23 -j RETURN\n", srcip);
+#else
 					fprintf(fp, "-A ACCESS_RESTRICTION -s %s -p tcp --dport 23 -j ACCEPT\n", srcip);
+#endif
 				}
 			}
 			free(nv);
@@ -2673,6 +2806,16 @@ TRACE_PT("writing Parental Control\n");
 				fprintf(fp, "-A ACCESS_RESTRICTION -j %s\n", logdrop);
 			}
 		}
+#ifdef RTCONFIG_PROTECTION_SERVER
+		if (nvram_get_int("telnetd_enable") != 0
+#ifdef RTCONFIG_SSH
+    		    || nvram_get_int("sshd_enable") != 0
+#endif
+   		) {
+			fprintf(fp, "-A INPUT ! -i %s -j %s_WAN\n", lan_if, PROTECT_SRV_RULE_CHAIN);
+			fprintf(fp, "-A INPUT -i %s -j %s_LAN\n", lan_if, PROTECT_SRV_RULE_CHAIN);
+		}
+#endif
 
 TRACE_PT("write url filter in INPUT\n");
 #ifdef RTCONFIG_IPV6
@@ -2711,12 +2854,12 @@ TRACE_PT("write url filter in INPUT\n");
 		}
 
 		// Firewall between WAN and Local
-		if (nvram_get_int("misc_http_x") && nvram_get_int("enable_acc_restriction") == 0) {
+		if (nvram_get_int("misc_http_x")) {
 #ifdef RTCONFIG_HTTPS
 			int enable = nvram_get_int("http_enable");
 			if (enable != 0) {
 				fprintf(fp, "-A INPUT -m conntrack --ctstate DNAT -p tcp -m tcp -d %s --dport %d -j %s\n",
-					lan_ip, nvram_get_int("https_lanport") ? : 433, logaccept);
+					lan_ip, nvram_get_int("https_lanport") ? : 443, logaccept);
 			}
 			if (enable != 1)
 #endif
@@ -2726,7 +2869,7 @@ TRACE_PT("write url filter in INPUT\n");
 			}
 		}
 #ifdef RTCONFIG_SSH
-		if (nvram_get_int("sshd_enable") == 1 && nvram_get_int("enable_acc_restriction") == 0) {
+		if (nvram_get_int("sshd_enable") == 1) {
 			fprintf(fp, "-A INPUT -p tcp -m tcp --dport %d -j %s\n",
 				nvram_get_int("sshd_port") ? : 22, logaccept);
 		}
@@ -3389,6 +3532,9 @@ TRACE_PT("write url filter in FORWARD\n");
 
 	//system("iptables -F");
 	eval("iptables-restore", "/tmp/filter_rules");
+#ifdef RTCONFIG_PROTECTION_SERVER
+	kill_pidfile_s(PROTECT_SRV_PID_PATH, SIGUSR1);
+#endif
 
 #ifdef RTCONFIG_IPV6
 	if (ipv6_enabled())
@@ -3464,6 +3610,11 @@ filter_setting2(char *lan_if, char *lan_ip, char *logaccept, char *logdrop)
 #endif
 	    ":logaccept - [0:0]\n"
 	    ":logdrop - [0:0]\n");
+
+#ifdef RTCONFIG_PROTECTION_SERVER
+	fprintf(fp, ":%s_WAN - [0:0]\n", PROTECT_SRV_RULE_CHAIN);
+	fprintf(fp, ":%s_LAN - [0:0]\n", PROTECT_SRV_RULE_CHAIN);
+#endif
 
 #ifdef RTCONFIG_IPV6
 	if (ipv6_enabled()) {
@@ -3567,7 +3718,7 @@ TRACE_PT("writing Parental Control\n");
 #ifdef RTCONFIG_HTTPS
 			int en = nvram_get_int("http_enable");
 			if (en != 0)
-				https_port = nvram_get_int("https_lanport") ? : 433;
+				https_port = nvram_get_int("https_lanport") ? : 443;
 
 			if (en != 1)
 #endif
@@ -3596,7 +3747,11 @@ TRACE_PT("writing Parental Control\n");
 
 				cnt++;
 				if (!(atoi(accessType) ^ ACCESS_ALL)) {
+#ifdef RTCONFIG_PROTECTION_SERVER
+					fprintf(fp, "-A ACCESS_RESTRICTION -s %s -j RETURN\n", srcip);
+#else
 					fprintf(fp, "-A ACCESS_RESTRICTION -s %s -j ACCEPT\n", srcip);
+#endif
 					continue;
 				}
 				if (atoi(accessType) & ACCESS_WEBUI) {
@@ -3604,11 +3759,19 @@ TRACE_PT("writing Parental Control\n");
 				}
 #ifdef RTCONFIG_SSH
 				if ((atoi(accessType) & ACCESS_SSH) && nvram_get_int("sshd_enable") != 0 ) {
+#ifdef RTCONFIG_PROTECTION_SERVER
+					fprintf(fp, "-A ACCESS_RESTRICTION -s %s -p tcp --dport %d -j RETURN\n", srcip, nvram_get_int("sshd_port") ? : 22);
+#else
 					fprintf(fp, "-A ACCESS_RESTRICTION -s %s -p tcp --dport %d -j ACCEPT\n", srcip, nvram_get_int("sshd_port") ? : 22);
+#endif
 				}
 #endif
 				if ((atoi(accessType) & ACCESS_TELNET) && nvram_get_int("telnetd_enable") == 1) {
+#ifdef RTCONFIG_PROTECTION_SERVER
+					fprintf(fp, "-A ACCESS_RESTRICTION -s %s -p tcp --dport 23 -j RETURN\n", srcip);
+#else
 					fprintf(fp, "-A ACCESS_RESTRICTION -s %s -p tcp --dport 23 -j ACCEPT\n", srcip);
+#endif
 				}
 			}
 			free(nv);
@@ -3616,6 +3779,17 @@ TRACE_PT("writing Parental Control\n");
 				fprintf(fp, "-A ACCESS_RESTRICTION -j %s\n", logdrop);
 			}
 		}
+#ifdef RTCONFIG_PROTECTION_SERVER
+		if (nvram_get_int("telnetd_enable") != 0
+#ifdef RTCONFIG_SSH
+    		    || nvram_get_int("sshd_enable") != 0
+#endif
+   		) {
+			fprintf(fp, "-A INPUT ! -i %s -j %s_WAN\n", lan_if, PROTECT_SRV_RULE_CHAIN);
+			fprintf(fp, "-A INPUT -i %s -j %s_LAN\n", lan_if, PROTECT_SRV_RULE_CHAIN);
+		}
+#endif
+
 
 TRACE_PT("write url filter in INPUT\n");
 #ifdef RTCONFIG_IPV6
@@ -3681,12 +3855,12 @@ TRACE_PT("write url filter in INPUT\n");
 		}
 
 		// Firewall between WAN and Local
-		if (nvram_get_int("misc_http_x") && nvram_get_int("enable_acc_restriction") == 0) {
+		if (nvram_get_int("misc_http_x")) {
 #ifdef RTCONFIG_HTTPS
 			int enable = nvram_get_int("http_enable");
 			if (enable != 0) {
 				fprintf(fp, "-A INPUT -p tcp -m tcp -d %s --dport %d -j %s\n",
-					lan_ip, nvram_get_int("https_lanport") ? : 433, logaccept);
+					lan_ip, nvram_get_int("https_lanport") ? : 443, logaccept);
 			}
 			if (enable != 1)
 #endif
@@ -3696,7 +3870,7 @@ TRACE_PT("write url filter in INPUT\n");
 			}
 		}
 #ifdef RTCONFIG_SSH
-		if (nvram_get_int("sshd_enable") == 1 && nvram_get_int("enable_acc_restriction") == 0) {
+		if (nvram_get_int("sshd_enable") == 1) {
 			fprintf(fp, "-A INPUT -p tcp -m tcp --dport %d -j %s\n",
 				nvram_get_int("sshd_port") ? : 22, logaccept);
 		}
@@ -4427,6 +4601,9 @@ TRACE_PT("write url filter in FORWARD\n");
 
 	//system("iptables -F");
 	eval("iptables-restore", "/tmp/filter_rules");
+#ifdef RTCONFIG_PROTECTION_SERVER
+	kill_pidfile_s(PROTECT_SRV_PID_PATH, SIGUSR1);
+#endif
 
 #ifdef RTCONFIG_IPV6
 	if (ipv6_enabled())

@@ -850,6 +850,7 @@ struct wlc_bsscfg {
 	wlc_mutx_policy_t *mutx;
 	struct wl_timer *pilot_timer;     /* Measurement Piolt timer */
 	uint8 mp_period;
+	uint8 custom_oui[DOT11_OUI_LEN];
 };
 
 /* wlc_bsscfg_t flags */

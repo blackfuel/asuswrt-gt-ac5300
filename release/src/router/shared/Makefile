@@ -101,6 +101,7 @@ CFLAGS += -DRTN10P_V3
 endif
 
 OBJS = shutils.o linux_timer.o defaults.o model.o rtstate.o boardapi.o
+OBJS += network_utility.o
 OBJS += misc.o version.o files.o strings.o process.o 
 OBJS += bin_sem_asus.o semaphore.o pids.o $(if $(wildcard notify_rc.c),notify_rc.o,prebuild/notify_rc.o)
 OBJS += discover.o
@@ -248,7 +249,7 @@ endif
 OBJS	+= $(if $(wildcard shutils_private.c),shutils_private.o,prebuild/shutils_private.o)
 
 ifeq ($(CONFIG_BCMWL5),y)
-ifneq ($(RTCONFIG_DSL),y)
+ifneq ($(RTCONFIG_DSL)$(HND_ROUTER),y)
 CFLAGS += -DTRX_NEW
 endif
 OBJS	+= $(if $(wildcard sysdeps/broadcom/private.c),private.o,prebuild/private.o)

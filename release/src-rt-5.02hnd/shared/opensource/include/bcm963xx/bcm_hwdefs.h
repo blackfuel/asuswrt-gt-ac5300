@@ -459,7 +459,8 @@ typedef struct
     unsigned short opticRxPwrReading;   // optical initial rx power reading
     unsigned short opticRxPwrOffset;    // optical rx power offset
     unsigned short opticTxPwrReading;   // optical initial tx power reading
-    unsigned char ucUnused2[58];
+    unsigned char ucUnused2[57];
+    unsigned char noUpdatingFirmware;
     unsigned char ucFlashBlkSize;
     unsigned char ucAuxFSPercent;
     unsigned char ucUnused3[2];

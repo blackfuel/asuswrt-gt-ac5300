@@ -84,6 +84,23 @@ var is_TW_sku = (ttc.search("TW") == -1) ? false : true;
 var is_CN_sku = (ttc.search("CN") == -1) ? false : true;
 var odmpid = '<% nvram_get("odmpid"); %>';
 
+if(parent.dual_ewan){
+	var autodet_state ='<% nvram_get("autodet_state"); %>';
+	var autodet_auxstate = '<% nvram_get("autodet_auxstate"); %>';
+	var autodet1_state = '<% nvram_get("autodet1_state"); %>';
+	var autodet1_auxstate = '<% nvram_get("autodet1_auxstate"); %>';
+}
+else{
+	if(parent.dualwan_enabled){
+		var autodet_state = ((parent.ewan_index == 0)? '<% nvram_get("autodet_state"); %>': '<% nvram_get("autodet1_state"); %>');
+		var autodet_auxstate = (parent.ewan_index == 0)? '<% nvram_get("autodet_auxstate"); %>': '<% nvram_get("autodet1_auxstate"); %>';
+	}
+	else{
+		var autodet_state = '<% nvram_get("autodet_state"); %>';
+		var autodet_auxstate = '<% nvram_get("autodet_auxstate"); %>';
+	}
+}
+
 
 function QKinternettype_load_body(){
 	parent.document.title = "<#Web_Title#> - <#QKSet_type_head#>";
@@ -104,7 +121,7 @@ function QKinternettype_load_body(){
 			document.applyForm.wan1_proto.disabled = false;
 			document.applyForm.wan_proto.disabled = true;
 			if(parent.cur_wan_unit == 0){
-				if('<% nvram_get("autodet_state"); %>' == "6" || '<% nvram_get("autodet_auxstate"); %>' == "6")
+				if(autodet_state == "6" || autodet_auxstate == "6")
 					document.applyForm.wan0_proto.value = "pppoe"
 				else
 					document.applyForm.wan0_proto.value = '<% nvram_get("wan0_proto"); %>';
@@ -112,7 +129,7 @@ function QKinternettype_load_body(){
 				change_wan_type(document.applyForm.wan0_proto.value);
 			}
 			else{
-				if('<% nvram_get("autodet1_state"); %>' == "6" || '<% nvram_get("autodet1_auxstate"); %>' == "6")
+				if(autodet1_state == "6" || autodet1_auxstate == "6")
 					document.applyForm.wan1_proto.value = "pppoe"
 				else
 					document.applyForm.wan1_proto.value = '<% nvram_get("wan1_proto"); %>';
@@ -121,7 +138,7 @@ function QKinternettype_load_body(){
 			}	
 		}
 		else{
-			if('<% nvram_get("autodet_state"); %>' == "6" || '<% nvram_get("autodet_auxstate"); %>' == "6")
+			if(autodet_state == "6" || autodet_auxstate == "6")
 				document.applyForm.wan_proto.value = "pppoe"
 			else
 				document.applyForm.wan_proto.value = '<% nvram_get("wan_proto"); %>';

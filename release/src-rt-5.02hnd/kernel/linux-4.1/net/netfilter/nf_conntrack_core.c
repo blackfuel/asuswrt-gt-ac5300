@@ -420,16 +420,6 @@ destroy_conntrack(struct nf_conntrack *nfct)
 	NF_CT_ASSERT(atomic_read(&nfct->use) == 0);
 	NF_CT_ASSERT(!timer_pending(&ct->timeout));
 	
-#if defined(CONFIG_BCM_KF_NETFILTER)
-    if (unlikely(nf_ct_is_template(ct))) 
-    {
-        nf_ct_ext_destroy(ct);
-        nf_ct_ext_free(ct);
-        kfree(ct);
-        return;
-    }
-#endif
-
 	rcu_read_lock();
 	l4proto = __nf_ct_l4proto_find(nf_ct_l3num(ct), nf_ct_protonum(ct));
 	if (l4proto && l4proto->destroy)
@@ -465,7 +455,14 @@ destroy_conntrack(struct nf_conntrack *nfct)
 	local_bh_enable();
 
 	if (ct->master)
+#if defined(CONFIG_BCM_KF_NETFILTER)
+	{
+		list_del(&ct->derived_list);
+#endif
 		nf_ct_put(ct->master);
+#if defined(CONFIG_BCM_KF_NETFILTER)
+	}
+#endif
 
 #if defined(CONFIG_BCM_KF_NETFILTER)
 	if (test_bit(IPS_IQOS_BIT,&ct->status))

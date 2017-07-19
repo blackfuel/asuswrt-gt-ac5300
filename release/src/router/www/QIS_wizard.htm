@@ -290,6 +290,10 @@ function QIS_load_body(){
 			document.QKform.sw_mode.value = 4;
 	}
 
+	if(based_modelid == "HIVEDOT" || based_modelid == "HIVESPOT"){
+		document.getElementById("QIS_wizard_menu").style.display = "none";
+		document.getElementById("qis_menu").style.marginTop = "-160px";
+	}
 
 	showCase = (document.getElementById("flag").value == "") ? getDefaultCase() : document.getElementById("flag").value;
 	with(document.redirectForm){
@@ -595,7 +599,7 @@ function detect_httpd(){
   <tr>
 		<td style="width:210px;*width:263px;font-size:12px;" valign="top">
 			<div style="margin-left: 15px;margin-top: -160px;cursor:pointer;" class="menu menu_QIS_title" onclick="gotoIndex();" id="QIS_wizard_menu"><table><tbody><tr><td><div class="menu_Icon menu_QIS"></div></td><td class="menu_Desc" sytle=""><#CTL_Setting#></td></tr></tbody></table></div>
-			<div class="menu_Split" style="margin-left:15px;"><table width="100%" height="30px"><tbody><tr><td style="font-size:12px;text-align:center;line-height:25px;"><#QIS_title#></td></tr></tbody></table></div>
+			<div id="qis_menu" class="menu_Split" style="margin-left:15px;"><table width="100%" height="30px"><tbody><tr><td style="font-size:12px;text-align:center;line-height:25px;"><#QIS_title#></td></tr></tbody></table></div>
 			<div class="lefttabmid" id="t1" style="margin-left:15px;"><table height="52px"><tbody><tr><td><img style="margin-left:3px;" border="0" src="/images/qis/qisStep1.png"></td><td><div class="qismenu"><#QIS_step2#></div></td></tr></tbody></table></div>
 			<div class="lefttabmid" id="t2" style="margin-left:15px;"><table height="52px"><tbody><tr><td><img style="margin-left:3px;" border="0" src="/images/qis/qisStep2.png"></td><td><div class="qismenu"><#QIS_step3#></div></td></tr></tbody></table></div>
 			<div class="lefttabmid" id="t3" style="margin-left:15px;"><table height="52px"><tbody><tr><td><img style="margin-left:3px;" border="0" src="/images/qis/qisStep3.png"></td><td><div class="qismenu"><#QIS_step4#></div></td></tr></tbody></table></div>

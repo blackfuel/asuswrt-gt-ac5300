@@ -417,6 +417,10 @@ extern int start_thermald(void);
 extern int country_to_code(char *ctry, int band);
 #endif	/* RTCONFIG_QCA */
 
+#if defined(RTCONFIG_ALPINE) || defined(RTCONFIG_LANTIQ)
+extern int start_nvram_txt(void);
+#endif
+
 /* board API under sysdeps/alpine/alpine.c */
 #if defined(RTCONFIG_ALPINE)
 extern int FWRITE(const char *da, const char* str_hex);
@@ -466,6 +470,7 @@ static inline const void *req_fw_hook(const char *filename, size_t *new_size) { 
 #endif
 
 /* board API under sysdeps/init-broadcom.c sysdeps/broadcom sysdeps/tcode_brcm.c */
+extern void init_others(void);
 #ifdef CONFIG_BCMWL5
 extern void wl_vif_hwaddr_set(const char *name);
 extern int wlconf(char *ifname, int unit, int subunit);
@@ -475,7 +480,6 @@ extern void wlconf_post(const char *ifname);
 extern void wlconf_pre();
 extern void init_wl_compact(void);
 extern void check_afterburner(void);
-extern void init_others(void);
 extern int set_wltxpower();
 extern int is_ure(int unit);
 #ifdef RTCONFIG_BCMWL6
@@ -536,6 +540,7 @@ extern void bsd_defaults(void);
 #ifdef HND_ROUTER
 extern void fc_init();
 extern void fc_fini();
+extern void hnd_nat_ac_init(int bootup);
 #ifdef RTCONFIG_LAN4WAN_LED
 extern void setLANLedOn(void);
 extern void setLANLedOff(void);
@@ -552,7 +557,7 @@ extern int hw_vht_cap();
 
 #if defined(RTCONFIG_QCA)
 #if defined(HIVEDOT) || defined(HIVESPOT)
-extern void start_cap(int c);
+extern int start_cap(int c);
 extern void start_re(int c);                         
 extern void config_hive(int role,int band);   
 extern void stop_hyfi(void);
@@ -560,6 +565,7 @@ extern void start_hyfi(void);
 extern int get_role(void);
 extern void hyfi_process(void);
 extern void start_wifimon_check(int delay);
+extern void duplicate_5g2();
 #endif
 #endif
 
@@ -590,6 +596,10 @@ extern void fa_nvram_adjust();
 // format.c
 extern void adjust_url_urlelist();
 extern void adjust_ddns_config();
+extern void adjust_access_restrict_config();
+#if defined(RTCONFIG_VPN_FUSION)	
+extern void adjust_vpnc_config(void);
+#endif
 
 // interface.c
 extern int _ifconfig(const char *name, int flags, const char *addr, const char *netmask, const char *dstaddr, int mtu);
@@ -620,6 +630,7 @@ extern int autodet_plc_main(int argc, char *argv[]);
 #endif
 extern int autodet_main(int argc, char *argv[]);
 extern int detwan_main(int argc, char *argv[]);
+extern int dpdt_ant_main(int argc, char *argv[]);
 extern void start_wan(void);
 extern void stop_wan(void);
 extern int add_multi_routes(void);
@@ -781,6 +792,9 @@ extern int vpnc_ippreup_main(int argc, char **argv);
 extern int vpnc_authfail_main(int argc, char **argv);
 #ifdef RTCONFIG_VPN_FUSION
 extern void update_vpnc_state(const int vpnc_idx, const int state, const int reason);
+extern int vpnc_ovpn_up_main(int argc, char **argv);
+extern int vpnc_ovpn_down_main(int argc, char **argv);
+extern int vpnc_ovpn_route_up_main(int argc, char **argv);
 #else
 extern void update_vpnc_state(char *prefix, int state, int reason);
 #endif
@@ -1334,6 +1348,7 @@ extern int start_lldpd(void);
 extern int firmware_check_main(int argc, char *argv[]);
 #ifdef RTCONFIG_HTTPS
 extern int rsasign_check_main(int argc, char *argv[]);
+extern int rsarootca_check_main(int argc, char *argv[]);
 extern char *pwdec(const char *input);
 extern char *pwdec_dsl(char *input);
 #endif
@@ -1442,6 +1457,10 @@ extern void set_captive_portal_wl(void);
 extern void overwrite_captive_portal_ssid(void);
 extern void overwrite_captive_portal_adv_ssid(void);
 #endif
+#if defined(RTCONFIG_BT_CONN)
+extern void start_bluetooth_service(void);
+extern void stop_bluetooth_service(void);
+#endif  /* RTCONFIG_BT_CONN */	
 #ifdef RTCONFIG_FBWIFI
 extern void stop_fbwifi_check();
 extern void start_fbwifi_check();

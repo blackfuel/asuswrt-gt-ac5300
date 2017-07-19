@@ -4,63 +4,71 @@ REBUILD_TDTS_MODULE=0
 
 ifeq ($(wildcard $(TOP)/bwdpi_source/prebuilt/*),)
 pre_build:
-ifeq ($(RTCONFIG_QCA),y)
-	@cp include/tdts/sysdeps/qca-tmcfg.h include/tdts/tmcfg.h -f                     # qca
-	@cp include/udb/sysdeps/qca-tmcfg_udb.h include/udb/tmcfg_udb.h -f               # qca
-	@cp lib/qca/* lib/ -f                                                            # qca
-	@cp bin/qca/* bin/ -rf                                                           # qca
-	@cp modules/sysdeps/qca-Module.symvers modules/sysdeps/Module.symvers -rf        # qca
-	@cp src/tdts_udb_shell/sysdeps/qca-kbuild.inc src/tdts_udb_shell/kbuild.inc -f   # qca
-	@cp src/tdts_udbfw/sysdeps/qca/* src/tdts_udbfw/ -f                              # qca
+ifeq ($(RTCONFIG_SOC_IPQ8064),y)
+	@cp include/tdts/sysdeps/ipq806x-tmcfg.h include/tdts/tmcfg.h -f                     # ipq806x
+	@cp include/udb/sysdeps/ipq806x-tmcfg_udb.h include/udb/tmcfg_udb.h -f               # ipq806x
+	@cp lib/ipq806x/* lib/ -f                                                            # ipq806x
+	@cp bin/ipq806x/* bin/ -rf                                                           # ipq806x
+	@cp modules/sysdeps/ipq806x-Module.symvers modules/sysdeps/Module.symvers -rf        # ipq806x
+	@cp src/tdts_udb_shell/sysdeps/ipq806x-kbuild.inc src/tdts_udb_shell/kbuild.inc -f   # ipq806x
+	@cp src/tdts_udbfw/sysdeps/ipq806x/* src/tdts_udbfw/ -f                              # ipq806x
+else ifeq ($(RTCONFIG_SOC_IPQ40XX),y)
+	@cp include/tdts/sysdeps/dakota-tmcfg.h include/tdts/tmcfg.h -f                      # dakota
+	@cp include/udb/sysdeps/dakota-tmcfg_udb.h include/udb/tmcfg_udb.h -f                # dakota
+	@cp lib/dakota/* lib/ -f                                                             # dakota
+	@cp bin/dakota/* bin/ -rf                                                            # dakota
+	@cp modules/sysdeps/dakota-Module.symvers modules/sysdeps/Module.symvers -rf         # dakota
+	@cp src/tdts_udb_shell/sysdeps/dakota-kbuild.inc src/tdts_udb_shell/kbuild.inc -f    # dakota
+	@cp src/tdts_udbfw/sysdeps/dakota/* src/tdts_udbfw/ -f                               # dakota
 else ifeq ($(RTCONFIG_RALINK),y)
-	@cp include/tdts/sysdeps/mtk-tmcfg.h include/tdts/tmcfg.h -f                     # mtk
-	@cp include/udb/sysdeps/mtk-tmcfg_udb.h include/udb/tmcfg_udb.h -f               # mtk
-	@cp lib/mtk/* lib/ -f                                                            # mtk
-	@cp bin/mtk/* bin/ -rf                                                           # mtk
-	@cp modules/sysdeps/mtk-Module.symvers modules/sysdeps/Module.symvers -rf        # mtk
-	@cp src/tdts_udb_shell/sysdeps/mtk-kbuild.inc src/tdts_udb_shell/kbuild.inc -f   # mtk
-	@cp src/tdts_udbfw/sysdeps/mtk/* src/tdts_udbfw/ -f                              # mtk
+	@cp include/tdts/sysdeps/mtk-tmcfg.h include/tdts/tmcfg.h -f                         # mtk
+	@cp include/udb/sysdeps/mtk-tmcfg_udb.h include/udb/tmcfg_udb.h -f                   # mtk
+	@cp lib/mtk/* lib/ -f                                                                # mtk
+	@cp bin/mtk/* bin/ -rf                                                               # mtk
+	@cp modules/sysdeps/mtk-Module.symvers modules/sysdeps/Module.symvers -rf            # mtk
+	@cp src/tdts_udb_shell/sysdeps/mtk-kbuild.inc src/tdts_udb_shell/kbuild.inc -f       # mtk
+	@cp src/tdts_udbfw/sysdeps/mtk/* src/tdts_udbfw/ -f                                  # mtk
 else ifeq ($(RTCONFIG_BCMARM),y)
-	@cp lib/bcm/* lib/ -f                                                            # bcm all
-	@cp src/tdts_udb_shell/sysdeps/brcm-kbuild.inc src/tdts_udb_shell/kbuild.inc -f  # bcm all
-	@cp src/tdts_udbfw/sysdeps/brcm/* src/tdts_udbfw/ -f                             # bcm non-up
+	@cp lib/bcm/* lib/ -f                                                                # bcm all
+	@cp src/tdts_udb_shell/sysdeps/brcm-kbuild.inc src/tdts_udb_shell/kbuild.inc -f      # bcm all
+	@cp src/tdts_udbfw/sysdeps/brcm/* src/tdts_udbfw/ -f                                 # bcm non-up
 ifeq ($(RTCONFIG_BCM7),y)
-	@cp include/tdts/sysdeps/bcm7-tmcfg.h include/tdts/tmcfg.h -f                    # bcm7
-	@cp include/udb/sysdeps/bcm7-tmcfg_udb.h include/udb/tmcfg_udb.h -f              # bcm7
-	@cp bin/bcm7/* bin/ -rf                                                          # bcm7
-	@cp modules/sysdeps/bcm7-Module.symvers modules/sysdeps/Module.symvers -rf       # bcm7
+	@cp include/tdts/sysdeps/bcm7-tmcfg.h include/tdts/tmcfg.h -f                        # bcm7
+	@cp include/udb/sysdeps/bcm7-tmcfg_udb.h include/udb/tmcfg_udb.h -f                  # bcm7
+	@cp bin/bcm7/* bin/ -rf                                                              # bcm7
+	@cp modules/sysdeps/bcm7-Module.symvers modules/sysdeps/Module.symvers -rf           # bcm7
 else ifeq ($(HND_ROUTER),y)
-	@cp include/tdts/sysdeps/hnd-tmcfg.h include/tdts/tmcfg.h -f                     # hnd
-	@cp include/udb/sysdeps/hnd-tmcfg_udb.h include/udb/tmcfg_udb.h -f               # hnd
-	@cp lib/hnd/* lib/ -f                                                            # hnd
-	@cp bin/hnd/* bin/ -rf                                                           # hnd
-	@cp modules/sysdeps/hnd-Module.symvers modules/sysdeps/Module.symvers -rf        # hnd
-	@cp src/tdts_udbfw/sysdeps/hnd/* src/tdts_udbfw/ -f                              # hnd
-	@cp src/tdts_udb_shell/sysdeps/hnd-kbuild.inc src/tdts_udb_shell/kbuild.inc -f   # hnd
+	@cp include/tdts/sysdeps/hnd-tmcfg.h include/tdts/tmcfg.h -f                         # hnd
+	@cp include/udb/sysdeps/hnd-tmcfg_udb.h include/udb/tmcfg_udb.h -f                   # hnd
+	@cp lib/hnd/* lib/ -f                                                                # hnd
+	@cp bin/hnd/* bin/ -rf                                                               # hnd
+	@cp modules/sysdeps/hnd-Module.symvers modules/sysdeps/Module.symvers -rf            # hnd
+	@cp src/tdts_udbfw/sysdeps/hnd/* src/tdts_udbfw/ -f                                  # hnd
+	@cp src/tdts_udb_shell/sysdeps/hnd-kbuild.inc src/tdts_udb_shell/kbuild.inc -f       # hnd
 else ifeq ($(RTCONFIG_BCM_7114),y)
-	@cp include/tdts/sysdeps/bcm7114-tmcfg.h include/tdts/tmcfg.h -f                 # bcm7114
-	@cp include/udb/sysdeps/bcm7114-tmcfg_udb.h include/udb/tmcfg_udb.h -f           # bcm7114
-	@cp bin/bcm7114/* bin/ -rf                                                       # bcm7114
-	@cp modules/sysdeps/bcm7114-Module.symvers modules/sysdeps/Module.symvers -rf    # bcm7114
+	@cp include/tdts/sysdeps/bcm7114-tmcfg.h include/tdts/tmcfg.h -f                     # bcm7114
+	@cp include/udb/sysdeps/bcm7114-tmcfg_udb.h include/udb/tmcfg_udb.h -f               # bcm7114
+	@cp bin/bcm7114/* bin/ -rf                                                           # bcm7114
+	@cp modules/sysdeps/bcm7114-Module.symvers modules/sysdeps/Module.symvers -rf        # bcm7114
 else
 ifeq ($(RTCONFIG_BCMSMP),y)
-	@cp include/tdts/sysdeps/bcm6_smp-tmcfg.h include/tdts/tmcfg.h -f                # bcm6_smp
-	@cp include/udb/sysdeps/bcm6_smp-tmcfg_udb.h include/udb/tmcfg_udb.h -f          # bcm6_smp
-	@cp bin/bcm6_smp/* bin/ -rf                                                      # bcm6_smp
-	@cp modules/sysdeps/bcm6_smp-Module.symvers modules/sysdeps/Module.symvers -rf   # bcm6_smp
+	@cp include/tdts/sysdeps/bcm6_smp-tmcfg.h include/tdts/tmcfg.h -f                    # bcm6_smp
+	@cp include/udb/sysdeps/bcm6_smp-tmcfg_udb.h include/udb/tmcfg_udb.h -f              # bcm6_smp
+	@cp bin/bcm6_smp/* bin/ -rf                                                          # bcm6_smp
+	@cp modules/sysdeps/bcm6_smp-Module.symvers modules/sysdeps/Module.symvers -rf       # bcm6_smp
 else
-	@cp include/tdts/sysdeps/bcm6_up-tmcfg.h include/tdts/tmcfg.h -f                 # bcm6_up
-	@cp include/udb/sysdeps/bcm6_up-tmcfg_udb.h include/udb/tmcfg_udb.h -f           # bcm6_up
-	@cp bin/bcm6_up/* bin/ -rf                                                       # bcm6_up
-	@cp modules/sysdeps/bcm6_up-Module.symvers modules/sysdeps/Module.symvers -rf    # bcm6_up
-	@cp src/tdts_udbfw/sysdeps/brcm_up/* src/tdts_udbfw/ -f                          # bcm up
+	@cp include/tdts/sysdeps/bcm6_up-tmcfg.h include/tdts/tmcfg.h -f                     # bcm6_up
+	@cp include/udb/sysdeps/bcm6_up-tmcfg_udb.h include/udb/tmcfg_udb.h -f               # bcm6_up
+	@cp bin/bcm6_up/* bin/ -rf                                                           # bcm6_up
+	@cp modules/sysdeps/bcm6_up-Module.symvers modules/sysdeps/Module.symvers -rf        # bcm6_up
+	@cp src/tdts_udbfw/sysdeps/brcm_up/* src/tdts_udbfw/ -f                              # bcm up
 endif
 endif
 endif
 else  # ($(wildcard $(TOP)/bwdpi_source/prebuilt/*),)
 pre_build:
 ifeq ($(HND_ROUTER),y)
-	@cp prebuilt/tmcfg.h include/tdts/tmcfg.h -f                     # hnd
+	@cp prebuilt/tmcfg.h include/tdts/tmcfg.h -f                      # hnd
 	@cp prebuilt/tmcfg_udb.h include/udb/tmcfg_udb.h -f               # hnd
 endif
 endif # ($(wildcard $(TOP)/bwdpi_source/prebuilt/*),)
@@ -103,10 +111,13 @@ install: all
 	@rm -f RC_INDEP/*.sh
 	@rm -f RC_INDEP/*.conf
 	-@cp -f src/tdts*/*.ko RC_INDEP/
-ifeq ($(RTCONFIG_QCA),y)
-	-@cp -f modules/qca/* RC_INDEP/
+ifeq ($(RTCONFIG_SOC_IPQ8064),y)
+	-@cp -f modules/ipq806x/* RC_INDEP/
+else ifeq ($(RTCONFIG_SOC_IPQ40XX),y)
+	-@cp -f modules/dakota/* RC_INDEP/
 else ifeq ($(RTCONFIG_RALINK),y)
 	-@cp -f modules/mtk/* RC_INDEP/
+	-@cp -f bin/partial/rule.trf RC_INDEP/
 else ifeq ($(RTCONFIG_BCMARM),y)
 ifeq ($(RTCONFIG_BCM7),y)
 	-@cp -f modules/bcm7/* RC_INDEP/
@@ -119,6 +130,7 @@ ifeq ($(RTCONFIG_BCMSMP),y)
 	-@cp -f modules/bcm6_smp/* RC_INDEP/
 else
 	-@cp -f modules/bcm6_up/* RC_INDEP/
+	-@cp -f bin/partial/rule.trf RC_INDEP/
 endif
 endif
 endif

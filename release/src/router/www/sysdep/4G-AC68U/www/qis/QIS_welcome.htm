@@ -40,7 +40,7 @@ if(parent.dual_ewan){
 	var autodet1_auxstate = '<% nvram_get("autodet1_auxstate"); %>';
 }
 else{
-	if(parent.wans_dualwan.length != 0){
+	if(parent.dualwan_enabled){
 		var autodet_state = (parent.ewan_index == 0)? '<% nvram_get("autodet_state"); %>': '<% nvram_get("autodet1_state"); %>';
 		var autodet_auxstate = (parent.ewan_index == 0)? '<% nvram_get("autodet_auxstate"); %>': '<% nvram_get("autodet1_auxstate"); %>';
 	}
@@ -191,7 +191,7 @@ function QKinternettype_load_body(){
 		document.getElementById("Productdesc_4").innerHTML = check_desc4;
 	}
 
-	if(/*based_modelid == "4G-AC55U"*/parent.gobiSupport){
+	if(parent.gobi_support){
 		document.getElementById("main_manual").style.display = "none";
 		document.getElementById("lte_manual").style.display = "";
 	}
@@ -202,8 +202,7 @@ function QKinternettype_load_body(){
 	
 	if(!parent.dual_ewan){
 		if(wanauxstate != 1){
-			if(parent.gobiSupport){
-				console.log("parent.gobiSupport");
+			if(parent.gobi_support){
 				startDetect();
 			}
 			else	
@@ -257,7 +256,7 @@ function detect_if_wan_plug(flag){
 		success: function(response){
 			if(!parent.dual_ewan){ // no dual ethernet wan
 				if(autodet_state == "4"){// ethernet did not plug
-					if(/*based_modelid == "4G-AC55U"*/parent.gobiSupport){
+					if(parent.gobi_support){
 						if( sim_state == "-1")
 							redirect_page("unplug_ethsim");
 						else

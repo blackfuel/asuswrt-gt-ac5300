@@ -521,10 +521,6 @@ int PJ_THREAD_FUNC CSndQueue::worker(void *param)
 {
    CSndQueue* self = (CSndQueue*)param;
 
-#ifndef WIN32
-	pthread_detach(pthread_self());
-#endif
-
 #if 1
    pj_thread_desc desc;
    pj_thread_t *thread = 0;
@@ -1022,10 +1018,6 @@ void CRcvQueue::init(const int& qsize, const int& payload, const int& version, c
 int PJ_THREAD_FUNC CRcvQueue::worker(void *param)
 {
 	CRcvQueue* self = (CRcvQueue*)param;
-
-#ifndef WIN32
-	pthread_detach(pthread_self());
-#endif
 
 #if 1
    pj_thread_desc desc;

@@ -127,7 +127,7 @@ function ajax_detectWAN(){
 			setTimeout("ajax_detectWAN();", 1000);
 		},
 		success: function(response){
-			if(/*based_modelid == "4G-AC55U"*/parent.gobiSupport){
+			if(parent.gobi_support){
 				getDualWANState();
 			}
 
@@ -158,7 +158,7 @@ function successstatus(){
 	var ssid_5g = '<% nvram_char_to_ascii("WLANConfig11b", "wl1_ssid"); %>';
 
 	if(wanstate == 2 && wanauxstate != 1){
-		if(/*based_modelid == "4G-AC55U"*/parent.gobiSupport){
+		if(parent.gobi_support){
 			if(usb_wanstate == 2 && usb_wansbstate == 0 && usb_wanauxstate == 0))
 				gotoPage('/qis/QIS_wireless.htm', '', 0);
 			else

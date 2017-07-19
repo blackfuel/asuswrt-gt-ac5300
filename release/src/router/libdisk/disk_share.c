@@ -409,7 +409,7 @@ extern int initial_folder_list(const char *const mount_path) {
 extern int initial_var_file(const char *const account, const char *const mount_path) {
 	FILE *fp;
 	char *var_file;
-	int result, i;
+	int i;
 	int sh_num;
 	char **folder_list;
 	int samba_right, ftp_right, dms_right;
@@ -423,8 +423,8 @@ extern int initial_var_file(const char *const account, const char *const mount_p
 	}
 
 	// 1. get the folder number and folder_list
-	//result = get_folder_list(mount_path, &sh_num, &folder_list);
-	result = get_all_folder(mount_path, &sh_num, &folder_list);
+	//get_folder_list(mount_path, &sh_num, &folder_list);
+	get_all_folder(mount_path, &sh_num, &folder_list);
 
 	// 2. get the var file
 	if(get_var_file_name(account, mount_path, &var_file)){

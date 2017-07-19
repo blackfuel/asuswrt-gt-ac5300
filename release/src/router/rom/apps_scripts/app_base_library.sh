@@ -3,24 +3,29 @@
 
 
 f=`nvram get apps_install_folder`
+apps_new_arm=`nvram get apps_new_arm`
 case $f in
 	"asusware.arm")
 		pkg_type=`echo $f|sed -e "s,asusware\.,,"`
-		PKG_LIST="openssl zlib libcurl libevent ncurses libxml2 libsigc++ libpar2 pcre spawn-fcgi"
+		if [ $apps_new_arm -eq 1 ]; then 
+			PKG_LIST="asusopenssl zlib asuslibcurl libevent ncurses-base ncurses libxml2 libsigc++ libpar2 pcre spawn-fcgi bzip2 libiconv"
+		else
+			PKG_LIST="asusopenssl zlib asuslibcurl libevent ncurses libxml2 libsigc++ libpar2 pcre spawn-fcgi bzip2" 
+		fi
 		;;
 	"asusware.big")
 		# DSL big-endian MIPS: DSL-N66U
 		pkg_type="mipsbig"
-		PKG_LIST="openssl zlib libevent ncurses libxml2 pcre spawn-fcgi"
+		PKG_LIST="asusopenssl zlib asuslibcurl libevent ncurses libxml2 pcre spawn-fcgi bzip2"
 		;;
 	"asusware.mipsbig")
 		# QCA big-endian MIPS: RT-AC55U
 		pkg_type=`echo $f|sed -e "s,asusware\.,,"`
-		PKG_LIST="openssl zlib libevent ncurses libxml2 pcre spawn-fcgi"
+		PKG_LIST="asusopenssl zlib asuslibcurl libevent ncurses libxml2 pcre spawn-fcgi bzip2"
 		;;
 	"asusware")
 		pkg_type="mipsel"
-		PKG_LIST="openssl zlib libcurl libevent ncurses libxml2 libuclibc++ libsigc++ libpar2 pcre spawn-fcgi"
+		PKG_LIST="asusopenssl zlib asuslibcurl libevent ncurses libxml2 libuclibc++ libsigc++ libpar2 pcre spawn-fcgi bzip2"
 		;;
 	*)
 		echo "Unknown apps_install_folder: $f"

@@ -107,7 +107,6 @@ extern "C" {
 #define OBEX_MAP_UUID		"00001134-0000-1000-8000-00805f9b34fb"
 
 /* GATT ASUS Characteristic Types */
-#define ASUS_UUID					0xAB00	
 #define GATT_CHARAC_ASUS_PRODUCT			0xAB10
 
 /* GATT UUIDs section */
@@ -142,7 +141,6 @@ extern "C" {
 #define GATT_CHARAC_VALID_RANGE_UUID			0x2906
 #define GATT_EXTERNAL_REPORT_REFERENCE			0x2907
 #define GATT_REPORT_REFERENCE				0x2908
-/* GATT ASUS Characteristic Descriptors */
 
 typedef struct {
 	enum {

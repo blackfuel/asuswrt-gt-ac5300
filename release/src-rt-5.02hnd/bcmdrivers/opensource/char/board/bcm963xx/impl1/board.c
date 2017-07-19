@@ -325,6 +325,7 @@ static ssize_t proc_set_led(struct file *f, const char *buf, unsigned long cnt, 
 static ssize_t proc_get_param(struct file *, char *, size_t, loff_t *);
 static ssize_t proc_get_param_string(struct file *, char *, size_t, loff_t *);
 static ssize_t proc_set_param(struct file *, const char *, size_t, loff_t *);
+static ssize_t proc_set_param2(struct file *, const char *, size_t, loff_t *);
 static ssize_t proc_set_led(struct file *, const char *, size_t, loff_t *);
 #endif
 
@@ -5230,6 +5231,17 @@ static ssize_t __proc_get_boardid(char *buf, int cnt)
     sprintf(buf, "%s", boardid);
     return strlen(boardid);
 }
+
+static ssize_t __proc_get_noUpdatingFirmware(char *buf, int cnt)
+{
+    unsigned char noUpdatingFirmware;
+    int n = 0;
+
+    kerSysNvRamGetNoUpdatingFirmware(&noUpdatingFirmware);
+    n = sprintf(buf, "%d", noUpdatingFirmware);
+    return n;
+}
+
 static ssize_t __proc_get_socinfo(char *buf, int cnt)
 {
     char socname[15] = {0};
@@ -5326,6 +5338,20 @@ static ssize_t proc_get_boardid( struct file *file,
     return ret;
 }
 
+static ssize_t proc_get_noUpdatingFirmware( struct file *file,
+                                       char __user *buf,
+                                       size_t len, loff_t *pos)
+{
+    int ret=0;
+    if(*pos == 0)
+    {
+       *pos=__proc_get_noUpdatingFirmware(buf, len);
+           if(likely(*pos != 0)) //something went wrong
+        ret=*pos;
+    }
+    return ret;
+}
+
 static ssize_t proc_get_socinfo( struct file *file,
                                        char __user *buf,
                                        size_t len, loff_t *pos)
@@ -5396,6 +5422,10 @@ static ssize_t proc_get_wan_type( struct file *file,
     static struct file_operations boardid_proc = {
        .read=proc_get_boardid,
     };
+    static struct file_operations noUpdatingFirmware_proc = {
+       .read=proc_get_noUpdatingFirmware,
+       .write=proc_set_param2,
+    };
     static struct file_operations socinfo_proc = {
        .read=proc_get_socinfo,
     };
@@ -5406,6 +5436,7 @@ static int add_proc_files(void)
 #define offset(type, elem) ((size_t)&((type *)0)->elem)
 
     static int BaseMacAddr[2] = {offset(NVRAM_DATA, ucaBaseMacAddr), NVRAM_MAC_ADDRESS_LEN};
+    static int NoUpdatingFirmware[2] = {offset(NVRAM_DATA, noUpdatingFirmware), 1};
 
     struct proc_dir_entry *p0;
     struct proc_dir_entry *p1;
@@ -5591,6 +5622,10 @@ static int add_proc_files(void)
     if (p4 == NULL)
         return -1;
 
+    p4 = proc_create_data("noUpdatingFirmware", S_IRUSR, p0, &noUpdatingFirmware_proc, NoUpdatingFirmware);
+    if (p4 == NULL)
+        return -1;
+
     p5 = proc_create("socinfo", S_IRUSR, NULL, &socinfo_proc);
     if (p5 == NULL)
         return -1;
@@ -5752,6 +5787,55 @@ static ssize_t __proc_set_led(struct file *f, const char *buf, unsigned long cnt
     return cnt;
 }
 
+static ssize_t __proc_set_param2(struct file *f, const char *buf, unsigned long cnt, void *data)
+{
+    NVRAM_DATA *pNvramData;
+    char input[32];
+    int i = 0;
+    int offset  = ((int *)data)[0];
+    int length  = ((int *)data)[1];
+    unsigned char c;
+
+    if ((offset < 0) || (offset + length > sizeof(NVRAM_DATA)))
+        return 0;
+
+    if (cnt > 32)
+        cnt = 32;
+
+    if (copy_from_user(input, buf, cnt) != 0)
+        return -EFAULT;
+
+    for (i = 0; i < cnt; i ++)
+    {
+        if (!isxdigit(input[i]))
+        {
+            input[i] = 0;
+        }
+    }
+    input[i] = 0;
+
+    c = simple_strtoul(input, NULL, 16);
+
+    mutex_lock(&flashImageMutex);
+
+    if (NULL != (pNvramData = readNvramData()))
+    {
+        memcpy(((char *)pNvramData) + offset, &c, length);
+        writeNvramDataCrcLocked(pNvramData);
+    }
+    else
+    {
+        cnt = 0;
+    }
+
+    mutex_unlock(&flashImageMutex);
+
+    if (pNvramData)
+        kfree(pNvramData);
+
+    return cnt;
+}
+
 #if LINUX_VERSION_CODE <= KERNEL_VERSION(3,4,11)
 static ssize_t proc_get_param(char *page, char **start, off_t off, int cnt, int *eof, void *data)
 {
@@ -5814,6 +5898,10 @@ static ssize_t proc_get_param_string(struct file * file, char * buff, size_t len
 static ssize_t proc_set_param(struct file *file, const char *buff, size_t len, loff_t *offset)
 {
     return __proc_set_param(file,buff,len,PDE_DATA(file_inode(file)));
+}
+static ssize_t proc_set_param2(struct file *file, const char *buff, size_t len, loff_t *offset)
+{
+    return __proc_set_param2(file,buff,len,PDE_DATA(file_inode(file)));
 }
 static ssize_t proc_set_led(struct file *file, const char *buff, size_t len, loff_t *offset)
 {

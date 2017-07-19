@@ -35,9 +35,9 @@
 #define WLC_MAXDPT	1
 #define WLC_MAXTDLS	5
 #ifdef MINPKTPOOL
-#define MAXSCB		64
+#define MAXSCB		50
 #else
-#define MAXSCB		64 /* (WLC_MAXBSSCFG + WLC_MAXDPT + WLC_MAXTDLS), NIC:128 */
+#define MAXSCB		50 /* (WLC_MAXBSSCFG + WLC_MAXDPT + WLC_MAXTDLS), NIC:128 */
 #endif
 #define AIDMAPSZ	32
 

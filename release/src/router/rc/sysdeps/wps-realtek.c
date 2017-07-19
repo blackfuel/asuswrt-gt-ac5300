@@ -219,10 +219,10 @@ int start_wps_pbc_method(WPS_MODE mode)
 			write_pbc_state_file(pid,pbc_stat_file);
 		}
 #endif
-#ifdef RPAC53
-		nvram_set_int("led_status", LED_WPS_START);
-#else
+#ifdef RPAC68U
 		set_led(LED_BLINK_NORNAL, LED_BLINK_NORNAL);
+#else
+		nvram_set_int("led_status", LED_WPS_START);
 #endif
 	}
 	else
@@ -245,10 +245,10 @@ int start_wps_pbc_method(WPS_MODE mode)
 			fclose(fp);
 		}
 		write_pbc_state_file(pid,"/var/pbc_state1");
-#ifdef RPAC53
-		nvram_set_int("led_status", LED_AP_WPS_START);
-#else
+#ifdef RPAC68U
 		set_led(LED_BLINK_QUICK, LED_BLINK_QUICK);
+#else
+		nvram_set_int("led_status", LED_AP_WPS_START);
 #endif
 	}
 
@@ -408,8 +408,7 @@ stop_wps_method(void)
 	doSystem("echo 1 > /var/pbc_state1_cancel");
 	doSystem("echo 1 > /var/pbc_state2_cancel");
 #else
-	int wlc_band = -1;
-	wlc_band = nvram_get_int("wlc_band");
+	int wlc_band = nvram_get_int("wlc_band");
 	if(wlc_band == 0)
 	{
 		doSystem("echo 1 > /var/pbc_state1_cancel");
@@ -420,10 +419,10 @@ stop_wps_method(void)
 	}
 #endif
 	if (sw_mode() == SW_MODE_REPEATER || (sw_mode() == SW_MODE_AP && nvram_get_int("wlc_psta") == 1))
-#ifdef RPAC53
-		nvram_set_int("led_status", LED_WPS_FAIL);
-#else
+#ifdef RPAC68U
 		set_led(LED_OFF_ALL, LED_OFF_ALL);
+#else
+		nvram_set_int("led_status", LED_WPS_FAIL);
 #endif
 	else if (sw_mode() == SW_MODE_AP) {
 		char word[8], *next, tmp[16];
@@ -436,10 +435,10 @@ stop_wps_method(void)
 					wl1_stage = LED_ON_ALL;
 			}
 		}
-#ifdef RPAC53
-		nvram_set_int("led_status", LED_WPS_FAIL);
-#else
+#ifdef RPAC68U
 		set_led(wl0_stage, wl1_stage);
+#else
+		nvram_set_int("led_status", LED_WPS_FAIL);
 #endif
 	}
 

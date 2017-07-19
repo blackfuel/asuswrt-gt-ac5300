@@ -155,7 +155,7 @@ function submitForm(){
 		document.form.modem_isp.options[0] = new Option(valueStr, valueStr, false, true);
 	}
 
-	if(/*parent.based_modelid == "4G-AC55U"*/parent.gobiSupport && parent.flag_manual){
+	if(gobi_support && parent.flag_manual){
 		document.form.flag.value = "manual";
 	}
 

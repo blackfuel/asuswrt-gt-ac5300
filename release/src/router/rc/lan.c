@@ -454,18 +454,15 @@ void start_wl(void)
 					eval("wl", "-i", ifname, "radio", "off");
 				}
 				else
-				{
-					if ((!strncmp(ifname, "wl", 2) && wl_vif_enabled(ifname, tmp))
 #if defined(RTCONFIG_BCMWL6) && defined(RTCONFIG_PROXYSTA)
-						|| (!psta_exist_except(unit)/* && !psr_exist_except(unit)*/
+				if (!psta_exist_except(unit)/* && !psr_exist_except(unit)*/
 #ifdef RTCONFIG_DPSTA
-							&& (!dpsta_mode() || is_dpsta(unit))
+					&& (!dpsta_mode() || is_dpsta(unit))
 #endif
-						)
+				)
 #endif
-					) {
-						eval("wlconf", ifname, "start"); /* start wl iface */
-					}
+				{
+					eval("wlconf", ifname, "start"); /* start wl iface */
 				}
 				wlconf_post(ifname);
 			}
@@ -612,8 +609,7 @@ qca_wif_up(const char* wif)
 #if defined(HIVEDOT) || defined(HIVESPOT)
 void hyfi_process(void)
 {
-#if defined(RTCONFIG_BT_CONN)
-	if(strlen(nvram_safe_get("cfg_alias")))
+	if(nvram_get_int("x_Setting"))
 	{
 			_dprintf("HIVE %s process start up\n",get_role()?"RE":"CAP");
 			if(get_role())
@@ -623,7 +619,6 @@ void hyfi_process(void)
   	}
 	else
 		_dprintf("HIVE process is not started yet\n");
-#endif
 }
 #endif
 
@@ -2472,6 +2467,10 @@ void stop_lan(void)
 		eval("ebtables", "-F");
 		eval("ebtables", "-t", "broute", "-F");
 	}
+#if defined(HIVEDOT) || defined(HIVESPOT)
+	reset_filter();
+	goto skip_br;
+#endif
 
 	if (strncmp(lan_ifname, "br", 2) == 0) {
 		if ((lan_ifnames = strdup(nvram_safe_get("lan_ifnames"))) != NULL) {
@@ -2606,7 +2605,7 @@ gmac3_no_swbr:
 		eval("wl", "-i", lan_ifname, "radio", "off");
 #endif
 	}
-
+skip_br:
 #ifdef RTCONFIG_PORT_BASED_VLAN
 	stop_vlan_ifnames();
 #endif
@@ -3417,7 +3416,7 @@ int radio_switch(int subunit)
 }
 
 #include <sys/sysinfo.h>
-static void uptime_wait(int second)
+void uptime_wait(int second)
 {
 	struct sysinfo info;
 	long target_time;
@@ -3612,10 +3611,12 @@ void
 lan_up(char *lan_ifname)
 {
 #ifdef CONFIG_BCMWL5
+#if defined(RTCONFIG_WIRELESSREPEATER) || defined(RTCONFIG_PROXYSTA)
 	int32 ip;
 	char tmp[100], prefix[]="wlXXXXXXX_";
 #ifdef __CONFIG_DHDAP__
 	int is_dhd;
+#endif
 #endif
 #endif
 #ifdef RTCONFIG_WIRELESSREPEATER
@@ -3826,6 +3827,9 @@ void stop_lan_wl(void)
 #ifdef RTCONFIG_DPSTA
 	int dpsta = 0;
 #endif
+#if defined(HIVEDOT)|| defined(HIVESPOT)
+	int dbg=nvram_get_int("hive_dbg");
+#endif
 
 	if (module_loaded("ebtables")) {
 		eval("ebtables", "-F");
@@ -3979,7 +3983,14 @@ gmac3_no_swbr:
 
 #if defined(RTCONFIG_QCA)
 #if defined(HIVEDOT) || defined(HIVESPOT)
-	stop_hyfi();
+	
+	if(nvram_get_int("x_Setting"))
+		stop_hyfi();
+	else
+	{
+		if(dbg)
+			_dprintf("=> skip stop_hyfi\n");
+	}
 #endif
 #endif
 
@@ -4026,6 +4037,9 @@ void start_lan_wl(void)
 	dpsta_enable_info_t info = { 0 };
 	char name[80];
 #endif
+#if defined(HIVEDOT)|| defined(HIVESPOT)
+	int dbg=nvram_get_int("hive_dbg");
+#endif
 #ifdef __CONFIG_DHDAP__
 	int is_dhd;
 #endif /* __CONFIG_DHDAP__ */
@@ -4033,7 +4047,6 @@ void start_lan_wl(void)
 	char lacp_rate = 0, bonding_ifnames[80];
 	int bonding_enabled = 0;
 	uint32 bonding_portmask = 0;
-
 
 	if (!is_routing_enabled())
 		fc_init();
@@ -4505,7 +4518,13 @@ gmac3_no_swbr:
 
 #if defined(RTCONFIG_QCA)
 #if defined(HIVEDOT) || defined(HIVESPOT)
-	start_hyfi();
+	if(nvram_get_int("x_Setting"))
+		start_hyfi();
+	else
+	{
+		if(dbg)
+			_dprintf("=> skip start_hyfi\n");
+	}
 #endif
 #endif
 
@@ -4558,18 +4577,15 @@ void restart_wl(void)
 				eval("wl", "-i", ifname, "radio", "off");
 			}
 			else
-			{
-				if ((!strncmp(ifname, "wl", 2) && wl_vif_enabled(ifname, tmp))
 #if defined(RTCONFIG_BCMWL6) && defined(RTCONFIG_PROXYSTA)
-					|| (!psta_exist_except(unit)/* && !psr_exist_except(unit)*/
+			if (!psta_exist_except(unit)/* && !psr_exist_except(unit)*/
 #ifdef RTCONFIG_DPSTA
-						&& (!dpsta_mode() || is_dpsta(unit))
+				&& (!dpsta_mode() || is_dpsta(unit))
 #endif
-					)
+			)
 #endif
-				) {
-					eval("wlconf", ifname, "start"); /* start wl iface */
-				}
+			{
+				eval("wlconf", ifname, "start"); /* start wl iface */
 			}
 			wlconf_post(ifname);
 #endif	// CONFIG_BCMWL5
@@ -4811,6 +4827,13 @@ void restart_wireless(void)
 	char domain_mapping[64];
 #endif
 	int lock = file_lock("wireless");
+
+#if defined(HIVEDOT) || defined(HIVESPOT)
+	if (nvram_get_int("sw_mode")==SW_MODE_ROUTER && nvram_get_int("x_Setting") && start_cap(1)==0) {
+		file_unlock(lock);
+		return;
+	}
+#endif
 
 #if defined(RTCONFIG_CONCURRENTREPEATER)
 	nvram_set_int("led_status", LED_RESTART_WL);

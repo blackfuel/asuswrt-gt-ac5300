@@ -164,6 +164,8 @@
 				tab: [
 					{url: "Advanced_WAN_Content.asp", tabName: "<#menu5_3_1#>"},
 					{url: "Advanced_DSL_Content.asp", tabName: "<#menu5_3_1#>"},
+					{url: "Advanced_Modem_Content.asp", tabName: "<#menu5_3_1#>"},
+					{url: "Advanced_MobileBroadband_Content.asp", tabName: "<#menu5_3_1#>"},
 					{url: "Advanced_WANPort_Content.asp", tabName: "<#dualwan#>"},
 					{url: "Advanced_PortTrigger_Content.asp", tabName: "<#menu5_3_3#>"},
 					{url: "Advanced_VirtualServer_Content.asp", tabName: "<#menu5_3_4#>"},
@@ -379,13 +381,21 @@
 					retArray.push("Main_ConnStatus_Content.asp");
 					retArray.push("Main_TrafficMonitor_realtime.asp");
 				}
-				
+			
+				if(!ParentalCtrl2_support){
+					retArray.push("ParentalControl.asp");
+				}
+
 				if(!pptpd_support){
 					retArray.push("Advanced_VPN_PPTP.asp");
 				}
 
 				if(!openvpnd_support){
 					retArray.push("Advanced_VPN_OpenVPN.asp");
+				}	
+
+				if(!ipsec_support){
+					retArray.push("Advanced_VPN_IPSec.asp");
 				}	
 
 				if(!vpnc_support){
@@ -406,6 +416,21 @@
 				
 				if(!dualWAN_support){
 					retArray.push("Advanced_WANPort_Content.asp");
+					retArray.push("Advanced_Modem_Content.asp");
+					retArray.push("Advanced_MobileBroadband_Content.asp");
+				}
+				else{
+					if(!dualwan_enabled && usb_index == 0){
+						retArray.push("Advanced_WAN_Content.asp");
+						if(!gobi_support)
+							retArray.push("Advanced_MobileBroadband_Content.asp");
+						else
+							retArray.push("Advanced_Modem_Content.asp");
+					}
+					else{
+						retArray.push("Advanced_MobileBroadband_Content.asp");
+						retArray.push("Advanced_Modem_Content.asp");
+					}
 				}
 
 				if(!SwitchCtrl_support){
@@ -574,14 +599,7 @@
 				// --
 
 				/* MODELDEP */
-				if(!ParentalCtrl2_support || based_modelid != "RT-AC65U"){
-					retArray.push("ParentalControl.asp");
-				}
-				if(based_modelid == "RT-AC65U"){
-					retArray.push("AiProtection_WebProtector.asp");
-					retArray.push("AdaptiveQoS_WebHistory.asp");					
-				}
-				else if(based_modelid == "RT-N10U"){
+				if(based_modelid == "RT-N10U"){
 					retArray.push("Advanced_WMode_Content.asp");
 				}
 				else if(based_modelid == "RT-AC87U" && '<% nvram_get("wl_unit"); %>' == '1'){

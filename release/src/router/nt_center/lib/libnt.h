@@ -12,8 +12,7 @@
 #include <nt_db.h>
 #include <nt_common.h>
 #include <linklist.h>
-#include <hash.h>
-#include <hlist.h>
+#include <hashtable.h>
 
 #ifndef __libnt_h__
 #define __libnt_h__

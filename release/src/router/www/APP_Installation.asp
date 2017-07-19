@@ -125,6 +125,14 @@ function initial(){
 	if(!timemachine_support)
 		default_apps_array = default_apps_array.del(default_apps_array.getIndexByValue2D("<#TimeMach#>")[0]);
 
+	/* MODELDEP */
+	if(based_modelid == "AC2900"){	//MODELDEP: AC2900(RT-AC86U)
+		default_apps_array = default_apps_array.del(default_apps_array.getIndexByValue2D("AiDisk")[0]);
+		default_apps_array = default_apps_array.del(default_apps_array.getIndexByValue2D("<#Network_Printer_Server#>")[0]);
+		default_apps_array = default_apps_array.del(default_apps_array.getIndexByValue2D("3G/4G")[0]);
+		default_apps_array = default_apps_array.del(default_apps_array.getIndexByValue2D("<#TimeMach#>")[0]);						
+	}	
+
 	trNum = default_apps_array.length;
 	
 	if(_apps_action == '' && 
@@ -439,6 +447,13 @@ function show_apps(){
 			apps_array.push(["aicloud", "", "", "no", "no", "", "", "AiCloud 2.0 utilities", "aicloud_png", "", "", ""]);
 	}
 
+	/* MODELDEP */
+	if(based_modelid == "AC2900"){	//MODELDEP: AC2900(RT-AC86U)
+		var dm_idx = apps_array.getIndexByValue2D("downloadmaster");
+		if(dm_idx[1] != -1 && dm_idx != -1)
+			apps_array.splice(dm_idx[0], 1);
+	}	
+
 	if(!aicloudipk_support){
 		var aicloud_idx = apps_array.getIndexByValue2D("aicloud");
 		if(aicloud_idx[1] != -1 && aicloud_idx != -1)
@@ -516,7 +531,10 @@ function show_apps(){
 		else if((apps_array[i][0] == "downloadmaster" || apps_array[i][0] == "mediaserver" || apps_array[i][0] == "mediaserver2" || apps_array[i][0] == "aicloud") && apps_array[i][3] == "yes" && apps_array[i][4] == "yes"){
 
 			var header_info = [<% get_header_info(); %>];
-			apps_array[i][6] = "http://" + header_info[0].host + ":" + dm_http_port;
+			var host_name = header_info[0].host;
+			if(host_name.split(":").length > 1)
+				host_name = host_name.split(":")[0];
+			apps_array[i][6] = "http://" + host_name + ":" + dm_http_port;
 
 			if(apps_array[i][0] == "aicloud") // append URL
 				apps_array[i][6] = "/cloud_main.asp";
@@ -780,7 +798,10 @@ function divdisplayctrl(flag1, flag2, flag3, flag4){
 	}
 	else if(flag4 != "none"){ // help
 		var header_info = [<% get_header_info(); %>];
-		var _quick_dmlink = "http://" + header_info[0].host + ":" + dm_http_port;
+		var host_name = header_info[0].host;
+		if(host_name.split(":").length > 1)
+			host_name = host_name.split(":")[0];
+		var _quick_dmlink = "http://" + host_name + ":" + dm_http_port;
 		
 		if(_dm_enable == "yes"){
 			document.getElementById("realLink").href = _quick_dmlink;

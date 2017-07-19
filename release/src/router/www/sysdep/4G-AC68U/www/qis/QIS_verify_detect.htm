@@ -88,7 +88,7 @@ function getWANStatus(){
 		},
 		success: function(response){
 			RetryCountDown_fail = 5;
-			if(/*based_modelid == "4G-AC55U"*/parent.gobiSupport){
+			if(parent.gobi_support){
 				getDualWANState();
 				if(wans_mode == 'lb'){
 					if(wan_wanstate == 2){
@@ -160,7 +160,7 @@ function getWANStatus(){
 				if(wanauxstate != 1 && wanstate == 2){ //success case
 					successcase++;
 					if(successcase > 1){
-						if(/*based_modelid == "4G-AC55U"*/parent.gobiSupport)
+						if(parent.gobi_support)
 						{
 							if(usb_wanstate == 2 && usb_wansbstate == 0 && usb_wanauxstate == 0){
 								redirect_page("wireless");

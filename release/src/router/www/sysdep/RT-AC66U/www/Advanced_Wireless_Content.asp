@@ -29,6 +29,7 @@
 wl_channel_list_2g = <% channel_list_2g(); %>;
 wl_channel_list_5g = <% channel_list_5g(); %>;
 var cur_control_channel = [<% wl_control_channel(); %>][0];
+
 var wl_unit = <% nvram_get("wl_unit"); %>;
 var country = '';
 if(wl_unit == '1')
@@ -182,6 +183,9 @@ function initial(){
 	if(history.pushState != undefined) history.pushState("", document.title, window.location.pathname);
 	
 	if(document.form.wl_channel.value  == '0'){
+		if(cur_control_channel == undefined)
+			return true;
+
 		document.getElementById("auto_channel").style.display = "";
 		var temp = "";
 		if(smart_connect_flag_t == "1"){		//Tri-Band Smart Connect
@@ -283,6 +287,15 @@ function genBWTable(_unit){
 					bwsDesc = ["20 MHz", "40 MHz", "80 MHz"];
 				}
 			}
+			else if (based_modelid == "GT-AC9600"){
+				if(document.form.wl_nmode_x.value == 1){
+					bws = [1, 2];
+					bwsDesc = ["20 MHz", "40 MHz"];
+				}else{
+					bws = [1, 2, 3, 4];
+					bwsDesc = ["20 MHz", "40 MHz", "80 MHz", "160 MHz"];
+				}
+			}			
 			else if((based_modelid == "DSL-AC68U" || based_modelid == "RT-AC68U" || based_modelid == "RT-AC68A" || based_modelid == "4G-AC68U" ||
 				based_modelid == "RT-AC56U" || based_modelid == "RT-AC56S" || 
 				based_modelid == "RT-AC66U" || 

@@ -50,6 +50,7 @@ body {
 }
 /*=================================1 Button Home================================*/
 .menu {
+	font-weight:bold;
 	text-shadow: 1px 1px 0px black;	
 	width:185px;
 	height:48px;
@@ -785,6 +786,10 @@ width:122px;
 	background:url('images/New_ui/menu_QIS_title.png') no-repeat;
 	width: 192px;
 	height:54px;
+}
+.menu_Desc{
+	font-size:12px;
+	font-weight: bold;
 }
 .menu_Split{
 	margin-top:10px;

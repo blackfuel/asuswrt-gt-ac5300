@@ -19,7 +19,7 @@ struct nvram_tuple router_defaults[] = {
 	// NVRAM for restore_defaults: system wide parameters
 	{ "nvramver", RTCONFIG_NVRAM_VER, CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
 	{ "restore_defaults", "0", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },	/* Set to 0 to not restore defaults on boot */
-#if defined(RPAC68U) || defined(RPAC66) || defined(RPAC87) || defined(RPAC53) || defined(RTCONFIG_DEFAULT_REPEATER_MODE)
+#if defined(RPAC66) || defined(RPAC87) || defined(RTCONFIG_DEFAULT_REPEATER_MODE)
 	{ "sw_mode", "2", CKN_STR1, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },	/* big switch for different mode */
 #elif defined(RTCONFIG_DEFAULT_AP_MODE)
 	{ "sw_mode", "3", CKN_STR1, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },	/* big switch for different mode */
@@ -51,6 +51,7 @@ struct nvram_tuple router_defaults[] = {
 	{ "switch_wan1prio", "0", CKN_STR1, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
 	{ "switch_wan2tagid", "", CKN_STR4, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },	/* VoIP Port */
 	{ "switch_wan2prio", "0", CKN_STR1, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
+	{ "iptv_port_settings", "12", CKN_STR4, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
 	{ "wl_unit", "0", CKN_STR1, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
 	{ "wl_subunit", "-1", CKN_STR2, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
 	{ "wl_vifnames", "", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },	/* Virtual Interface Names */
@@ -79,11 +80,13 @@ struct nvram_tuple router_defaults[] = {
 #ifdef RTCONFIG_CONCURRENTREPEATER
 	{ "wl0_ssid", DEF_SSID_2G, CKN_STR32, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
 	{ "wl1_ssid", DEF_SSID_5G, CKN_STR32, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
-#if defined(RTCONFIG_MTK_REP) || defined(RTCONFIG_REALTEK)
+#if defined(RTCONFIG_RALINK) || defined(RTCONFIG_REALTEK)
 	{ "wl1_bw", "1", CKN_STR1, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
 	{ "wl1.1_bw", "1", CKN_STR1, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
+	{ "wl1.1_channel", "0", CKN_STR1, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
 	{ "wl0_bw", "1", CKN_STR1, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
 	{ "wl0.1_bw", "1", CKN_STR1, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
+	{ "wl0.1_channel", "0", CKN_STR1, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },	
 #endif
 #else
 #if !defined (RTAC3200) && !defined (RTAC5300) && !defined (GTAC5300) && !defined(HIVESPOT)
@@ -517,13 +520,15 @@ struct nvram_tuple router_defaults[] = {
 #elif defined(RTCONFIG_QTN) || defined(RTCONFIG_MUMIMO_2G) || defined(RTCONFIG_MUMIMO_5G)
 	{ "wl_mumimo", "0", CKN_STR1, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
 #endif
-
+#if defined(RTCONFIG_REALTEK) && defined(RTCONFIG_MUMIMO_5G)
+	{ "wl1_mumimo", "1", CKN_STR1, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
+#endif
 #if defined(RTCONFIG_QCA)
 #if defined(RTCONFIG_WIFI_QCA9990_QCA9990) || defined(RTCONFIG_WIFI_QCA9994_QCA9994) || defined(RTCONFIG_SOC_IPQ40XX)
-	{ "wl_turbo_qam", "0", CKN_STR1, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
+	{ "wl_turbo_qam", "1", CKN_STR1, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
 	{ "wl_turbo_qam_brcm_intop", "1", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
 	{ "wl_txbf", "1", CKN_STR1, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
-	{ "wl_mumimo", "0", CKN_STR1, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
+	{ "wl_mumimo", "1", CKN_STR1, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
 	{ "wl_implicitxbf", "0", CKN_STR1, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
 	{ "restwifi_qis", "0", CKN_STR1, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
 #endif
@@ -814,7 +819,11 @@ struct nvram_tuple router_defaults[] = {
 #endif
 
 #ifdef RTCONFIG_BCMARM
+#if defined(RTCONFIG_BCM7) || defined(RTCONFIG_BCM_7114) || defined(RTCONFIG_BCM9) && defined(HND_ROUTER)
 	{ "wl_pspretend_retry_limit", "5", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },	/* Enable PsPretend */
+#else
+	{ "wl_pspretend_retry_limit", "0", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },	/* Enable PsPretend */
+#endif
 #ifndef RTCONFIG_BCM7
 	{ "wl_pspretend_threshold", "0", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },	/* Disable PsPretend Threshold */
 #else
@@ -962,6 +971,10 @@ struct nvram_tuple router_defaults[] = {
 #ifdef RTCONFIG_BCM_7114
 	{ "wl_tpc_db", "0", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },	/* TPC Mitigation (db) */
 	{ "dhd_msg_level", "0", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
+#endif
+#ifdef HND_ROUTER
+	{ "dhd_hw_acc_dis_unit", "0", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 }, /* Disable runner on 2G band to make tcpack suppression effective*/
+	{ "wl0_custom_oui", "ff:ff:ff", CKN_STR32, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 }, /* scheme for forcing AC mode */
 #endif
 #ifdef __CONFIG_VISUALIZATION__
 	{ "vis_dcon_ipaddr", "127.0.0.1", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },/* Visualization Dcon IP address */
@@ -1129,6 +1142,7 @@ struct nvram_tuple router_defaults[] = {
 	{ "sr_rulelist", "", CKN_STR1024, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
 	{ "dr_enable_x", "1", CKN_STR1, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },	/* oleg patch */
 	{ "mr_enable_x", "0", CKN_STR1, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },	/* oleg patch */
+	{ "mr_qleave_x", "0", CKN_STR1, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
 	{ "mr_altnet_x", "", CKN_STR32, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
 
 	// Domain Name
@@ -1213,6 +1227,7 @@ struct nvram_tuple router_defaults[] = {
 	{ "wan_pppoe_mtu", "1492", CKN_STR5, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },	/* Negotiate MTU to the smaller of this value or the peer MRU */
 	{ "wan_pppoe_service", "", CKN_STR32, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },	/* PPPoE service name */
 	{ "wan_pppoe_ac", "", CKN_STR32, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },	/* PPPoE access concentrator name */
+	{ "wan_pppoe_hostuniq", "", CKN_STR32, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },	/* PPPoE host-uniq */
 	{ "wan_pppoe_options_x", "", CKN_STR255, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },	/* oleg patch */
 	{ "wan_pptp_options_x", "", CKN_STR16, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },	/* oleg patch */
 #ifdef RTCONFIG_DSL
@@ -1353,6 +1368,7 @@ struct nvram_tuple router_defaults[] = {
 //	{ "dslx_pppoe_mru", "" },
 	{ "dslx_pppoe_service", "", CKN_STR32, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
 	{ "dslx_pppoe_ac", "", CKN_STR32, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
+	{ "dslx_pppoe_hostuniq", "", CKN_STR32, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
 	{ "dslx_pppoe_options", "", CKN_STR255, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
 	{ "dslx_hwaddr", "", CKN_STR17, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
 //
@@ -2005,8 +2021,10 @@ struct nvram_tuple router_defaults[] = {
 	{ "usb_path1_diskmon_freq_time", "", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
 	{ "usb_path2_diskmon_freq", "0", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
 	{ "usb_path2_diskmon_freq_time", "", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
+#if !defined(RT4GAC55U) && !defined(RT4GAC68U)
 	{ "usb_path3_diskmon_freq", "0", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
 	{ "usb_path3_diskmon_freq_time", "", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
+#endif
 	{ "diskformat_file_system", "tfat", CKN_STR10, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 }, //tfat, tntfs, thfsplus
 	{ "diskformat_label", "", CKN_STR32, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
 #ifndef RTCONFIG_BCMARM
@@ -2159,8 +2177,8 @@ struct nvram_tuple router_defaults[] = {
 #ifdef RTCONFIG_POWER_SAVE
 	{ "pwrsave_mode", "0", CKN_STR1, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },	/* 1: auto (ondemand), 2: power save, otherwise: performance */
 #endif
-	{ "enable_acc_restriction", "0", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
-	{ "restrict_rulelist", "", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
+	{ "enable_acc_restriction", "0", CKN_STR1, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
+	{ "restrict_rulelist", "", CKN_STR128, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
 
 #ifdef RTCONFIG_USB_MODEM
 	{ "usb_qmi", "1", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
@@ -2333,7 +2351,7 @@ struct nvram_tuple router_defaults[] = {
 	{ "vpn_server_firewall", "auto", CKN_STR8, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
 	{ "vpn_server_crypt", "tls", CKN_STR8, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
 	{ "vpn_server_comp", "adaptive", CKN_STR8, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
-	{ "vpn_server_cipher", "default", CKN_STR16, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
+	{ "vpn_server_cipher", "AES-128-CBC", CKN_STR16, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
 	{ "vpn_server_dhcp", "1", CKN_STR1, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
 	{ "vpn_server_r1", "192.168.1.50", CKN_STR15, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
 	{ "vpn_server_r2", "192.168.1.55", CKN_STR15, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
@@ -2757,21 +2775,21 @@ struct nvram_tuple router_defaults[] = {
 	{ "guard_mode", "0", CKN_STR1, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
 #ifdef RTCONFIG_IPSEC
 	{ "ipsec_profile_item",		"", CKN_STR256, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
-	{ "ipsec_profile_1",		"", CKN_STR256, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
-	{ "ipsec_profile_2",		"", CKN_STR256, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
-	{ "ipsec_profile_3",		"", CKN_STR256, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
-	{ "ipsec_profile_4",		"", CKN_STR256, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
-	{ "ipsec_profile_5",		"", CKN_STR256, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
-	{ "ipsec_client_list_1",	"", CKN_STR256, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
-	{ "ipsec_client_list_2",	"", CKN_STR256, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
-	{ "ipsec_client_list_3",	"", CKN_STR256, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
-	{ "ipsec_client_list_4",	"", CKN_STR256, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
-	{ "ipsec_client_list_5",	"", CKN_STR256, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
-	{ "ipsec_profile_client_1",	"", CKN_STR256, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
-	{ "ipsec_profile_client_2",	"", CKN_STR256, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
-	{ "ipsec_profile_client_3",	"", CKN_STR256, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
-	{ "ipsec_profile_client_4",	"", CKN_STR256, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
-	{ "ipsec_profile_client_5",	"", CKN_STR256, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
+	{ "ipsec_profile_1",		"", CKN_STR1024, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
+	{ "ipsec_profile_2",		"", CKN_STR1024, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
+	{ "ipsec_profile_3",		"", CKN_STR1024, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
+	{ "ipsec_profile_4",		"", CKN_STR1024, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
+	{ "ipsec_profile_5",		"", CKN_STR1024, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
+	{ "ipsec_client_list_1",	"", CKN_STR1024, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
+	{ "ipsec_client_list_2",	"", CKN_STR1024, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
+	{ "ipsec_client_list_3",	"", CKN_STR1024, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
+	{ "ipsec_client_list_4",	"", CKN_STR1024, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
+	{ "ipsec_client_list_5",	"", CKN_STR1024, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
+	{ "ipsec_profile_client_1",	"", CKN_STR1024, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
+	{ "ipsec_profile_client_2",	"", CKN_STR1024, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
+	{ "ipsec_profile_client_3",	"", CKN_STR1024, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
+	{ "ipsec_profile_client_4",	"", CKN_STR1024, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
+	{ "ipsec_profile_client_5",	"", CKN_STR1024, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
 	{ "ipsec_server_enable",	"0", CKN_STR1, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
 	{ "ipsec_client_enable",	"0", CKN_STR1, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
 #endif
@@ -2814,8 +2832,6 @@ struct nvram_tuple router_defaults[] = {
 	{ "bt_user_place", "", CKN_STR64, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
 #endif /* RTCONFIG_BT_CONN */
 #ifdef RTCONFIG_LP5523
-	{ "lp55xx_wan_status", "", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
-	{ "lp55xx_wifi_status", "", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
 	{ "lp55xx_lp5523_user_enable", "0", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
 	{ "lp55xx_lp5523_user_col", "", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
 	{ "lp55xx_lp5523_user_beh", "", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
@@ -2855,7 +2871,9 @@ struct nvram_tuple router_state_defaults[] = {
 
 	{ "wan_primary", "0", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },	/* Always first run in WAN port. */
 	{ "wan0_primary", "1", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
+#if defined(RTCONFIG_DUALWAN) || defined(RTCONFIG_USB_MODEM)
 	{ "wan1_primary", "0", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
+#endif
 	{ "wan_pppoe_ifname", "", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
 	{ "wan_state_t", "0", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
 	{ "wan_sbstate_t", "0", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },	/* record substate for each wan state */
@@ -2869,7 +2887,9 @@ struct nvram_tuple router_state_defaults[] = {
 
 	{ "nat_state", "0", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
 	{ "link_wan", "", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
+#if defined(RTCONFIG_DUALWAN) || defined(RTCONFIG_USB_MODEM)
 	{ "link_wan1", "", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
+#endif
 #ifdef RTCONFIG_IPV6
 	{ "wan_6rd_router", "", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
 	{ "wan_6rd_ip4size", "", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
@@ -3197,6 +3217,10 @@ struct nvram_tuple router_state_defaults[] = {
 	{ "dsllog_vdslcurrentprofile", "", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
 	{ "dsllog_inpdown", "", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
 	{ "dsllog_inpup", "", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
+	{ "dsllog_inpshinedown", "", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
+	{ "dsllog_inpshineup", "", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
+	{ "dsllog_inpreindown", "", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
+	{ "dsllog_inpreinup", "", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
 	{ "dsllog_snrmpbds", "", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
 	{ "dsllog_snrmpbus", "", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
 	{ "dsllog_latndown", "", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
@@ -3223,8 +3247,13 @@ struct nvram_tuple router_state_defaults[] = {
 const defaults_t if_generic[] = {
 	{ "lan_ifname", "br0", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
 	{ "lan_ifnames", "eth0 eth2 eth3 eth4", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
+#ifdef DETWAN
+	{ "wan_ifname", "", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
+	{ "wan_ifnames", "", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
+#else
 	{ "wan_ifname", "eth1", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
 	{ "wan_ifnames", "eth1", CKN_STR_DEFAULT, CKN_TYPE_DEFAULT, CKN_ACC_LEVEL_DEFAULT, 0 },
+#endif
 	{ NULL, NULL }
 };
 

@@ -4952,28 +4952,6 @@ void dump_RDD_WAN_TX_QUEUE_DESCRIPTOR(bdmf_session_handle session, unsigned char
 
 }
 
-void dump_RDD_DUMMY_RATE_CONTROLLER_DESCRIPTOR(bdmf_session_handle session, unsigned char *p)
-{
-	unsigned int r;
-	int i,j;
-
-	bdmf_session_print(session, "  Register DUMMY_RATE_CONTROLLER_DESCRIPTOR\n");
-
-	bdmf_session_print(session, "\treserved_fw_only         =\n\t");
-	for (i=0,j=0; i<16; i++)
-	{
-		MREAD_I_32((uint8_t *)p, i, r);
-		bdmf_session_print(session, "0x%08x ", (unsigned int)r);
-		j++;
-		if (j >= 8)
-		{
-			j = 0;
-			bdmf_session_print(session, "\n\t");
-		}
-	}
-	bdmf_session_print(session, "\n");
-}
-
 void dump_RDD_DDR_QUEUE_ADDRESS_ENTRY(bdmf_session_handle session, unsigned char *p)
 {
 	unsigned int r;
@@ -5620,17 +5598,17 @@ void dump_RDD_DDR_QUEUE_DESCRIPTOR(bdmf_session_handle session, unsigned char *p
 
 }
 
-void dump_RDD_LAN_INGRESS_FIFO_ENTRY(bdmf_session_handle session, unsigned char *p)
+void dump_RDD_DUMMY_RATE_CONTROLLER_DESCRIPTOR(bdmf_session_handle session, unsigned char *p)
 {
 	unsigned int r;
 	int i,j;
 
-	bdmf_session_print(session, "  Register LAN_INGRESS_FIFO_ENTRY\n");
+	bdmf_session_print(session, "  Register DUMMY_RATE_CONTROLLER_DESCRIPTOR\n");
 
 	bdmf_session_print(session, "\treserved_fw_only         =\n\t");
-	for (i=0,j=0; i<32; i++)
+	for (i=0,j=0; i<16; i++)
 	{
-		MREAD_I_16((uint8_t *)p, i, r);
+		MREAD_I_32((uint8_t *)p, i, r);
 		bdmf_session_print(session, "0x%08x ", (unsigned int)r);
 		j++;
 		if (j >= 8)
@@ -5664,6 +5642,28 @@ void dump_RDD_PACKET_SRAM_TO_DDR_COPY_BUFFER(bdmf_session_handle session, unsign
 	for (i=0,j=0; i<32; i++)
 	{
 		MREAD_I_32((uint8_t *)p, i, r);
+		bdmf_session_print(session, "0x%08x ", (unsigned int)r);
+		j++;
+		if (j >= 8)
+		{
+			j = 0;
+			bdmf_session_print(session, "\n\t");
+		}
+	}
+	bdmf_session_print(session, "\n");
+}
+
+void dump_RDD_LAN_INGRESS_FIFO_ENTRY(bdmf_session_handle session, unsigned char *p)
+{
+	unsigned int r;
+	int i,j;
+
+	bdmf_session_print(session, "  Register LAN_INGRESS_FIFO_ENTRY\n");
+
+	bdmf_session_print(session, "\treserved_fw_only         =\n\t");
+	for (i=0,j=0; i<32; i++)
+	{
+		MREAD_I_16((uint8_t *)p, i, r);
 		bdmf_session_print(session, "0x%08x ", (unsigned int)r);
 		j++;
 		if (j >= 8)
@@ -5772,11 +5772,7 @@ void dump_RDD_FC_UCAST_FLOW_CONTEXT_ENTRY(bdmf_session_handle session, unsigned 
 	bdmf_session_print(session, "\tip_addresses_table_index = 0x%08x", (unsigned int)r);
 	bdmf_session_print(session, "\n");
 
-	FIELD_MREAD_8((uint8_t *)p + 13, 0, 2, r);
-	bdmf_session_print(session, "\treserved3                = 0x%08x", (unsigned int)r);
-	bdmf_session_print(session, "\n");
-
-	MREAD_16((uint8_t *)p + 14, r);
+	FIELD_MREAD_32((uint8_t *)p + 12, 0, 18, r);
 	bdmf_session_print(session, "\tlink_specific_union      = 0x%08x", (unsigned int)r);
 	bdmf_session_print(session, "\n");
 
@@ -5832,16 +5828,16 @@ void dump_RDD_FC_UCAST_FLOW_CONTEXT_ETH_XTM_ENTRY(bdmf_session_handle session, u
 	bdmf_session_print(session, "\treserved3                = 0x%08x", (unsigned int)r);
 	bdmf_session_print(session, "\n");
 
-	MREAD_16((uint8_t *)p + 12, r);
+	FIELD_MREAD_16((uint8_t *)p + 12, 2, 14, r);
 	bdmf_session_print(session, "\treserved4                = 0x%08x", (unsigned int)r);
 	bdmf_session_print(session, "\n");
 
-	FIELD_MREAD_8((uint8_t *)p + 14, 2, 6, r);
-	bdmf_session_print(session, "\tegress_port              = 0x%08x", (unsigned int)r);
+	FIELD_MREAD_8((uint8_t *)p + 13, 0, 2, r);
+	bdmf_session_print(session, "\tlag_port                 = 0x%08x", (unsigned int)r);
 	bdmf_session_print(session, "\n");
 
-	FIELD_MREAD_8((uint8_t *)p + 14, 0, 2, r);
-	bdmf_session_print(session, "\tlag_port                 = 0x%08x", (unsigned int)r);
+	MREAD_8((uint8_t *)p + 14, r);
+	bdmf_session_print(session, "\tegress_port              = 0x%08x", (unsigned int)r);
 	bdmf_session_print(session, "\n");
 
 	FIELD_MREAD_8((uint8_t *)p + 15, 5, 3, r);
@@ -6022,11 +6018,7 @@ void dump_RDD_FC_L2_UCAST_FLOW_CONTEXT_ENTRY(bdmf_session_handle session, unsign
 	bdmf_session_print(session, "\tip_addresses_table_index = 0x%08x", (unsigned int)r);
 	bdmf_session_print(session, "\n");
 
-	FIELD_MREAD_8((uint8_t *)p + 13, 0, 2, r);
-	bdmf_session_print(session, "\treserved3                = 0x%08x", (unsigned int)r);
-	bdmf_session_print(session, "\n");
-
-	MREAD_16((uint8_t *)p + 14, r);
+	FIELD_MREAD_32((uint8_t *)p + 12, 0, 18, r);
 	bdmf_session_print(session, "\tlink_specific_union      = 0x%08x", (unsigned int)r);
 	bdmf_session_print(session, "\n");
 
@@ -6311,11 +6303,7 @@ void dump_RDD_FC_NATC_UCAST_FLOW_CONTEXT_ENTRY(bdmf_session_handle session, unsi
 	bdmf_session_print(session, "\tip_addresses_table_index = 0x%08x", (unsigned int)r);
 	bdmf_session_print(session, "\n");
 
-	FIELD_MREAD_8((uint8_t *)p + 13, 0, 2, r);
-	bdmf_session_print(session, "\treserved3                = 0x%08x", (unsigned int)r);
-	bdmf_session_print(session, "\n");
-
-	MREAD_16((uint8_t *)p + 14, r);
+	FIELD_MREAD_32((uint8_t *)p + 12, 0, 18, r);
 	bdmf_session_print(session, "\tlink_specific_union      = 0x%08x", (unsigned int)r);
 	bdmf_session_print(session, "\n");
 

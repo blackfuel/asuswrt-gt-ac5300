@@ -98,8 +98,8 @@ function QKinternettype_load_body(){
 	}
 
 	if(parent.wisp_support){
-                document.getElementById("wisp_title").style.display = "";
-        }
+		document.getElementById("wisp_title").style.display = "";
+	}
 	
 	parent.document.title = "<#Web_Title#> - Welcome!";
 	parent.set_step("t0");		
@@ -174,12 +174,19 @@ function QKinternettype_load_body(){
 		//document.getElementById("Productdesc_4").innerHTML = check_desc4;
 	}
 
-	if(based_modelid == "4G-AC55U" || based_modelid == "4G-AC68U"){
+	/* MODELDEP */
+	if(based_modelid == "AC2900"){	//MODELDEP: AC2900(RT-AC86U)
+		document.getElementById("Div_Manual_Setting").style.display = "none";
+		document.getElementById("main_manual").style.display = "none";
+		document.getElementById("lte_manual").style.display = "none";
+	}	
+	else if(based_modelid == "4G-AC55U" || based_modelid == "4G-AC68U"){
 		document.getElementById("main_manual").style.display = "none";
 		document.getElementById("lte_manual").style.display = "";
 	}
-	else if(based_modelid == "PL-N12" || based_modelid == "PL-AC56" || based_modelid == "RT-AC58U")
+	else if(based_modelid == "PL-N12" || based_modelid == "PL-AC56" || based_modelid == "RT-AC58U"){
 		document.getElementById("Productdesc_4").style.display = "none";
+	}	
 
 	setTimeout(function() {document.getElementById("btn_next_step").focus();}, 10);
 
@@ -527,7 +534,7 @@ function disable_button(){
 										</div>
 									</div>									
 								</div>
-								<div style="margin: 30px 0">
+								<div id="Div_Manual_Setting" style="margin: 30px 0">
 									<div style="">
 										<div style="margin: 0 0 10px 6px"><#QIS_desc_2#></div>
 									</div>

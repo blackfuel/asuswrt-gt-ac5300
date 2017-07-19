@@ -666,6 +666,9 @@ config BCM_HOSTMIPS_PWRSAVE_TIMERS
 	bool "Hostmips Power Save Timers"
 	depends on MIPS
 
+config BCM_CPUIDLE_CLK_DIVIDER
+	bool "Support for CPU Clock Divider in CPUIDLE"
+
 config BCM_DDR_SELF_REFRESH_PWRSAVE
 	bool "Support for DRAM Self Refresh mode"
 
@@ -1329,6 +1332,9 @@ config DUMP_PREV_OOPS_MSG_BUF_LEN
 config BCM_ARM_CPUIDLE
 	bool "Cpuidle driver for BCM ARM and ARM64 chips"
 	depends on CPU_IDLE
+
+config BCM_THERMAL
+	tristate "Support for Broadcom Thermal Protection"
 
 endif
 

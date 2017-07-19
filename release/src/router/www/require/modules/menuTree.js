@@ -410,6 +410,10 @@
 					retArray.push("Advanced_VPN_OpenVPN.asp");
 				}	
 
+				if(!ipsec_support){
+					retArray.push("Advanced_VPN_IPSec.asp");
+				}
+
 				if(!vpnc_support){
 					retArray.push("Advanced_VPNClient_Content.asp");
 				}

@@ -57,6 +57,10 @@
 #include "phys_common_drv.h"
 #endif
 
+#ifdef AC2900
+#include "bcm63xx_nvram.h"
+#endif
+
 #if (INC_SPI_PROG_NAND==0)
 #if defined(_BCM94908_)
 static int RstBtnPressed(void);
@@ -948,7 +952,11 @@ void board_final_init(int force_cfe)
     }
 
 #if defined(_BCM94908_)
-    if (RstBtnPressed()) {
+    if (RstBtnPressed()
+#ifdef AC2900
+        && !NVRAM.noUpdatingFirmware
+#endif
+    ) {
         printf("\nEnter Rescue Mode (by Force) ...\n\n");
 
         bcm63xx_run(0, 0);

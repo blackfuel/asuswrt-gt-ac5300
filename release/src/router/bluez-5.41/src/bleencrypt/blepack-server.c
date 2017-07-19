@@ -247,17 +247,15 @@ void UnpackBLEDataToNvram(struct param_handler_svr *param_handler, unsigned char
 						{
 							if (BLEPACKET_DEBUG) printf("[rc ignore]: %s \n", str_service);
 
-							if (!strncmp(str_service, "start_hyfi_process", strlen(str_service)))
-							{
-								notify_rc_and_wait("restart_allnet");
-								sleep(15);
-							}
-							else
-							{
-								str_service = strtok(NULL, delim);
-								continue;
-							}
+							str_service = strtok(NULL, delim);
+							continue;
 						}
+					}
+					else if (!strncmp(str_service, "start_hyfi_process", strlen(str_service)))
+					{
+						chk_service = 1;
+						str_service = strtok(NULL, delim);
+						continue;
 					}
 
 					if (BLEPACKET_DEBUG) printf("[rc do service]: %s \n", str_service);
@@ -265,8 +263,6 @@ void UnpackBLEDataToNvram(struct param_handler_svr *param_handler, unsigned char
 
 					if (!strncmp(str_service, "restart_wireless", strlen(str_service)))
 						sleep(10);
-					else if (!strncmp(str_service, "start_hyfi_process", strlen(str_service)))
-						chk_service = 1;
 
 					str_service = strtok(NULL, delim);
 				}
@@ -277,6 +273,10 @@ void UnpackBLEDataToNvram(struct param_handler_svr *param_handler, unsigned char
 					nvram_set("w_Setting", "1");
 					nvram_set("x_Setting", "1");
 					nvram_commit();
+					if(chk_service==1)
+						notify_rc_and_wait("start_hyfi_process");
+					else if(chk_service==3)
+						notify_rc_and_wait("restart_allnet");
 				}
 			}
 			memset(do_rc_service, '\0', DEF_LEN_128);
@@ -686,15 +686,15 @@ void PackBLEResponseGetMacBleVersion(int cmdno, int status, unsigned char *pdu, 
 	char tmp[DEF_LEN_128];
 	memset(tmp, '\0', DEF_LEN_128);
 
-	sprintf(tmp, "%s%s-%d", tmp, macaddr, BLE_VERSION);
+	snprintf(tmp, sizeof(tmp), "%s%s-%d", tmp, macaddr, BLE_VERSION);
 
-	PackBLEResponseData(cmdno, status, (unsigned char*)tmp, strlen(tmp), pdu, pdulen, BLE_RESPONSE_FLAGS|BLE_FLAG_WITH_ENCRYPT);
+	PackBLEResponseData(cmdno, status, (unsigned char*)tmp, sizeof(tmp), pdu, pdulen, BLE_RESPONSE_FLAGS|BLE_FLAG_WITH_ENCRYPT);
 }
 
 void PackBLEResponseGetWanStatus(int cmdno, int status, unsigned char *pdu, int *pdulen)
 {
 	int wanstatus=BLE_WAN_STATUS_ALL_DISCONN;
-	char *var_name = malloc(DEF_LEN_128);
+	char var_name[DEF_LEN_128];
 	int idx, max_inf, value;
 	int conn_count=-1, wan_proto;
 
@@ -702,7 +702,7 @@ void PackBLEResponseGetWanStatus(int cmdno, int status, unsigned char *pdu, int 
 	memset(var_name, '\0', DEF_LEN_128);
 	max_inf = nvram_get_int("detwan_max");
 	for (idx = 0; idx < max_inf; idx++) {
-		sprintf(var_name, "detwan_mask_%d", idx);
+		snprintf(var_name, sizeof(var_name), "detwan_mask_%d", idx);
 		if ((value = nvram_get_int(var_name)) != 0) {
 			if (get_ports_status((unsigned int)value))
 			{
@@ -747,7 +747,6 @@ void PackBLEResponseGetWanStatus(int cmdno, int status, unsigned char *pdu, int 
 	}
 
 	PackBLEResponseData(cmdno, status, (unsigned char*)&wanstatus, 1, pdu, pdulen, BLE_RESPONSE_FLAGS|BLE_FLAG_WITH_ENCRYPT);
-	free(var_name);
 }
 
 void PackBLEResponseGetWifiStatus(int cmdno, int status, unsigned char *pdu, int *pdulen)

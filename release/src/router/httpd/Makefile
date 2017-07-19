@@ -2,10 +2,14 @@ include ../common.mak
 
 CFLAGS += -Os -Wall $(EXTRACFLAGS)
 CFLAGS += $(PRIVATE_EXTRACFLAGS)
-CFLAGS += -I$(SRCBASE) -I. -I$(SRCBASE)/include -I$(TOP)/shared -I$(TOP)/zlib
+CFLAGS += -I$(SRCBASE) -I. -I$(SRCBASE)/include -I$(TOP)/shared -I$(TOP)/zlib -I$(TOP)/networkmap
 CFLAGS += -DASUS_DDNS -DTRANSLATE_ON_FLY -DFLASH_EMULATOR -DLinux -DWSC 
 
 ifeq ($(RTCONFIG_NETOOL),y)
+CFLAGS += -I$(TOP)/rc
+endif
+
+ifeq ($(RTCONFIG_VPN_FUSION),y)
 CFLAGS += -I$(TOP)/rc
 endif
 
@@ -214,6 +218,9 @@ ifeq ($(RTCONFIG_QSR10G),y)
 CFLAGS += -I$(TOP)/libqcsapi_client_10g
 LIBS += -L$(TOP)/libqcsapi_client_10g -lqcsapi_client
 endif
+
+CFLAGS += -I$(TOP)/libpasswd
+LIBS += -L$(TOP)/libpasswd -lpasswd
 
 all: httpd #test_apps
 

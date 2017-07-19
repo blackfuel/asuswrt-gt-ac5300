@@ -135,6 +135,11 @@ function ddns_load_body(){
     var ddns_server_x = '<% nvram_get("ddns_server_x"); %>';
 	var ddns_enable_x = '<% nvram_get("ddns_enable_x"); %>';
    
+	/* MODELDEP */
+	if(based_modelid == "AC2900"){	//MODELDEP: AC2900(RT-AC86U)
+		document.getElementById('ASUSOption').outerHTML = "";
+	}	
+
     if(ddns_enable_x == 1){
         inputCtrl(document.form.ddns_server_x, 1);
         document.getElementById('ddns_hostname_tr').style.display = "";
@@ -146,7 +151,8 @@ function ddns_load_body(){
                 document.getElementById("DDNSName").value = ddns_hostname_title;
             else
                 document.getElementById("DDNSName").value = "<#asusddns_inputhint#>";
-        }else{
+        }
+        else{
             document.form.ddns_hostname_x.parentNode.style.display = "";
             document.form.DDNSName.parentNode.style.display = "none";
             inputCtrl(document.form.ddns_username_x, 1);
@@ -164,7 +170,8 @@ function ddns_load_body(){
 				document.getElementById("ddns_hostname_x_value").innerHTML = ddns_hostname_x_t;
 			}
 		}
-    }else{
+    }
+    else{
         inputCtrl(document.form.ddns_server_x, 0);
         document.getElementById('ddns_hostname_tr').style.display = "none";
         document.getElementById("ddns_hostname_info_tr").style.display = "none";
@@ -395,7 +402,7 @@ function onSubmitApply(s){
 				<th><#LANHostConfig_x_DDNSServer_itemname#></th>
 				<td>
                   		<select name="ddns_server_x"class="input_option" onchange="change_ddns_setting(this.value)">
-                    			<option value="WWW.ASUS.COM" <% nvram_match("ddns_server_x", "WWW.ASUS.COM","selected"); %>>WWW.ASUS.COM</option>
+                    			<option id="ASUSOption" value="WWW.ASUS.COM" <% nvram_match("ddns_server_x", "WWW.ASUS.COM","selected"); %>>WWW.ASUS.COM</option>
 								<option value="DOMAINS.GOOGLE.COM" <% nvram_match("ddns_server_x", "DOMAINS.GOOGLE.COM","selected"); %>>DOMAINS.GOOGLE.COM</option>
                     			<option value="WWW.DYNDNS.ORG" <% nvram_match("ddns_server_x", "WWW.DYNDNS.ORG","selected"); %>>WWW.DYNDNS.ORG</option>
                     			<option value="WWW.DYNDNS.ORG(CUSTOM)" <% nvram_match("ddns_server_x", "WWW.DYNDNS.ORG(CUSTOM)","selected"); %>>WWW.DYNDNS.ORG(CUSTOM)</option>

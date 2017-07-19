@@ -50,6 +50,16 @@ if(parent.dual_ewan){
 	var autodet1_state = '<% nvram_get("autodet1_state"); %>';
 	var autodet1_auxstate = '<% nvram_get("autodet1_auxstate"); %>';
 }
+else{
+	if(parent.dualwan_enabled){
+		var autodet_state = ((parent.ewan_index == 0)? '<% nvram_get("autodet_state"); %>': '<% nvram_get("autodet1_state"); %>');
+		var autodet_auxstate = (parent.ewan_index == 0)? '<% nvram_get("autodet_auxstate"); %>': '<% nvram_get("autodet1_auxstate"); %>';
+	}
+	else{
+		var autodet_state = '<% nvram_get("autodet_state"); %>';
+		var autodet_auxstate = '<% nvram_get("autodet_auxstate"); %>';
+	}
+}
 
 function QKaccount_load_body(){
 	document.getElementById("vpn_client_desc").onmouseover = function(){overHint(50);}
@@ -87,10 +97,10 @@ function QKaccount_load_body(){
 	
 	get_value_from_parent();
 	if(!document.getElementById('vpn_client_check').checked){
-		if(parent.dual_ewan){
-			if(parent.cur_wan_unit == 0)
+		if(parent.dual_ewan || parent.dualwan_enabled){
+			if((parent.dual_ewan && parent.cur_wan_unit == 0) || (parent.dualwan_enabled && parent.ewan_index == 0))
 				document.form.wan0_proto.value = "pppoe";
-			else
+			else if((parent.dual_ewan && parent.cur_wan_unit == 1) || (parent.dualwan_enabled && parent.ewan_index == 1))
 				document.form.wan1_proto.value = "pppoe";
 		}
 		else
@@ -139,8 +149,8 @@ function QKaccount_load_body(){
 		document.getElementById("iptv_port4").innerHTML = "IPTV (LAN port 2):";
 	}
 	
-	if(parent.dual_ewan){
-		if(parent.cur_wan_unit == 0){
+	if(parent.dual_ewan || parent.dualwan_enabled){
+		if((parent.dual_ewan && parent.cur_wan_unit == 0) || (parent.dualwan_enabled && parent.ewan_index == 0)){
 			document.form.wan0_hwaddr_x.disabled = false;
 			document.form.wan0_pppoe_username.disabled = false;
 			document.form.wan0_pppoe_passwd.disabled = false;
@@ -154,7 +164,7 @@ function QKaccount_load_body(){
 			document.form.wan0_dns2_x.disabled = false;
 			document.form.wan0_heartbeat_x.disabled = false;
 		}
-		else{
+		else if((parent.dual_ewan && parent.cur_wan_unit == 1) || (parent.dualwan_enabled && parent.ewan_index == 1)){
 			document.form.wan1_hwaddr_x.disabled = false;
 			document.form.wan1_pppoe_username.disabled = false;
 			document.form.wan1_pppoe_passwd.disabled = false;
@@ -205,13 +215,13 @@ function check_pppoe_state(){
 			check_pppoe_state();
 		},
 		success: function(response){
-			if(parent.dual_ewan){
-				if(parent.cur_wan_unit == 0){
+			if(parent.dual_ewan || parent.dualwan_enabled){
+				if((parent.dual_ewan && parent.cur_wan_unit == 0) || (parent.dualwan_enabled && parent.ewan_index == 0)){
 					wanstate = first_wanstate;
 					wansbstate = first_wansbstate;
 					wanauxstate = first_wanauxstate;
 				}
-				else{
+				else if((parent.dual_ewan && parent.cur_wan_unit == 1) || (parent.dualwan_enabled && parent.ewan_index == 1)){
 					wanstate = second_wanstate;
 					wansbstate = second_wansbstate;
 					wanauxstate = second_wanauxstate;
@@ -240,8 +250,8 @@ function get_value_from_parent(){
 	if(now_flag == "auto_way")
 		document.form.flag.value = now_flag;
 	
-	if(parent.dual_ewan){
-		if(parent.cur_wan_unit == 0){
+	if(parent.dual_ewan || parent.dualwan_enabled){
+		if((parent.dual_ewan && parent.cur_wan_unit == 0) || (parent.dualwan_enabled && parent.ewan_index == 0)){
 			if(now_flag == "auto_way_pppoe")
 				document.form.wan0_proto.value = "pppoe";
 			else
@@ -265,7 +275,7 @@ function get_value_from_parent(){
 				document.form.wan0_dnsenable_x.value = parent.document.QKform.wan0_dnsenable_x.value;
 			}
 		}
-		else{
+		else if((parent.dual_ewan && parent.cur_wan_unit == 1) || (parent.dualwan_enabled && parent.ewan_index == 1)){
 			if(now_flag == "auto_way_pppoe")
 				document.form.wan1_proto.value = "pppoe";
 			else
@@ -395,14 +405,14 @@ function submitForm(o, s){
 		//parent.showLoading();
 		simple_showLoading();
 
-		if(parent.dual_ewan){
-			if(parent.cur_wan_unit == 0){
+		if(parent.dual_ewan || parent.dualwan_enabled){
+			if((parent.dual_ewan && parent.cur_wan_unit == 0) || (parent.dualwan_enabled && parent.ewan_index == 0)){
 				document.form.wan0_hwaddr_x.value = document.form.wan_hwaddr_x.value;
 				document.form.wan0_pppoe_username.value = document.form.wan_pppoe_username.value;
 				document.form.wan0_pppoe_passwd.value = document.form.wan_pppoe_passwd.value;
 				document.form.wan_unit.value = "0";
 			}
-			else{
+			else if((parent.dual_ewan && parent.cur_wan_unit == 1) || (parent.dualwan_enabled && parent.ewan_index == 1)){
 				document.form.wan1_hwaddr_x.value = document.form.wan_hwaddr_x.value;
 				document.form.wan1_pppoe_username.value = document.form.wan_pppoe_username.value;
 				document.form.wan1_pppoe_passwd.value = document.form.wan_pppoe_passwd.value;
@@ -430,16 +440,18 @@ function submitForm(o, s){
 		else
 			document.form.flag.value = "pppoe";
 
-		if(parent.dual_ewan || parent.gobiSupport){
+		if(parent.dual_ewan || parent.gobi_support){
 			document.form.next_page.value = "/QIS_detect.htm";
 		}
 		else
 			document.form.next_page.value = "/QIS_wireless.htm";
 		document.form.submit();
 	}
-	else if( (!parent.dual_ewan && (document.form.wan_proto.value == 'pppoe' || document.form.wan_proto.value == '')) ||
+	else if( (!parent.dual_ewan && !parent.dualwan_enabled && (document.form.wan_proto.value == 'pppoe' || document.form.wan_proto.value == '')) ||
 		     (parent.dual_ewan && parent.cur_wan_unit == 0 && (document.form.wan0_proto.value == 'pppoe' || document.form.wan0_proto.value == '')) ||
-		     (parent.dual_ewan && parent.cur_wan_unit == 1 && (document.form.wan1_proto.value == 'pppoe' || document.form.wan1_proto.value == '')) ){
+		     (parent.dual_ewan && parent.cur_wan_unit == 1 && (document.form.wan1_proto.value == 'pppoe' || document.form.wan1_proto.value == '')) ||
+		     (parent.dualwan_enabled && parent.ewan_index == 0 && (document.form.wan0_proto.value == 'pppoe' || document.form.wan0_proto.value == '')) ||
+		     (parent.dualwan_enabled && parent.ewan_index == 1 && (document.form.wan1_proto.value == 'pppoe' || document.form.wan1_proto.value == '')) ){
 		// uinfi
 		set_ISP_profile();
 
@@ -476,7 +488,7 @@ function submitForm(o, s){
 					}
 					document.form.next_page.value = "/QIS_detect.htm";
 				}
-				else if(parent.gobiSupport){
+				else if(parent.gobi_support){
 					document.form.next_page.value = "/QIS_verify_detect.htm";
 				}
 				else{
@@ -486,14 +498,14 @@ function submitForm(o, s){
 			}	
 		}	
 
-		if(parent.dual_ewan){
-			if(parent.cur_wan_unit == 0){
+		if(parent.dual_ewan || parent.dualwan_enabled){
+			if((parent.dual_ewan && parent.cur_wan_unit == 0) || (parent.dualwan_enabled && parent.ewan_index == 0)){
 				document.form.wan0_hwaddr_x.value = document.form.wan_hwaddr_x.value;
 				document.form.wan0_pppoe_username.value = document.form.wan_pppoe_username.value;
 				document.form.wan0_pppoe_passwd.value = document.form.wan_pppoe_passwd.value;
 				document.form.wan_unit.value = "0";
 			}
-			else{
+			else if((parent.dual_ewan && parent.cur_wan_unit == 1) || (parent.dualwan_enabled && parent.ewan_index == 1)){
 				document.form.wan1_hwaddr_x.value = document.form.wan_hwaddr_x.value;
 				document.form.wan1_pppoe_username.value = document.form.wan_pppoe_username.value;
 				document.form.wan1_pppoe_passwd.value = document.form.wan_pppoe_passwd.value;
@@ -510,7 +522,7 @@ function submitForm(o, s){
 				location.href = "/qis/QIS_wireless.htm";
 			}, 500);
 	}
-	else if(!parent.dual_ewan && (document.form.wan_proto.value == 'pptp'|| document.form.wan_proto.value == 'l2tp')) {
+	else if(!parent.dual_ewan && !parent.dualwan_enabled && (document.form.wan_proto.value == 'pptp'|| document.form.wan_proto.value == 'l2tp')) {
 		document.form.next_page.value = "QIS_internet_ip.htm";
 
 		parent.document.QKform.wan_hwaddr_x.value = document.form.wan_hwaddr_x.value;
@@ -520,7 +532,8 @@ function submitForm(o, s){
 		location.href = document.form.next_page.value;
 		return false;	//do not submit form
 	}
-	else if(parent.dual_ewan && parent.cur_wan_unit == 0 && (document.form.wan0_proto.value == 'pptp'|| document.form.wan0_proto.value == 'l2tp')){
+	else if((parent.dual_ewan && parent.cur_wan_unit == 0 && (document.form.wan0_proto.value == 'pptp'|| document.form.wan0_proto.value == 'l2tp')) ||
+			(parent.dualwan_enabled && parent.ewan_index == 0 && (document.form.wan0_proto.value == 'pptp'|| document.form.wan0_proto.value == 'l2tp')) ){
 		document.form.next_page.value = "QIS_internet_ip.htm";
 
 		parent.document.QKform.wan0_hwaddr_x.value = document.form.wan_hwaddr_x.value;
@@ -530,7 +543,8 @@ function submitForm(o, s){
 		location.href = document.form.next_page.value;
 		return false;	//do not submit form		
 	}
-	else if(parent.dual_ewan && parent.cur_wan_unit == 1 && (document.form.wan1_proto.value == 'pptp'|| document.form.wan1_proto.value == 'l2tp')){
+	else if((parent.dual_ewan && parent.cur_wan_unit == 1 && (document.form.wan1_proto.value == 'pptp'|| document.form.wan1_proto.value == 'l2tp')) ||
+			(parent.dualwan_enabled && parent.ewan_index == 0 && (document.form.wan1_proto.value == 'pptp'|| document.form.wan1_proto.value == 'l2tp')) ){
 		document.form.next_page.value = "QIS_internet_ip.htm";
 
 		parent.document.QKform.wan1_hwaddr_x.value = document.form.wan_hwaddr_x.value;
@@ -615,10 +629,10 @@ function enable_vpn_client(obj){
 	if(obj.checked){
 		document.form.vpn_option.style.display = "";
 		document.form.vpn_option.disabled = "";
-		if(parent.dual_ewan){
-			if(parent.cur_wan_unit == 0)
+		if(parent.dual_ewan || parent.dualwan_enabled){
+			if((parent.dual_ewan && parent.cur_wan_unit == 0) || (parent.dualwan_enabled && parent.ewan_index == 0))
 				document.form.wan0_proto.value = document.form.vpn_option.value;
-			else
+			else if((parent.dual_ewan && parent.cur_wan_unit == 1) || (parent.dualwan_enabled && parent.ewan_index == 1))
 				document.form.wan1_proto.value = document.form.vpn_option.value;
 		}
 		else
@@ -627,10 +641,10 @@ function enable_vpn_client(obj){
 	else{
 		document.form.vpn_option.style.display = "none";
 		document.form.vpn_option.disabled = "disabled";
-		if(parent.dual_ewan){
-			if(parent.cur_wan_unit == 0)
+		if(parent.dual_ewan || parent.dualwan_enabled){
+			if((parent.dual_ewan && parent.cur_wan_unit == 0) || (parent.dualwan_enabled && parent.ewan_index == 0))
 				document.form.wan0_proto.value = "pppoe";
-			else
+			else if((parent.dual_ewan && parent.cur_wan_unit == 1) || (parent.dualwan_enabled && parent.ewan_index == 1))
 				document.form.wan1_proto.value = "pppoe";
 		}
 		else
@@ -640,12 +654,12 @@ function enable_vpn_client(obj){
 }
 
 function change_vpn_type(obj){
-	if(parent.dual_ewan){
-		if(parent.cur_wan_unit == 0)
+	if(parent.dual_ewan || parent.dualwan_enabled){
+		if((parent.dual_ewan && parent.cur_wan_unit == 0) || (parent.dualwan_enabled && parent.ewan_index == 0))
 			document.form.wan0_proto.value = obj.value;
-		else
+		else if((parent.dual_ewan && parent.cur_wan_unit == 1) || (parent.dualwan_enabled && parent.ewan_index == 1))
 			document.form.wan1_proto.value = obj.value;
-	}			
+	}		
 	else
 		document.form.wan_proto.value = obj.value;
 }

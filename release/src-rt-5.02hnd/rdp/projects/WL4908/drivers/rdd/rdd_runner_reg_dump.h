@@ -250,7 +250,6 @@ void dump_RDD_GPON_SKB_ENQUEUED_INDEXES_FIFO_ENTRY(bdmf_session_handle session, 
 void dump_RDD_PM_COUNTERS(bdmf_session_handle session, unsigned char *p);
 void dump_RDD_RING_DESCRIPTOR(bdmf_session_handle session, unsigned char *p);
 void dump_RDD_WAN_TX_QUEUE_DESCRIPTOR(bdmf_session_handle session, unsigned char *p);
-void dump_RDD_DUMMY_RATE_CONTROLLER_DESCRIPTOR(bdmf_session_handle session, unsigned char *p);
 void dump_RDD_DDR_QUEUE_ADDRESS_ENTRY(bdmf_session_handle session, unsigned char *p);
 void dump_RDD_DS_INGRESS_CLASSIFICATION_IH_LOOKUP_ENTRY(bdmf_session_handle session, unsigned char *p);
 void dump_RDD_US_INGRESS_CLASSIFICATION_IH_LOOKUP_ENTRY(bdmf_session_handle session, unsigned char *p);
@@ -263,9 +262,10 @@ void dump_RDD_US_RATE_CONTROLLER_DESCRIPTOR(bdmf_session_handle session, unsigne
 void dump_RDD_DHD_FLOW_RING_CACHE_CTX_ENTRY(bdmf_session_handle session, unsigned char *p);
 void dump_RDD_DHD_RADIO_INSTANCE_COMMON_B_ENTRY(bdmf_session_handle session, unsigned char *p);
 void dump_RDD_DDR_QUEUE_DESCRIPTOR(bdmf_session_handle session, unsigned char *p);
-void dump_RDD_LAN_INGRESS_FIFO_ENTRY(bdmf_session_handle session, unsigned char *p);
+void dump_RDD_DUMMY_RATE_CONTROLLER_DESCRIPTOR(bdmf_session_handle session, unsigned char *p);
 void dump_RDD_BRIDGE_PORT_TO_BROADCOM_SWITCH_PORT_MAPPING_TABLE_PTR(bdmf_session_handle session, unsigned char *p);
 void dump_RDD_PACKET_SRAM_TO_DDR_COPY_BUFFER(bdmf_session_handle session, unsigned char *p);
+void dump_RDD_LAN_INGRESS_FIFO_ENTRY(bdmf_session_handle session, unsigned char *p);
 void dump_RDD_BPM_PACKET_BUFFER(bdmf_session_handle session, unsigned char *p);
 void dump_RDD_FC_UCAST_FLOW_CONTEXT_ENTRY(bdmf_session_handle session, unsigned char *p);
 void dump_RDD_FC_UCAST_FLOW_CONTEXT_ETH_XTM_ENTRY(bdmf_session_handle session, unsigned char *p);

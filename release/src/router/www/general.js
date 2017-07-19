@@ -1622,3 +1622,60 @@ function get_yadns_modedesc(mode)
 
 	return "";
 }
+
+function gen_switch_menu(_arrayList, _currentItem) {
+	var getLength = function(obj) {
+		var i = 0, key;
+		for (key in obj) {
+			if (obj.hasOwnProperty(key)) {
+				i++;
+			}
+		}
+		return i;
+	};
+
+	var code = "";
+	var array_list_num = getLength(_arrayList);
+
+	if(array_list_num > 1) {
+		var left_css = "border-top-left-radius:8px;border-bottom-left-radius:8px;";
+		var right_css = "border-top-right-radius:8px;border-bottom-right-radius:8px;";
+		var gen_pressed_content = function(_itemArray, _cssMode) {
+			var pressed_code = "";
+			pressed_code += "<div style='width:110px;height:30px;float:left;" + _cssMode + "' class='block_filter_pressed'>";
+			pressed_code += "<div class='tab_font_color' style='text-align:center;padding-top:5px;font-size:14px'>" +  _itemArray[0] + "</div>";
+			pressed_code += "</div>";
+			return pressed_code;
+		};
+		var gen_not_pressed_content = function(_itemArray, _cssMode) {
+			var not_pressed_code = "";
+			not_pressed_code += "<div style='width:110px;height:30px;float:left;" + _cssMode + "' class='block_filter'>";
+			not_pressed_code += "<a href='" + _itemArray[1] + "'>";	
+			not_pressed_code += "<div class='block_filter_name'>" +  _itemArray[0] + "</div>";
+			not_pressed_code += "</a>";
+			not_pressed_code += "</div>";
+			return not_pressed_code;
+		};
+		var loop_idx_end = array_list_num;
+		var loop_idx = 1;
+		for (var key in _arrayList) {
+			if (_arrayList.hasOwnProperty(key)) {
+				var cssMode = "";
+				if(loop_idx == 1) {
+					cssMode = left_css;
+				}
+				else if(loop_idx == loop_idx_end) {
+					cssMode = right_css;
+				}
+				if(_currentItem == key) {
+					code += gen_pressed_content(_arrayList[key], cssMode);
+				}
+				else {
+					code += gen_not_pressed_content(_arrayList[key], cssMode);
+				}
+				loop_idx++;
+			}
+		}
+		return code;
+	}
+}

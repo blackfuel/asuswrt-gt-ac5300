@@ -225,7 +225,7 @@ function tryParseJSON (jsonString){
 var login_info =  tryParseJSON('<% login_error_info(); %>');
 var isIE8 = navigator.userAgent.search("MSIE 8") > -1; 
 var isIE9 = navigator.userAgent.search("MSIE 9") > -1; 
-var remaining_time = 60 - login_info.lock_time;
+var remaining_time = 300 - login_info.lock_time;
 var countdownid, rtime_obj;
 var redirect_page = login_info.page;
 var cloud_file = '<% get_parameter("file"); %>';

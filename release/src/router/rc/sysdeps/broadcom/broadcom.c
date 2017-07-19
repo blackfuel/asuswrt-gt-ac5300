@@ -578,7 +578,11 @@ setAllLedOn(void)
 #ifdef RT4GAC68U
 			led_control(LED_LAN, LED_ON);
 			led_control(LED_WPS, LED_ON);
+#endif
+#ifdef RTCONFIG_INTERNAL_GOBI
+#ifdef RT4GAC68U
 			led_control(LED_3G, LED_ON);
+#endif
 			led_control(LED_LTE, LED_ON);
 			led_control(LED_SIG1, LED_ON);
 			led_control(LED_SIG2, LED_ON);
@@ -760,8 +764,10 @@ int setAllOrangeLedOn(void) {
 	int model = get_model();
 	switch (model) {
 		case MODEL_RTAC68U:
+#ifdef RTCONFIG_INTERNAL_GOBI
 #ifdef RT4GAC68U
 			led_control(LED_3G, LED_ON);
+#endif
 #endif
 			break;
 	};
@@ -970,7 +976,11 @@ setAllLedOff(void)
 #ifdef RT4GAC68U
 			led_control(LED_LAN, LED_OFF);
 			led_control(LED_WPS, LED_OFF);
+#endif
+#ifdef RTCONFIG_INTERNAL_GOBI
+#ifdef RT4GAC68U
 			led_control(LED_3G, LED_OFF);
+#endif
 			led_control(LED_LTE, LED_OFF);
 			led_control(LED_SIG1, LED_OFF);
 			led_control(LED_SIG2, LED_OFF);
@@ -3743,6 +3753,15 @@ GEN_CONF:
 				eval("wl", "-i", ifname, "bus:ffsched_flr_rst_delay", FFSCHED_FLOW_RING_RESET_DELAY);	// driver default setting
 		}
 #endif
+
+#ifdef HND_ROUTER
+	if(unit == 0) {
+		eval("dhd", "-i", ifname, "tcpack_suppress", "3");
+		eval("dhd", "-i", ifname, "tcpack_sup_ratio", "8");
+		eval("dhd", "-i", ifname, "tcpack_sup_delay", "20");
+	}
+#endif
+
 #endif /* RTCONFIG_BCMARM */
 #else
 		eval("wl", "-i", ifname, "ampdu_density", "6");		// resolve IOT with Intel STA for BRCM SDK 5.110.27.20012

@@ -17,8 +17,8 @@ sig_file=`nvram get SKU`_`nvram get sig_state_info`_un.zip
 if [ "$rsa_enabled" != "" ]; then
 sig_rsasign=`nvram get SKU`_`nvram get sig_state_info`_rsa.zip
 fi
-echo $sig_file >> /tmp/sig_upgrade.log
-echo $sig_rsasign >> /tmp/sig_upgrade.log
+echo "$sig_file" > /tmp/sig_upgrade.log
+echo "$sig_rsasign" >> /tmp/sig_upgrade.log
 
 # get signature zip file
 forsq=`nvram get apps_sq`
@@ -42,6 +42,7 @@ fi
 
 if [ "$?" != "0" ]; then	#download failure
 	echo "---- Download and mv trf Failure ----"
+	echo "---- Download and mv trf Failure ----" >> /tmp/sig_upgrade.log
 	nvram set sig_state_error=1
 else
 	nvram set sig_state_upgrade=2
@@ -60,10 +61,12 @@ else
 	if [ "$rsasign_check_ret" == "1" ]; then
 		echo "---- sig check OK ----" >> /tmp/sig_upgrade.log
 		if [ -f /jffs/signature/rule.trf ];then
+			echo "---- sig rule mv /tmp to /jffs/signature ----"
 			echo "---- sig rule mv /tmp to /jffs/signature ----" >> /tmp/sig_upgrade.log
 			rm /jffs/signature/rule.trf
 			mv /tmp/rule.trf /jffs/signature/rule.trf
 		else
+			echo "---- sig rule mv jffs ----"
 			echo "---- sig rule mv jffs ----" >> /tmp/sig_upgrade.log
 			mkdir /jffs/signature
 			mv /tmp/rule.trf /jffs/signature/rule.trf
@@ -77,7 +80,8 @@ else
 			echo "do nothing..." >> /tmp/sig_upgrade.log
 		fi
 	else
-		echo "---- sig check error ----" >> /tmp/sig_upgrade.log
+		echo "---- sig rsa check error ----"
+		echo "---- sig rsa check error ----" >> /tmp/sig_upgrade.log
 		nvram set sig_state_error=3	# wrong sig trf
 	fi
 fi

@@ -41,24 +41,24 @@ fi
 
 if [ "$forsq" == "1" ]; then
 	if [ "$model_31" == "1" ]; then
-		echo "---- update sq normal for model_31 ----" >> /tmp/webs_upgrade.log
+		echo "---- update sq normal for model_31 ----" > /tmp/webs_upgrade.log
 		wget $wget_options https://dlcdnets.asus.com/pub/ASUS/LiveUpdate/Release/Wireless_SQ/wlan_update_31.zip -O /tmp/wlan_update.txt
 	elif [ "$model_30" == "1" ]; then
-		echo "---- update sq normal for model_30 ----" >> /tmp/webs_upgrade.log
+		echo "---- update sq normal for model_30 ----" > /tmp/webs_upgrade.log
 		wget $wget_options https://dlcdnets.asus.com/pub/ASUS/LiveUpdate/Release/Wireless_SQ/wlan_update_30.zip -O /tmp/wlan_update.txt
 	else
-		echo "---- update sq normal----" >> /tmp/webs_upgrade.log
+		echo "---- update sq normal----" > /tmp/webs_upgrade.log
 		wget $wget_options https://dlcdnets.asus.com/pub/ASUS/LiveUpdate/Release/Wireless_SQ/wlan_update_v2.zip -O /tmp/wlan_update.txt		
 	fi
 else
 	if [ "$model_31" == "1" ]; then
-		echo "---- update real normal for model_31 ----" >> /tmp/webs_upgrade.log
+		echo "---- update real normal for model_31 ----" > /tmp/webs_upgrade.log
 		wget $wget_options https://dlcdnets.asus.com/pub/ASUS/LiveUpdate/Release/Wireless/wlan_update_31.zip -O /tmp/wlan_update.txt
 	elif [ "$model_30" == "1" ]; then
-		echo "---- update real normal for model_30 ----" >> /tmp/webs_upgrade.log
+		echo "---- update real normal for model_30 ----" > /tmp/webs_upgrade.log
 		wget $wget_options https://dlcdnets.asus.com/pub/ASUS/LiveUpdate/Release/Wireless/wlan_update_30.zip -O /tmp/wlan_update.txt
 	else
-		echo "---- update real normal----" >> /tmp/webs_upgrade.log
+		echo "---- update real normal----" > /tmp/webs_upgrade.log
 		wget $wget_options https://dlcdnets.asus.com/pub/ASUS/LiveUpdate/Release/Wireless/wlan_update_v2.zip -O /tmp/wlan_update.txt
 	fi
 fi	

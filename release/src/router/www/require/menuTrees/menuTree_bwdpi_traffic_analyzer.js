@@ -173,6 +173,8 @@
 					{url: "Advanced_WAN_Content.asp", tabName: "<#menu5_3_1#>"},
 					{url: "Advanced_DSL_Content.asp", tabName: "<#menu5_3_1#>"},
 					{url: "Advanced_VDSL_Content.asp", tabName: "<#menu5_3_1#>"},
+					{url: "Advanced_Modem_Content.asp", tabName: "<#menu5_3_1#>"},
+					{url: "Advanced_MobileBroadband_Content.asp", tabName: "<#menu5_3_1#>"},
 					{url: "Advanced_WANPort_Content.asp", tabName: "<#dualwan#>"},
 					{url: "Advanced_PortTrigger_Content.asp", tabName: "<#menu5_3_3#>"},
 					{url: "Advanced_VirtualServer_Content.asp", tabName: "<#menu5_3_4#>"},
@@ -397,6 +399,10 @@
 					retArray.push("Advanced_VPN_OpenVPN.asp");
 				}	
 
+				if(!ipsec_support){
+					retArray.push("Advanced_VPN_IPSec.asp");
+				}
+				
 				if(!vpnc_support){
 					retArray.push("Advanced_VPNClient_Content.asp");
 				}
@@ -419,6 +425,21 @@
 				
 				if(!dualWAN_support){
 					retArray.push("Advanced_WANPort_Content.asp");
+					retArray.push("Advanced_Modem_Content.asp");
+					retArray.push("Advanced_MobileBroadband_Content.asp");
+				}
+				else{
+					if(!dualwan_enabled && usb_index == 0){
+						retArray.push("Advanced_WAN_Content.asp");
+						if(!gobi_support)
+							retArray.push("Advanced_MobileBroadband_Content.asp");
+						else
+							retArray.push("Advanced_Modem_Content.asp");
+					}
+					else{
+						retArray.push("Advanced_MobileBroadband_Content.asp");
+						retArray.push("Advanced_Modem_Content.asp");
+					}
 				}
 
 				if(!SwitchCtrl_support){
@@ -468,7 +489,7 @@
 				}
 
 				if(hwmodeSwitch_support){
-					retArray.push("Advanced_OperationMode_Content.asp");		
+					retArray.push("Advanced_OperationMode_Content.asp");
 				}
 
 				if(noiptv_support){

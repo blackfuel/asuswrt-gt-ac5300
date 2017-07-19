@@ -119,10 +119,6 @@ function initial(){
 
 	show_menu();		
 	addOnlineHelp(document.getElementById("faq"), ["ASUSWRT", "VPN"]);
-	//if support pptpd and openvpnd then show switch button
-	if(pptpd_support && openvpnd_support) {
-		document.getElementById("divSwitchMenu").style.display = "";
-	}
 
 	formShowAndHide(vpn_server_enable, "openvpn");
 
@@ -140,7 +136,20 @@ function initial(){
 	setRadioValue(document.form.vpn_server_x_eas, ((document.form.vpn_serverx_eas.value.indexOf(''+(openvpn_unit)) >= 0) ? "1" : "0"));
 	setRadioValue(document.form.vpn_server_x_dns, ((document.form.vpn_serverx_dns.value.indexOf(''+(openvpn_unit)) >= 0) ? "1" : "0"));
 	update_visibility();
+	update_cipher();
 	/*Advanced Setting end */
+
+	var vpn_server_array = { "PPTP" : ["PPTP", "Advanced_VPN_PPTP.asp"], "OpenVPN" : ["OpenVPN", "Advanced_VPN_OpenVPN.asp"], "IPSEC" : ["IPSec VPN", "Advanced_VPN_IPSec.asp"]};
+	if(!pptpd_support) {
+		delete vpn_server_array.PPTP;
+	}
+	if(!openvpnd_support) {
+		delete vpn_server_array.OpenVPN;
+	}
+	if(!ipsec_support) {
+		delete vpn_server_array.IPSEC;
+	}
+	$('#divSwitchMenu').html(gen_switch_menu(vpn_server_array, "OpenVPN"));
 
 	//check DUT is belong to private IP.
 	setTimeout("show_warning_message();", 100);
@@ -1044,6 +1053,13 @@ function vpnServerTlsKeysize(_obj) {
 	settingRadioItemCheck(document.form.vpn_server_tls_keysize_basic, _obj.value);
 	settingRadioItemCheck(document.form.vpn_server_tls_keysize_adv, _obj.value);
 }
+
+function update_cipher() {
+	$("#cipher_hint").css("display", "none");
+	var cipher = document.form.vpn_server_cipher.value;
+	if(cipher == "default")
+		$("#cipher_hint").css("display", "");
+}
 </script>
 </head>
 <body onload="initial();">
@@ -1218,16 +1234,7 @@ function vpnServerTlsKeysize(_obj) {
 								<td bgcolor="#4D595D" valign="top">
 									<div>&nbsp;</div>
 									<div class="formfonttitle"><#BOP_isp_heart_item#> - OpenVPN</div>
-									<div id="divSwitchMenu" style="margin-top:-40px;float:right;display:none;">									
-										<div style="width:173px;height:30px;border-top-left-radius:8px;border-bottom-left-radius:8px;" class="block_filter">
-											<a href="Advanced_VPN_PPTP.asp">
-												<div class="block_filter_name">PPTP</div>
-											</a>
-										</div>
-										<div style="width:172px;height:30px;margin:-32px 0px 0px 173px;border-top-right-radius:8px;border-bottom-right-radius:8px;" class="block_filter_pressed">
-											<div class="tab_font_color" style="text-align:center;padding-top:5px;font-size:14px">OpenVPN</div>
-										</div>
-									</div>
+									<div id="divSwitchMenu" style="margin-top:-40px;float:right;"></div>
 									<div style="margin-left:5px;margin-top:10px;margin-bottom:10px"><img src="/images/New_ui/export/line_export.png"></div>
 									<div id="privateIP_notes" class="formfontdesc" style="display:none;color:#FFCC00;"></div>
 									<table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="FormTable">
@@ -1538,7 +1545,8 @@ function vpnServerTlsKeysize(_obj) {
 											<tr>
 												<th><#vpn_openvpn_Encrypt#></th>
 												<td>
-													<select name="vpn_server_cipher" class="input_option"></select>
+													<select name="vpn_server_cipher" class="input_option" onChange="update_cipher();"></select>
+													<span id="cipher_hint" style="color:#FC0">(Default : BF-CBC)</span>
 												</td>
 											</tr>
 											<tr>

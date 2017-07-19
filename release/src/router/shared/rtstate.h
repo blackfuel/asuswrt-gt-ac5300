@@ -14,7 +14,9 @@ enum {
 enum {
 	WAN_UNIT_NONE=-1,
 	WAN_UNIT_FIRST=0,
+#if defined(RTCONFIG_DUALWAN) || defined(RTCONFIG_USB_MODEM)
 	WAN_UNIT_SECOND,
+#endif
 	WAN_UNIT_MAX
 };
 
@@ -161,6 +163,17 @@ enum {
 };
 
 #ifdef RTCONFIG_USB
+#if defined(RTCONFIG_ALPINE) || defined(RTCONFIG_LANTIQ)
+#define USB_XHCI_PORT_1 "2-1"
+#define USB_XHCI_PORT_2 "2-2"
+#define USB_EHCI_PORT_1 "1-1"
+#define USB_EHCI_PORT_2 "1-2"
+#define USB_OHCI_PORT_1 "3-1"
+#define USB_OHCI_PORT_2 "3-2"
+#define USB_EHCI_PORT_3 "1-3"
+#define USB_OHCI_PORT_3 "3-3"
+#endif
+
 enum {
 	USB_HOST_NONE=0,
 	USB_HOST_OHCI,
@@ -261,8 +274,8 @@ enum {
 #define DISKMON_DAY_HOUR 24
 #define DISKMON_HOUR_SEC 3600
 
-#if defined(RT4GAC55U)
-#define MAX_USB_PORT 3
+#if defined(RT4GAC55U) || defined(RT4GAC68U)
+#define MAX_USB_PORT 2
 #else
 #define MAX_USB_PORT 3
 #endif
@@ -301,7 +314,11 @@ enum {
 #define FREE_MEM_INODE "2"
 #define FREE_MEM_ALL   "3"
 
+#ifdef RTCONFIG_DEFAULT_REPEATER_MODE
+#define sw_mode()            (nvram_get("sw_mode") ? nvram_get_int("sw_mode") : SW_MODE_REPEATER)
+#else
 #define sw_mode()            (nvram_get("sw_mode") ? nvram_get_int("sw_mode") : SW_MODE_ROUTER)
+#endif
 #define is_routing_enabled() (sw_mode()==SW_MODE_ROUTER||sw_mode()==SW_MODE_HOTSPOT)
 #define is_router_mode()     (sw_mode()==SW_MODE_ROUTER)
 #define is_nat_enabled()     ((sw_mode()==SW_MODE_ROUTER||sw_mode()==SW_MODE_HOTSPOT)&&nvram_get_int("wan0_nat_x")==1)
@@ -333,7 +350,7 @@ extern char *get_usb_ehci_port(int port);
 extern char *get_usb_ohci_port(int port);
 extern int get_usb_port_number(const char *usb_port);
 extern int get_usb_port_host(const char *usb_port);
-#if defined(RTCONFIG_DUALWAN) || defined(RTCONFIG_MULTICAST_IPTV)
+#ifdef RTCONFIG_DUALWAN
 extern void set_wanscap_support(char *feature);
 extern void add_wanscap_support(char *feature);
 extern int get_wans_dualwan(void);
@@ -343,7 +360,14 @@ extern int get_dualwan_primary(void);
 extern int get_dualwan_secondary(void);
 extern int get_gate_num(void);
 #else
-static inline int get_wanunit_by_type(int wan_type) { return WAN_UNIT_FIRST; }
+static inline int get_wanunit_by_type(int wan_type){
+#ifdef RTCONFIG_USB_MODEM
+	if(wan_type == WANS_DUALWAN_IF_USB)
+		return WAN_UNIT_SECOND;
+	else
+#endif
+		return WAN_UNIT_FIRST;
+}
 #endif
 
 char *usb_modem_prefix(int modem_unit, char *prefix, int size);

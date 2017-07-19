@@ -909,12 +909,15 @@ void get_proto_via_br(int insert)
 #define get_proto_via_br(...)
 #endif
 
+#define DISCOVER_DHCP	1
+#define DISCOVER_PPPOE	2
 int discover_interfaces(int num, const char **current_wan_ifnames, int dhcp_det, int *got_inf)
 {
 	struct inf  {
 		struct client_config_t client_config;
 		PPPoEConnection conn;	// ppp
 		int cfd;		// dhcp
+		int state;
 	} *pInf;
 	fd_set rfds;
 	int retval;
@@ -926,12 +929,20 @@ int discover_interfaces(int num, const char **current_wan_ifnames, int dhcp_det,
 #ifdef DHCP_DETECT
 	unsigned long xid = 0;
 #endif
+	char wan_ifNames[64], *p;	//for message
+
 
 	if(num <= 0)
 		return -1;
 
 	if((pInf = (struct inf *) malloc(sizeof(struct inf) * num)) == NULL)
 		return -1;
+
+	wan_ifNames[0] = '\0';
+	p = wan_ifNames;
+	for(idx = 0; idx < num && (sizeof(wan_ifNames) > p - wan_ifNames + strlen(current_wan_ifnames[idx])); idx++) {
+		p += sprintf(p, "%s ", current_wan_ifnames[idx]);
+	}
 
 	get_proto_via_br(1);
 
@@ -948,7 +959,7 @@ int discover_interfaces(int num, const char **current_wan_ifnames, int dhcp_det,
 	change_mode(LISTEN_RAW);
 #endif
 	
-	memset(pInf, 0, sizeof(sizeof(struct inf) * num));
+	memset(pInf, 0, sizeof(struct inf) * num);
 	for(idx = 0; idx < num; idx++) {
 		/* Initialize connection info */
 		memset(&pInf[idx].conn, 0, sizeof(pInf[idx].conn));
@@ -1001,15 +1012,25 @@ int discover_interfaces(int num, const char **current_wan_ifnames, int dhcp_det,
 			}
 		}
 #endif // DHCP_DETECT
+
+
+		{ // send discover frame
+#ifdef DHCP_DETECT
+			if(dhcp_det) {
+				send_dhcp_discover(xid, pInf[idx].client_config.ifindex, pInf[idx].client_config.arp); /* broadcast */
+			}
+#endif // DHCP_DETECT
+			sendPADI(&pInf[idx].conn);
+		}
 	}
-	
+
 	tv.tv_sec = 3;
 	tv.tv_usec = 0;
 #ifdef DHCP_DETECT
 	int count = 0;
 #endif
+	*got_inf = -1;
 	for (;;) {
-		*got_inf = -1;
 		
 		FD_ZERO(&rfds);
 		
@@ -1024,56 +1045,55 @@ int discover_interfaces(int num, const char **current_wan_ifnames, int dhcp_det,
 			FD_SET(pInf[idx].conn.discoverySocket, &rfds);  // ppp
 			if(pInf[idx].conn.discoverySocket > max_fd)
 				max_fd = pInf[idx].conn.discoverySocket;
-		
-#ifdef DHCP_DETECT
-			if(dhcp_det) {
-				send_dhcp_discover(xid, pInf[idx].client_config.ifindex, pInf[idx].client_config.arp); /* broadcast */
-			}
-#endif // DHCP_DETECT
-			sendPADI(&pInf[idx].conn);
 		}
 
 		retval = select(max_fd + 1, &rfds, NULL, NULL, &tv);
 
+
 		if (retval == -1) {
-eprintf("--- %s(%s): error on select! ---\n", __func__, *current_wan_ifnames);
+eprintf("--- %s(%s): error on select! ---\n", __func__, wan_ifNames);
 			fprintf(stderr, "error on select\n");
 
 			if (errno == EINTR)	/* a signal was caught */
 			{
-eprintf("--- %s(%s): a signal was caught! ---\n", __func__, *current_wan_ifnames);
+eprintf("--- %s(%s): a signal was caught! ---\n", __func__, wan_ifNames);
 				fprintf(stderr, "a signal was caught!\n");
 				sleep(1);
 				continue;
 			}
 			else if (errno == EBADF)
 			{
-eprintf("--- %s(%s): An invalid file descriptor was given in one of the sets ---\n", __func__, *current_wan_ifnames);
+eprintf("--- %s(%s): An invalid file descriptor was given in one of the sets ---\n", __func__, wan_ifNames);
 				fprintf(stderr, "An invalid file descriptor was given in one of the sets\n");
 				break;
 			}
 			else if (errno == EINVAL)
 			{
-eprintf("--- %s(%s): max_fd + 1 is negative or the value contained within timeout is invalid ---\n", __func__, *current_wan_ifnames);
+eprintf("--- %s(%s): max_fd + 1 is negative or the value contained within timeout is invalid ---\n", __func__, wan_ifNames);
 				fprintf(stderr, "max_fd + 1 is negative or the value contained within timeout is invalid\n");
 				break;
 			}
 			else if (errno == ENOMEM)
 			{
-eprintf("--- %s(%s): unable to allocate memory for internal tables ---\n", __func__, *current_wan_ifnames);
+eprintf("--- %s(%s): unable to allocate memory for internal tables ---\n", __func__, wan_ifNames);
 				fprintf(stderr, "unable to allocate memory for internal tables\n");
 				break;
 			}
 			else
 			{
-eprintf("--- %s(%s): unknown errno: %x ---\n", __func__, *current_wan_ifnames, errno);
+eprintf("--- %s(%s): unknown errno: %x ---\n", __func__, wan_ifNames, errno);
 				fprintf(stderr, "unknown errno: %x\n", errno);
 				break;
 			}
 		}
 		else if (retval < 0) {
-eprintf("--- %s(%s): this should not happen! ---\n", __func__, *current_wan_ifnames);
+eprintf("--- %s(%s): this should not happen! ---\n", __func__, wan_ifNames);
 			fprintf(stderr, "this should not happen\n");
+			break;
+		}
+		else if (retval == 0) {
+eprintf("--- %s(%s): retval == 0. ---\n", __func__, wan_ifNames);
+			//fprintf(stderr, "timeout occur when discover dhcp or pppoe\n");
 			break;
 		}
 
@@ -1091,19 +1111,14 @@ eprintf("--- %s(%s): this should not happen! ---\n", __func__, *current_wan_ifna
 				got_PPP = 1;
 				*got_inf = idx;
 			}
-eprintf("--- %s: got_DHCP=%d, got_PPP=%d. ---\n", __func__, got_DHCP, got_PPP);
-			if (retval == 0) {
-eprintf("--- %s: retval == 0. ---\n", __func__);
-			//fprintf(stderr, "timeout occur when discover dhcp or pppoe\n");
-				goto leave;
-			}
+eprintf("--- %s(%s): got_DHCP=%d, got_PPP=%d. ---\n", __func__, pInf[idx].conn.ifName, got_DHCP, got_PPP);
 #ifdef DHCP_DETECT
 		if (dhcp_det && retval > 0 && listen_mode != LISTEN_NONE && got_DHCP == 1) {
 			unsigned char *message;
 			int len;
 			struct dhcpMessage packet;
 
-eprintf("--- %s: discovery DHCP! ---\n", __func__);
+eprintf("--- %s(%s): discovery DHCP! ---\n", __func__, pInf[idx].conn.ifName);
 			/* a packet is ready, read it */
 			if (listen_mode == LISTEN_KERNEL)
 				len = get_packet(&packet, pInf[idx].cfd);
@@ -1116,19 +1131,22 @@ eprintf("--- %s: discovery DHCP! ---\n", __func__);
 			
 			if ((len < 0) || (packet.xid != xid) || ((message = get_option(&packet, DHCP_MESSAGE_TYPE)) == NULL)) {
 				++count;
-eprintf("--- %s: Got the wrong %d packet when detecting DHCP! ---\n", __func__, count);
+eprintf("--- %s(%s): Got the wrong %d packet when detecting DHCP! ---\n", __func__, pInf[idx].conn.ifName, count);
 			}
 			/* Must be a DHCPOFFER to one of our xid's */
 			//if (*message == DHCPOFFER)
 			else if (*message == DHCPOFFER)
 			{
-eprintf("--- %s: Got the DHCP OFFER! ---\n", __func__);
-				ret = 1;
-				goto leave;
+eprintf("--- %s(%s): Got the DHCP OFFER ! ---\n", __func__, pInf[idx].conn.ifName);
+				pInf[idx].state |= DISCOVER_DHCP;
+				if(pInf[idx].state & DISCOVER_PPPOE) {
+					ret = 3;
+					goto leave;
+				}
 			}
 			else
 				got_DHCP = -1;
-eprintf("--- %s: end to analyse the DHCP's packet! ---\n", __func__);
+eprintf("--- %s(%s): end to analyse the DHCP's packet! ---\n", __func__, pInf[idx].conn.ifName);
 		}
 #endif // DHCP_DETECT
 		
@@ -1136,19 +1154,26 @@ eprintf("--- %s: end to analyse the DHCP's packet! ---\n", __func__);
 		{
 			PPPoEPacket ppp_packet;
 			int ppp_len;
-eprintf("--- %s: discovery PPPoE! ---\n", __func__);
+eprintf("--- %s(%s): discovery PPPoE! ---\n", __func__, pInf[idx].conn.ifName);
 			receivePacket(pInf[idx].conn.discoverySocket, &ppp_packet, &ppp_len);
 			
 			if (ppp_packet.code == CODE_PADO) {
-eprintf("--- %s: Got the PPPoE! ---\n", __func__);
-				ret = 2;
-				goto leave;
+eprintf("--- %s(%s): Got the PPPoE ! ---\n", __func__, pInf[idx].conn.ifName);
+				pInf[idx].state |= DISCOVER_PPPOE;
+				if(pInf[idx].state & DISCOVER_DHCP) {
+					ret = 3;
+					goto leave;
+				}
+				if(!dhcp_det) {
+					ret = 2;
+					goto leave;
+				}
 			}
-			
-			got_PPP = -1;
-eprintf("--- %s(%s): end to analyse the PPPoE's packet! ---\n", __func__, *current_wan_ifnames);
+			else
+				got_PPP = -1;
+eprintf("--- %s(%s): end to analyse the PPPoE's packet! ---\n", __func__, pInf[idx].conn.ifName);
 		}
-eprintf("--- %s(%s): Go to next detect loop. ---\n", __func__, *current_wan_ifnames);
+eprintf("--- %s(%s): Go to next detect loop. ---\n", __func__, pInf[idx].conn.ifName);
 	}
 	}
 
@@ -1156,6 +1181,20 @@ leave:
 	get_proto_via_br(0);
 	for(idx = 0; idx < num; idx++) {
 		closeall(pInf[idx].cfd, pInf[idx].conn.discoverySocket);
+	}
+	if(ret < 0) {
+		for(idx = 0; idx < num; idx++) {
+			if(pInf[idx].state) {
+				ret = pInf[idx].state;
+				*got_inf = idx;
+				break;
+			}
+		}
+	}
+eprintf("--- %s(%s): finish ret(%d) got_inf(%d). ---\n", __func__, wan_ifNames, ret, *got_inf);
+	for(idx = 0; idx < num; idx++)
+	{
+		free(pInf[idx].conn.ifName);
 	}
 	free(pInf);
 	return ret;

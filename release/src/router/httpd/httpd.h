@@ -53,6 +53,13 @@ struct mime_handler {
 
 extern struct mime_handler mime_handlers[];
 
+struct useful_redirect_list {
+        char *pattern;
+        char *mime_type;
+};
+
+extern struct useful_redirect_list useful_redirect_lists[];
+
 #define MIME_EXCEPTION_NOAUTH_ALL 	1<<0
 #define MIME_EXCEPTION_NOAUTH_FIRST	1<<1
 #define MIME_EXCEPTION_NORESETTIME	1<<2
@@ -212,6 +219,10 @@ struct ej_handler {
 };
 extern struct ej_handler ej_handlers[];
 
+#define MAX_LOGIN_BLOCK_TIME	300
+#define LOCK_LOGIN_LAN 	0x01
+#define LOCK_LOGIN_WAN 	0x02
+
 #ifdef vxworks
 #define fopen(path, mode)	tar_fopen((path), (mode))
 #define fclose(fp)		tar_fclose((fp))
@@ -253,6 +264,8 @@ extern void http_logout(unsigned int ip, char *cookies, int fromapp_flag);
 extern int is_auth(void);
 extern int is_firsttime(void);
 extern char *generate_token(void);
+extern int match( const char* pattern, const char* string );
+extern int match_one( const char* pattern, int patternlen, const char* string );
 
 /* web.c */
 extern int ej_lan_leases(int eid, webs_t wp, int argc, char_t **argv);
@@ -271,6 +284,7 @@ extern asus_token_t* search_timeout_in_list(asus_token_t **prev, int fromapp_fla
 extern asus_token_t* add_token_to_list(char *token, int add_to_end);
 extern asus_token_t* create_list(char *token);
 extern void set_referer_host(void);
+extern int check_xss_blacklist(char* para, int check_www);
 
 /* web-*.c */
 extern int ej_wl_status(int eid, webs_t wp, int argc, char_t **argv, int unit);

@@ -170,6 +170,20 @@ if(parent.yadns_support){
 }
 
 var wans_mode = '<% nvram_get("wans_mode"); %>';
+if(parent.dual_ewan){
+	var autodet_state ='<% nvram_get("autodet_state"); %>';
+	var autodet1_state = '<% nvram_get("autodet1_state"); %>';
+}
+else{
+	if(parent.dualwan_enabled){
+		var autodet_state = (parent.ewan_index == 0)? '<% nvram_get("autodet_state"); %>': '<% nvram_get("autodet1_state"); %>';
+		var autodet_auxstate = (parent.ewan_index == 0)? '<% nvram_get("autodet_auxstate"); %>': '<% nvram_get("autodet1_auxstate"); %>';
+	}
+	else{
+		var autodet_state = '<% nvram_get("autodet_state"); %>';
+		var autodet_auxstate = '<% nvram_get("autodet_auxstate"); %>';
+	}
+}
 
 function yadns_apply(){
 	var enable = document.getElementById("yadns_enable").checked;
@@ -338,7 +352,7 @@ function QKfinish_load_body(){
 	document.getElementById("QISmain").style.display = "";
 	parent.document.title = "<#Web_Title#> - <#QKSet_all_title#>";
 
-	if(gobi_support || parent.dual_ewan || parent.dualwan_enabled){
+	if(parent.gobi_support || parent.dual_ewan || parent.dualwan_enabled){
 		$("#freqtitle2")[0].style.display = "none";
 		$("#ssid2_block")[0].style.display = "none";
 		$("#key2_block")[0].style.display = "none";
@@ -947,7 +961,7 @@ function QKfinish_load_body(){
 	}
 
 	if(parent.dualWAN_support){
-		if(gobi_support){
+		if(parent.gobi_support){
 			if(wanlink_type_conv == "USB Modem")
 				wanlink_type_conv = "<#Mobile_title#>";
 			document.getElementById("wantype").innerHTML = wanlink_type_conv;
@@ -1006,7 +1020,7 @@ function QKfinish_load_body(){
 	}
 	else{
 		if(parent.dualWAN_support){
-			if(gobi_support || parent.dual_ewan || parent.dualwan_enabled){
+			if(parent.gobi_support || parent.dual_ewan || parent.dualwan_enabled){
 				document.getElementById("wanip").innerHTML = first_wanlink_ipaddr();
 				if(wanlink_ipaddr() != "0.0.0.0"){
 					if(wans_mode == "fb" || wans_mode == "fo"){
@@ -1174,10 +1188,9 @@ function goto_index(){
 	document.restartForm.force_change.value++;
 	document.restartForm.action_wait.value = 0;
 
-	if(/*parent.based_modelid == "4G-AC55U"*/parent.gobiSupport && parent.wan_autodet_state == "4" && parent.usb_connected == 1 && wans_dualwan_orig == "wan usb"){
+	if(parent.gobi_support && autodet_state == "4" && parent.usb_connected == 1 && wans_dualwan_orig == "wan usb"){
 		document.restartForm.wans_dualwan.disabled = false;
 		document.restartForm.wans_dualwan.value = "usb wan";
-		parent.sysReboot = true;
 	}
 
 	if(parent.QKform.wans_dualwan.disabled == false){
@@ -1209,6 +1222,7 @@ function goto_index(){
 		document.restartForm.action_wait.value = parent.rebootTime;
 		document.restartForm.action_script.value = "reboot";
 		document.getElementById('loadingIcon').style.display = '';
+		setTimeout("detect_redirect()", 5000);
 	}
 	else{
 		var actionScriptArray = [];
@@ -1229,11 +1243,14 @@ function goto_index(){
 		document.restartForm.action_script.value = actionScriptArray.join(";");
 	}
 
-	if(/*parent.based_modelid == "4G-AC55U"*/parent.gobiSupport && wans_mode == "lb"){
+	if(parent.gobi_support && wans_mode == "lb"){
 		document.restartForm.wans_mode.disabled = false;
 	}
 
 	document.restartForm.submit();
+
+	if(parent.gobi_support)
+		setTimeout(function(){ parent.location.href = "/index.asp";}, 2000);
 }
 
 function gotoAdvSetting(){
@@ -1259,6 +1276,10 @@ function redirect_index(){
 		if(parent.based_modelid == "BRT-AC828"){
 			document.getElementById('loadingIcon').style.display = '';
 			setTimeout("detect_redirect()", 5000);
+		}
+		else if(parent.gobi_support){
+			document.getElementById('loadingIcon').style.display = '';
+			goto_index();
 		}
 		else
 			parent.location.href = "/index.asp";

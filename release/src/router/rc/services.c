@@ -655,33 +655,33 @@ void get_dhcp_pool(char **dhcp_start, char **dhcp_end, char *buffer)
 	if(sw_mode() == SW_MODE_REPEATER && nvram_get_int("wlc_state") != WLC_STATE_CONNECTED){
 #endif
 		if(nvram_match("lan_proto", "static")) {
-			in_addr_t lan_ipaddr, lan_netmask;
+			unsigned int lan_ipaddr, lan_netmask;
 			char *p = buffer;
-			unsigned char lan1[4], lan2[4];
+			struct in_addr lan1, lan2;
 			unsigned offset;
 
-			inet_aton(nvram_safe_get("lan_ipaddr") , (struct in_addr*) &lan_ipaddr);
-			inet_aton(nvram_safe_get("lan_netmask"), (struct in_addr*) &lan_netmask);
+			lan_ipaddr = ntohl(inet_addr("192.168.1.1"));
+			lan_netmask = ntohl(inet_addr("255.255.255.0"));
 //			cprintf("#### lan_ipaddr(%08x) lan_netmask(%08x)\n", lan_ipaddr, lan_netmask);
 
 			//start
-			if ((ntohl(lan_ipaddr & lan_netmask) | 1 ) == ntohl(lan_ipaddr))
+			if (((lan_ipaddr & lan_netmask) | 1) == lan_ipaddr)
 				offset = 2;
 			else
 				offset = 1;
-			*(in_addr_t *) &lan1 = (lan_ipaddr & lan_netmask) | htonl(offset);
+			lan1.s_addr = htonl((lan_ipaddr & lan_netmask) | offset);
 			*dhcp_start = p;
-			p += sprintf(p, "%u.%u.%u.%u", lan1[0], lan1[1], lan1[2], lan1[3]);
+			p += sprintf(p, "%s", inet_ntoa(lan1));
 			p += 1;
 
 			//end
-			if ((ntohl(lan_ipaddr & lan_netmask) | 254) == ntohl(lan_ipaddr))
+			if (((lan_ipaddr & lan_netmask) | 254) == lan_ipaddr)
 				offset = 253;
 			else
 				offset = 254;
-			*((in_addr_t *) &lan2) = (lan_ipaddr & lan_netmask) | htonl(offset);
+			lan2.s_addr = htonl((lan_ipaddr & lan_netmask) | offset);
 			*dhcp_end = p;
-			p += sprintf(p, "%u.%u.%u.%u", lan2[0], lan2[1], lan2[2], lan2[3]);
+			p += sprintf(p, "%s", inet_ntoa(lan2));
 			p += 1;
 
 //			cprintf("#### dhcp_start(%s) dhcp_end(%s)\n", *dhcp_start, *dhcp_end);
@@ -934,6 +934,9 @@ void start_dnsmasq(void)
 
 	stop_dnsmasq();
 
+	if(f_exists("/etc/dnsmasq.conf"))
+		unlink("/etc/dnsmasq.conf");
+
 	lan_ifname = nvram_safe_get("lan_ifname");
 #ifdef RTCONFIG_WIRELESSREPEATER
 	if (sw_mode() == SW_MODE_REPEATER && nvram_get_int("wlc_state") != WLC_STATE_CONNECTED && !nvram_match("lan_proto", "static")) {
@@ -1035,14 +1038,14 @@ void start_dnsmasq(void)
 			else
 				perror("/etc/dnsmasq.conf");
 		}
-		else
-			unlink("/etc/dnsmasq.conf");
 #endif
 
 #ifdef RTCONFIG_MODEM_BRIDGE
 		if(!(sw_mode() == SW_MODE_AP && nvram_get_int("modem_bridge")))
 #endif
+{
 			eval("dnsmasq", "--log-async");
+}
 	}
 #endif
 	if (!is_routing_enabled()
@@ -2970,7 +2973,7 @@ _dprintf("%s:\n", __FUNCTION__);
 #ifdef HND_ROUTER
 	dump_prev_oops();
 #else
-#ifdef RTCONFIG_BCM_7114
+#if defined(RTCONFIG_BCM_7114) || defined(RTCONFIG_BCM9)
 	eval("et", "dump", "oops");
 #else
 	eval("et", "dump_oops");
@@ -3324,6 +3327,9 @@ int
 _start_telnetd(int force)
 {
 	char *telnetd_argv[] = { "telnetd",
+#ifdef RTCONFIG_PROTECTION_SERVER
+		NULL,	/* -z: enable send failed login */
+#endif
 		NULL, NULL,	/* -b address */
 		NULL, NULL, NULL };
 	int index = 1;
@@ -3344,6 +3350,9 @@ _start_telnetd(int force)
 	setup_passwd();
 	//chpass(nvram_safe_get("http_username"), nvram_safe_get("http_passwd"));	// vsftpd also needs
 
+#ifdef RTCONFIG_PROTECTION_SERVER
+	telnetd_argv[index++] = "-z";
+#endif
 	if (is_routing_enabled()) {
 		telnetd_argv[index++] = "-b";
 		telnetd_argv[index++] = nvram_safe_get("lan_ipaddr");
@@ -4585,30 +4594,30 @@ void start_bluetooth_service(void)
 
 void stop_bluetooth_service(void)
 {
-	if (getpid() != 1) {
-		notify_rc("stop_bluetooth_service");
-		return;
-	}
-
 	if (pids("bluetoothd")) {
-#if defined(RTCONFIG_LP5523)
-		if(!nvram_match("asus_mfg", "1"))
-			lp55xx_leds_proc(LP55XX_LIGHT_CYAN_LEDS, LP55XX_ACT_SBLINK);
-#endif /* RTCONFIG_LP5523 */
+		_dprintf("Turn off Bluetooth\n");
 		killall_tk("bluetoothd");
 		system("hciconfig hci0 down");
 		logmessage("bluetoothd", "daemon is stoped");
 	}
 
 }
+#endif	/* RTCONFIG_BT_CONN */
 
+#if defined(HIVEDOT) || defined(HIVESPOT)
 void start_hyfi_process(void)
 {
-#if defined(HIVEDOT) || defined(HIVESPOT)
 	hyfi_process();
-#endif
 }
-#endif	/* RTCONFIG_BT_CONN */
+
+void start_hyfi_sync(void)
+{
+	pid_t pid;
+	char *argv[]={"/sbin/delay_exec","4","hive_cap config_change",NULL};
+
+	_eval(argv, NULL, 0, &pid);
+}
+#endif
 
 #ifdef RTCONFIG_FREERADIUS
 void radiusd_updateDB(void)
@@ -6313,6 +6322,22 @@ update_nc_setting_conf()
 	kill_pidfile_s("/tmp/Notification_Center.pid", SIGUSR1);
 }
 #endif
+#ifdef RTCONFIG_PROTECTION_SERVER
+int
+start_ptcsrv(void)
+{
+	char *ptcsrv_argv[] = {"protect_srv", NULL};
+	pid_t pid;
+
+	return _eval(ptcsrv_argv, NULL, 0, &pid);
+}
+void
+stop_ptcsrv(void)
+{
+	killall_tk("protect_srv");
+}
+
+#endif
 #ifdef RTCONFIG_NETOOL
 int
 start_netool(void)
@@ -6342,6 +6367,9 @@ start_services(void)
 
 #ifdef RTCONFIG_NOTIFICATION_CENTER
 	start_notification_center();
+#endif
+#ifdef RTCONFIG_PROTECTION_SERVER
+	start_ptcsrv();
 #endif
 #ifdef RTCONFIG_NETOOL
 	start_netool();
@@ -6955,24 +6983,39 @@ void stop_wanduck(void)
 }
 
 #ifdef RTL_WTDOG
-/* [MUST]: Need to Clarify ... */
 void
 stop_rtl_watchdog(void)
 {
 	// Stop Realtek watchdog
 	FILE *file;
+#ifdef RTCONFIG_RTL8197F
+	file = fopen("/proc/watchdog_kick", "w+");
+	if (file)
+	{
+		fputs("1", file);
+		fclose(file);
+	}
+	file = fopen("/proc/watchdog_cmd", "w+");
+	if (file)
+	{
+		fputs("enable 0 interval 0", file);
+		fclose(file);
+	}
+#else
 	file = fopen("/proc/watchdog_kick","w+");
 	if(file)
 	{
 		fputs("111", file);
 		fclose(file);
 	}
+
 	file = fopen("/proc/watchdog_start","w+");
 	if(file)
 	{
 		fputs("222", file);
 		fclose(file);
 	}
+#endif
 }
 
 void
@@ -6981,18 +7024,34 @@ start_rtl_watchdog(void)
 	stop_rtl_watchdog();
 	// Start Realtek watchdog
 	FILE *file;
+#ifdef RTCONFIG_RTL8197F
+	file = fopen("/proc/watchdog_cmd", "w+");
+	if (file)
+	{
+		fputs("enable 1 interval 33", file);
+		fclose(file);
+	}
+	file = fopen("/proc/watchdog_kick", "w+");
+	if (file)
+	{
+		fputs("1", file);
+		fclose(file);
+	}
+#else
 	file = fopen("/proc/watchdog_start","w+");
 	if(file)
 	{
 		fputs("111", file);
 		fclose(file);
 	}
+
 	file = fopen("/proc/watchdog_kick","w+");
 	if(file)
 	{
 		fputs("111", file);
 		fclose(file);
 	}
+#endif
 }
 #endif
 
@@ -7000,7 +7059,6 @@ void
 stop_watchdog(void)
 {
 #ifdef RTL_WTDOG
-/* [MUST]: Need to Clarify ... */
 	stop_rtl_watchdog();
 #endif
 	killall_tk("watchdog");
@@ -8740,7 +8798,7 @@ check_ddr_done:
 	else if (strcmp(script, "wan_line") == 0) {
 		_dprintf("%s: restart_wan_line: %s.\n", __FUNCTION__, cmd[1]);
 		if(cmd[1]) {
-			int wan_unit = atoi(cmd[1]);
+			wan_unit = atoi(cmd[1]);
 			char *current_ifname = get_wan_ifname(wan_unit);
 
 			wan_up(current_ifname);
@@ -9415,12 +9473,23 @@ check_ddr_done:
 	}
 	else if (strcmp(script, "bluetooth_service") == 0)
 	{
-		if(action&RC_SERVICE_STOP) stop_bluetooth_service();
-		if(action&RC_SERVICE_START) start_bluetooth_service();
+		if((action & RC_SERVICE_STOP) && (action & RC_SERVICE_START))
+		{
+			stop_bluetooth_service();
+			start_bluetooth_service();
+		}
+		else if(action&RC_SERVICE_STOP) stop_bluetooth_service();
+		else if(action&RC_SERVICE_START) start_bluetooth_service();
 	}
+#endif	/* RTCONFIG_BT_CONN */ 
+#if defined(HIVEDOT) || defined(HIVESPOT)
 	else if (strcmp(script, "hyfi_process") == 0)
 	{
 		if(action&RC_SERVICE_START) start_hyfi_process();
+	}
+	else if (strcmp(script, "hyfi_sync") == 0)
+	{
+		if(action&RC_SERVICE_START) start_hyfi_sync();
 	}
 #endif	/* RTCONFIG_BT_CONN */ 
 	else if(!strncmp(script, "webs_", 5) || !strncmp(script, "gobi_", 5))
@@ -9552,6 +9621,9 @@ check_ddr_done:
 			del_iQosRules();
 		}
 		if(action & RC_SERVICE_START) {
+#ifdef HND_ROUTER
+			hnd_nat_ac_init(0);
+#endif
 			if (nvram_match("qos_enable", "1") &&
 			   !nvram_match("qos_type", "2")) {
 				ForceDisableWLan_bw();
@@ -10032,21 +10104,18 @@ check_ddr_done:
 	}
 	else if (strcmp(script, "vpnc_dev_policy") == 0)
 	{
-		_dprintf("[%s, %d]vpnc_dev_policy\n", __FUNCTION__, __LINE__);
-		sleep(1);
 		int policy_idx = nvram_get_int("vpnc_policy_unit");
-		_dprintf("[%s, %d]policy_idx=%d\n", __FUNCTION__, __LINE__, policy_idx);
-		sleep(1);
+		_dprintf("[%s, %d]active vpnc_dev_policy. idx=%d\n", __FUNCTION__, __LINE__, policy_idx);
 		vpnc_active_dev_policy(policy_idx);
 	}
 	else if (strcmp(script, "del_vpnc_dev_policy") == 0)
 	{
-		_dprintf("[%s, %d]vpnc_dev_policy\n", __FUNCTION__, __LINE__);
+		_dprintf("[%s, %d]del_vpnc_dev_policy\n", __FUNCTION__, __LINE__);
 		vpnc_remove_tmp_policy_rule();
 	}
 	else if (strcmp(script, "edit_vpnc_dev_policy") == 0)
 	{		
-		_dprintf("[%s, %d]vpnc_dev_policy\n", __FUNCTION__, __LINE__);
+		_dprintf("[%s, %d]edit_vpnc_dev_policy\n", __FUNCTION__, __LINE__);
 		int policy_idx = nvram_get_int("vpnc_policy_unit");
 		vpnc_remove_tmp_policy_rule();
 		vpnc_active_dev_policy(policy_idx);
@@ -10966,6 +11035,25 @@ rsasign_check_main(int argc, char *argv[])
 	else {
 		_dprintf("rsasign check FW Fail\n");
 		nvram_set("rsasign_check", "0");
+	}
+	return 0;
+}
+
+int
+rsarootca_check_main(int argc, char *argv[])
+{
+	if(argc!=2)
+		return -1;
+
+	_dprintf("rsa RooCA: %s\n", argv[1]);
+
+	if(check_rsasign(argv[1])) {
+		_dprintf("rsasign check RooCA OK\n");
+		nvram_set("rootca_check", "1");
+	}
+	else {
+		_dprintf("rsasign check RootCA Fail\n");
+		nvram_set("rootca_check", "0");
 	}
 	return 0;
 }

@@ -2058,6 +2058,11 @@ wlconf(char *name)
 	}
 #endif
 
+	/* Set custom-STA oui */
+	str = nvram_safe_get(strcat_r(prefix, "custom_oui", tmp));
+	ether_atoe(str, (unsigned char *)eaddr);
+	WL_IOVAR_SET(name, "custom_oui", eaddr, DOT11_OUI_LEN);
+
 	/* If mode set to PSTA
 	 * unset all the MBSS interfaces
 	 * to create virtual interfaces in sequence

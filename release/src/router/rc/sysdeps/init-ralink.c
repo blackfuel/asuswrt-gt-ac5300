@@ -423,7 +423,6 @@ void config_switch()
 #endif
 		if(!nvram_match("switch_wantag", "none")&&!nvram_match("switch_wantag", ""))//2012.03 Yau modify
 		{
-			char tmp[128];
 			char *p;
 			int voip_port = 0;
 			int t, vlan_val = -1, prio_val = -1;
@@ -1638,6 +1637,12 @@ static void adjust_hwnat_wifi_offloading(void)
 		if (nvram_get_int("isp_profile_hwnat_not_safe") == 1)
 			enable_hwnat_wifi = 0;
 	}
+	
+#if defined (RTCONFIG_WLMODULE_MT7615E_AP)
+		if (get_ipv6_service() == IPV6_PASSTHROUGH)
+				enable_hwnat_wifi = 0;
+		doSystem("iwpriv ra0 set wifi_hwnat=%d", enable_hwnat_wifi);	
+#else
 
 	if ((fd = open("/dev/" HW_NAT_DEVNAME, O_RDONLY)) < 0) {
 		_dprintf("Open /dev/%s fail. errno %d (%s)\n", HW_NAT_DEVNAME, errno, strerror(errno));
@@ -1649,6 +1654,7 @@ static void adjust_hwnat_wifi_offloading(void)
 		_dprintf("ioctl error. errno %d (%s)\n", errno, strerror(errno));
 
 	close(fd);
+#endif	
 }
 #else
 static inline void adjust_hwnat_wifi_offloading(void) { }
@@ -1808,8 +1814,9 @@ void reinit_hwnat(int unit)
 #ifdef RTCONFIG_HAS_5G
 		doSystem("iwpriv %s set LanNatSpeedUpEn=%d", get_wifname(1), 1);
 #endif
-#endif
+#endif		
 		adjust_hwnat_wifi_offloading();
+	
 	}
 }
 

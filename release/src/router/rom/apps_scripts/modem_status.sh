@@ -17,6 +17,8 @@ modem_type=`nvram get ${prefix}act_type`
 modem_vid=`nvram get ${prefix}act_vid`
 modem_pid=`nvram get ${prefix}act_pid`
 modem_dev=`nvram get ${prefix}act_dev`
+modem_reg_time=`nvram get modem_reg_time`
+wandog_interval=`nvram get wandog_interval`
 sim_order=`nvram get modem_sim_order`
 
 usb_gobi2=`nvram get usb_gobi2`
@@ -875,11 +877,16 @@ elif [ "$1" == "scan" ]; then
 	modem_roaming_scantime=`nvram get modem_roaming_scantime`
 	modem_roaming_scanlist=`nvram get modem_roaming_scanlist`
 	nvram set ${prefix}act_scanning=2
-	at_ret=`/usr/sbin/modem_at.sh '+COPS=2' 2>&1`
+	wait_time1=`expr $wandog_interval + $wandog_interval`
+	wait_time=`expr $wait_time1 + $modem_reg_time`
+	nvram set freeze_duck=$wait_time
+	at_ret=`/usr/sbin/modem_at.sh '+COPS=2' "$modem_reg_time" 2>&1`
 	ret=`echo -n "$at_ret" |grep "OK" 2>/dev/null`
 
 	echo "Scanning the stations."
-	nvram set freeze_duck=$modem_roaming_scantime
+	wait_time1=`expr $wandog_interval + $wandog_interval`
+	wait_time=`expr $wait_time1 + $modem_roaming_scantime`
+	nvram set freeze_duck=$wait_time
 	at_ret=`/usr/sbin/modem_at.sh '+COPS=?' $modem_roaming_scantime 2>&1`
 	ret=`echo -n "$at_ret" |grep '+COPS: ' |awk 'BEGIN{FS=": "}{print $2}' |awk 'BEGIN{FS=",,"}{print $1}' 2>/dev/null`
 	echo "Finish the scan."
@@ -937,9 +944,11 @@ elif [ "$1" == "scan" ]; then
 
 	echo "done."
 elif [ "$1" == "station" ]; then
-	modem_reg_time=`nvram get modem_reg_time`
 	#/usr/sbin/modem_at.sh "+COPS=1,0,\"$2\"" "$modem_reg_time" 1,2>/dev/null
 	#if [ $? -ne 0 ]; then
+	wait_time1=`expr $wandog_interval + $wandog_interval`
+	wait_time=`expr $wait_time1 + $modem_reg_time`
+	nvram set freeze_duck=$wait_time
 	at_ret=`/usr/sbin/modem_at.sh '+COPS=1,0,"'$2'"' "$modem_reg_time" 2>&1`
 	ret=`echo -n "$at_ret" |grep "OK" 2>/dev/null`
 	if [ -z "$ret" ]; then
@@ -1158,7 +1167,9 @@ elif [ "$1" == "send_sms" ]; then
 		exit 42
 	fi
 
-	nvram set freeze_duck=10
+	wait_time1=`expr $wandog_interval + $wandog_interval`
+	wait_time=`expr $wait_time1 + 10`
+	nvram set freeze_duck=$wait_time
 	at_ret=`$at_lock chat -t 10 -e '' "$3^z" OK >> /dev/$modem_act_node < /dev/$modem_act_node`
 	at_ret_ok=`echo -n "$at_ret" |grep "OK" 2>/dev/null`
 	if [ -z "at_ret_ok" ]; then

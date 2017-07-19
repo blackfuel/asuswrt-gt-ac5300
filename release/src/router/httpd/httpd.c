@@ -236,16 +236,16 @@ static void send_page( int status, char* title, char* extra_header, char* text ,
 //#endif
 static void send_headers( int status, char* title, char* extra_header, char* mime_type, int fromapp);
 static void send_token_headers( int status, char* title, char* extra_header, char* mime_type, int fromapp);
-static int match( const char* pattern, const char* string );
-static int match_one( const char* pattern, int patternlen, const char* string );
 static void handle_request(void);
 void send_login_page(int fromapp_flag, int error_status, char* url, char* file, int lock_time);
-void __send_login_page(int fromapp_flag, int error_status, char* url, int lock_time);
+void __send_login_page(int fromapp_flag, int error_status, char* url, char* file, int lock_time);
 void page_default_redirect(int fromapp_flag, char* url);
 int check_user_agent(char* user_agent);
 #ifdef RTCONFIG_IFTTT
 void add_ifttt_flag(void);
 #endif
+
+int check_current_ip_is_lan_or_wan();
 
 /* added by Joey */
 //2008.08 magic{
@@ -261,7 +261,7 @@ char *http_ifname = NULL;
 time_t login_dt=0;
 char login_url[128];
 int login_error_status = 0;
-char cloud_file[256];
+char cloud_file[128];
 
 /* Added by Joey for handle one people at the same time */
 unsigned int login_ip=0; // the logined ip
@@ -271,6 +271,11 @@ time_t last_login_timestamp=0; // the timestamp of the current session.
 unsigned int login_ip_tmp=0; // the ip of the current session.
 unsigned int login_try=0;
 unsigned int last_login_ip = 0;	// the last logined ip 2008.08 magic
+//Add by Andy for handle the login block mechanism by LAN/WAN
+time_t login_timestamp_tmp_wan=0; // the timestamp of the current session.
+time_t last_login_timestamp_wan=0; // the timestamp of the current session.
+unsigned int login_try_wan=0;
+int cur_login_ip_type = -1;	//0:LAN, 1:WAN, -1:ERROR
 /* limit login IP addr; 2012.03 Yau */
 struct {
 	struct in_addr ip;
@@ -381,10 +386,8 @@ void
 page_default_redirect(int fromapp_flag, char* url)
 {
 	char inviteCode[256]={0};
-	char filename[128];
-	memset(filename, 0, sizeof(filename));
-	snprintf(filename, sizeof(filename), "/www/%s", url);
-	if(url == NULL || !check_if_file_exist(filename))
+
+	if(check_xss_blacklist(url, 1))
 		strncpy(login_url, INDEXPAGE, sizeof(login_url));
 	else
 		strncpy(login_url, url, sizeof(login_url));
@@ -410,7 +413,7 @@ send_login_page(int fromapp_flag, int error_status, char* url, char* file, int l
 	login_dt = lock_time;
 
 	login_error_status = error_status;
-		
+
 	if(fromapp_flag == 0){
 		if(strncmp(login_url, "cloud_sync.asp", strlen(login_url))==0){
 			if(file != NULL){
@@ -430,12 +433,20 @@ send_login_page(int fromapp_flag, int error_status, char* url, char* file, int l
 }
 
 void
-__send_login_page(int fromapp_flag, int error_status, char* url, int lock_time)
+__send_login_page(int fromapp_flag, int error_status, char* url, char* file, int lock_time)
 {
-	login_try++;
-	last_login_timestamp = login_timestamp_tmp;
-	
-	send_login_page(fromapp_flag, error_status, url, NULL, lock_time);
+	if(!cur_login_ip_type)
+	{
+		++login_try;
+		last_login_timestamp = login_timestamp_tmp;
+	}
+	else
+	{
+		++login_try_wan;
+		last_login_timestamp_wan= login_timestamp_tmp_wan;
+	}	
+		
+	send_login_page(fromapp_flag, error_status, url, file, lock_time);
 }
 
 static char
@@ -541,29 +552,60 @@ auth_check( char* dirname, char* authorization, char* url, char* file, char* coo
 
 	memset(asustoken,0,sizeof(asustoken));
 
-	login_timestamp_tmp = uptime();
-	dt = login_timestamp_tmp - last_login_timestamp;
-	if(last_login_timestamp != 0 && dt > 60){
-		login_try = 0;
-		last_login_timestamp = 0;
-		lock_flag = 0;
-	}
 	if (MAX_login <= DEFAULT_LOGIN_MAX_NUM)
 		MAX_login = DEFAULT_LOGIN_MAX_NUM;
-	if(login_try >= MAX_login){
-		lock_flag = 1;
-		temp_ip_addr.s_addr = login_ip_tmp;
-		temp_ip_str = inet_ntoa(temp_ip_addr);
 
-		if(login_try%MAX_login == 0)
-			logmessage(HEAD_HTTP_LOGIN, "Detect abnormal logins at %d times. The newest one was from %s.", login_try, temp_ip_str);
+	if(!cur_login_ip_type)
+	{
+		login_timestamp_tmp = uptime();
+		dt = login_timestamp_tmp - last_login_timestamp;
+		if(last_login_timestamp != 0 && dt > MAX_LOGIN_BLOCK_TIME){
+			login_try = 0;
+			last_login_timestamp = 0;
+			lock_flag &= ~(LOCK_LOGIN_LAN);
+		}
+		if(login_try >= MAX_login){
+			lock_flag |= LOCK_LOGIN_LAN;
+			temp_ip_addr.s_addr = login_ip_tmp;
+			temp_ip_str = inet_ntoa(temp_ip_addr);
+
+			if(login_try%MAX_login == 0){
+				check_token_timeout_in_list();
+				logmessage(HEAD_HTTP_LOGIN, "Detect abnormal logins at %d times. The newest one was from %s in auth check.", login_try, temp_ip_str);
+			}
 
 //#ifdef LOGIN_LOCK
-		send_login_page(fromapp_flag, LOGINLOCK, url, NULL, dt);
-		return LOGINLOCK;
+			__send_login_page(fromapp_flag, LOGINLOCK, url, NULL, dt);
+			return LOGINLOCK;
 //#endif
+		}
 	}
+	else
+	{
+		login_timestamp_tmp_wan= uptime();
+		dt = login_timestamp_tmp_wan - last_login_timestamp_wan;
+		if(last_login_timestamp_wan != 0 && dt > MAX_LOGIN_BLOCK_TIME){
+			login_try_wan = 0;
+			last_login_timestamp_wan= 0;
+			lock_flag &= ~(LOCK_LOGIN_WAN);
+		}
+		if(login_try_wan >= MAX_login){
+			lock_flag |= LOCK_LOGIN_WAN;
+			temp_ip_addr.s_addr = login_ip_tmp;
+			temp_ip_str = inet_ntoa(temp_ip_addr);
+		
+			if(login_try_wan%MAX_login == 0){
+				check_token_timeout_in_list();
+				logmessage(HEAD_HTTP_LOGIN, "Detect abnormal logins at %d times. The newest one was from %s in auth check.", login_try_wan, temp_ip_str);
+			}
 
+//#ifdef LOGIN_LOCK
+			__send_login_page(fromapp_flag, LOGINLOCK, url, NULL, dt);
+			return LOGINLOCK;
+//#endif
+		}
+	}
+	
 	/* Is this directory unprotected? */
 	if ( !strlen(auth_passwd) ){
 		/* Yes, let the request go through. */
@@ -601,9 +643,18 @@ auth_check( char* dirname, char* authorization, char* url, char* file, char* coo
 #ifdef RTCONFIG_IFTTT
 		if(strncmp(url, GETIFTTTCGI, strlen(GETIFTTTCGI))==0) add_ifttt_flag();
 #endif
-		login_try = 0;
-		last_login_timestamp = 0;
-		lock_flag = 0;
+		if(!cur_login_ip_type)
+		{
+			login_try = 0;
+			last_login_timestamp = 0;
+			lock_flag &= ~(LOCK_LOGIN_LAN);
+		}
+		else
+		{
+			login_try_wan = 0;
+			last_login_timestamp_wan = 0;
+			lock_flag &= ~(LOCK_LOGIN_WAN);
+		}
 		return 0;
 	}else{
 		//_dprintf("asus token auth_check: the wrong user and password\n");
@@ -611,7 +662,7 @@ auth_check( char* dirname, char* authorization, char* url, char* file, char* coo
 			page_default_redirect(fromapp_flag, url);
 			return 0;
 		}else{
-			send_login_page(fromapp_flag, AUTHFAIL, url, file, 0);
+			__send_login_page(fromapp_flag, AUTHFAIL, url, file, dt);
 			return AUTHFAIL;
 		}
 	}
@@ -763,7 +814,7 @@ match( const char* pattern, const char* string )
     }
 
 
-static int
+int
 match_one( const char* pattern, int patternlen, const char* string )
     {
     const char* p;
@@ -1233,13 +1284,29 @@ handle_request(void)
 	do_referer = 0;
 
 	if(!fromapp) {
-		if(lock_flag == 1){
+		if(!cur_login_ip_type && (lock_flag & LOCK_LOGIN_LAN)){
 			login_timestamp_tmp = uptime();
 			login_dt = login_timestamp_tmp - last_login_timestamp;
-			if(last_login_timestamp != 0 && login_dt > 60){
+			if(last_login_timestamp != 0 && login_dt > MAX_LOGIN_BLOCK_TIME){
 				login_try = 0;
 				last_login_timestamp = 0;
-				lock_flag = 0;
+				lock_flag &= ~(LOCK_LOGIN_LAN);
+				login_error_status = 0;
+			}else{
+				if((strncmp(file, "Main_Login.asp", 14)==0 && login_error_status == 7)|| strstr(url, ".png")){
+				}else{
+					send_login_page(fromapp, LOGINLOCK, url, NULL, login_dt);
+					return;
+				}
+			}
+		}
+		else if(cur_login_ip_type && (lock_flag & LOCK_LOGIN_WAN)){
+			login_timestamp_tmp_wan= uptime();
+			login_dt = login_timestamp_tmp_wan - last_login_timestamp_wan;
+			if(last_login_timestamp_wan!= 0 && login_dt > MAX_LOGIN_BLOCK_TIME){
+				login_try_wan= 0;
+				last_login_timestamp_wan= 0;
+				lock_flag &= ~(LOCK_LOGIN_WAN);
 				login_error_status = 0;
 			}else{
 				if((strncmp(file, "Main_Login.asp", 14)==0 && login_error_status == 7)|| strstr(url, ".png")){
@@ -1421,8 +1488,10 @@ handle_request(void)
 		if(strlen(file) > 50 && !(strstr(file, "findasus")) && !(strstr(file, "acme-challenge"))){
 			char inviteCode[256];
 			memset(cloud_file, 0, sizeof(cloud_file));
-			strncpy(cloud_file, file, sizeof(cloud_file));
-			snprintf(inviteCode, sizeof(inviteCode), "<script>location.href='/cloud_sync.asp?flag=%s';</script>", file);
+			if(!check_xss_blacklist(file, 0))
+				strlcpy(cloud_file, file, sizeof(cloud_file));
+
+			snprintf(inviteCode, sizeof(inviteCode), "<meta http-equiv=\"refresh\" content=\"0; url=cloud_sync.asp?flag=%s\">\r\n", cloud_file);
 			send_page( 200, "OK", (char*) 0, inviteCode, 0);
 		}
 		else
@@ -1437,29 +1506,20 @@ asus_token_t* search_token_in_list(char* token, asus_token_t **prev)
 	asus_token_t *ptr = head;
 	asus_token_t *tmp = NULL;
 	int found = 0;
-	char *cp=NULL;
 
 	while(ptr != NULL)
 	{
 		if(!strncmp(token, ptr->token, 32))
-        	{
+		{
 			found = 1;
 			break;
-        	}
-		else if(strncmp(token, "cgi_logout", 10) == 0){
-			cp = strtok(ptr->useragent, "-");
-
-			if(strcmp( cp, "asusrouter") != 0){
-				found = 1;
-				break;
-			}
-        	}
+		}
 		else
-        	{
+		{
 			tmp = ptr;
 			ptr = ptr->next;
-        	}
-    	}
+		}
+	}
     	if(found == 1)
     	{
         	if(prev)
@@ -1489,18 +1549,14 @@ int delete_logout_from_list(char *cookies)
 		return 0;
 		
 	}else{
-		if(strncmp(cookies, "cgi_logout", 10) == 0){
-			strncpy(asustoken, cookies, sizeof(asustoken));
+		location_cp = strstr(cookies,"asus_token");
+		if(location_cp != NULL){
+			cp = &location_cp[11];
+			cp += strspn( cp, " \t" );
+			snprintf(asustoken, sizeof(asustoken), "%s", cp);
 		}else{
-			location_cp = strstr(cookies,"asus_token");
-			if(location_cp != NULL){		
-				cp = &location_cp[11];
-				cp += strspn( cp, " \t" );
-				snprintf(asustoken, sizeof(asustoken), "%s", cp);
-			}else{
-				//send_login_page(fromapp_flag, NOTOKEN);
-				return 0;
-			}
+			//send_login_page(fromapp_flag, NOTOKEN);
+			return 0;
 		}
 	}
 
@@ -1533,6 +1589,9 @@ int delete_logout_from_list(char *cookies)
 //2008 magic{
 void http_login_cache(usockaddr *u) {
 	login_ip_tmp = (unsigned int)(u->sa_in.sin_addr.s_addr);
+	cur_login_ip_type = check_current_ip_is_lan_or_wan();
+	if(cur_login_ip_type == -1)
+		_dprintf("[%s, %d]ERROR! Can not check the remote ip!\n", __FUNCTION__, __LINE__);
 }
 
 void http_get_access_ip(void)
@@ -2452,4 +2511,40 @@ void start_ssl(void)
 	}
 }
 #endif
+
+//return value: 0: LAN,  1: WAN,  -1: ERROR
+int _check_ip_is_lan_or_wan(const char *target_ip, const char *lan_ip, const char *submask)
+{
+	char tmp1[20], tmp2[20];
+
+	if(!target_ip || !lan_ip || !submask)
+		return -1;
+
+	//Convert target ip and lan ip.
+	//ex. target ip is 168.95.10.10, lan ip is 192.168.1.1, subnet mask is 255.255.255.0. 
+	//convert them as 168.95.10.0 and 192.168.1.0. Them compare these 2 values.
+	//If they are different, the target ip would be WAN.
+	if(get_network_addr_by_ip_prefix(target_ip, submask, tmp1, sizeof(tmp1)) == -1)
+		return -1;
+
+	if(get_network_addr_by_ip_prefix(lan_ip, submask, tmp2, sizeof(tmp2)) == -1)
+		return -1;
+
+	return !strcmp(tmp1, tmp2)? 0: 1;
+}
+
+//return value: 0: LAN,  1: WAN,  -1: ERROR
+int check_current_ip_is_lan_or_wan()
+{
+	char *target_ip;
+	struct in_addr temp_ip_addr;
+
+	if(!login_ip_tmp)
+		return -1;
+
+	temp_ip_addr.s_addr = login_ip_tmp;
+	target_ip = inet_ntoa(temp_ip_addr);
+
+	return _check_ip_is_lan_or_wan(target_ip, nvram_safe_get("lan_ipaddr"), nvram_safe_get("lan_netmask"));
+}
 

@@ -166,6 +166,35 @@ var array;
 var clock_type = "";
 var wifi_schedule_value = '<% nvram_get("wl_sched"); %>'.replace(/&#62/g, ">").replace(/&#60/g, "<");
 var wl_unit_value = '<% nvram_get("wl_unit"); %>';
+var country_array = [<% get_support_region_list(); %>][0];
+if(country_array == undefined)
+	country_array = [];
+
+var country_selection_list = [["AA", "Asia"], ["CN", "China"], ["SG", "Singapore"], ["EU", "Europe"], ["KR", "Korea"], ["RU", "Russia"], ["US", "the United States"], ["AU", "Australia"], ["XX", "Australia"]];
+var country_selection_array = new Array();
+var _AU1_support = false;
+var _AU2_support = false;
+if(country_array.indexOf("AU") != -1){
+	_AU1_index = country_array.indexOf("AU");
+	_AU1_support = true;
+}
+
+if(country_array.indexOf("XX") != -1){
+	_AU2_support = true;
+}
+
+if(_AU1_support && _AU2_support){
+	country_array.splice(_AU1_index, 1);
+}
+
+for(i=0;i<country_selection_list.length;i++){
+	var index = country_selection_list[i][0];
+	country_selection_array.push(index);
+	country_selection_array[index] = {
+		code: index,
+		name: country_selection_list[i][1]
+	}
+}
 
 function initial(){
 	show_menu();
@@ -259,11 +288,9 @@ function initial(){
 			}
 		}
 
-		if(based_modelid == "RT-AC88N" || based_modelid == "RT-AC88Q" || based_modelid == "BRT-AC828" || based_modelid == "RT-AC58U"  || based_modelid == "RT-AC82U")
-		{
+		if(based_modelid == "RT-AC88N" || based_modelid == "RT-AC88Q" || based_modelid == "BRT-AC828" || based_modelid == "RT-AC58U"  || based_modelid == "RT-AC82U"){
 			inputCtrl(document.form.wl_txbf, 1);
 			document.getElementById("wl_MU_MIMO_field").style.display = "";
-			document.getElementById("mu_mimo_sup").innerHTML = "";
 			document.form.wl_mumimo.disabled = false;
 		}
 		if( based_modelid == "RT-AC55U" || based_modelid == "RT-AC55UHP")
@@ -405,18 +432,20 @@ function initial(){
 		document.getElementById("wl_ampdu_mpdu_field").style.display = "none";
 		document.getElementById("wl_ack_ratio_field").style.display = "none";
 		document.getElementById("wl_MU_MIMO_field").style.display = "";
-		document.getElementById("mu_mimo_sup").innerHTML = " *BETA";
 		document.form.wl_mumimo.disabled = false;
-		//document.getElementById('wl_80211h_tr').style.display = "";
 	}
 
 	if(bcm_mumimo_support){
 		document.getElementById("wl_MU_MIMO_field").style.display = "";
-		document.getElementById("mu_mimo_sup").innerHTML = " *ALPHA";
 		document.form.wl_mumimo.disabled = false;
 
-		if((based_modelid == "RT-AC85U" || based_modelid == "RT-AC65U") && '<% nvram_get("wl_unit"); %>' == '0')
+		/* MODELDEP */
+		if(based_modelid == "AC2900"){	//MODELDEP: AC2900(RT-AC86U)
 			document.getElementById("wl_MU_MIMO_field").style.display = "none";
+		}	
+		else if((based_modelid == "RT-AC85U" || based_modelid == "RT-AC65U") && wl_unit_value == '0'){
+			document.getElementById("wl_MU_MIMO_field").style.display = "none";
+		}	
 	}
 	
 	/*Airtime fairness, only for Broadcom ARM platform, except RT-AC87U 5 GHz*/
@@ -469,7 +498,13 @@ function initial(){
 	
 	/*location_code Setting*/		
 	if(location_list_support){
-		document.getElementById('region_div').innerHTML = '<% generate_region(); %>';
+		if(based_modelid == "GT-AC5300"){
+			generate_country_selection();
+		}
+		else{
+			document.getElementById('region_div').innerHTML = '<% generate_region(); %>';
+		}
+		
 		document.getElementById('region_tr').style.display = "";
 	}
 
@@ -506,6 +541,50 @@ function initial(){
 			if(wl_unit_value != 0) change_wl_unit();
 		}
 	}
+
+	if(based_modelid == "RP-AC55"){
+		inputCtrl(document.form.wl_txbf, 1);
+		if(wl_unit_value == "1"){
+			document.getElementById("wl_MU_MIMO_field").style.display = "";
+			document.form.wl_mumimo.disabled = false;
+			document.getElementById('wl_txbf_desc').innerHTML = "802.11ac Beamforming";
+		}
+	}
+}
+
+function generate_country_selection(){
+	var code = '';
+	var matched = false;
+	var tcode = ttc.substring(0,2);
+
+	code += '<select class="input_option" name="location_code">';
+	for(i=0; i<country_array.length; i++){
+		var index = country_array[i];
+
+		if(tcode == index){
+			matched = true;
+			code += '<option value='+ index +'>'+ country_selection_array[index].name +'(Default)</option>';
+		}
+		else{
+			code += '<option value='+ index +'>'+ country_selection_array[index].name +'</option>';
+		}
+	}
+
+	if(!matched){
+		code += '<option value='+ tcode +' >Default</option>';
+	}
+
+	code += '</select>';
+
+	document.getElementById('region_div').innerHTML = code;
+
+	if(orig_region == ""){
+		document.form.location_code.value = tcode;
+	}
+	else{
+		document.form.location_code.value = orig_region;
+	}
+
 }
 
 function adjust_tx_power(){
@@ -515,6 +594,9 @@ function adjust_tx_power(){
 	
 	if(!power_support){
 		document.getElementById("wl_txPower_field").style.display = "none";
+	}
+	else if(based_modelid == "AC2900" && wl_unit_value == '0'){	//MODELDEP: AC2900(RT-AC86U)
+		document.getElementById("wl_txPower_field").style.display = "none";	
 	}
 	else{
 		if(power_value_old != ""){
@@ -1232,10 +1314,10 @@ function handle_beamforming(value){
 	if(value == 0 && document.form.wl_mumimo.value == 1){
 		var string = "";
 		if(wl_unit_value == 0){
-			string = "It will disable MU-MIMO while disabling Explicit Beamforming";
+			string = "It will disable MU-MIMO while disabling Explicit Beamforming";	/* Untranslated */
 		}
 		else{
-			string = "It will disable MU-MIMO while disabling 802.11ac Beamforming";
+			string = "It will disable MU-MIMO while disabling 802.11ac Beamforming";	/* Untranslated */
 		}
 		
 		if(confirm(string)){
@@ -1628,7 +1710,7 @@ function handle_beamforming(value){
 					
 					<!--MU-MIMO for RT-AC88U, RT-AC86U, AC2900, RT-AC3100, RT-AC5300 and RT-AC87U 5 GHz only-->
 					<tr id="wl_MU_MIMO_field" style="display:none">
-						<th><a class="hintstyle" href="javascript:void(0);" onClick="">Multi-User MIMO<sup id="mu_mimo_sup"> *BETA</sup</a></th>
+						<th><a class="hintstyle" href="javascript:void(0);" onClick="">Multi-User MIMO</a></th>
 						<td>
 							<div style="display:table-cell;vertical-align:middle">
 								<select name="wl_mumimo" class="input_option" onchange="handle_mimo(this.value)" disabled>
@@ -1636,7 +1718,6 @@ function handle_beamforming(value){
 									<option value="1" <% nvram_match("wl_mumimo", "1","selected"); %> ><#WLANConfig11b_WirelessCtrl_button1name#></option>
 								</select>
 							</div>
-							<div style="display:table-cell;padding:0 5px 0 10px;color:#FC0;line-height: 18px">Current MU-MIMO specification is still under Wi-Fi Alliance's testing and might have compatibility issues among different brands. Wi-Fi Alliance is estimated to announce certification program by Jun. 2016.</div>
 						</td>
 					</tr>					
 					<tr id="wl_txbf_field">

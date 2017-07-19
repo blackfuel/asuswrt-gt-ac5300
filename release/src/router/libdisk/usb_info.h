@@ -13,7 +13,7 @@
 		} \
 	}while(0)
 #else
-#define usb_dbg printf
+#define usb_dbg _dprintf
 #endif
 
 #define foreach_58(word, wordlist, next) \
@@ -48,6 +48,7 @@
 
 #include <rtstate.h>
 
+#if !defined(RTCONFIG_ALPINE) && !defined(RTCONFIG_LANTIQ)
 #define USB_XHCI_PORT_1 get_usb_xhci_port(0)
 #define USB_XHCI_PORT_2 get_usb_xhci_port(1)
 #define USB_EHCI_PORT_1 get_usb_ehci_port(0)
@@ -56,6 +57,7 @@
 #define USB_OHCI_PORT_2 get_usb_ohci_port(1)
 #define USB_EHCI_PORT_3 get_usb_ehci_port(2)
 #define USB_OHCI_PORT_3 get_usb_ohci_port(2)
+#endif
 
 #if defined(RTCONFIG_M2_SSD)
 #define M2_SSD_PORT USB_EHCI_PORT_3

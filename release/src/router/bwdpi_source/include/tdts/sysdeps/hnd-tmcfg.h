@@ -102,9 +102,9 @@
 /*
  * ******
  */
-#define TMCFG_E_MAJ_VER 0
+#define TMCFG_E_MAJ_VER 2
 #define TMCFG_E_MID_VER 0
-#define TMCFG_E_MIN_VER 18
+#define TMCFG_E_MIN_VER 1
 #define TMCFG_E_LOCAL_VER "_r2974221"
 
 /*

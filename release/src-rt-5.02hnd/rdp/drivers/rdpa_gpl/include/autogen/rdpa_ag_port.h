@@ -51,7 +51,7 @@ typedef enum {
     rdpa_port_attr_cfg = 2, /* cfg : RW : aggregate/21 port_dp(rdpa_port_dp_cfg_t) : Logical port configuration */
     rdpa_port_attr_tm_cfg = 3, /* tm_cfg : RW : aggregate/8 port_tm(rdpa_port_tm_cfg_t) : TM configuration */
     rdpa_port_attr_sa_limit = 4, /* sa_limit : RW : aggregate/4 port_sa_limit(rdpa_port_sa_limit_t) : SA limit configuration */
-    rdpa_port_attr_def_flow = 5, /* def_flow : RW : aggregate/60 classification_result(rdpa_ic_result_t ) : DS default flow classification. Wifi: last default flo */
+    rdpa_port_attr_def_flow = 5, /* def_flow : RW : aggregate/56 classification_result(rdpa_ic_result_t ) : DS default flow classification. Wifi: last default flo */
     rdpa_port_attr_stat = 6, /* stat : RW : aggregate/72 stat(rdpa_port_stat_t) : Port statistics */
     rdpa_port_attr_flow_control = 7, /* flow_control : RW : aggregate/18 port_flow_control(rdpa_port_flow_ctrl_t) : The port flow control */
     rdpa_port_attr_mirror_cfg = 8, /* mirror_cfg : RW : aggregate/8 port_mirror_cfg(rdpa_port_mirror_cfg_t) : Port mirroring configuration */

@@ -47,7 +47,9 @@ static int setAllSpecificColorLedOn(enum ate_led_color color)
 			static enum led_id blue_led[] = {
 				LED_POWER, LED_USB3,
 				LED_LAN, LED_WPS,
+#ifdef RTCONFIG_INTERNAL_GOBI
 				LED_LTE, LED_SIG1, LED_SIG2, LED_SIG3,
+#endif
 				LED_ID_MAX
 			};
 			all_led[LED_COLOR_BLUE] = blue_led;
@@ -522,10 +524,17 @@ int asus_ate_command(const char *command, const char *value, const char *value2)
 		return setAllOrangeLedOn();
 	}
 #endif
+#if defined(RPAC55)
+	else if (!strcmp(command, "Set_AllBlueLedOn"))  {
+		return setAllBlueLedOn();
+	}
+#endif
 #ifdef RPAC53
 	else if (!strcmp(command, "Set_AllGreenLedOn"))  {
 		return setAllGreenLedOn();
 	}
+#endif
+#if defined(RPAC53) || defined(RPAC55)
 	else if (!strcmp(command, "Set_AllRedLedOn"))  {
 		return setAllRedLedOn();
 	}
@@ -651,6 +660,23 @@ int asus_ate_command(const char *command, const char *value, const char *value2)
 	}
 #endif
 #endif	/* RTCONFIG_HAS_5G */
+#ifdef RPAC55
+	else if (!strcmp(command, "Set_MacAddr_BT")) {
+		const char *p = (char *) value;
+		char UpperMac[20] = {0};
+		int i;
+		for (i = 0; p[i]; ++i)
+		{
+			UpperMac[i] = toupper(p[i]);
+		}
+		if ( !setMAC_BT(UpperMac) )
+		{
+			puts("ATE_ERROR_INCORRECT_PARAMETER");
+			return EINVAL;
+		}
+		return 0;
+	}
+#endif
 #if defined(RTN14U)
 	else if (!strcmp(command, "eeprom")) {
 		if (!eeprom_upgrade(value, 1))
@@ -1141,6 +1167,12 @@ int asus_ate_command(const char *command, const char *value, const char *value2)
 	}
 #endif
 #endif	/* RTCONFIG_HAS_5G */
+#ifdef RPAC55
+	else if (!strcmp(command, "Get_MacAddr_BT")) {
+		getMAC_BT();
+		return 0;
+	}
+#endif
 #if defined(RTCONFIG_NEW_REGULATION_DOMAIN)
 	else if (!strcmp(command, "Get_RegSpec")) {
 		getRegSpec();

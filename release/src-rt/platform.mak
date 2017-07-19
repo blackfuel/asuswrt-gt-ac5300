@@ -417,12 +417,6 @@ define platformKernelConfig
 				cp $(HND_SRC)/router/hnd_extra/prebuilt/wl.o $(HND_SRC)/bcmdrivers/broadcom/net/wl/impl51/main/src/wl/linux/prebuilt/wl.o ; \
 				cp $(HND_SRC)/router/hnd_extra/prebuilt/bcmwifi_rates.h $(HND_SRC)/bcmdrivers/broadcom/net/wl/impl51/dhd/src/shared/bcmwifi/include/bcmwifi_rates.h ; \
 			fi; \
-			if [ -d $(HND_SRC)/router/bcm_util/prebuilt ]; then \
-				cp $(HND_SRC)/router/bcm_util/prebuilt/bcm_crc.* $(HND_SRC)/router/bcm_util ; \
-			fi; \
-			if [ -d $(HND_SRC)/router/nt_center/prebuilt ]; then \
-				cp $(HND_SRC)/router/nt_center/prebuilt/*.h $(HND_SRC)/router/nt_center/lib ; \
-			fi; \
 		else \
 			if [ -d $(SRCBASE)/wl/sysdeps/$(BUILD_NAME) ]; then \
 				if [ -d $(SRCBASE)/wl/sysdeps/$(BUILD_NAME)/linux ]; then \

@@ -402,14 +402,20 @@ configcheck:
 		diff $(RSDKDIR)/users/boa/.kernel_config $(LINUXDIR)/.config > $(SRCBASE)/.diff_config; \
 		if [ -s $(SRCBASE)/.diff_config ]; then \
 			cp $(LINUXDIR)/.config $(RSDKDIR)/users/boa/.kernel_config; \
-			$(MAKE) -C $(RSDKDIR)/users/boa clean; \
+			if [ -e $(RSDKDIR)/users/boa/tools/cvimg ]; then \
+				rm $(RSDKDIR)/users/boa/tools/mgbin $(RSDKDIR)/users/boa/tools/mgbin.o $(RSDKDIR)/users/boa/tools/cvimg $(RSDKDIR)/users/boa/tools/cvimg.o; \
+			fi;\
 		fi; \
 	else \
 		cp $(LINUXDIR)/.config $(RSDKDIR)/users/boa/.kernel_config; \
 	fi;
 
 rtk_img_tool: configcheck
+ifeq ($(RTL8197F),y)
+	@$(MAKE) -C linux/rtl819x squashfs4.2/squashfs-tools-build
+else
 	@$(MAKE) -C linux/rtl819x squashfs4.0/squashfs-tools-build
+endif
 	@if [ -e $(RSDKDIR)/users/boa/tools/cvimg ]; then \
 		echo "-------- boa exist  ----------------"; \
 	else \
@@ -774,6 +780,14 @@ cleankernel:
 	cp -p save-config .config || true
 
 kernel:
+	if [ "$(BUILD_NAME)" = "RT-AC85U" ]; then \
+		sed -i 's/%DriverPath%/mt_wifi_7615E_4402/g' $(LINUXDIR)/ralink/Kconfig; \
+		sed -i 's/%DriverPath%/mt_wifi_ap_7615E_4402/g' $(LINUXDIR)/drivers/net/wireless/Makefile; \
+	elif [ "$(FIRST_IF)" = "MT7615E" ]; then \
+		sed -i 's/%DriverPath%/mt_wifi_7615E/g' $(LINUXDIR)/ralink/Kconfig; \
+		sed -i 's/%DriverPath%/mt_wifi_ap_7615E/g' $(LINUXDIR)/drivers/net/wireless/Makefile; \
+	fi; \
+		
 	$(MAKE) -C router kernel
 	@[ ! -e $(KERNEL_BINARY) ] || ls -l $(KERNEL_BINARY)
 
@@ -852,6 +866,14 @@ define RouterOptions
 	if [ "$(RTL819X)" = "y" ]; then \
 		sed -i "/RTCONFIG_RTL819X/d" $(1); \
 		echo "RTCONFIG_RTL819X=y" >>$(1); \
+	else \
+		echo "# RTCONFIG_RTL819X is not set" >>$(1); \
+	fi; \
+	if [ "$(RTL8197F)" = "y" ]; then \
+		sed -i "/RTCONFIG_RTL8197F/d" $(1); \
+		echo "RTCONFIG_RTL8197F=y" >>$(1); \
+	else\
+		echo "# RTCONFIG_RTL8197F is not set" >>$(1); \
 	fi; \
 	if [ "$(RTK_NAND)" = "y" ]; then \
 		sed -i "/RTCONFIG_RTK_NAND/d" $(1); \
@@ -978,10 +1000,10 @@ define RouterOptions
 	if [ "$(PURE_REPEATER)" = "y" ]; then \
 		sed -i "/RTCONFIG_REPEATER/d" $(1); \
 		echo "RTCONFIG_REPEATER=y" >>$(1); \
-	fi; \
-	if [ "$(DISABLE_REPEATER_UI)" = "y" ] ; then \
-		sed -i "/RTCONFIG_DISABLE_REPEATER_UI/d" $(1); \
-		echo "RTCONFIG_DISABLE_REPEATER_UI=y" >>$(1); \
+		if [ "$(DISABLE_REPEATER_UI)" = "y" ] ; then \
+			sed -i "/RTCONFIG_DISABLE_REPEATER_UI/d" $(1); \
+			echo "RTCONFIG_DISABLE_REPEATER_UI=y" >>$(1); \
+		fi; \
 	fi; \
 	if [ "$(PROXYSTA)" = "y" ]; then \
 		sed -i "/RTCONFIG_PROXYSTA/d" $(1); \
@@ -1030,6 +1052,10 @@ define RouterOptions
 	if [ "$(ODMPID)" = "y" ]; then \
 		sed -i "/RTCONFIG_ODMPID/d" $(1); \
 		echo "RTCONFIG_ODMPID=y" >>$(1); \
+	fi; \
+	if [ "$(NONASUS)" = "y" ]; then \
+		sed -i "/RTCONFIG_NONASUS/d" $(1); \
+		echo "RTCONFIG_NONASUS=y" >>$(1); \
 	fi; \
 	if [ "$(MDNS)" = "y" ]; then \
 		sed -i "/RTCONFIG_MDNS/d" $(1); \
@@ -1363,10 +1389,10 @@ define RouterOptions
 		if [ "$(MODEM)" = "y" ]; then \
 			sed -i "/RTCONFIG_USB_MODEM/d" $(1); \
 			echo "RTCONFIG_USB_MODEM=y" >>$(1); \
-			if [ "$(MODEMPIN)" = "y" ]; then \
-				echo "RTCONFIG_USB_MODEM_PIN=y" >>$(1); \
-			else \
+			if [ "$(MODEMPIN)" = "n" ]; then \
 				echo "# RTCONFIG_USB_MODEM_PIN is not set" >>$(1); \
+			else \
+				echo "RTCONFIG_USB_MODEM_PIN=y" >>$(1); \
 			fi; \
 			if [ "$(BECEEM)" = "y" ]; then \
 				sed -i "/RTCONFIG_USB_BECEEM/d" $(1); \
@@ -1792,6 +1818,10 @@ define RouterOptions
 		sed -i "/RTCONFIG_NOTIFICATION_CENTER/d" $(1); \
 		echo "RTCONFIG_NOTIFICATION_CENTER=y" >>$(1); \
 	fi; \
+	if [ "$(PROTECTION_SERVER)" = "y" ]; then \
+		sed -i "/RTCONFIG_PROTECTION_SERVER/d" $(1); \
+		echo "RTCONFIG_PROTECTION_SERVER=y" >>$(1); \
+	fi; \
 	if [ "$(WLCEVENTD)" = "y" ] || [ "$(CONFIG_BCMWL5)" = "y" ]; then \
 		sed -i "/RTCONFIG_WLCEVENTD/d" $(1); \
 		echo "RTCONFIG_WLCEVENTD=y" >>$(1); \
@@ -2015,6 +2045,10 @@ define RouterOptions
 		sed -i "/RTCONFIG_DEFAULT_AP_MODE/d" $(1); \
 		echo "RTCONFIG_DEFAULT_AP_MODE=y" >>$(1); \
 	fi; \
+	if [ "$(DEF_REPEATER)" = "y" ]; then \
+		sed -i "/RTCONFIG_DEFAULT_REPEATER_MODE/d" $(1); \
+		echo "RTCONFIG_DEFAULT_REPEATER_MODE=y" >>$(1); \
+	fi; \
 	if [ "$(DHCP_OVERRIDE)" = "y" ]; then \
 		sed -i "/RTCONFIG_DHCP_OVERRIDE/d" $(1); \
 		echo "RTCONFIG_DHCP_OVERRIDE=y" >>$(1); \
@@ -2205,6 +2239,12 @@ define RouterOptions
 		sed -i "/CONFIG_LIBBCM/d" $(1); \
 		echo "# CONFIG_LIBBCM is not set" >>$(1); \
 	fi; \
+	if [ "$(WLCSCAN_RSSI)" = "y" ]; then \
+		sed -i "/RTCONFIG_WLCSCAN_RSSI/d" $(1); \
+		echo "RTCONFIG_WLCSCAN_RSSI=y" >>$(1); \
+	else\
+		echo "# RTCONFIG_WLCSCAN_RSSI is not set" >>$(1); \
+	fi; \
 	if [ "$(BT_CONN)" = "y" ]; then \
 		sed -i "/RTCONFIG_BT_CONN/d" $(1); \
 		echo "RTCONFIG_BT_CONN=y" >>$(1); \
@@ -2224,6 +2264,13 @@ define RouterOptions
 	if [ "$(MTK_8021X3000)" = "y" ]; then \
 		sed -i "/RTCONFIG_MTK_8021X3000/d" $(1); \
 		echo "RTCONFIG_MTK_8021X3000=y" >>$(1); \
+	fi; \
+	if [ "$(NO_SELECT_CHANNEL)" = "y" ]; then \
+		sed -i "/RTCONFIG_NO_SELECT_CHANNEL/d" $(1); \
+		echo "RTCONFIG_NO_SELECT_CHANNEL=y" >>$(1); \
+	else \
+		sed -i "/RTCONFIG_NO_SELECT_CHANNEL/d" $(1); \
+		echo "# RTCONFIG_NO_SELECT_CHANNEL is not set" >>$(1); \
 	fi; \
 	)
 	$(call platformRouterOptions, $(1))
@@ -2709,10 +2756,33 @@ if [ "$(TUNEK)" != "n" ]; then \
 		echo "# CONFIG_USB_XHCI_HCD is not set" >>$(1); \
 		if [ "$(USB)" = "USB" ]; then \
 			if [ "$(XHCI)" = "y" ]; then \
-				sed -i "/CONFIG_USB_XHCI_HCD/d" $(1); \
-				echo "CONFIG_USB_XHCI_HCD=y" >>$(1); \
-				sed -i "/CONFIG_USB_XHCI_HCD_DEBUGGING/d" $(1); \
-				echo "# CONFIG_USB_XHCI_HCD_DEBUGGING is not set" >>$(1); \
+				if [ "$(ALPINE)" = "y" ] || [ "$(LANTIQ)" = "y" ] ; then \
+					sed -i "/CONFIG_USB_XHCI_HCD/d" $(1); \
+					echo "CONFIG_USB_XHCI_HCD=m" >>$(1); \
+					sed -i "/CONFIG_USB_XHCI_HCD_DEBUGGING/d" $(1); \
+					echo "# CONFIG_USB_XHCI_HCD_DEBUGGING is not set" >>$(1); \
+					sed -i "/CONFIG_USB_EHCI_HCD/d" $(1); \
+					echo "CONFIG_USB_EHCI_HCD=m" >>$(1); \
+					sed -i "/CONFIG_USB_EHCI_HCD_PLATFORM/d" $(1); \
+					echo "CONFIG_USB_EHCI_HCD_PLATFORM=y">>$(1); \
+					sed -i "/CONFIG_USB_UHCI_HCD/d" $(1); \
+					echo "# CONFIG_USB_UHCI_HCD is not set" >>$(1); \
+					sed -i "/CONFIG_USB_EHCI_ROOT_HUB_TT/d" $(1); \
+					echo "CONFIG_USB_EHCI_ROOT_HUB_TT=y" >>$(1); \
+					sed -i "/CONFIG_USB_EHCI_TT_NEWSCHED/d" $(1); \
+					echo "CONFIG_USB_EHCI_TT_NEWSCHED=y" >>$(1); \
+					sed -i "/CONFIG_USB_OHCI_HCD/d" $(1); \
+					echo "CONFIG_USB_OHCI_HCD=m" >>$(1); \
+					sed -i "/CONFIG_USB_OHCI_HCD_PLATFORM/d" $(1); \
+					echo "# CONFIG_USB_OHCI_HCD_PLATFORM is not set" >>$(1); \
+					sed -i "/CONFIG_USB_UHCI_HCD/d" $(1); \
+					echo "CONFIG_USB_UHCI_HCD=m" >>$(1); \
+				else \
+					sed -i "/CONFIG_USB_XHCI_HCD/d" $(1); \
+					echo "CONFIG_USB_XHCI_HCD=y" >>$(1); \
+					sed -i "/CONFIG_USB_XHCI_HCD_DEBUGGING/d" $(1); \
+					echo "# CONFIG_USB_XHCI_HCD_DEBUGGING is not set" >>$(1); \
+				fi; \
 			fi; \
 		fi; \
 	fi; \
@@ -2866,48 +2936,54 @@ fi; \
 		echo "# CONFIG_MSDOS_PARTITION is not set" >>$(1); \
 		sed -i "/CONFIG_EFI_PARTITION/d" $(1); \
 		echo "# CONFIG_EFI_PARTITION is not set" >>$(1); \
-	elif [ "$(MODEM)" = "y" ]; then \
-		if [ "$(BECEEM)" = "y" ]; then \
-			sed -i "/CONFIG_USB_BECEEM/d" $(1); \
-			echo "CONFIG_USB_BECEEM=m" >>$(1); \
+	else \
+		if [ "$(PRINTER)" != "y" ]; then \
+			sed -i "/CONFIG_USB_PRINTER/d" $(1); \
+			echo "# CONFIG_USB_PRINTER is not set" >>$(1); \
 		fi; \
-		if [ "$(LESSMODEM)" = "y" ]; then \
-			sed -i "/CONFIG_HSO/d" $(1); \
-			echo "# CONFIG_HSO is not set" >>$(1); \
-			sed -i "/CONFIG_USB_IPHETH/d" $(1); \
-			echo "# CONFIG_USB_IPHETH is not set" >>$(1); \
-		fi; \
-		if [ "$(GOBI)" = "y" ] && [ "$(MULTIMODEM)" != "y" ]; then \
+		if [ "$(MODEM)" = "y" ]; then \
+			if [ "$(BECEEM)" = "y" ]; then \
+				sed -i "/CONFIG_USB_BECEEM/d" $(1); \
+				echo "CONFIG_USB_BECEEM=m" >>$(1); \
+			fi; \
+			if [ "$(LESSMODEM)" = "y" ]; then \
+				sed -i "/CONFIG_HSO/d" $(1); \
+				echo "# CONFIG_HSO is not set" >>$(1); \
+				sed -i "/CONFIG_USB_IPHETH/d" $(1); \
+				echo "# CONFIG_USB_IPHETH is not set" >>$(1); \
+			fi; \
+			if [ "$(GOBI)" = "y" ] && [ "$(MULTIMODEM)" != "y" ]; then \
+				sed -i "/CONFIG_USB_SERIAL/d" $(1); \
+				echo "# CONFIG_USB_SERIAL is not set" >>$(1); \
+				sed -i "/CONFIG_USB_NET_AX8817X/d" $(1); \
+				echo "# CONFIG_USB_NET_AX8817X is not set" >>$(1); \
+				sed -i "/CONFIG_USB_NET_CDCETHER/d" $(1); \
+				echo "CONFIG_USB_NET_CDCETHER=m" >>$(1); \
+				sed -i "/CONFIG_USB_NET_CDC_NCM/d" $(1); \
+				echo "# CONFIG_USB_NET_CDC_NCM is not set" >>$(1); \
+				sed -i "/CONFIG_USB_NET_CDC_MBIM/d" $(1); \
+				echo "# CONFIG_USB_NET_CDC_MBIM is not set" >>$(1); \
+				sed -i "/CONFIG_USB_NET_RNDIS_HOST/d" $(1); \
+				echo "# CONFIG_USB_NET_RNDIS_HOST is not set" >>$(1); \
+				sed -i "/CONFIG_USB_NET_QMI_WWAN/d" $(1); \
+				echo "# CONFIG_USB_NET_QMI_WWAN is not set" >>$(1); \
+				sed -i "/CONFIG_USB_IPHETH/d" $(1); \
+				echo "# CONFIG_USB_IPHETH is not set" >>$(1); \
+				sed -i "/CONFIG_USB_WDM/d" $(1); \
+				echo "# CONFIG_USB_WDM is not set" >>$(1); \
+			fi; \
+		else \
 			sed -i "/CONFIG_USB_SERIAL/d" $(1); \
 			echo "# CONFIG_USB_SERIAL is not set" >>$(1); \
-			sed -i "/CONFIG_USB_NET_AX8817X/d" $(1); \
-			echo "# CONFIG_USB_NET_AX8817X is not set" >>$(1); \
-			sed -i "/CONFIG_USB_NET_CDCETHER/d" $(1); \
-			echo "CONFIG_USB_NET_CDCETHER=m" >>$(1); \
-			sed -i "/CONFIG_USB_NET_CDC_NCM/d" $(1); \
-			echo "# CONFIG_USB_NET_CDC_NCM is not set" >>$(1); \
-			sed -i "/CONFIG_USB_NET_CDC_MBIM/d" $(1); \
-			echo "# CONFIG_USB_NET_CDC_MBIM is not set" >>$(1); \
-			sed -i "/CONFIG_USB_NET_RNDIS_HOST/d" $(1); \
-			echo "# CONFIG_USB_NET_RNDIS_HOST is not set" >>$(1); \
-			sed -i "/CONFIG_USB_NET_QMI_WWAN/d" $(1); \
-			echo "# CONFIG_USB_NET_QMI_WWAN is not set" >>$(1); \
+			sed -i "/CONFIG_USB_ACM/d" $(1); \
+			echo "# CONFIG_USB_ACM is not set" >>$(1); \
+			sed -i "/CONFIG_USB_USBNET/d" $(1); \
+			echo "# CONFIG_USB_USBNET is not set" >>$(1); \
 			sed -i "/CONFIG_USB_IPHETH/d" $(1); \
 			echo "# CONFIG_USB_IPHETH is not set" >>$(1); \
 			sed -i "/CONFIG_USB_WDM/d" $(1); \
 			echo "# CONFIG_USB_WDM is not set" >>$(1); \
 		fi; \
-	else \
-		sed -i "/CONFIG_USB_SERIAL/d" $(1); \
-		echo "# CONFIG_USB_SERIAL is not set" >>$(1); \
-		sed -i "/CONFIG_USB_ACM/d" $(1); \
-		echo "# CONFIG_USB_ACM is not set" >>$(1); \
-		sed -i "/CONFIG_USB_USBNET/d" $(1); \
-		echo "# CONFIG_USB_USBNET is not set" >>$(1); \
-		sed -i "/CONFIG_USB_IPHETH/d" $(1); \
-		echo "# CONFIG_USB_IPHETH is not set" >>$(1); \
-		sed -i "/CONFIG_USB_WDM/d" $(1); \
-		echo "# CONFIG_USB_WDM is not set" >>$(1); \
 	fi; \
 	if [ "$(ARMCPUSMP)" = "up" ]; then \
 		sed -i "/CONFIG_GENERIC_CLOCKEVENTS_BROADCAST/d" $(1); \
@@ -2932,7 +3008,7 @@ fi; \
 	fi; \
 	if [ "$(ALPINE)" = "y" ]; then \
 		sed -i "/CONFIG_SENSORS_AMC6821/d" $(1); \
-		echo "CONFIG_SENSORS_AMC6821=y" >>$(1); \
+		echo "CONFIG_SENSORS_AMC6821=m" >>$(1); \
 		sed -i "/CONFIG_THERMAL_HWMON/d" $(1); \
 		echo "CONFIG_THERMAL_HWMON=y" >>$(1); \
 	fi ; \
@@ -2951,6 +3027,8 @@ fi; \
 			echo "CONFIG_IP_MULTIPLE_TABLES=y" >>$(1); \
 			sed -i "/CONFIG_IP_ROUTE_MULTIPATH/d" $(1); \
 			echo "CONFIG_IP_ROUTE_MULTIPATH=y" >>$(1); \
+			sed -i "/CONFIG_IP_ROUTE_MULTIPATH_CACHED/d" $(1); \
+			echo "# CONFIG_IP_ROUTE_MULTIPATH_CACHED is not set" >>$(1); \
 			sed -i "/CONFIG_IP_ROUTE_VERBOSE/d" $(1); \
 			echo "# CONFIG_IP_ROUTE_VERBOSE is not set" >>$(1); \
 			sed -i "/CONFIG_IP_MROUTE_MULTIPLE_TABLES/d" $(1); \
@@ -3024,6 +3102,10 @@ fi; \
 			echo "CONFIG_DUMP_PREV_OOPS_MSG=y" >>$(1); \
 			echo "CONFIG_DUMP_PREV_OOPS_MSG_BUF_ADDR=0xC0522000" >>$(1); \
 			echo "CONFIG_DUMP_PREV_OOPS_MSG_BUF_LEN=0x3000" >>$(1); \
+		elif [ "$(BCM9)" = "y" ]; then \
+			echo "CONFIG_DUMP_PREV_OOPS_MSG=y" >>$(1); \
+			echo "CONFIG_DUMP_PREV_OOPS_MSG_BUF_ADDR=0x87000000" >>$(1); \
+			echo "CONFIG_DUMP_PREV_OOPS_MSG_BUF_LEN=0x2000" >>$(1); \
 		elif [ "$(ARM)" = "y" ]; then \
 			echo "CONFIG_DUMP_PREV_OOPS_MSG=y" >>$(1); \
 			echo "CONFIG_DUMP_PREV_OOPS_MSG_BUF_ADDR=0xC0000000" >>$(1); \
@@ -3547,6 +3629,19 @@ endif
 ifeq ($(REALTEK),y)
 	rm -f include
 	ln -sf include-n66u include
+	if [ -e ./linux/rtl819x ]; then\
+		rm ./linux/rtl819x;\
+	fi;
+	if [ -e ./linux/realtek/rtl819x ]; then\
+		rm ./linux/realtek/rtl819x;\
+	fi;
+	if [ "$(shell echo $@ | tr a-z A-Z)" = "RP-AC55" ]; then\
+		ln -sf ./realtek/rtl819x_97f ./linux/rtl819x;\
+		ln -sf ./rtl819x_97f ./linux/realtek/rtl819x;\
+	else \
+		ln -sf ./realtek/rtl819x_98c ./linux/rtl819x;\
+		ln -sf ./rtl819x_98c ./linux/realtek/rtl819x;\
+	fi;
 endif
 	$(call save_src_config, $@)
 	$(MAKE) bin

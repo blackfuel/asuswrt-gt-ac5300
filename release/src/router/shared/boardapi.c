@@ -183,6 +183,12 @@ static const struct led_btn_table_s {
 	{ "led_5g_green_gpio3",	&led_gpio_table[LED_5G_GREEN3] },
 	{ "led_5g_green_gpio4",	&led_gpio_table[LED_5G_GREEN4] },
 #endif
+#ifdef RPAC55
+	{ "led_pwr_red_gpio",	&led_gpio_table[LED_POWER_RED] },
+	{ "led_wifi_gpio",		&led_gpio_table[LED_WIFI] },
+	{ "led_sig1_gpio",		&led_gpio_table[LED_SIG1] },
+	{ "led_sig2_gpio",		&led_gpio_table[LED_SIG2] },
+#endif		
 	{ NULL, NULL },
 };
 
@@ -298,6 +304,10 @@ int init_gpio(void)
 		, "led_2g_green_gpio1" , "led_2g_green_gpio2", "led_2g_green_gpio3", "led_2g_green_gpio4"
 		, "led_5g_green_gpio1", "led_5g_green_gpio2", "led_5g_green_gpio3", "led_5g_green_gpio4"
 #endif
+#ifdef RPAC55
+		, "led_pwr_red_gpio"
+		, "led_wifi_gpio", "led_sig1_gpio", "led_sig2_gpio"
+#endif			
 #ifdef RTCONFIG_MMC_LED
 		, "led_mmc_gpio"
 #endif

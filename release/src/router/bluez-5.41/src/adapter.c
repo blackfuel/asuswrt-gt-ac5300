@@ -5659,7 +5659,7 @@ static void adapter_remove_connection(struct btd_adapter *adapter,
 						struct btd_device *device,
 						uint8_t bdaddr_type)
 {
-	char cmd[128];
+	int conn_len;
 	DBG("");
 
 	if (!g_slist_find(adapter->connections, device)) {
@@ -5678,18 +5678,17 @@ static void adapter_remove_connection(struct btd_adapter *adapter,
 
 	adapter->connections = g_slist_remove(adapter->connections, device);
 
-	snprintf(cmd, sizeof(cmd), "hciconfig hci%d pscan", SOL_HCI);
 #if defined(RTCONFIG_LP5523)
-	lp55xx_leds_proc(LP55XX_WHITE_LEDS, LP55XX_ACT_NONE);
+	conn_len = g_slist_length(adapter->connections);
+	if(!conn_len)
+		lp55xx_leds_proc(LP55XX_WHITE_LEDS, LP55XX_ACT_NONE);
 #endif
-	system(cmd);
 
 	if (device_is_temporary(device) && !device_is_retrying(device)) {
 		const char *path = device_get_path(device);
-		
+
 		DBG("Removing temporary device %s", path);
 		btd_adapter_remove_device(adapter, device);
-
 	}
 }
 
@@ -7554,7 +7553,7 @@ static void connected_callback(uint16_t index, uint16_t length,
 	struct btd_device *device;
 	struct eir_data eir_data;
 	uint16_t eir_len;
-	char addr[18], cmd[128];
+	char addr[18];
 	bool name_known;
 	int conn_len;
 
@@ -7569,8 +7568,21 @@ static void connected_callback(uint16_t index, uint16_t length,
 		return;
 	}
 
-	ba2str(&ev->addr.bdaddr, addr);
 	conn_len = g_slist_length(adapter->connections);
+	if (conn_len)
+	{
+		info( "Maximum user connection");
+		btd_adapter_disconnect_device(adapter, &ev->addr.bdaddr, ev->addr.type);
+		return;
+	}
+	else
+	{
+#if defined(RTCONFIG_LP5523)
+		lp55xx_leds_proc(LP55XX_WHITE_LEDS, LP55XX_ACT_SBLINK);
+#endif
+	}
+
+	ba2str(&ev->addr.bdaddr, addr);
 	DBG("hci%u device %s connected eir_len %u!", index, addr, eir_len);
 
 	device = btd_adapter_get_device(adapter, &ev->addr.bdaddr,
@@ -7600,15 +7612,6 @@ static void connected_callback(uint16_t index, uint16_t length,
 	if (eir_data.msd_list)
 		adapter_msd_notify(adapter, device, eir_data.msd_list);
 
-	if (!conn_len)
-	{
-		info("Reach the Maximum connected clnt");
-#if defined(RTCONFIG_LP5523)
-		lp55xx_leds_proc(LP55XX_WHITE_LEDS, LP55XX_ACT_SBLINK);
-#endif
-		snprintf(cmd, sizeof(cmd), "hciconfig hci%d noscan", SOL_HCI);
-		system(cmd);
-	}
 
 	eir_data_free(&eir_data);
 }

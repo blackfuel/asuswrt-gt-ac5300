@@ -427,7 +427,8 @@ e.g. DES-CBC3-SHA. In these cases, RSA authentication is used.
  TLS_DH_anon_WITH_3DES_EDE_CBC_SHA       ADH-DES-CBC3-SHA
 
 =head2 AES ciphersuites from RFC3268, extending TLS v1.0
-
+ TLS_RSA_WITH_AES_128_CBC_SHA            AES128-SHA
+ TLS_RSA_WITH_AES_256_CBC_SHA            AES256-SHA
 
  TLS_DH_DSS_WITH_AES_128_CBC_SHA         DH-DSS-AES128-SHA
  TLS_DH_DSS_WITH_AES_256_CBC_SHA         DH-DSS-AES256-SHA

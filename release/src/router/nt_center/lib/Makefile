@@ -22,7 +22,7 @@ EXTRALD += -lpthread #Depend on sqlite
 LD_BINARY  += $(LDFLAGS) $(EXTRACC)
 LD_LIBRARY += $(LDFLAGS) $(EXTRALD)
 
-OBJS = nt_share.o nt_utility.o linklist.o hash.o hlist.o nt_db_stat.o
+OBJS = nt_share.o nt_utility.o linklist.o hashtable.o nt_db_stat.o
 
 vpath %.c $(SRCBASE)/nt_center/
 
@@ -80,7 +80,7 @@ CFLAGS += -I$(APP_SQLITE_DIR)
 LDFLAGS += -lm
 LDFLAGS += -L$(APP_SQLITE_DIR)/.libs -lsqlite3
 
-OBJS = nt_share.o nt_utility.o linklist.o hash.o hlist.o nt_db_stat.o
+OBJS = nt_share.o nt_utility.o linklist.o hashtable.o nt_db_stat.o
 
 all: libnt.so libnt.a nt_db
 

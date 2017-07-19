@@ -143,6 +143,9 @@ function initial(){
 		function() {
 			if(dualWAN_support)
 				document.form.wans_dualwan.value = wans_dualwan_array[0]+" usb";
+			else
+				document.form.modem_enable.value = "1";
+
 			document.getElementById("modem_android_tr").style.display="";
 			if(document.form.modem_android.value == "0"){
 				switch_modem_mode(document.form.modem_enable.value);
@@ -153,17 +156,19 @@ function initial(){
 				change_apn_mode();
 			}
 			else{
-				document.getElementById("android_desc").style.display="";					
+				document.getElementById("android_desc").style.display="";
 				hide_usb_settings(1);
-			}				
+			}
 		},
 		function() {
 			if(dualWAN_support){
 				if(usb_index == 0)
-						document.form.wans_dualwan.value = wans_dualwan_array[1]+" none";
-					else
-						document.form.wans_dualwan.value = wans_dualwan_array[0]+" none";
+					document.form.wans_dualwan.value = wans_dualwan_array[1]+" none";
+				else
+					document.form.wans_dualwan.value = wans_dualwan_array[0]+" none";
 			}
+			else
+				document.form.modem_enable.value = "0";
 			document.getElementById("modem_android_tr").style.display="none";
 			hide_usb_settings();
 		}

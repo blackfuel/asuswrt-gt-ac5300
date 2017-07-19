@@ -156,6 +156,7 @@
 # define XTABS TAB3
 #endif
 
+#define SECURITY_NOTIFY
 
 /* Some libc's forget to declare these, do it ourself */
 

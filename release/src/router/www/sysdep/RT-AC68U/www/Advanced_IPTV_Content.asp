@@ -51,6 +51,8 @@ var wans_dualwan_orig = '<% nvram_get("wans_dualwan"); %>';
 
 var iptv_modified = 0;
 var voip_modified = 0;
+var iptv_port_settings_orig = '<%nvram_get("iptv_port_settings"); %>' == ""? "12": '<%nvram_get("iptv_port_settings"); %>';
+var lacp_enabled = '<% nvram_get("lacp_enabled"); %>' == 1 ?true: false;
 
 function initial(){
 	show_menu();
@@ -87,16 +89,31 @@ function initial(){
 		document.form.switch_stb_x.remove(1);	//LAN1
 	}
 	else if(based_modelid == "GT-AC5300"){ //MODELDEP: GT-AC5300 : TRUNK ports
-		document.getElementById("switch_stb_x").options[3].text = "LAN1"; 	 //P1
-		document.getElementById("switch_stb_x").options[4].text = "LAN2";	 //P0
-		document.getElementById("switch_stb_x").options[6].text = "LAN1 & LAN2"; //P1+P0
-		document.form.switch_stb_x.remove(5);   //LAN5 & LAN6
-		document.form.switch_stb_x.remove(2);   //LAN5
-		document.form.switch_stb_x.remove(1);   //LAN6
-		document.getElementById("voip_port").innerHTML = "LAN2";	//P0
-		document.getElementById("iptv_port").innerHTML = "LAN1";	//P1
-		document.getElementById("voip_port3").innerHTML = "LAN port 2"; //P0
-		document.getElementById("iptv_port4").innerHTML = "LAN port 1"; //P1
+		document.getElementById("port_settings").style.display = "";
+		if(iptv_port_settings_orig == "12"){
+			document.getElementById("switch_stb_x").options[3].text = "LAN1"; 	 //P1
+			document.getElementById("switch_stb_x").options[4].text = "LAN2";	 //P0
+			document.getElementById("switch_stb_x").options[6].text = "LAN1 & LAN2"; //P1+P0
+
+			document.getElementById("voip_port").innerHTML = "LAN2";	//P0
+			document.getElementById("iptv_port").innerHTML = "LAN1";	//P1
+			document.getElementById("voip_port3").innerHTML = "LAN port 2"; //P0
+			document.getElementById("iptv_port4").innerHTML = "LAN port 1"; //P1
+		}
+		else if(iptv_port_settings_orig == "56"){
+			document.getElementById("switch_stb_x").options[3].text = "LAN5";
+			document.getElementById("switch_stb_x").options[4].text = "LAN6";
+			document.getElementById("switch_stb_x").options[6].text = "LAN5 & LAN6";
+
+			document.getElementById("voip_port").innerHTML = "LAN6";
+			document.getElementById("iptv_port").innerHTML = "LAN5";
+			document.getElementById("voip_port3").innerHTML = "LAN port 6";
+			document.getElementById("iptv_port4").innerHTML = "LAN port 5";
+		}
+		document.form.switch_stb_x.remove(5);
+		document.form.switch_stb_x.remove(2);
+		document.form.switch_stb_x.remove(1);
+		show_gaming_note(iptv_port_settings_orig);
 	}
 	else if(based_modelid == "RT-AC86U" || based_modelid == "AC2900"){ //MODELDEP: RT-AC86U/AC2900 : TRUNK ports
 		document.getElementById("switch_stb_x").options[3].text = "LAN1"; 	 //P3
@@ -424,6 +441,11 @@ function applyRule(){
 
 		if(document.form.wan_proto_now.disabled==true)
 			document.form.wan_proto_now.disabled==false;
+
+		if(lacp_enabled && document.form.iptv_port_settings.value == "56"){
+			document.form.lacp_enabled.disabled = false;
+			document.form.lacp_enabled.value = "0";
+		}
 
 		showLoading();
 		document.form.submit();
@@ -968,6 +990,45 @@ function set_dns_switch(wan_dnsenable_flag){
 function pass_checked(obj){
 	switchType(obj, document.form.show_pass_1.checked, true);
 }
+
+function change_port_settings(val){
+	if(val == "12"){
+		document.getElementById("switch_stb_x").options[1].text = "LAN1"; 	 //P1
+		document.getElementById("switch_stb_x").options[2].text = "LAN2";	 //P0
+		document.getElementById("switch_stb_x").options[3].text = "LAN1 & LAN2"; //P1+P0
+
+		document.getElementById("voip_port").innerHTML = "LAN2";	//P0
+		document.getElementById("iptv_port").innerHTML = "LAN1";	//P1
+		document.getElementById("voip_port3").innerHTML = "LAN port 2"; //P0
+		document.getElementById("iptv_port4").innerHTML = "LAN port 1"; //P1
+	}
+	else if(val == "56"){
+		var msg="Change IPTV/ VOIP port settings to LAN5/ LAN6 will disable Bonding/ Link aggregation function. Are you sure to do it?";
+		if(lacp_enabled){
+			if(!confirm(msg)){
+				document.form.iptv_port_settings.value = "12";
+				return;
+			}
+		}
+		document.getElementById("switch_stb_x").options[1].text = "LAN5";
+		document.getElementById("switch_stb_x").options[2].text = "LAN6";
+		document.getElementById("switch_stb_x").options[3].text = "LAN5 & LAN6";
+
+		document.getElementById("voip_port").innerHTML = "LAN6";
+		document.getElementById("iptv_port").innerHTML = "LAN5";
+		document.getElementById("voip_port3").innerHTML = "LAN port 6";
+		document.getElementById("iptv_port4").innerHTML = "LAN port 5";		
+	}
+	show_gaming_note(val);
+}
+
+function show_gaming_note(val){
+	if(val == "12")
+		document.getElementById("gaming_note").innerHTML = "Gaming Ports are set up in LAN1 and LAN2. If you would like to use Gaming Ports, please choose LAN 5/ LAN 6 for your IPTV or VoIP port.";//untranslated
+	else if(val == "56")
+		document.getElementById("gaming_note").innerHTML = "Link aggregation is configured in LAN 5 and LAN6. If you would like to use link aggregation, please choose LAN 1/ LAN 2 for your IPTV or VoIP port.";//untranslated
+	document.getElementById("gaming_note_div").style.display = "";
+}
 </script>
 </head>
 
@@ -1049,6 +1110,7 @@ function pass_checked(obj){
 <input type="hidden" name="wan11_auth_x" value="<% nvram_get("wan11_auth_x"); %>">
 <input type="hidden" name="quagga_enable" value="<% nvram_get("quagga_enable"); %>">
 <input type="hidden" name="mr_altnet_x" value="<% nvram_get("mr_altnet_x"); %>">
+<input type="hidden" name="lacp_enabled" value="<% nvram_get("lacp_enabled"); %>" disabled>
 
 <!---- connection settings start  ---->
 <div id="connection_settings_table"  class="contentM_connection">
@@ -1288,8 +1350,18 @@ function pass_checked(obj){
 				<td colspan="2"><#Port_Mapping_item1#></td>
 			</tr>
 		</thead>
+	    	<tr id="port_settings" style="display:none;">
+		    	<th width="30%"><a class="hintstyle" href="javascript:void(0);" onClick="openHint(7,28);">IPTV/ VoIP Port Settings</a></th>
+			<td>
+				<select name="iptv_port_settings" class="input_option" onChange="change_port_settings(this.value);">
+					<option value="12" <% nvram_match( "iptv_port_settings", "12", "selected"); %>>LAN1/ LAN2</option>
+					<option value="56" <% nvram_match( "iptv_port_settings", "56", "selected"); %>>LAN5/ LAN6</option>
+				</select>
+			<div id="gaming_note_div" style="display: none;"><span id="gaming_note"></span><div>
+			</td>
+		</tr>
 	    	<tr>
-	    	<th width="30%"><a class="hintstyle" href="javascript:void(0);" onClick="openHint(7,28);"><#Select_ISPfile#></a></th>
+		    	<th width="30%"><a class="hintstyle" href="javascript:void(0);" onClick="openHint(7,28);"><#Select_ISPfile#></a></th>
 			<td>
 				<select name="switch_wantag" class="input_option" onChange="ISP_Profile_Selection(this.value)">
 					<option value="none" <% nvram_match( "switch_wantag", "none", "selected"); %>><#wl_securitylevel_0#></option>
@@ -1305,14 +1377,14 @@ function pass_checked(obj){
 					<option id="vodafoneOption" value="vodafone" <% nvram_match("switch_wantag", "vodafone", "selected"); %>>Vodafone</option>
 					<option value="hinet" <% nvram_match("switch_wantag", "hinet", "selected"); %>>Hinet MOD</option>
 					<option id="sfOption" value="stuff_fibre" <% nvram_match("switch_wantag", "stuff_fibre", "selected"); %>>Stuff-Fibre</option>
-<!--
+	<!--
 					<option value="maxis_fiber_iptv" <% nvram_match("switch_wantag", "maxis_fiber_iptv", "selected"); %>>Maxis-Fiber-IPTV</option>
 					<option value="maxis_fiber_sp_iptv" <% nvram_match("switch_wantag", "maxis_fiber_sp_iptv", "selected"); %>>Maxis-Fiber-Special-IPTV</option>
--->
+	-->
 					<option value="manual" <% nvram_match( "switch_wantag", "manual", "selected"); %>><#Manual_Setting_btn#></option>
 				</select>
 			</td>
-			</tr>
+		</tr>
 		<tr id="wan_stb_x">
 		<th width="30%"><#Layer3Forwarding_x_STB_itemname#></th>
 		<td align="left">

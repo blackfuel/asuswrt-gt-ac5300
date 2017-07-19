@@ -164,6 +164,10 @@ CFLAGS  += -I$(TOP)/nt_center/actMail
 CFLAGS  += -DASUSWRT_SDK
 endif
 
+ifeq ($(RTCONFIG_PROTECTION_SERVER),y)
+CFLAGS  += -I$(TOP)/protect_srv/include
+endif
+
 ifeq ($(RTCONFIG_BT_CONN),y)
 CFLAGS  += -I$(TOP)/bluez-5.41/lib
 endif
@@ -250,7 +254,7 @@ endif
 else ifeq ($(RTCONFIG_ALPINE),y)
 OBJS += init-alpine.o wps-alpine.o alpine.o ate-alpine.o
 else ifeq ($(RTCONFIG_LANTIQ),y)
-OBJS += init-lantiq.o wps-lantiq.o lantiq.o ate-lantiq.o
+OBJS += init-lantiq.o wps-lantiq.o lantiq.o ate-lantiq.o lantiq-wave.o
 else
 OBJS += init-broadcom.o wps-broadcom.o broadcom.o ate-broadcom.o
 ifeq ($(BUILD_NAME), RT-AC68U)
@@ -627,6 +631,9 @@ endif
 ifeq ($(RTCONFIG_QCA_PLC_UTILS),y)
 	@cd $(INSTALLDIR)/sbin && ln -sf rc autodet_plc
 endif
+ifeq ($(BUILD_NAME),HIVESPOT)
+	@cd $(INSTALLDIR)/sbin && ln -sf rc dpdt_ant
+endif
 
 #	ifeq ($(RTCONFIG_HEARTBEAT),y)
 #		@cd $(INSTALLDIR)/sbin && ln -sf rc hb_connect
@@ -774,6 +781,7 @@ ifeq ($(RTCONFIG_SOC_IPQ8064),y)
 endif
 ifeq ($(RTCONFIG_HTTPS),y)
 	@cd $(INSTALLDIR)/sbin && ln -sf rc rsasign_check
+	@cd $(INSTALLDIR)/sbin && ln -sf rc rsarootca_check
 endif
 	@cd $(INSTALLDIR)/sbin && ln -sf rc test_endian
 ifeq ($(RTCONFIG_BWDPI),y)
@@ -830,6 +838,10 @@ endif
 
 ifneq ($(RTCONFIG_RALINK)$(RTCONFIG_QCA)$(RTCONFIG_REALTEK),y)
 	@cd $(INSTALLDIR)/sbin && ln -sf rc erp_monitor
+endif
+
+ifeq ($(RTCONFIG_WLCSCAN_RSSI),y)
+	@cd $(INSTALLDIR)/sbin && ln -sf rc wlcscan_ssid_rssi
 endif
 
 clean:

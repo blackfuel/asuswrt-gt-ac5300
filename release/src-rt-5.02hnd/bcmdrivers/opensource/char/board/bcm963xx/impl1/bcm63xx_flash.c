@@ -640,6 +640,22 @@ void kerSysNvRamGetBoardId(char *boardId)
 }
 EXPORT_SYMBOL(kerSysNvRamGetBoardId);
 
+void kerSysNvRamGetNoUpdatingFirmwareLocked(unsigned char *noUpdatingFirmware)
+{
+    memcpy(noUpdatingFirmware, &inMemNvramData.noUpdatingFirmware,
+                    sizeof(inMemNvramData.noUpdatingFirmware));
+}
+EXPORT_SYMBOL(kerSysNvRamGetNoUpdatingFirmwareLocked);
+
+void kerSysNvRamGetNoUpdatingFirmware(unsigned char *noUpdatingFirmware)
+{
+    unsigned long flags;
+
+    spin_lock_irqsave(&inMemNvramData_spinlock, flags);
+    kerSysNvRamGetNoUpdatingFirmwareLocked(noUpdatingFirmware);
+    spin_unlock_irqrestore(&inMemNvramData_spinlock, flags);
+}
+EXPORT_SYMBOL(kerSysNvRamGetNoUpdatingFirmware);
 
 /** Get the base mac addr from the NVRAM data.  This is 6 bytes, not
  * a string.

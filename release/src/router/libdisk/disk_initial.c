@@ -30,7 +30,7 @@
 #include "disk_initial.h"
 
 extern disk_info_t *read_disk_data(){
-	disk_info_t *disk_info_list = NULL, *new_disk_info, **follow_disk_info_list;
+	disk_info_t *disk_info_list = NULL, **follow_disk_info_list;
 	char *partition_info = read_whole_file(PARTITION_FILE);
 	char *follow_info;
 	char line[64], device_name[16];
@@ -65,7 +65,7 @@ extern disk_info_t *read_disk_data(){
 			while(*follow_disk_info_list != NULL)
 				follow_disk_info_list = &((*follow_disk_info_list)->next);
 
-			new_disk_info = create_disk(device_name, follow_disk_info_list);
+			create_disk(device_name, follow_disk_info_list);
 		}
 		else if(is_partition_name(device_name, NULL)){ // Partition
 			// Found a partition device.

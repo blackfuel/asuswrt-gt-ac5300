@@ -1135,7 +1135,7 @@ char *get_lan_mac_name(void)
 
 	/* Check below configuration in convert_wan_nvram() too. */
 	switch (model) {
-	case MODEL_RTAC96X:	/* fall-through */
+	case MODEL_GTAC9600:	/* fall-through */
 		/* Use 5G MAC address as LAN MAC address. */
 		mac_name = "et1macaddr";
 		break;
@@ -1158,7 +1158,7 @@ char *get_wan_mac_name(void)
 
 	/* Check below configuration in convert_wan_nvram() too. */
 	switch (model) {
-	case MODEL_RTAC96X:	/* fall-through */
+	case MODEL_GTAC9600:	/* fall-through */
 		/* Use 2G MAC address as LAN MAC address. */
 		mac_name = "et0macaddr";
 		break;

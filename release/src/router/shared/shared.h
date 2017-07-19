@@ -31,6 +31,8 @@
 #include "lp5523led.h"
 #endif /* RTCONFIG_LP5523 */
 
+#include "network_utility.h"
+
 /* btn_XXX_gpio, led_XXX_gpio */
 #define GPIO_ACTIVE_LOW 0x1000
 #define GPIO_BLINK_LED	0x2000
@@ -405,8 +407,9 @@ enum {
 	MODEL_RTAC88S,
 	MODEL_RPAC53,
 	MODEL_RPAC68U,
+	MODEL_RPAC55,
 	MODEL_RTAC86U,
-	MODEL_RTAC96X,
+	MODEL_GTAC9600,
 	MODEL_BLUECAVE,
 };
 
@@ -652,6 +655,12 @@ enum led_id {
 	LED_5G_GREEN2,
 	LED_5G_GREEN3,
 	LED_5G_GREEN4,
+#endif
+#ifdef RPAC55
+	LED_POWER_RED,
+	LED_WIFI,
+	LED_SIG1,
+	LED_SIG2,
 #endif	
 #ifdef RTCONFIG_MMC_LED
 	LED_MMC,
@@ -1267,7 +1276,7 @@ extern int set_wan_primary_ifunit(const int unit);
 #ifdef RTCONFIG_USB
 extern char *get_usb_xhci_port(int port);
 #endif
-#if (defined(RTCONFIG_DUALWAN) || defined(RTCONFIG_MULTICAST_IPTV))
+#ifdef RTCONFIG_DUALWAN
 extern void set_wanscap_support(char *feature);
 extern void add_wanscap_support(char *feature);
 extern int get_wans_dualwan(void) ;
@@ -1284,6 +1293,12 @@ static inline int get_wans_dualwan(void) {
 #endif
 }
 static inline int get_dualwan_by_unit(int unit) {
+#ifdef RTCONFIG_MULTICAST_IPTV
+	if(unit == WAN_UNIT_IPTV)
+		return WAN_UNIT_IPTV;
+	if(unit == WAN_UNIT_VOIP)
+		return WAN_UNIT_VOIP;
+#endif
 #ifdef RTCONFIG_USB_MODEM
 	return (unit == WAN_UNIT_FIRST) ? WANS_DUALWAN_IF_WAN : WANS_DUALWAN_IF_USB;
 #else
@@ -1566,7 +1581,7 @@ static inline int is_m2ssd_port(char *usb_node) { return 0; }
 extern int is_ac66u_v2_series();
 #endif
 
-int wanport_status(int wan_unit);
+extern int wanport_status(int wan_unit);
 /* bwdpi_utils.c */
 #if defined(RTCONFIG_BWDPI)
 extern int check_wrs_switch();

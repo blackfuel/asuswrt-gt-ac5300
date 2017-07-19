@@ -597,12 +597,11 @@ function updateClientList(e){
 <input type="button" id="refresh_list" class="button_gen" value="<#CTL_refresh#>" style="margin-left:70px;">
 	<script>
 		document.getElementById('refresh_list').onclick = function(){
-			var local_mac = '<% nvram_get("lan_hwaddr"); %>';
-			cookie.unset("wireless_list_" + local_mac + "_temp");
-			cookie.unset("wireless_list_" + local_mac);
 			parent.manualUpdate = true;
 			document.form.submit();
 		}
+
+		if(parent.document.stopNetworkmapd.networkmap_enable.value == 0 && disnwmd_support) $("#refresh_list").hide()
 	</script>
 <img src="/images/InternetScan.gif" id="loadingIcon" style="visibility:hidden">
 <img height="25" id="rightBtn" onclick="updatePagesVar('+');" style="cursor:pointer;margin-left:25px;" src="/images/arrow-right.png">

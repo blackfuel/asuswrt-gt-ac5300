@@ -103,6 +103,10 @@ dhd_handle_wfd_blog(dhd_pub_t *dhdp, struct net_device *net, int ifidx,
 				blog_p->wfd.dhd_ucast.flowring_idx = flowid;
 				blog_p->wfd.dhd_ucast.priority = prio;
 				blog_p->wfd.dhd_ucast.ssid = ifidx;
+#ifdef CATHY_HW_ACC_DIS
+				if (dhdp->hw_acc_disabled)
+					blog_p->wfd.dhd_ucast.is_tx_hw_acc_en = 0;
+#endif /* CATHY_HW_ACC_DIS */
 			}
 
 			DHD_PERIM_UNLOCK(dhdp);

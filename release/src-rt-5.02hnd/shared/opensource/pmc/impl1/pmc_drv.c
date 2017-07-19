@@ -988,7 +988,7 @@ int pmc_init(void)
 # include "track.h"
 	int getAVSConfig(void); // check avs-disabled configuration
 
-	if (0 && getAVSConfig() == 0) {	// disable AVS for on-tracing-cpu0-hang(irq disabled) issue
+	if (getAVSConfig() == 0) {
 		// relocate to end of pmc shared memory
 		const unsigned linkaddr = (0xb6004800 - sizeof track_bin) & ~15;
 		void *memcpy(void *dest, const void *src, unsigned n);
@@ -1008,11 +1008,12 @@ int pmc_init(void)
 			uint32 slow, fast; // margin
 
 			if ((cap & 15) != 0) {
-				slow =  80, fast =  55;
+				slow = 95, fast = 70;
 			} else {
 				slow = 100, fast = 100;
 			}
 
+			printk("\n%s slow %d, fast %d\n", __func__, slow, fast);
 			if (SendCommand(96, 0, 0, slow, fast, &rsp)
 			    || rsp.word0.Bits.error)
 				printk("%s:%d %d %x %x %x\n", __func__,

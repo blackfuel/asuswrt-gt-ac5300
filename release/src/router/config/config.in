@@ -9,6 +9,10 @@ config RTCONFIG_RTL819X
 	bool "Realtek RTL819X support"
 	default n
 
+config RTCONFIG_RTL8197F
+	bool "Realtek RTL8197F support"
+	default n
+
 config RTCONFIG_RTK_NAND
 	bool "Realtek NAND Flash support"
 	default n
@@ -261,6 +265,7 @@ config RTCONFIG_REPEATER
 
 config RTCONFIG_DISABLE_REPEATER_UI
 	bool "Hiden UI Repeater Mode"
+	depends on RTCONFIG_REPEATER
 	default n
 
 config RTCONFIG_PROXYSTA
@@ -536,7 +541,7 @@ config RTCONFIG_USB_LESSMODEM
 config RTCONFIG_USB_MODEM_PIN
 	bool "USB Modem pin code Support"
 	depends on RTCONFIG_USB_MODEM
-	default n
+	default y
 
 config RTCONFIG_USB_SMS_MODEM
 	bool "USB Modem SMS Support"
@@ -761,12 +766,20 @@ config RTCONFIG_DEFAULT_AP_MODE
 	bool "Default is AP mode"
 	default n
 
+config RTCONFIG_DEFAULT_REPEATER_MODE
+	bool "Default is Repeater mode"
+	default n
+
 config RTCONFIG_ODMPID
 	bool "ODM Product ID"
 	default n
 
 config RTCONFIG_32BYTES_ODMPID
 	bool "ODM Product ID increase to 32 bytes"
+	default n
+
+config RTCONFIG_NONASUS
+	bool "ODM model with ASUS logo"
 	default n
 
 config RTCONFIG_TIMEMACHINE
@@ -1328,6 +1341,10 @@ config RTCONFIG_NOTIFICATION_CENTER
 	bool "Notification Center"
 	default y
 
+config RTCONFIG_PROTECTION_SERVER
+	bool "Security Protection Mechanism"
+	default y
+
 config RTCONFIG_WLCEVENTD
 	bool "Get event from Wi-Fi driver"
 	default n
@@ -1474,6 +1491,10 @@ config RTCONFIG_FBWIFI
 	bool "enable FBWIFI for FaceBook"
 	default n
 
+config RTCONFIG_WLCSCAN_RSSI
+       bool "Sitesurvey for specific SSID rssi"
+       default n
+
 config RTCONFIG_VISUALIZATION
 	bool "Visualization Application"
 	depends on RTCONFIG_HND_ROUTER
@@ -1494,3 +1515,8 @@ config RTCONFIG_I2CTOOLS
 config RTCONFIG_MTK_8021X3000
 	bool "The version 3.0.0.0 of 802.1x daemon for MTK."
 	default n
+	
+config RTCONFIG_NO_SELECT_CHANNEL
+	bool "Auto Channel Selection (no select) for MTK."
+	default n
+	

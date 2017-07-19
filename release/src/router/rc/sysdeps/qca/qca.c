@@ -2305,11 +2305,17 @@ void start_wsc_enrollee(void)
 			fprintf(fp, "ctrl_interface=/var/run/wpa_supplicant\n");
 			fprintf(fp, "update_config=1\n");
 			fclose(fp);
-#if !(defined(HIVEDOT) || defined(HIVESPOT))
-			doSystem("wlanconfig %s create wlandev %s wlanmode sta nosbeacon", sta, get_vphyifname(i));
+#if defined(HIVEDOT) || defined(HIVESPOT)
+			if(nvram_get_int("x_Setting") && sw_mode()==SW_MODE_AP)
+				_dprintf("==>wps enrollee: using original sta%d vap\n",i);
+			else
+#endif
+			{
+				_dprintf("==>wps enrollee: create sta%d vap\n",i);
+				doSystem("wlanconfig %s create wlandev %s wlanmode sta nosbeacon", sta, get_vphyifname(i));
+			}
 			sleep(1);
 			ifconfig(sta, IFUP, NULL, NULL);
-#endif
 			eval("/usr/bin/wpa_supplicant", "-B", "-P", pid_file, "-D", (char*) WSUP_DRV, "-i", sta, "-b", lan_if, "-c", conf);
 		}
 
@@ -2341,10 +2347,17 @@ void stop_wsc_enrollee(void)
 			snprintf(fpath, sizeof(fpath), "/etc/Wireless/conf/wpa_supplicant-%s.conf", sta);
 			unlink(fpath);
 
-#if !(defined(HIVEDOT) || defined(HIVESPOT))
-			ifconfig(sta, 0, NULL, NULL);
-			doSystem("wlanconfig %s destroy", sta);
+#if defined(HIVEDOT) || defined(HIVESPOT)
+			if(nvram_get_int("x_Setting") && sw_mode()==SW_MODE_AP)
+				_dprintf("==>wps enrollee: do not destroy original sta%d vap\n",i);
+			else
 #endif
+			{
+	
+				_dprintf("==>wps enrollee: destroy sta%d vap\n",i);
+				ifconfig(sta, 0, NULL, NULL);
+				doSystem("wlanconfig %s destroy", sta);
+			}
 		}
 
 		i++;
@@ -2411,7 +2424,10 @@ void wifi_clone(int unit)
 	nvram_set(strcat_r(prefix, "ssid", tmp), nvram_get(strcat_r(sprefix, "ssid", stmp)));
 	nvram_set(strcat_r(prefix, "wpa_psk", tmp), nvram_get(strcat_r(sprefix, "wpa_psk", stmp)));
 	nvram_set(strcat_r(prefix, "crypto", tmp), nvram_get(strcat_r(sprefix, "crypto", stmp)));
-	nvram_set(strcat_r(prefix, "auto_mode_x", tmp), nvram_get(strcat_r(sprefix, "auth_mode_x", stmp)));
+	nvram_set(strcat_r(prefix, "auth_mode_x", tmp), nvram_get(strcat_r(sprefix, "auth_mode_x", stmp)));
+#if defined(HIVESPOT)
+        duplicate_5g2();
+#endif
 	nvram_commit();
 	_dprintf("=> wifi clone ok! duplicate %s wifi-setting to %s\n",unit?"5G":"2G",unit?"2G":"5G");
 #endif

@@ -198,7 +198,7 @@ function register_event(){
 
 function initial(){
 	show_menu();
-	if(based_modelid == "GT-AC5300"){
+	if(based_modelid == "GT-AC5300" || based_modelid == "RT-AC1200"){
 		$("#nat_desc").hide();
 	}
 

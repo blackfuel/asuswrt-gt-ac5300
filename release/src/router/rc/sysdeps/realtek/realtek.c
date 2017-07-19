@@ -94,12 +94,12 @@ char buf[WLC_IOCTL_MAXLEN];
 */
 void set_led(int wl0_stage, int wl1_stage)
 {
-#ifdef RPAC53 /* RP-AC53 use led_control. */
-	return;
-#endif
+#if defined(RPAC68U)
 	char buf[32];
 	sprintf(buf, "echo 'led %d %d' > /proc/asus_ate", wl0_stage, wl1_stage);
 	system(buf);
+#endif
+	return;
 }
 
 #if 0	//move the below to router/shared/sysdeps/realtek/realtek.h
@@ -227,14 +227,14 @@ int set40M_Channel_5G(char *channel)
 
 int ResetDefault(void)
 {
-#if defined(RPAC53) // SPI flash
-	eval("mtd-erase","-d","nvram");
-#else // NAND flash
+#if defined(RPAC68U) // NAND flash
 	eval("rm", "-f", "/hw_setting/nvram.bin");
 	eval("umount", "/hw_setting");
 
 	eval("rm", "-f", "/hw_setting2/nvram.bin");
 	eval("umount", "/hw_setting2");
+#else // SPI flash
+	eval("mtd-erase","-d","nvram");
 #endif
 	puts("1");
 }
@@ -470,7 +470,7 @@ static int get_wsc_auth(int wl_index,int *wsc_auth, int* wsc_encrypt)
 {
 	char tmp[128], prefix[] = "wlXXXXXXX_";
 	char *auth_mode,*crypto_mode;
-	rtklog("%s \n",__FUNCTION__);
+	rtk_printf("%s \n",__FUNCTION__);
 	if(!(wl_index == 0||wl_index == 1)|| wsc_auth == NULL || wsc_encrypt == NULL)
 	{
 		return -1;
@@ -486,11 +486,11 @@ static int get_wsc_auth(int wl_index,int *wsc_auth, int* wsc_encrypt)
 	else if(!strcmp(auth_mode,"pskpsk2"))/*WPA auto personal*/
 	{
 		*wsc_auth = WSC_AUTH_WPA2PSKMIXED;
-		if(!strcmp(auth_mode,"aes"))/*WPA auto AES*/
+		if(!strcmp(crypto_mode,"aes"))/*WPA auto AES*/
 		{
 			*wsc_encrypt = WSC_ENCRYPT_AES;
 		}
-		else if(!strcmp(auth_mode,"tkip+aes"))/*WPA auto TKIP+AES*/
+		else if(!strcmp(crypto_mode,"tkip+aes"))/*WPA auto TKIP+AES*/
 		{
 			*wsc_encrypt = WSC_ENCRYPT_TKIPAES;
 		}
@@ -501,7 +501,7 @@ static int get_wsc_auth(int wl_index,int *wsc_auth, int* wsc_encrypt)
 	}
 	else if(!strcmp(auth_mode,"psk2"))/*WPA2 AES*/
 	{
-		*wsc_auth = WSC_AUTH_WPA2PSK;;
+		*wsc_auth = WSC_AUTH_WPA2PSK;
 		*wsc_encrypt = WSC_ENCRYPT_AES;
 	}
 	else
@@ -995,7 +995,7 @@ static int updateWpaConf(char* iface, char* outputFile, int isWds)
 	if(nvram_match(nvram_para, "tkip+aes"))
 		sprintf((char *)buf2, "unicastCipher = 3\n");
 	else
-		sprintf((char *)buf2, "unicastCipher = 1\n");
+		sprintf((char *)buf2, "unicastCipher = 2\n");
 	WRITE_WPA_FILE(fh, buf2);
 
 
@@ -1880,7 +1880,7 @@ int gen_realtek_config(int band, int val)
 	NVRAM_GET(str, "country_code"){
 		strncpy(pmib->dot11dCountry.dot11CountryString, str, 3);
 	}else{
-		printf("NVRAM: %s%s not set!!\n", prefix, suf);
+		rtk_printf("NVRAM: %s%s not set!!\n", prefix, suf);
 		strncpy(pmib->dot11dCountry.dot11CountryString, "US", 3);	
 	}
 
@@ -1901,7 +1901,7 @@ int gen_realtek_config(int band, int val)
 			//interface client
 			pmib->dot11OperationEntry.opmode = 8;
 		}else{
-			printf("NVRAM: %s%s not set!!\n", prefix, suf);
+			rtk_printf("NVRAM: %s%s not set!!\n", prefix, suf);
 			memset(pmib->dot11StationConfigEntry.dot11DesiredSSID, 0, 32);
 			memset(pmib->dot11StationConfigEntry.dot11SSIDtoScan, 0, 32);		
 			snprintf(pmib->dot11StationConfigEntry.dot11DesiredSSID, 32, "ASUS%d", val);
@@ -1921,7 +1921,7 @@ int gen_realtek_config(int band, int val)
 			memcpy(pmib->dot11StationConfigEntry.dot11SSIDtoScan,str,strlen(str));
 			pmib->dot11StationConfigEntry.dot11SSIDtoScanLen = strlen(str);
 		}else{
-			printf("NVRAM: %s%s not set!!\n", prefix, suf);
+			rtk_printf("NVRAM: %s%s not set!!\n", prefix, suf);
 			memset(pmib->dot11StationConfigEntry.dot11DesiredSSID, 0, 32);
 			memset(pmib->dot11StationConfigEntry.dot11SSIDtoScan, 0, 32);		
 			snprintf(pmib->dot11StationConfigEntry.dot11DesiredSSID, 32, "ASUS%d", val);
@@ -2002,7 +2002,7 @@ int gen_realtek_config(int band, int val)
 			pmib->dot11StationConfigEntry.dot11BasicRates = 15;
 		}
 	}else{
-		printf("NVRAM: %s%s not set!!\n", prefix, suf);
+		rtk_printf("NVRAM: %s%s not set!!\n", prefix, suf);
 		if(band == 0){//2.4G
 			pmib->dot11StationConfigEntry.legacySTADeny = 0;
 			pmib->dot11BssType.net_work_type = 11;
@@ -2027,7 +2027,7 @@ int gen_realtek_config(int band, int val)
 	NVRAM_GET(str, "channel"){
 		pmib->dot11RFEntry.dot11channel = atoi(str);
 	}else{
-		printf("NVRAM: %s%s not set!!\n", prefix, suf);
+		rtk_printf("NVRAM: %s%s not set!!\n", prefix, suf);
 		pmib->dot11RFEntry.dot11channel = 0;
 	}
 
@@ -2043,7 +2043,7 @@ int gen_realtek_config(int band, int val)
 			else
 				pmib->dot11StationConfigEntry.dot11BasicRates =	0xf;	
 		}else{
-			printf("NVRAM: %s%s not set!!\n", prefix, suf);
+			rtk_printf("NVRAM: %s%s not set!!\n", prefix, suf);
 			pmib->dot11StationConfigEntry.dot11BasicRates =	0xf;
 		}
 	}
@@ -2058,7 +2058,7 @@ int gen_realtek_config(int band, int val)
 			pmib->dot11StationConfigEntry.dot11BeaconPeriod = intv;
 		}
 	}else{
-		printf("NVRAM: %s%s not set!!\n", prefix, suf);
+		rtk_printf("NVRAM: %s%s not set!!\n", prefix, suf);
 		pmib->dot11StationConfigEntry.dot11BeaconPeriod = 100;
 	}
 	
@@ -2067,7 +2067,7 @@ int gen_realtek_config(int band, int val)
 		int intv = atoi(str);
 		pmib->dot11StationConfigEntry.dot11DTIMPeriod = intv;
 	}else{
-		printf("NVRAM: %s%s not set!!\n", prefix, suf);
+		rtk_printf("NVRAM: %s%s not set!!\n", prefix, suf);
 		pmib->dot11StationConfigEntry.dot11DTIMPeriod = 1;
 	}
 
@@ -2078,7 +2078,7 @@ int gen_realtek_config(int band, int val)
 		}
 		pmib->dot11RFEntry.power_percent = atoi(str);
 	}else{
-		printf("NVRAM: %s%s not set!!\n", prefix, suf);
+		rtk_printf("NVRAM: %s%s not set!!\n", prefix, suf);
 		pmib->dot11RFEntry.power_percent = 100;
 	}
 
@@ -2090,7 +2090,7 @@ int gen_realtek_config(int band, int val)
 			pmib->miscEntry.func_off = 0;
 		}
 	}else{
-		printf("NVRAM: %s%s not set!!\n", prefix, suf);
+		rtk_printf("NVRAM: %s%s not set!!\n", prefix, suf);
 		pmib->miscEntry.func_off = 0;
 	}
 	
@@ -2104,7 +2104,7 @@ int gen_realtek_config(int band, int val)
 		else
 			pmib->dot11StationConfigEntry.protectionDisabled = 2;
 	}else{
-		printf("NVRAM: %s%s not set!!\n", prefix, suf);
+		rtk_printf("NVRAM: %s%s not set!!\n", prefix, suf);
 		pmib->dot11StationConfigEntry.protectionDisabled = 1;
 	}
 
@@ -2117,7 +2117,7 @@ int gen_realtek_config(int band, int val)
 		else
 			pmib->dot11RFEntry.shortpreamble = 0;
 	}else{
-		printf("NVRAM: %s%s not set!!\n", prefix, suf);
+		rtk_printf("NVRAM: %s%s not set!!\n", prefix, suf);
 		pmib->dot11RFEntry.shortpreamble = 0;
 	}
 
@@ -2125,7 +2125,7 @@ int gen_realtek_config(int band, int val)
 	NVRAM_GET(str, "rts"){
 		pmib->dot11OperationEntry.dot11RTSThreshold = atoi(str);
 	}else{
-		printf("NVRAM: %s%s not set!!\n", prefix, suf);
+		rtk_printf("NVRAM: %s%s not set!!\n", prefix, suf);
 		pmib->dot11OperationEntry.dot11RTSThreshold = 2347;	
 	}
 
@@ -2133,7 +2133,7 @@ int gen_realtek_config(int band, int val)
 	NVRAM_GET(str, "frag"){
 		pmib->dot11OperationEntry.dot11FragmentationThreshold = atoi(str);
 	}else{
-		printf("NVRAM: %s%s not set!!\n", prefix, suf);
+		rtk_printf("NVRAM: %s%s not set!!\n", prefix, suf);
 		pmib->dot11OperationEntry.dot11FragmentationThreshold = 2346;	
 	}
 
@@ -2174,12 +2174,8 @@ int gen_realtek_config(int band, int val)
 			pmib->dot11QosEntry.dot11QosEnable = 1;
 		}
 	}else{
-		printf("NVRAM: %s%s not set!!\n", prefix, suf);
-
-		if (strstr(prefix, "wlc"))  // client interface force enable qos_enable
-			pmib->dot11QosEntry.dot11QosEnable = 1;
-		else
-			pmib->dot11QosEntry.dot11QosEnable = 0;
+		rtk_printf("NVRAM: %s%s not set!!\n", prefix, suf);
+		pmib->dot11QosEntry.dot11QosEnable = 1;
 	}
 	NVRAM_GET(str, "wme_apsd"){
 		if(strcmp(str, "off")==0){
@@ -2188,7 +2184,7 @@ int gen_realtek_config(int band, int val)
 			pmib->dot11QosEntry.dot11QosAPSD = 1;
 		}
 	}else{
-		printf("NVRAM: %s%s not set!!\n", prefix, suf);
+		rtk_printf("NVRAM: %s%s not set!!\n", prefix, suf);
 		pmib->dot11QosEntry.dot11QosAPSD = 1;
 	}
 	NVRAM_GET(str, "wme_no_ack"){
@@ -2198,7 +2194,7 @@ int gen_realtek_config(int band, int val)
 			pmib->dot11nConfigEntry.dot11nTxNoAck = 1;
 		}
 	}else{
-		printf("NVRAM: %s%s not set!!\n", prefix, suf);
+		rtk_printf("NVRAM: %s%s not set!!\n", prefix, suf);
 		pmib->dot11nConfigEntry.dot11nTxNoAck = 0;
 	}
 
@@ -2231,7 +2227,7 @@ int gen_realtek_config(int band, int val)
 		}else 
 			pmib->dot11nConfigEntry.dot11nAMPDU = 1;
 	}else{
-		printf("NVRAM: %s%s not set!!\n", prefix, suf);
+		rtk_printf("NVRAM: %s%s not set!!\n", prefix, suf);
 		pmib->dot11nConfigEntry.dot11nAMPDU = 1;
 	}
 
@@ -2245,7 +2241,7 @@ int gen_realtek_config(int band, int val)
 			pmib->dot11nConfigEntry.dot11nAMSDU = 2;
 		}
 	}else{
-		printf("NVRAM: %s%s not set!!\n", prefix, suf);
+		rtk_printf("NVRAM: %s%s not set!!\n", prefix, suf);
 		pmib->dot11nConfigEntry.dot11nAMSDU = 2;
 	}
 
@@ -2253,13 +2249,13 @@ int gen_realtek_config(int band, int val)
 	NVRAM_GET(str, "bss_enabled"){
 		pmib->miscEntry.vap_enable = atoi(str);//root ap only
 	}else{
-		printf("NVRAM: %s not set!!\n", prefix);	
+		rtk_printf("NVRAM: %s not set!!\n", prefix);	
 		pmib->miscEntry.vap_enable = 0;
 	}
 	NVRAM_GET(str, "closed"){
 		pmib->dot11OperationEntry.hiddenAP = atoi(str);
 	}else{
-		printf("NVRAM: %s%s not set!!\n", prefix, suf);
+		rtk_printf("NVRAM: %s%s not set!!\n", prefix, suf);
 		pmib->dot11OperationEntry.hiddenAP = 0;	
 	}
 
@@ -2268,22 +2264,22 @@ int gen_realtek_config(int band, int val)
 		int shortgi = strcmp(str, "short")==0 ? 1 : 0;
 		pmib->dot11nConfigEntry.dot11nShortGIfor20M = shortgi;
 		pmib->dot11nConfigEntry.dot11nShortGIfor40M = shortgi;
-#if defined(RPAC53)
+#if defined(RPAC53) || defined(RPAC55)
 		pmib->dot11nConfigEntry.dot11nShortGIfor80M = shortgi;
 #endif
 	}else{
-		printf("NVRAM: %s%s not set!!\n", prefix, suf);
+		rtk_printf("NVRAM: %s%s not set!!\n", prefix, suf);
 		if (strstr(prefix, "wlc")) { // client interface force enable shortGI for 20M/40M/80M.
 			pmib->dot11nConfigEntry.dot11nShortGIfor20M = 1;
 			pmib->dot11nConfigEntry.dot11nShortGIfor40M = 1;
-#if defined(RPAC53)
+#if defined(RPAC53) || defined(RPAC55)
 			pmib->dot11nConfigEntry.dot11nShortGIfor80M = 1;
 #endif
 		}
 		else {
 			pmib->dot11nConfigEntry.dot11nShortGIfor20M = 0;
 			pmib->dot11nConfigEntry.dot11nShortGIfor40M = 0;
-#if defined(RPAC53)
+#if defined(RPAC53) || defined(RPAC55)
 			pmib->dot11nConfigEntry.dot11nShortGIfor80M = 0;
 #endif
 		}
@@ -2317,7 +2313,7 @@ if(is_root)
 			pmib->dot11nConfigEntry.dot11nCoexist = 0;			
 		}
 	}else{
-		printf("NVRAM: %s%s not set!!\n", prefix, suf);
+		rtk_printf("NVRAM: %s%s not set!!\n", prefix, suf);
 		if(band){
 			pmib->dot11nConfigEntry.dot11nUse40M = 1;		
 			pmib->dot11nConfigEntry.dot11nCoexist = 1;
@@ -2341,7 +2337,7 @@ if(is_root)
 				{
 					if(!lower)
 					{
-						printf("channel %d 2ndchoffset cannot set to upper!!!!!\n",channel);
+						rtk_printf("channel %d 2ndchoffset cannot set to upper!!!!!\n",channel);
 						nvram_set("wl0_nctrlsb","lower");
 					}
 					pmib->dot11nConfigEntry.dot11n2ndChOffset = 2;
@@ -2350,7 +2346,7 @@ if(is_root)
 				{
 					if(lower)
 					{
-						printf("channel %d 2ndchoffset cannot set to lower!!!!\n",channel);
+						rtk_printf("channel %d 2ndchoffset cannot set to lower!!!!\n",channel);
 						nvram_set("wl0_nctrlsb","upper");
 					}
 					pmib->dot11nConfigEntry.dot11n2ndChOffset = 1;
@@ -2381,14 +2377,14 @@ if(is_root)
 			}
 			default:
 			{
-				printf("Invalid band!!!!\n");
+				rtk_printf("Invalid band!!!!\n");
 				break;
 			}
 		}
 	}
 	}
 	else{
-			printf("NVRAM:%s%s not set!\n",prefix,suf);
+			rtk_printf("NVRAM:%s%s not set!\n",prefix,suf);
 	}
 	}
 	else
@@ -2419,7 +2415,7 @@ if(is_root)
 			pmib->dot1180211AuthEntry.dot11WPA2Cipher = 0; 			
 		}
 	}else{
-		printf("NVRAM: %s%s not set!!\n", prefix, suf);
+		rtk_printf("NVRAM: %s%s not set!!\n", prefix, suf);
 		pmib->dot1180211AuthEntry.dot11PrivacyAlgrthm = 0;
 		pmib->dot1180211AuthEntry.dot11WPACipher = 0;
 		pmib->dot1180211AuthEntry.dot11WPA2Cipher = 0; 	
@@ -2511,7 +2507,7 @@ if(is_root)
 					pmib->dot1180211AuthEntry.dot11PrivacyAlgrthm = 5; //104
 				}
 			}else{
-				printf("NVRAM: %s%s not set!! using 2\n", prefix, suf);			
+				rtk_printf("NVRAM: %s%s not set!! using 2\n", prefix, suf);			
 				pmib->dot1180211AuthEntry.dot11PrivacyAlgrthm = 5;
 			}
 		}else if(strcmp(str, "psk")==0){
@@ -2551,7 +2547,7 @@ if(is_root)
 			pmib->dot118021xAuthEntry.dot118021xAlgrthm = 1;			
 		}
 	}else{
-		printf("NVRAM: %s%s not set!!\n", prefix, suf);
+		rtk_printf("NVRAM: %s%s not set!!\n", prefix, suf);
 		pmib->dot1180211AuthEntry.dot11AuthAlgrthm = 0;
 		pmib->dot1180211AuthEntry.dot11PrivacyAlgrthm = 0;
 		pmib->dot1180211AuthEntry.dot11EnablePSK = 0;
@@ -2564,7 +2560,7 @@ if(is_root)
 		NVRAM_GET(str, "wpa_psk"){
 			strncpy(pmib->dot1180211AuthEntry.dot11PassPhrase, str, sizeof(pmib->dot1180211AuthEntry.dot11PassPhrase));
 		}else{
-			printf("NVRAM: %s%s not set!! using 11111111\n", prefix, suf);	
+			rtk_printf("NVRAM: %s%s not set!! using 11111111\n", prefix, suf);	
 			strncpy(pmib->dot1180211AuthEntry.dot11PassPhrase, "11111111", sizeof(pmib->dot1180211AuthEntry.dot11PassPhrase));		
 		}
 	}
@@ -2573,7 +2569,7 @@ if(is_root)
 		int value = atoi(str);
 		pmib->dot1180211AuthEntry.dot11PrivacyKeyIndex = value - 1;
 	}else{
-		printf("NVRAM: %s%s not set!! using 1\n", prefix, suf);
+		rtk_printf("NVRAM: %s%s not set!! using 1\n", prefix, suf);
 		pmib->dot1180211AuthEntry.dot11PrivacyKeyIndex = 0;
 	}
 #ifdef RTCONFIG_WIRELESSREPEATER
@@ -2640,7 +2636,7 @@ if(is_root)
 		NVRAM_GET(str, "wpa_gtk_rekey"){
 			pmib->dot1180211AuthEntry.dot11GKRekeyTime = atoi(str);
 		}else{
-			printf("NVRAM: %s%s not set!! using 0\n", prefix, suf);
+			rtk_printf("NVRAM: %s%s not set!! using 0\n", prefix, suf);
 			pmib->dot1180211AuthEntry.dot11GKRekeyTime = 0;
 		}
 	} else
@@ -2666,7 +2662,7 @@ if(is_root)
 			pmib->dot11OperationEntry.opmode = 0x08;
 		}
 	}else{
-		printf("NVRAM: %s%s not set!! using 0\n", prefix, suf);
+		rtk_printf("NVRAM: %s%s not set!! using 0\n", prefix, suf);
 		pmib->dot11OperationEntry.opmode = 0x10;
 #ifdef RTCONFIG_CONCURRENTREPEATER	
 		if ((sw_mode == SW_MODE_REPEATER && wlc_express == 0 && val==0xd)
@@ -2683,7 +2679,7 @@ if(is_root)
 	NVRAM_GET(str, "ap_isolate"){
 		pmib->dot11OperationEntry.block_relay = atoi(str);
 	}else{
-		printf("NVRAM: %s%s not set!! using 0\n", prefix, suf);
+		rtk_printf("NVRAM: %s%s not set!! using 0\n", prefix, suf);
 		pmib->dot11OperationEntry.block_relay = 0;
 	}
 
@@ -2771,7 +2767,7 @@ if(is_root)
 				pmib->dot11StationConfigEntry.lowestMlcstRate = 0;
 		}
 	}else{
-		printf("NVRAM: %s%s not set!! using 0\n", prefix, suf);
+		rtk_printf("NVRAM: %s%s not set!! using 0\n", prefix, suf);
 		pmib->dot11StationConfigEntry.lowestMlcstRate = 0;
 	}
 
@@ -2785,7 +2781,7 @@ if(is_root)
 			pmib->dot11StationConfigEntry.dot11AclMode = 0;
 		}
 	}else{
-		printf("NVRAM: %s%s not set!! using disabled\n", prefix, suf);
+		rtk_printf("NVRAM: %s%s not set!! using disabled\n", prefix, suf);
 		pmib->dot11StationConfigEntry.dot11AclMode = 0;	
 	}
 
@@ -2889,7 +2885,7 @@ if(is_root)
 			}
 		}	
 	}else{
-		printf("NVRAM: %s%s not set!! using 0\n", prefix, suf);
+		rtk_printf("NVRAM: %s%s not set!! using 0\n", prefix, suf);
 		pmib->dot11WdsInfo.wdsEnabled = 0;
 	}
 	
@@ -2923,7 +2919,7 @@ if(is_root)
 		pmib->dot11OperationEntry.hwaddr[4] = (char2hex(mac[12])<<4)+char2hex(mac[13]);
 		pmib->dot11OperationEntry.hwaddr[5] = (char2hex(mac[15])<<4)+char2hex(mac[16]);		
 	}else{
-		printf("NVRAM: %s%s not set!! using 00:e0:4c:81:96:c1\n", prefix, suf);
+		rtk_printf("NVRAM: %s%s not set!! using 00:e0:4c:81:96:c1\n", prefix, suf);
 		memcpy(pmib->dot11OperationEntry.hwaddr, "\x0\xe0\x4c\x81\x96\xc1", 6);
 	}
 
@@ -2946,30 +2942,43 @@ if(is_root)
 		}
 		else {	/* TxBF is disabled */
 			//doSystem("iwpriv wl%d set_mib txbf=0", band);
-#ifdef RPAC53
-			pmib->dot11RFEntry.txbf = 0;
-			pmib->dot11RFEntry.txbfer = 0;
-			pmib->dot11RFEntry.txbfee = 0;
-#else
+#ifdef RPAC68U
 			pmib->dot11RFEntry.txbf = 1;
 			pmib->dot11RFEntry.txbfer = 0;
 			pmib->dot11RFEntry.txbfee = 1;
+#else
+			pmib->dot11RFEntry.txbf = 0;
+			pmib->dot11RFEntry.txbfer = 0;
+			pmib->dot11RFEntry.txbfee = 0;
 #endif
 			doSystem("iwpriv wl%d set_mib txbf_pwrlmt=0", band);
 		}
 	}else{
 		printf("NVRAM: %s%s not set!! using 0\n", prefix, suf);
-#ifdef RPAC53
-		pmib->dot11RFEntry.txbf = 0;
-		pmib->dot11RFEntry.txbfer = 0;
-		pmib->dot11RFEntry.txbfee = 0;
-#else
+#ifdef RPAC68U
 		pmib->dot11RFEntry.txbf = 1;
 		pmib->dot11RFEntry.txbfer = 0;
 		pmib->dot11RFEntry.txbfee = 1;
+#else
+		pmib->dot11RFEntry.txbf = 0;
+		pmib->dot11RFEntry.txbfer = 0;
+		pmib->dot11RFEntry.txbfee = 0;
 #endif
 	}
-	
+
+#if defined(RTCONFIG_MUMIMO_2G) || defined(RTCONFIG_MUMIMO_5G)	
+	/* MU-MIMO */
+	NVRAM_GET(str, "mumimo") {
+		if (atoi(str) == 1) /* MU-MIMO is enabled */
+			pmib->dot11RFEntry.txbf_mu = 1;
+		else
+			pmib->dot11RFEntry.txbf_mu = 0;
+	} else {
+		printf("NVRAM: %s%s not set!! using 0\n", prefix, suf);
+		pmib->dot11RFEntry.txbf_mu = 0;
+	}
+#endif
+
 	/* igmp snooping */
 	NVRAM_GET(str, "igs"){
 		if (atoi(str) == 1)	/* igmp snooping is enabled */
@@ -3018,7 +3027,7 @@ void gen_rtk_config(const char* wif)
 	int i;
 	char prefix[]="wlXXXXXX_", tmp[32];
 	drvmib_init_rtkapi();
-	rtklog("[%s] wif:%s\n",__FUNCTION__,wif);
+	rtk_printf("[%s] wif:%s\n",__FUNCTION__,wif);
 	if (!strcmp(wif, nvram_safe_get("wl0_ifname"))) // 2.4G
 	{
 		gen_realtek_config(0, 0);
@@ -3202,7 +3211,7 @@ int get_mac_addr_from_flash(const char *wif,void* macaddr)
 		return 0;
 	rtk_flash_read(buffer,offset,6);
 	ether_etoa(buffer, macaddr);
-	//cprintf("%s:%d wif=%s offset=%d macaddr=%s\n",__FUNCTION__,__LINE__,wif,offset,macaddr);
+	rtklog("%s:%d wif=%s offset=%d macaddr=%s\n",__FUNCTION__,__LINE__,wif,offset,macaddr);
 	return 1;
 }
 
@@ -3247,7 +3256,7 @@ int set_rtk_hw_default()
 		hwmib.wlan[idx].rfType = 10;
 	}
 	
-	//cprintf("%s:%d offset=0x%x size=%d\n",__FUNCTION__,__LINE__,offset,sizeof(HW_SETTING_T));
+	rtklog("%s:%d offset=0x%x size=%d\n",__FUNCTION__,__LINE__,offset,sizeof(HW_SETTING_T));
 	rtk_flash_write(&hwmib,offset,sizeof(HW_SETTING_T));
 	sleep(1);
 	rtk_flash_write(HW_SETTING_HEADER_TAG,HW_SETTING_OFFSET,strlen(HW_SETTING_HEADER_TAG));
@@ -3259,7 +3268,7 @@ int check_rtk_hw_invaild()
 	int offset = HW_SETTING_OFFSET;
 	offset+= (int)(&((PARAM_HEADER_Tp)0)->signature);
 	rtk_flash_read(buff,offset,SIGNATURE_LEN);
-	//cprintf("%s:%d offset=0x%x buff=%s\n",__FUNCTION__,__LINE__,offset,buff);
+	rtklog("%s:%d offset=0x%x buff=%s\n",__FUNCTION__,__LINE__,offset,buff);
 
 	if(strncmp(buff,HW_SETTING_HEADER_TAG,strlen(HW_SETTING_HEADER_TAG))!=0)
 		return 1;
@@ -3709,6 +3718,97 @@ int wpa_parse_wpa_ie(const unsigned char *wpa_ie, size_t wpa_ie_len,
 		return wpa_parse_wpa_ie_wpa(wpa_ie, wpa_ie_len, data);
 }
 
+#if defined(RTCONFIG_WLCSCAN_RSSI)
+/**
+ * Get specific SSID signal quility via sitesurvey.
+ * @param  band 0: 2.4G. 1: 5G.
+ * @param  ssid Specific SSID for RSSI
+ * @return      Not for anything.
+ */
+int wlcscan_ssid_rssi(int band, char *ssid)
+{
+
+	if (band < 0 || band > 1 || ssid == NULL || *ssid == '\0') {
+		nvram_set_int("wlcscan_ssid_rssi_state", -1);
+		return -1;
+	}
+
+	nvram_set_int("wlcscan_ssid_rssi_state", 1);
+
+	int ret, i, k;
+	int retval = 0, ap_count = 0, count = 0;
+	unsigned char bssid[6];
+	wl_scan_results_t *result;
+	wl_scan_params_t *params;
+	int params_size = WL_SCAN_PARAMS_FIXED_SIZE + NUMCHANS * sizeof(uint16);
+	char wif[8] = {0}, prefix[] = "wlXXXXXXXXXX_", tmp[100] = {0};
+
+	snprintf(prefix, sizeof(prefix), "wl%d_", band);
+	strncpy(wif, nvram_safe_get(strcat_r(prefix, "ifname", tmp)), sizeof(wif));
+
+	retval = 0;
+
+	params = (wl_scan_params_t*)malloc(params_size);
+	if (params == NULL)
+		return retval;
+
+	memset(params, 0, params_size);
+	params->bss_type = DOT11_BSSTYPE_INFRASTRUCTURE;
+	memcpy(&params->bssid, &ether_bcast, ETHER_ADDR_LEN);
+	params->scan_type = DOT11_SCANTYPE_ACTIVE;
+	params->nprobes = -1;
+	params->active_time = -1;
+	params->passive_time = -1;
+	params->home_time = -1;
+	params->channel_num = 0;
+
+	while ((ret = wl_ioctl(wif, WLC_SCAN, params, params_size)) < 0 &&
+	count++ < 15) {
+		sleep(1);
+	}
+
+	free(params);
+
+	count = 0;
+
+	result = (wl_scan_results_t *)buf;
+	result->buflen = WLC_IOCTL_MAXLEN - sizeof(result);
+
+	while ((ret = wl_ioctl(wif, WLC_SCAN_RESULTS, apinfos, sizeof(apinfos))) < 0 && count++ < 2)
+	{
+		sleep(1);
+	}
+
+	if (ret == 0)
+	{
+		for (i = 0; i < APINFO_MAX; i++)
+		{
+			if (apinfos[i].SSID[0] == 0)
+				break;
+		}
+		ap_count = i;
+	}
+	if (ap_count == 0) {
+		//dbg("[wlc] No AP found!\n");
+	} else{
+		for (k = 0; k < ap_count; k++)
+		{
+			if (!strcmp(apinfos[k].SSID, ssid)) {
+				snprintf(tmp, sizeof(tmp), "wlc%d_scan_rssi", band);
+				nvram_set_int(tmp, apinfos[k].RSSI_Quality);
+				nvram_set_int("wlcscan_ssid_rssi_state", 2);
+				return retval;
+			}
+		}
+	}
+
+	snprintf(tmp, sizeof(tmp), "wlc%d_scan_rssi", band);
+	nvram_set_int(tmp, 0);
+	nvram_set_int("wlcscan_ssid_rssi_state", -1);
+	return retval;
+}
+#endif
+
 int wlcscan_core(char *ofile, char *wif)
 {
 	int ret, i, k, left, ht_extcha;
@@ -4014,5 +4114,148 @@ int wlcscan_core(char *ofile, char *wif)
 
 	return retval;
 }
-#endif
 
+/*
+ * input mib name,like [hwname], wlan0_[wlanname],bluetooth_[btname]
+ * output mib value in buffer
+ */
+int rtk_apmib_get(char* name,char* buffer)
+{
+	unsigned int offset,size,i;
+	MIB_TYPE_T type;
+	if(!name||!buffer) {
+		fprintf(stderr,"Invalid input!!\n");
+		return -1;
+	}
+	if(flash_get_mib_info(name,&offset,&size,&type)!=0) {
+		fprintf(stderr,"get mib fail!\n");
+		return -1;
+	}
+	if(rtk_flash_read(buffer,offset,size)<=0) {
+		fprintf(stderr,"read mib from flash fail!\n");
+		return -1;
+	}
+	return 0;
+}
+
+/*
+ * input mib name,like [hwname], wlan0_[wlanname],bluetooth_[btname]
+ * and mib value in buffer
+ */
+int rtk_apmib_set(char* name,char* buffer)
+{
+	unsigned int offset,size,i;
+	MIB_TYPE_T type;
+	if(!name||!buffer) {
+		fprintf(stderr,"Invalid input!!\n");
+		return -1;
+	}
+	if(flash_get_mib_info(name,&offset,&size,&type)!=0) {
+		fprintf(stderr,"get mib fail!\n");
+		return -1;
+	}
+	if(rtk_flash_write(buffer,offset,size)<=0) {
+		fprintf(stderr,"read mib from flash fail!\n");
+		return -1;
+	}
+	return 0;
+}
+
+#if defined(RTCONFIG_BT_CONN)
+#define RTK_BT_CFG_FILE "/var/firmware/rtlbt/rtl8822b_config"
+void gen_rtlbt_fw_config(void)
+{
+	int fd;
+	int count;
+	int total_len;
+	int i,j;
+	unsigned char hw_btaddr[6] = {0};
+	unsigned char hw_txpwr_idx[6] = {0};
+	unsigned char hw_xtal_cap_val = 0;
+	rtk_apmib_get("bluetooth_btAddr",hw_btaddr);
+	rtklog("bt hw addr:\n");
+	rtklog("%02X:%02X:%02X:%02X:%02X:%02X\n",
+		hw_btaddr[0],
+		hw_btaddr[1],
+		hw_btaddr[2],
+		hw_btaddr[3],
+		hw_btaddr[4],
+		hw_btaddr[5]);
+	rtk_apmib_get("bluetooth_txPowerIdx",hw_txpwr_idx);
+	rtklog("bt hw tx pwr index:\n");
+	for(i=0;i<6;i++)
+	{
+		rtklog("%d ",hw_txpwr_idx[i]);
+	}
+	rtklog("\n");
+	rtk_apmib_get("wlan0_xCap",&hw_xtal_cap_val);
+	rtklog("hw_xtal_cap_val:%d\n",hw_xtal_cap_val);
+	system("mkdir /var/firmware");
+	system("mkdir /var/firmware/rtlbt");
+	system("cp /rom/etc/rtl8822b_fw /var/firmware/rtlbt/");
+	unsigned char header[6] = {0x55,0xab,0x23,0x87,0x29,0x00};
+	unsigned char baudrate[19] = {0x0c,0x00,0x10,\
+		0x0a,0xc0,0x52,0x02,\
+		0x50,0xc5,0xea,0x19,\
+		0xe1,0x1b,0xfd,0xaf,\
+		0x5f,0x01,0xa4,0x0b};
+	unsigned char bt_addr[9] = {0x44,0x00,0x06,0x00,0x00,0x00,0x00,0x00,0x00};
+	unsigned char txpwr_idx[9] = {0x5a,0x01,0x06,0x19,0x16,0x16,0x16,0x19,0x01};
+	unsigned char xtal_cap_val[4] = {0xe6,0x01,0x01,0x00};
+	for(i=0,j=5;i<6;i++)
+	{
+		bt_addr[3+i] = hw_btaddr[j];
+		j--;
+	}
+	for(i=0;i<5;i++)
+	{
+		if(hw_txpwr_idx[i] != 0)
+		{
+			txpwr_idx[3+i] = hw_txpwr_idx[i];
+		}
+	}
+	xtal_cap_val[3] = hw_xtal_cap_val;
+	fd = open(RTK_BT_CFG_FILE,O_RDWR|O_CREAT|O_TRUNC,S_IRUSR|S_IWUSR|S_IRGRP|S_IROTH);
+	if(fd >= 0)
+	{
+		count = write(fd,header,sizeof(header));
+		if(count < 0)
+		{
+			printf("Failed to write bt config file header!\n");
+			goto end;
+		}
+		count = write(fd,baudrate,sizeof(baudrate));
+		if(count < 0)
+		{
+			printf("Failed to write bt config file baudrate!\n");
+			goto end;
+		}
+		count = write(fd,bt_addr,sizeof(bt_addr));
+		{
+			if(count < 0)
+			{
+				printf("Failed to write bt config file BT address!\n");
+				goto end;
+			}
+		}
+		count = write(fd,txpwr_idx,sizeof(txpwr_idx));
+		if(count < 0)
+		{
+			printf("Failed to write bt config file txpwr_idx!\n");
+			goto end;
+		}
+		count = write(fd,xtal_cap_val,sizeof(xtal_cap_val));
+		if(count < 0)
+		{
+			printf("Failed to write bt config file xtal_cap_val!\n");
+			goto end;
+		}
+	}
+end:
+	if(fd >= 0)
+	{
+		close(fd);
+	}
+}
+#endif
+#endif

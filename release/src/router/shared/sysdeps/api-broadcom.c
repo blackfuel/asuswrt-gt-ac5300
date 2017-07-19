@@ -63,24 +63,24 @@ extern void gpio_write(uint32_t bitvalue, int en);
 uint32_t get_gpio(uint32_t gpio)
 {
 #ifdef HND_ROUTER
-        int board_fp = open("/dev/brcmboard", O_RDWR);
+	int board_fp = open("/dev/brcmboard", O_RDWR);
 	int active_low = _gpio_active_low(gpio & 0xff);
 	BOARD_IOCTL_PARMS ioctl_parms = {0};
 
-        if (board_fp <= 0) {
-                printf("Open /dev/brcmboard failed!\n");
-                return -1;
-        }
-	if(active_low < 0) {
-                printf("invalid gpionr!get(%d)\n", gpio);
+	if (board_fp <= 0) {
+		printf("Open /dev/brcmboard failed!\n");
+		return -1;
+	}
+	if (active_low < 0) {
+		printf("invalid gpionr!get(%d)\n", gpio);
 		dump_ledtable();
 		close(board_fp);
-                return -1;
+		return -1;
 	}
 
-        ioctl_parms.strLen = gpio | (active_low ? BP_ACTIVE_LOW : 0);
+	ioctl_parms.strLen = gpio | (active_low ? BP_ACTIVE_LOW : 0);
 
-        if (ioctl(board_fp, BOARD_IOCTL_GET_GPIO, &ioctl_parms) < 0)
+	if (ioctl(board_fp, BOARD_IOCTL_GET_GPIO, &ioctl_parms) < 0)
 		printf("\nhnd iotcl fail!\n");
 	//printf("\nhnd get_gpio: %04x\n", ioctl_parms.offset);
 
@@ -104,16 +104,16 @@ uint32_t set_gpio(uint32_t gpio, uint32_t value)
 #ifndef LEGACY_LED
 	char ledpath[48];
 	int active_low = _gpio_active_low(gpio & 0xff);
-        int ledfd; 
+	int ledfd;
 
-	if(active_low < 0) {
-                printf("invalid gpionr!set(%d)\n", gpio);
+	if (active_low < 0) {
+		printf("invalid gpionr!set(%d)\n", gpio);
 		dump_ledtable();
-                return -1;
+		return -1;
 	}
 	sprintf(ledpath, "/sys/class/leds/%d/brightness", gpio);
 	ledfd = open(ledpath, O_RDWR);
-	if(ledfd <=0 ) {
+	if (ledfd <=0 ) {
 		printf("\nopen ledpath %s failed !\n", ledpath);
 		return -1;
 	}
@@ -122,29 +122,29 @@ uint32_t set_gpio(uint32_t gpio, uint32_t value)
 	close(ledfd);
 	return 0;
 #else
-        int board_fp = open("/dev/brcmboard", O_RDWR);
+	int board_fp = open("/dev/brcmboard", O_RDWR);
 	int active_low = _gpio_active_low(gpio & 0xff);
-        BOARD_IOCTL_PARMS ioctl_parms = {0};
+	BOARD_IOCTL_PARMS ioctl_parms = {0};
 
-        if (board_fp <= 0) {
-                printf("Open /dev/brcmboard failed!\n");
-                return -1;
-        }
-	if(active_low < 0) {
-                printf("invalid gpionr!\n");
+	if (board_fp <= 0) {
+		printf("Open /dev/brcmboard failed!\n");
+		return -1;
+	}
+	if (active_low < 0) {
+		printf("invalid gpionr!\n");
 		dump_ledtable();
 		close(board_fp);
-                return -1;
+		return -1;
 	}
 
-        ioctl_parms.strLen = gpio & 0xff | (active_low ? BP_ACTIVE_LOW : 0);
-        ioctl_parms.offset = (active_low?!value:value) & 0x3;
+	ioctl_parms.strLen = gpio & 0xff | (active_low ? BP_ACTIVE_LOW : 0);
+	ioctl_parms.offset = (active_low?!value:value) & 0x3;
 
-        if (ioctl(board_fp, BOARD_IOCTL_SET_GPIO, &ioctl_parms) < 0)
-                printf("\nhnd iotcl fail!\n");
+	if (ioctl(board_fp, BOARD_IOCTL_SET_GPIO, &ioctl_parms) < 0)
+		printf("\nhnd iotcl fail!\n");
 
 	close(board_fp);
-        return 0;
+	return 0;
 #endif
 #else // HND_ROUTER
 	gpio_write(gpio, value);
@@ -351,9 +351,9 @@ static int et_dev_subports_query(int skfd, struct ifreq *ifr)
 
 static int get_bit_count(int i)
 {
-     i = i - ((i >> 1) & 0x55555555);
-     i = (i & 0x33333333) + ((i >> 2) & 0x33333333);
-     return (((i + (i >> 4)) & 0x0F0F0F0F) * 0x01010101) >> 24;
+	i = i - ((i >> 1) & 0x55555555);
+	i = (i & 0x33333333) + ((i >> 2) & 0x33333333);
+	return (((i + (i >> 4)) & 0x0F0F0F0F) * 0x01010101) >> 24;
 }
 
 static int et_get_phyid2(int skfd, struct ifreq *ifr, int sub_port)
@@ -387,7 +387,7 @@ static int et_get_phyid(int skfd, struct ifreq *ifr, int sub_port)
 
 	if (sub_port_map > 0) {
 		if (sub_port == -1) {
-			if(get_bit_count(sub_port_map) > 1) {
+			if (get_bit_count(sub_port_map) > 1) {
 				fprintf(stderr, "Error: Interface %s has sub ports, please specified one of port map: 0x%x\n",
 				ifr->ifr_name, sub_port_map);
 				return -1;
@@ -395,7 +395,7 @@ static int et_get_phyid(int skfd, struct ifreq *ifr, int sub_port)
 			else if (get_bit_count(sub_port_map) == 1) {
 				// get bit position
 				for(sub_port = 0; sub_port < MAX_SUB_PORT_BITS; sub_port++) {
-					if((sub_port_map & (1 << sub_port)))
+					if ((sub_port_map & (1 << sub_port)))
 					break;
 				}
 			}
@@ -469,13 +469,13 @@ static int ethctl_get_link_status(char *ifname)
 	strcpy(ifr.ifr_name, ifname);
 	if (ioctl(skfd, SIOCGIFINDEX, &ifr) < 0 ) {
 		fprintf(stderr, "No %s interface exist\n", ifr.ifr_name);
-                goto error;
+		goto error;
 	}
 
 	if ((phy_id = et_get_phyid(skfd, &ifr, sub_port)) == -1)
 		goto error;
 
-	if(ETHCTL_GET_FLAG_FROM_PHYID(phy_id) & ETHCTL_FLAG_ACCESS_SERDES) {
+	if (ETHCTL_GET_FLAG_FROM_PHYID(phy_id) & ETHCTL_FLAG_ACCESS_SERDES) {
 		ifr.ifr_data = (void*) &ifdata;
 		ifdata.op = ETHSWPHYMODE;
 		ifdata.type = TYPE_GET;
@@ -486,7 +486,7 @@ static int ethctl_get_link_status(char *ifname)
 			ifdata.addressing_flag |= ETHSW_ADDRESSING_SUBPORT;
 		}
 
-		if((err = ioctl(skfd, SIOCETHSWCTLOPS, ifr))) {
+		if ((err = ioctl(skfd, SIOCETHSWCTLOPS, ifr))) {
 			fprintf(stderr, "ioctl command return error %d!\n", err);
 			goto error;
 		}
@@ -505,7 +505,7 @@ static int ethctl_get_link_status(char *ifname)
 	close(skfd);
 	return (bmsr & BMSR_LSTATUS) ? 1 : 0;
 error:
-	if(skfd) close(skfd);
+	if (skfd) close(skfd);
 	return -1;
 }
 
@@ -537,13 +537,13 @@ static int ethctl_get_link_speed(char *ifname)
 	strcpy(ifr.ifr_name, ifname);
 	if (ioctl(skfd, SIOCGIFINDEX, &ifr) < 0 ) {
 		printf("No %s interface exist\n", ifr.ifr_name);
-                goto error;
-        }
+		goto error;
+	}
 
 	if ((phy_id = et_get_phyid(skfd, &ifr, sub_port)) == -1)
 		goto error;
 
-	if(ETHCTL_GET_FLAG_FROM_PHYID(phy_id) & ETHCTL_FLAG_ACCESS_SERDES) {
+	if (ETHCTL_GET_FLAG_FROM_PHYID(phy_id) & ETHCTL_FLAG_ACCESS_SERDES) {
 		ifr.ifr_data = (void*) &ifdata;
 		ifdata.op = ETHSWPHYMODE;
 		ifdata.type = TYPE_GET;
@@ -554,7 +554,7 @@ static int ethctl_get_link_speed(char *ifname)
 			ifdata.addressing_flag |= ETHSW_ADDRESSING_SUBPORT;
 		}
 
-		if((err = ioctl(skfd, SIOCETHSWCTLOPS, ifr))) {
+		if ((err = ioctl(skfd, SIOCETHSWCTLOPS, ifr))) {
 			fprintf(stderr, "ioctl command return error %d!\n", err);
 			goto error;;
 		}
@@ -570,7 +570,7 @@ static int ethctl_get_link_speed(char *ifname)
 		goto error;
 	}
 
-	if(!(bmsr & BMSR_LSTATUS)) {
+	if (!(bmsr & BMSR_LSTATUS)) {
 		fprintf(stderr, "Link is down!.\n");
 		goto error;
 	}
@@ -578,11 +578,11 @@ static int ethctl_get_link_speed(char *ifname)
 	if (bmcr & BMCR_ANENABLE) {
 		gig_ctrl = mdio_read(skfd, &ifr, phy_id, MII_CTRL1000);
 		// check ethernet@wirspeed only for PHY support 1G
-		if(gig_ctrl & ADVERTISE_1000FULL || gig_ctrl & ADVERTISE_1000HALF) {
+		if (gig_ctrl & ADVERTISE_1000FULL || gig_ctrl & ADVERTISE_1000HALF) {
 			// check if ethernet@wirespeed is enabled, reg 0x18, shodow 0b'111, bit4
 			mdio_write(skfd, &ifr, phy_id, 0x18, 0x7007);
 			v16 = mdio_read(skfd, &ifr, phy_id, 0x18);
-			if(v16 & 0x0010) {
+			if (v16 & 0x0010) {
 				// get link speed from ASR if ethernet@wirespeed is enabled
 				v16 = mdio_read(skfd, &ifr, phy_id, 0x19);
 #define MII_ASR_1000(r) (((r & 0x0700) == 0x0700) || ((r & 0x0700) == 0x0600))
@@ -610,7 +610,7 @@ static int ethctl_get_link_speed(char *ifname)
 	}
 
 error:
-	if(skfd) close(skfd);
+	if (skfd) close(skfd);
 	return -1;
 }
 
@@ -633,7 +633,7 @@ int bcm_reg_read_X(int unit, unsigned int addr, char* data, int len)
     e->length = len;
     e->unit = unit;
 
-    if((err = ioctl(skfd, SIOCETHSWCTLOPS, &ifr))) {
+    if ((err = ioctl(skfd, SIOCETHSWCTLOPS, &ifr))) {
         printf("ioctl command return error!\n");
         goto out;
     }
@@ -665,7 +665,7 @@ int bcm_reg_write_X(int unit, unsigned int addr, char* data, int len)
     e->unit = unit;
     memcpy(e->data, data, len);
 
-    if((err = ioctl(skfd, SIOCETHSWCTLOPS, &ifr))) {
+    if ((err = ioctl(skfd, SIOCETHSWCTLOPS, &ifr))) {
         printf("ioctl command return error!\n");
         goto out;
     }
@@ -693,7 +693,7 @@ int bcm_pseudo_mdio_read(unsigned int addr, char* data, int len)
     e->offset = addr;
     e->length = len;
 
-    if((err = ioctl(skfd, SIOCETHSWCTLOPS, &ifr))) {
+    if ((err = ioctl(skfd, SIOCETHSWCTLOPS, &ifr))) {
         printf("ioctl command return error!\n");
         goto out;
     }
@@ -724,7 +724,7 @@ int bcm_pseudo_mdio_write(unsigned int addr, char* data, int len)
     e->length = len;
     memcpy(e->data, data, sizeof(e->data));
 
-    if((err = ioctl(skfd, SIOCETHSWCTLOPS, &ifr))) {
+    if ((err = ioctl(skfd, SIOCETHSWCTLOPS, &ifr))) {
         printf("ioctl command return error!\n");
         goto out;
     }
@@ -762,7 +762,7 @@ int hnd_ethswctl(ecmd_t act, unsigned int val, int len, int wr, unsigned long lo
 				ret_val = bcm_pseudo_mdio_write(val, (char*)data, len);
 			} else {
 				ret_val = bcm_pseudo_mdio_read(val, (char*)data, len);
-				//_dprintf("pr Data: %02x%02x%02x%02x %02x%02x%02x%02x\n", 
+				//_dprintf("pr Data: %02x%02x%02x%02x %02x%02x%02x%02x\n",
 				//data[7], data[6], data[5], data[4], data[3], data[2], data[1], data[0]);
 				memcpy(&data64, data, 8);
 				return data64;
@@ -775,7 +775,7 @@ int hnd_ethswctl(ecmd_t act, unsigned int val, int len, int wr, unsigned long lo
 
 uint32_t hnd_get_phy_status(int port, int offs, unsigned int regv, unsigned int pmdv)
 {
-	if (port == 7 ) {			// wan port 
+	if (port == 7 ) {			// wan port
 		return ethctl_get_link_status("eth0");
 	} else if (!offs || (port-offs < 0)) {	// main switch
 		return regv & (1<<port) ? 1 : 0;
@@ -1098,7 +1098,7 @@ int get_radio(int unit, int subunit)
 
 	if (unit)
 	{
-		if(!rpc_qtn_ready())
+		if (!rpc_qtn_ready())
 			return -1;
 
 		if (subunit > 0)

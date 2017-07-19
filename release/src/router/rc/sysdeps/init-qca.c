@@ -1192,12 +1192,43 @@ void init_wl(void)
 #endif
 
 #if defined(HIVEDOT) || defined(HIVESPOT) 
-                        doSystem("wlanconfig %s create wlandev %s wlanmode sta nosbeacon",
-                                get_staifname(0), get_vphyifname(0));
-                        doSystem("wlanconfig %s create wlandev %s wlanmode sta nosbeacon",
-                                get_staifname(1), get_vphyifname(1));
+		if(sw_mode() != SW_MODE_ROUTER || nvram_match("wps_e_success", "1"))
+		{
+			if(nvram_get_int("x_Setting"))
+			{
+				_dprintf("=>init_wl: create sta vaps\n");
+                       	 	doSystem("wlanconfig %s create wlandev %s wlanmode sta nosbeacon",
+                                	get_staifname(0), get_vphyifname(0));
+                        	doSystem("wlanconfig %s create wlandev %s wlanmode sta nosbeacon",
+                                	get_staifname(1), get_vphyifname(1));
+				sleep(1);
+				ifconfig(get_staifname(0), IFUP, NULL, NULL);
+				ifconfig(get_staifname(1), IFUP, NULL, NULL);
+			}
+		}
 #endif
 	}
+
+#if defined(HIVEDOT) || defined(HIVESPOT) 
+	int i;
+	if(sw_mode() == SW_MODE_AP) //router->ap
+	{
+		if(nvram_get_int("x_Setting"))
+		{
+			for(i=0;i<2;i++)
+			{
+				if(!get_stamac(i))
+				{
+					_dprintf("=> switch router to ap : create sta%d\n",i);
+                       	 		doSystem("wlanconfig %s create wlandev %s wlanmode sta nosbeacon",
+                                		get_staifname(i), get_vphyifname(i));
+					sleep(1);
+					ifconfig(get_staifname(i), IFUP, NULL, NULL);
+				}
+			}
+		}
+	}
+#endif
 }
 
 void fini_wl(void)
@@ -1257,9 +1288,18 @@ void fini_wl(void)
 		}      
 #endif
 
-#if defined(HIVEDOT) || defined(HIVESPOT) 
-	doSystem("wlanconfig %s destroy", get_staifname(0));
-        doSystem("wlanconfig %s destroy", get_staifname(1));
+#if defined(HIVEDOT) || defined(HIVESPOT)
+	if(sw_mode() != SW_MODE_ROUTER || nvram_match("wps_e_success", "1"))
+	{
+		if(nvram_get_int("x_Setting"))
+		{
+			_dprintf("=>fini_wl: destroy sta vap\n");
+			ifconfig(get_staifname(0), 0, NULL, NULL);
+			ifconfig(get_staifname(1), 0, NULL, NULL);
+			doSystem("wlanconfig %s destroy", get_staifname(0));
+       	 		doSystem("wlanconfig %s destroy", get_staifname(1));
+		}
+	}
 #endif
 
 	create_node=0;

@@ -45,7 +45,6 @@
 
 #include "lib/bluetooth.h"
 #include "lib/sdp.h"
-#include "lib/hci.h"
 
 #include "gdbus/gdbus.h"
 
@@ -61,6 +60,7 @@
 #include "agent.h"
 #include "profile.h"
 #include "systemd.h"
+#include "bleencrypt/blepack.h"
 
 #define BLUEZ_NAME "org.bluez"
 
@@ -339,48 +339,19 @@ static void parse_config(GKeyFile *config)
 	else
 		main_opts.fast_conn = boolean;
 }
-#if 0 /* obsoleted */
-static int get2Mac(const bdaddr_t *ba, char *str)
-{
-        return sprintf(str, "%2.2X", ba->b[0]);
-}
-#endif
 
 static void init_defaults(void)
 {
 	uint8_t major, minor;
-#if 0 /* obsoleted */
-	struct hci_dev_info di;
-	int fd;
-	char str_addr[2];
-	const char *str_inf = "hci0";
-#else
 	char *macp = NULL;
 	unsigned char mac_binary[6];
-#endif
-
-#if 0 /* obsoleted */
-	fd = socket(AF_BLUETOOTH, SOCK_RAW | SOCK_CLOEXEC, BTPROTO_HCI);
-	if (fd < 0) {
-		printf("Failed to get BT Addr");
-		return;
-	}
-	memset(&di, 0, sizeof(di));
-	di.dev_id = atoi(str_inf+3);
-	if (ioctl(fd, HCIGETDEVINFO, (void *) &di))
-		return;
-
-	close(fd);
-	get2Mac(&di.bdaddr, str_addr);
-#else
 	macp = get_2g_hwaddr();
 	ether_atoe(macp, mac_binary);
-#endif
 
 	/* Default HCId settings */
 	memset(&main_opts, 0, sizeof(main_opts));
-#if 0 /* obsoleted */
-	main_opts.name = g_strdup_printf("ASUS_Hive_%s", str_addr);
+#if defined(RTCONFIG_REALTEK)
+	main_opts.name = g_strdup_printf("ASUS_%02X_%s", mac_binary[5], nvram_safe_get("productid"));
 #else
 	main_opts.name = g_strdup_printf("ASUS_%02X_AMAPS", mac_binary[5]);
 #endif
@@ -697,9 +668,7 @@ int main(int argc, char *argv[])
 	 * the plugins might wanna expose some paths on the bus. However the
 	 * best order of how to init various subsystems of the Bluetooth
 	 * daemon needs to be re-worked. */
-/*
-	plugin_init(option_plugin, option_noplugin);
-*/
+//	plugin_init(option_plugin, option_noplugin);
 
 	/* no need to keep parsed option in memory */
 	free_options();

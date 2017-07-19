@@ -298,12 +298,24 @@ var isOriginSwMode = function(mode){
 	var wlc_psta = '<% nvram_get("wlc_psta"); %>';
 	var wlc_express = '<% nvram_get("wlc_express"); %>';
 
-	if(sw_mode == '2' && wlc_express == '0') ui_sw_mode = "re"; // Repeater
-	else if((sw_mode == '3' && wlc_psta == '0') || (sw_mode == '3' && wlc_psta == '')) ui_sw_mode = "ap"; // AP
-	else if((sw_mode == '3' && wlc_psta == '1') || (sw_mode == '3' && wlc_psta == '3')) ui_sw_mode = "mb"; // MediaBridge
-	else if(sw_mode == '2' && wlc_express == '1') ui_sw_mode = "ew2"; // Express Way 2G
-	else if(sw_mode == '2' && wlc_express == '2') ui_sw_mode = "ew5"; // Express Way 5G
-	else if(sw_mode == '5') ui_sw_mode = 'hs'; // Hotspot
+	if(sw_mode == '2' && wlc_psta == '0' && wlc_express == '0'){	// Repeater
+		ui_sw_mode = "re";
+	} 
+	else if((sw_mode == '3' && wlc_psta == '0' && wlc_express == '0') || (sw_mode == '3' && wlc_psta == '' && wlc_express == '0' )){	// Access Point
+		ui_sw_mode = "ap";
+	}
+	else if((sw_mode == '3' && wlc_psta == '1' && wlc_express == '0') || (sw_mode == '3' && wlc_psta == '3' && wlc_express == '0') || (sw_mode == '2' && wlc_psta == '1' && wlc_express == '0')){	// MediaBridge
+		ui_sw_mode = "mb";
+	}
+	else if(sw_mode == '2' && wlc_psta == '0' && wlc_express == '1'){	// Express Way 2G
+		ui_sw_mode = "ew2";
+	}
+	else if(sw_mode == '2' && wlc_psta == '0' && wlc_express == '2'){	// Express Way 5G
+		ui_sw_mode = "ew5";
+	}
+	else if(sw_mode == '5' && wlc_psta == '0' && wlc_express == '0'){	// Hotspot
+		ui_sw_mode = 'hs'; 
+	}
 	else ui_sw_mode = "rt"; // Router
 
 	return (ui_sw_mode == mode);
@@ -709,8 +721,11 @@ function login_next(){
 
 function wait_ap_scan(){
 	if(scan_flag == 1){
-		if(!forceChangePW)
+		if($.mobile.activePage.attr('id') == "login_name" && document.getElementById("loading_container").style.display == "none")
+			setTimeout(wait_ap_scan, 1000);
+		else{
 			$.mobile.changePage("#pap_list", {transition: "fade", changeHash: false});
+		}
 	}
 	else{
 		setTimeout(wait_ap_scan, 1000);
@@ -889,6 +904,10 @@ function register_apList_event(){
 				document.form.wlc0_auth_mode.value = "psk";
 				document.form.wlc0_crypto.value = "tkip";			
 			}
+			else if(parent_ap[this.id].authentication == "WPA-Personal" && parent_ap[this.id].encryption == "AES"){		//compatible with others competitors
+				document.form.wlc0_auth_mode.value = "psk";
+				document.form.wlc0_crypto.value = "aes";
+			}			
 			else{
 				document.form.wlc0_auth_mode.value = "psk2";
 				document.form.wlc0_crypto.value = "aes";
@@ -910,7 +929,11 @@ function register_apList_event(){
 			}
 			else if(parent_ap[this.id].encryption == "TKIP"){
 				document.form.wlc1_auth_mode.value = "psk";
-				document.form.wlc1_crypto.value = "tkip";			
+				document.form.wlc1_crypto.value = "tkip";
+			}
+			else if(parent_ap[this.id].authentication == "WPA-Personal" && parent_ap[this.id].encryption == "AES"){		//compatible with others competitors
+				document.form.wlc1_auth_mode.value = "psk";
+				document.form.wlc1_crypto.value = "aes";
 			}
 			else{
 				document.form.wlc1_auth_mode.value = "psk2";
@@ -926,16 +949,10 @@ function show_sort_field(){
 	if(document.getElementById("sort_field").style.display == "none"){
 		document.getElementById("sort_field").style.display = "";
 		document.getElementById("sort_background").style.display = "";
-		// $("#pap_list_title").addClass("filter_effect");
-		// $("#ap_list_title").addClass("filter_effect");
-		// $("#ap_list").addClass("filter_effect");		
 	}
 	else{
 		document.getElementById("sort_field").style.display = "none";
 		document.getElementById("sort_background").style.display = "none";
-		// $("#pap_list_title").removeClass("filter_effect");
-		// $("#ap_list_title").removeClass("filter_effect");
-		// $("#ap_list").removeClass("filter_effect");	
 	}
 }
 
@@ -1371,17 +1388,18 @@ function wireless_apply(){
 	document.form.wl1_wpa_psk.value = $("#wireless_5g_key").val();
 
 	if(document.form.wl0_wpa_psk.value == ""){
-		if(is_KR_sku){
-			alert("<#JS_PSK64Hex_kr#> <#JS_validPWD#>");	
-			document.getElementById("wireless_2g_key").focus();
-			return false;
-		}
+		if( !(document.form.sw_mode.value == "2" && document.form.wlc_express.value == "1" && document.form.wlc_psta.value == "0")){
+			if(is_KR_sku){
+				alert("<#JS_PSK64Hex_kr#> <#JS_validPWD#>");	
+				document.getElementById("wireless_2g_key").focus();
+				return false;
+			}
 
-		if(!confirm("<#QIS_confirm_recommand_encryp#>")){
-			document.getElementById("wireless_2g_key").focus();
-			return false;			
+			if(!confirm("<#QIS_confirm_recommand_encryp#>")){
+				document.getElementById("wireless_2g_key").focus();
+				return false;			
+			}
 		}
-
 	}
 
 	if(document.form.wl0_wpa_psk.value.length > 0){
@@ -1405,17 +1423,18 @@ function wireless_apply(){
 	}
 
 	if(document.form.wl1_wpa_psk.value == ""){
-		if(is_KR_sku){
-			alert("<#JS_PSK64Hex_kr#> <#JS_validPWD#>");	
-			document.getElementById("wireless_5g_key").focus();
-			return false;
-		}
+		if( !(document.form.sw_mode.value == "2" && document.form.wlc_express.value == "2" && document.form.wlc_psta.value == "0")){
+			if(is_KR_sku){
+				alert("<#JS_PSK64Hex_kr#> <#JS_validPWD#>");	
+				document.getElementById("wireless_5g_key").focus();
+				return false;
+			}
 
-		if(!confirm("<#QIS_confirm_recommand_encryp#>")){
-			document.getElementById("wireless_5g_key").focus();
-			return false;			
+			if(!confirm("<#QIS_confirm_recommand_encryp#>")){
+				document.getElementById("wireless_5g_key").focus();
+				return false;			
+			}
 		}
-
 	}
 
 	if(document.form.wl1_wpa_psk.value.length > 0){

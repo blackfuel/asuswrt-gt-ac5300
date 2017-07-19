@@ -409,6 +409,8 @@ obj-$(RTCONFIG_NOTIFICATION_CENTER) += nt_center
 obj-$(RTCONFIG_NOTIFICATION_CENTER) += email-3.1.3
 obj-$(RTCONFIG_NOTIFICATION_CENTER) += wlc_nt
 
+obj-$(RTCONFIG_PROTECTION_SERVER) += protect_srv
+
 ifneq ($(HND_ROUTER),y)
 obj-$(RTCONFIG_QTN) += libqcsapi_client
 obj-$(RTCONFIG_QTN) += qtnimage
@@ -527,6 +529,7 @@ obj-$(RTCONFIG_SOC_IPQ40XX) += qca-ssdk.ipq40xx
 obj-$(RTCONFIG_SOC_IPQ40XX) += qca-ssdk-shell.ipq40xx
 
 obj-$(RTCONFIG_SOC_IPQ40XX) += ethtool-3.7
+obj-$(RTCONFIG_SOC_IPQ40XX) += stress-1.x
 ifeq ($(MAKE_HIVEDOT)$(MAKE_HIVESPOT),y)
 obj-y  += qca-hyfi-qdisc.ipq40xx
 obj-y  += qca-hyfi-bridge.ipq40xx
@@ -576,6 +579,21 @@ endif
 
 endif
 
+ifeq ($(RTCONFIG_REALTEK),y)
+obj-$(RTCONFIG_BT_CONN) += rtk_hciattach
+obj-$(RTCONFIG_BT_CONN) += rtk_bluetooth_firmware
+obj-$(RTCONFIG_BT_CONN) += ncurses-6.0
+obj-$(RTCONFIG_BT_CONN) += libical-2.0.0
+obj-$(RTCONFIG_BT_CONN) += udev-173
+obj-$(RTCONFIG_BT_CONN) += readline-6.2
+obj-$(RTCONFIG_BT_CONN) += libffi-3.0.11
+obj-$(RTCONFIG_BT_CONN) += libiconv-1.14
+obj-$(RTCONFIG_BT_CONN) += zlib
+obj-$(RTCONFIG_BT_CONN) += glib-2.37.7
+obj-$(RTCONFIG_BT_CONN) += expat-2.0.1
+obj-$(RTCONFIG_BT_CONN) += dbus-1.8.8
+obj-$(RTCONFIG_BT_CONN) += bluez-5.41
+else
 obj-$(RTCONFIG_BT_CONN) += bluez-5.41
 obj-$(RTCONFIG_BT_CONN) += glib-2.37.7
 obj-$(RTCONFIG_BT_CONN) += libffi-3.0.11
@@ -591,10 +609,11 @@ ifneq ($(RTCONFIG_LANTIQ),y)
 obj-$(RTCONFIG_BT_CONN) += i2c-tools-2013-12-15
 endif
 obj-$(RTCONFIG_BT_CONN) += qca-ar3k-fw
+endif
 
 obj-$(RTCONFIG_I2CTOOLS) += i2c-tools-3.1.2
 
-ifeq ($(RTCONFIG_LANTIQ),y)
+ifeq ($(or $(RTCONFIG_LANTIQ),$(RTCONFIG_REALTEK)),y)
 BLUEZ_FEATURE=--enable-library
 LIBBLUETOOTH_VER=3.18.13
 else
@@ -650,6 +669,7 @@ obj-$(RTCONFIG_OPENVPN) += libvpn
 obj-y += rc
 obj-y += rom
 obj-y += others
+obj-y += libpasswd
 obj-y += httpd json-c
 obj-$(RTCONFIG_VISUALIZATION) += sqlite3 json-c libxml2 visdcoll visdcon
 obj-y += www
@@ -669,7 +689,7 @@ endif
 obj-y += ntpclient
 
 ifeq ($(RTCONFIG_REALTEK),y)
-obj-y += nvram_all
+obj-y += rtk_flash
 obj-y += mini_upnp
 obj-y += wsc
 obj-y += auth
@@ -703,7 +723,7 @@ obj-y += taskset
 else ifeq ($(RTCONFIG_LANTIQ),y)
 # obj-y += ppacmd
 # obj-y += libhelper
-# obj-y += fapi_wlan_common
+obj-y += fapi_wlan_common
 else
 obj-y += utils$(BCMEX)$(EX7)
 obj-$(RTCONFIG_EMF) += emf$(BCMEX)$(EX7)
@@ -1058,7 +1078,9 @@ obj-$(RTCONFIG_WLCEVENTD) += iwevent
 endif
 endif
 obj-y += networkmap
+ifneq ($(BUILD_NAME), $(filter $(BUILD_NAME), AC2900))
 obj-y += infosvr
+endif
 obj-y += ez-ipupdate
 ifneq ($(or $(RTN56U),$(DSLN55U)),y)
 obj-y += phddns
@@ -1092,6 +1114,7 @@ obj-$(RTCONFIG_EXT_RTL8370MB) += rtl_bin
 obj-$(RTCONFIG_LACP) += lacp
 
 #obj-y += bonnie
+#obj-y += stress-1.x
 
 ifeq ($(RTN65U), y)
 obj-y += asm1042
@@ -1618,6 +1641,20 @@ ifneq ($(RTCONFIG_SNMPD),y)
 endif
 
 # uClibc
+ifeq ($(RTL8197F), y) # Realtek RTL8197F platform.
+	install $(LIBDIR)/ld-uClibc.so.1 $(TARGETDIR)/lib/
+	install $(LIBDIR)/libcrypt.so.1 $(TARGETDIR)/lib/
+	install $(LIBDIR)/libpthread.so.1 $(TARGETDIR)/lib/
+	install $(LIBDIR)/libgcc_s.so.1 $(TARGETDIR)/lib/
+	$(STRIP) $(TARGETDIR)/lib/libgcc_s.so.1
+	install $(LIBDIR)/libc.so.1 $(TARGETDIR)/lib/
+	install $(LIBDIR)/libdl.so.1 $(TARGETDIR)/lib/
+	install $(LIBDIR)/libm.so.1 $(TARGETDIR)/lib/
+	install $(LIBDIR)/libnsl.so.1 $(TARGETDIR)/lib/
+ifeq ($(RTCONFIG_SSH),y)
+	install $(LIBDIR)/libutil.so.1 $(TARGETDIR)/lib/
+endif
+else
 	install $(LIBDIR)/ld-uClibc.so.0 $(TARGETDIR)/lib/
 	install $(LIBDIR)/libcrypt.so.0 $(TARGETDIR)/lib/
 	install $(LIBDIR)/libpthread.so.0 $(TARGETDIR)/lib/
@@ -1630,9 +1667,16 @@ endif
 ifeq ($(RTCONFIG_SSH),y)
 	install $(LIBDIR)/libutil.so.0 $(TARGETDIR)/lib/
 endif
+endif
+
 ifneq ($(RTCONFIG_OPTIMIZE_SHARED_LIBS),y)
+ifeq ($(RTL8197F), y) # Realtek RTL8197F platform.
+	install $(LIBDIR)/libresolv.so.1 $(TARGETDIR)/lib/
+	$(STRIP) $(TARGETDIR)/lib/*.so.1
+else
 	install $(LIBDIR)/libresolv.so.0 $(TARGETDIR)/lib/
 	$(STRIP) $(TARGETDIR)/lib/*.so.0
+endif
 endif
 
 	@cd $(TARGETDIR) && $(TOP)/others/rootprep${BCMEX}.sh
@@ -1822,6 +1866,7 @@ ifeq ($(RTCONFIG_LANTIQ),y)
 	install -D rom_lantiq/usr/sbin/read_img $(TARGETDIR)/usr/sbin/
 	install -D rom_lantiq/usr/sbin/nandwrite $(TARGETDIR)/usr/sbin/
 	install -D rom_lantiq/usr/sbin/nanddump $(TARGETDIR)/usr/sbin/
+	cd $(TARGETDIR)/usr/sbin && ln -sf ../../rom/opt/lantiq/bin/mtdump ./mtdump
 	install -D rom_lantiq/usr/sbin/fapi_wlan_dbXml $(TARGETDIR)/usr/sbin/
 	install -D rom_lantiq/usr/sbin/fapi_wlan_cli $(TARGETDIR)/usr/sbin/
 	install -D rom_lantiq/sbin/udevd $(TARGETDIR)/sbin/
@@ -1838,7 +1883,7 @@ ifeq ($(RTCONFIG_LANTIQ),y)
 	install -D rom_lantiq/usr/lib/libnl-genl-3.so.200 $(TARGETDIR)/usr/lib/
 	mkdir -p $(TARGETDIR)/usr/lib/crda/
 	install -D rom_lantiq/usr/lib/crda/regulatory.bin $(TARGETDIR)/usr/lib/crda/
-	install -D rom_lantiq/usr/lib/libfapiwlancommon.so $(TARGETDIR)/usr/lib/
+	# install -D rom_lantiq/usr/lib/libfapiwlancommon.so $(TARGETDIR)/usr/lib/
 	install -D rom_lantiq/opt/lantiq/usr/lib/libhelper.so $(TARGETDIR)/usr/lib/
 	install -D rom_lantiq/etc/rc.d/wlan_discover $(TARGETDIR)/sbin/wlan_discover
 	mkdir $(TARGETDIR)/rom/etc/; cp -Rf rom_lantiq/etc/udev $(TARGETDIR)/rom/etc/
@@ -1927,8 +1972,11 @@ endif
 # 	Append filesystem to self-booting Linux
 #	cat $(PLATFORMDIR)/target.image >> $(PLATFORMDIR)/linux.bin
 
-
+ifeq ($(RTL8197F), y) # Realtek RTL8197F platform.
+libc:	$(LIBDIR)/ld-uClibc.so.1
+else
 libc:	$(LIBDIR)/ld-uClibc.so.0
+endif
 #	$(MAKE) -C ../../../tools-src/uClibc all
 #	$(MAKE) -C ../../../tools-src/uClibc install
 
@@ -2053,7 +2101,8 @@ else
 endif
 # V=1
 
-busybox-install busybox-%-install:
+busybox-install:	# fall-through
+busybox-%-install:
 	rm -rf $(INSTALLDIR)/busybox
 ifeq ($(HND_ROUTER),y)
 	$(MAKE) -C $(BUSYBOX_DIR) install CONFIG_PREFIX=$(INSTALLDIR)/busybox \
@@ -2066,10 +2115,12 @@ else
 	chmod 4755 $(INSTALLDIR)/busybox/bin/busybox
 endif
 
-busybox-clean busybox-%-clean:
+busybox-clean:		# fall-through
+busybox-%-clean:
 	$(MAKE) -C $(BUSYBOX_DIR) distclean
 
-busybox-config busybox-%-config:
+busybox-config:		# fall-through
+busybox-%-config:
 	$(MAKE) -C $(BUSYBOX_DIR) menuconfig
 
 busybox-1.24.1: dummy
@@ -2129,6 +2180,28 @@ endif
 bonnie-clean:
 	[ ! -f bonnie/Makefile ] || $(MAKE) -C bonnie clean
 	@rm -f bonnie/Makefile
+
+stress-1.x: stress-1.x/Makefile
+	$(MAKE) -C stress-1.x
+
+stress-1.x/Makefile:
+	$(MAKE) stress-1.x-configure
+
+stress-1.x-configure:
+	( cd stress-1.x ; \
+		$(CONFIGURE) \
+		--prefix=/usr \
+		--bindir=/usr/sbin \
+		--libdir=/usr/lib \
+	)
+
+stress-1.x-install:
+	install -D stress-1.x/src/stress $(INSTALLDIR)/stress-1.x/usr/sbin/stress
+	$(STRIP) $(INSTALLDIR)/stress-1.x/usr/sbin/stress
+
+stress-1.x-clean:
+	[ ! -f stress-1.x/Makefile ] || $(MAKE) -C stress-1.x clean
+	@rm -f stress-1.x/Makefile
 
 www-install:
 ifeq ($(HND_ROUTER),y)
@@ -2307,7 +2380,7 @@ rc: nvram$(BCMEX)$(EX7) shared libbcmcrypto libdisk $(if $(RTCONFIG_FBWIFI),fb_w
 rc-install:
 	$(MAKE) -C rc INSTALLDIR=$(INSTALLDIR)/rc install
 
-networkmap: shared
+networkmap: shared json-c
 
 networkmap-install:
 	$(MAKE) -C networkmap INSTALLDIR=$(INSTALLDIR)/networkmap install
@@ -3465,6 +3538,25 @@ nt_center-clean:
 	-$(MAKE) -C nt_center clean
 	@rm -f nt_center/stamp-h1
 
+protect_srv/stamp-h1:
+	touch $@
+
+protect_srv: protect_srv/stamp-h1
+	$(MAKE) -C protect_srv
+
+protect_srv-install: protect_srv
+	install -d $(INSTALLDIR)/protect_srv/usr/lib/
+	install -d $(INSTALLDIR)/protect_srv/usr/sbin/
+	install -D protect_srv/lib/libptcsrv.so $(INSTALLDIR)/protect_srv/usr/lib/libptcsrv.so
+	install -D protect_srv/protect_srv $(INSTALLDIR)/protect_srv/usr/sbin/protect_srv
+	install -D protect_srv/Send_Event2ptcsrv $(INSTALLDIR)/protect_srv/usr/sbin/Send_Event2ptcsrv
+	$(STRIP) $(INSTALLDIR)/protect_srv/usr/lib/libptcsrv.so
+	$(STRIP) $(INSTALLDIR)/protect_srv/usr/sbin/protect_srv
+
+protect_srv-clean:
+	-$(MAKE) -C protect_srv clean
+	@rm -f protect_srv/stamp-h1
+
 #	$(STRIP) $(INSTALLDIR)/tr/sbin/*
 
 #	libnet:
@@ -3694,7 +3786,10 @@ dropbear/config.h: dropbear/config.h.in
 		--disable-utmp --disable-utmpx \
 		--disable-wtmp --disable-wtmpx \
 		--disable-loginfunc \
-		--disable-pututline --disable-pututxline
+		--disable-pututline --disable-pututxline \
+		LDFLAGS="$(if $(RTCONFIG_PROTECTION_SERVER),-L$(TOP)/protect_srv/lib)" \
+		CFLAGS="$(if $(RTCONFIG_PROTECTION_SERVER),-I$(TOP)/protect_srv/include -DRTCONFIG_PROTECTION_SERVER)" \
+		LIBS="$(if $(RTCONFIG_PROTECTION_SERVER),-lptcsrv)" 
 
 dropbear: dropbear/config.h
 	@$(SEP)
@@ -4034,13 +4129,12 @@ mDNSResponder:
 	@$(MAKE) -C mDNSResponder CC=$(CC) all
 
 
-igmpproxy/stamp-h1:
+igmpproxy/Makefile:
 	cd igmpproxy && CFLAGS="-O2 -Wall $(EXTRACFLAGS) -ffunction-sections -fdata-sections" \
 	LDFLAGS="-ffunction-sections -fdata-sections -Wl,--gc-sections" \
 	$(CONFIGURE) --prefix=/usr --disable-dependency-tracking
-	#touch $@ # will be generated by configure.
 
-igmpproxy: igmpproxy/stamp-h1
+igmpproxy: igmpproxy/Makefile
 	@$(SEP)
 	@$(MAKE) -C igmpproxy/src
 
@@ -4049,8 +4143,8 @@ igmpproxy-install: igmpproxy
 	$(STRIP) $(INSTALLDIR)/igmpproxy/usr/sbin/igmpproxy
 
 igmpproxy-clean:
-	-@$(MAKE) -C igmpproxy/src clean
-	@rm -f igmpproxy/stamp-h1
+	[ ! -f igmpproxy/Makefile ] || $(MAKE) -C igmpproxy distclean
+	@rm -f igmpproxy/Makefile
 
 pci-utils:
 	$(MAKE) -C pciutils-3.5.0 clean
@@ -4722,7 +4816,7 @@ libiconv-1.14/stamp-h1:
 	$(CONFIGURE) CC=$(CC) --prefix=/usr
 	touch $@
 
-libiconv-1.14: libiconv-1.14/stamp-h1
+libiconv-1.14:libiconv-1.14/stamp-h1
 	@$(MAKE) -C $@ CFLAGS="$(CFLAGS) $(if $(filter-out y,$(HND_ROUTER)),-DHND_ROUTER,)" && $(MAKE) $@-stage
 
 libiconv-1.14-install: libiconv-1.14
@@ -5760,6 +5854,9 @@ openswan-nss-stage:
 qca-whc30-lbd: libqcacommon
 	$(MAKE) -C $@ && $(MAKE) $@-stage
 
+cfg_mnt : libevent-2.0.21
+qca-wifi-assoc-eventd: cfg_mnt
+
 qca-wifi:
 	$(MAKE) -C $@ TARGET_CROSS=$(CROSS_COMPILE) LINUX_KARCH=$(ARCH) LINUX_VERSION=$(LINUX_KERNEL) LINUX_DIR=$(LINUXDIR) && $(MAKE) $@-stage
 
@@ -5957,7 +6054,7 @@ qca-ssdk30:
 qca-ssdk30-stage:
 	$(MAKE) -C qca-ssdk30 stage
 
-.PHONY: btconfig ethtool-3.7 i2c-tools-3.1.2 i2c-tools-2013-12-15 bluez-5.41
+.PHONY: lm-sensors-master btconfig ethtool-3.7 i2c-tools-3.1.2 i2c-tools-2013-12-15 bluez-5.41
 ethtool-3.7/configure:
 	cd ethtool-3.7 && ./autogen.sh
 
@@ -6027,7 +6124,7 @@ libhelper-install:
 	install -D libhelper-1.4.0.2/libhelper.so $(TARGETDIR)/usr/lib/
 
 fapi_wlan_common: libhelper
-	cd fapi_wlan_common-1.0.0.1; make
+	cd fapi_wlan_common-1.0.0.1; make clean; make
 
 fapi_wlan_common-install:
 	install -D fapi_wlan_common-1.0.0.1/libfapiwlancommon.so $(TARGETDIR)/usr/lib/
@@ -6039,8 +6136,21 @@ ifeq ($(RTCONFIG_LANTIQ),y)
 	install -D btconfig/btconfig $(TARGETDIR)/usr/bin/btconfig
 endif
 
+lm-sensors-master:
+	cd lm-sensors-master; make clean; make all
+
 bluez-5.41/stamp-h1:
 	cd bluez-5.41 && ./autogen.sh --no-configure
+ifeq ($(RTCONFIG_REALTEK),y)
+	cd bluez-5.41 && $(CONFIGURE) \
+		$(BLUEZ_FEATURE) --program-prefix= --program-suffix= --prefix=/usr --exec-prefix=/usr --bindir=/usr/bin --sbindir=/usr/sbin --libexecdir=/usr/lib --sysconfdir=/etc\
+		--datadir=/usr/share --localstatedir=/var --mandir=/usr/man --infodir=/usr/info --disable-systemd --with-udevdir=$(STAGEDIR)/usr/lib/udev\
+		--enable-experimental --enable-maintainer-mode\
+		UDEV_CFLAGS="-I$(STAGEDIR)/usr/include" UDEV_LIBS="$(STAGEDIR)/usr/lib/libudev.so" \
+		CFLAGS="-I$(STAGEDIR)/usr/local/include -I$(STAGEDIR)/usr/include -I$(TOP)/bluez-5.41/src/bleencrypt/include -DENCRYPT -I$(TOP)/shared -I$(SRCBASE)/include -I$(STAGEDIR)/usr/local/include/glib-2.0 -I$(STAGEDIR)/usr/local/lib/glib-2.0/include" \
+		LDFLAGS="-L$(STAGEDIR)/lib -L$(STAGEDIR)/usr/lib -ldbus-1 -L$(TOP)/libiconv-1.14/lib/.libs -liconv -ldl -lpthread -L$(STAGEDIR)/usr/local/lib -lglib-2.0 -lglib-2.0 -lical -licalvcal -L$(TOP)/openssl -lssl -lcrypto -L$(TOP)/nvram -L$(INSTALLDIR)/nvram/usr/lib -lnvram -L$(TOP)/shared -L$(INSTALLDIR)/shared/usr/lib -lshared"
+	touch $@
+else
 	cd bluez-5.41 && $(CONFIGURE) \
 		$(BLUEZ_FEATURE) --program-prefix= --program-suffix= --prefix=/usr --exec-prefix=/usr --bindir=/usr/bin --sbindir=/usr/sbin --libexecdir=/usr/lib --sysconfdir=/etc\
 		--datadir=/usr/share --localstatedir=/var --mandir=/usr/man --infodir=/usr/info --disable-systemd --with-udevdir=$(STAGEDIR)/usr/lib/udev\
@@ -6050,6 +6160,7 @@ bluez-5.41/stamp-h1:
 		LDFLAGS="$(EXTRA_BLUEZ_LDFLAGS) -L$(STAGEDIR)/lib -L$(STAGEDIR)/usr/lib -ldbus-1 -liconv -ldl -lpthread -L$(STAGEDIR)/usr/local/lib -lglib-2.0 -lglib-2.0 -lical -licalvcal -L$(TOP)/openssl -lssl -lcrypto -L$(TOP)/nvram -L$(INSTALLDIR)/nvram/usr/lib -lnvram -L$(TOP)/shared -L$(INSTALLDIR)/shared/usr/lib -lshared"
 	touch $@
 
+endif
 bluez-5.41: libiconv-1.14 glib-2.37.7 udev-173 libical-2.0.0 readline-6.2 bluez-5.41/stamp-h1
 	$(MAKE) -C $@ && $(MAKE) $@-stage
 
@@ -6059,6 +6170,11 @@ bluez-5.41-clean:
 
 bluez-5.41-install: btconfig bluez-5.41
 	mkdir -p $(TARGETDIR)/rom/etc/bluetooth
+ifeq ($(RTCONFIG_REALTEK),y)
+	mkdir -p $(TARGETDIR)/lib/
+	install $(LIBDIR)/librt.so.1 $(TARGETDIR)/lib/
+	install $(LIBDIR)/libubacktrace.so.1 $(TARGETDIR)/lib/
+endif
 	install -D bluez-5.41/tools/bccmd $(INSTALLDIR)/bluez-5.41/usr/bin/bccmd
 	install -D bluez-5.41/tools/bluemoon $(INSTALLDIR)/bluez-5.41/usr/bin/bluemoon
 	install -D bluez-5.41/tools/ciptool $(INSTALLDIR)/bluez-5.41/usr/bin/ciptool
@@ -6078,8 +6194,10 @@ ifeq ($(RTCONFIG_QCA),y)
 	install -D bluez-5.41/btconfig_1.16 $(INSTALLDIR)/bluez-5.41/usr/bin/btconfig
 	install -D bluez-5.41/btchk.sh $(INSTALLDIR)/bluez-5.41/usr/bin/btchk.sh
 endif
+ifeq ($(or $(RTCONFIG_LANTIQ),$(RTCONFIG_REALTEK)),y)
 ifeq ($(RTCONFIG_LANTIQ),y)
 	install -D btconfig/btconfig $(TARGETDIR)/usr/bin/btconfig
+endif
 	install -D bluez-5.41/lib/.libs/libbluetooth.so.$(LIBBLUETOOTH_VER) $(TARGETDIR)/usr/lib/libbluetooth.so.$(LIBBLUETOOTH_VER)
 else
 	install -D bluez-5.41/libbluetooth.so.$(LIBBLUETOOTH_VER) $(TARGETDIR)/usr/lib/libbluetooth.so.$(LIBBLUETOOTH_VER)
@@ -6309,11 +6427,20 @@ glib-2.37.7/configure:
 	cd glib-2.37.7 && ./autogen.sh
 
 glib-2.37.7/Makefile: dbus-1.8.8 libffi-3.0.11 zlib glib-2.37.7/configure
+ifeq ($(RTCONFIG_REALTEK),y)
+	cd glib-2.37.7 && $(CONFIGURE) --disable-nls --enable-debug=no --disable-selinux --disable-fam\
+		--enable-iconv=no --with-libiconv=gnu\
+		LIBFFI_CFLAGS="-I$(STAGEDIR)/usr/local/lib/libffi-3.0.11/include" \
+		LIBFFI_LIBS="$(STAGEDIR)/usr/local/lib/libffi.so" \
+		CFLAGS="-I$(TOP)/libiconv-1.14/include -I$(TOP)/glib-2.37.7 -I$(STAGEDIR)/usr/include" \
+		LDFLAGS="-L$(TOP)/libiconv-1.14/lib/.libs -liconv -L$(STAGEDIR)/usr/lib -ldl -lpthread -lz -L$(STAGEDIR)/usr/local/lib -lffi"
+else
 	cd glib-2.37.7 && $(CONFIGURE) --disable-nls --enable-debug=no --disable-selinux --disable-fam\
 		LIBFFI_CFLAGS="-I$(STAGEDIR)/usr/local/lib/libffi-3.0.11/include" \
 		LIBFFI_LIBS="$(STAGEDIR)/usr/local/lib/libffi.so" \
 		CFLAGS="-I$(TOP)/libiconv-1.14/include -I$(TOP)/glib-2.37.7 -I$(STAGEDIR)/usr/include" \
-		LDFLAGS="-L$(STAGEDIR)/usr/lib -liconv -ldl -lpthread -lz -L$(STAGEDIR)/usr/local/lib -lffi"
+		LDFLAGS="-L$(TOP)/libiconv-1.14/lib/.libs -liconv -L$(STAGEDIR)/usr/lib -ldl -lpthread -lz -L$(STAGEDIR)/usr/local/lib -lffi"
+endif
 
 glib-2.37.7: glib-2.37.7/Makefile
 	$(MAKE) -C $@ && $(MAKE) $@-stage

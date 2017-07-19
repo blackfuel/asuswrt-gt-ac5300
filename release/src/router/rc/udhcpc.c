@@ -257,9 +257,6 @@ deconfig(int zcip)
 	int unit = wan_ifunit(wan_ifname);
 	int end_wan_sbstate = WAN_STOPPED_REASON_DHCP_DECONFIG;
 
-	if(unit < 0)
-		unit = wanx_ifunit(wan_ifname);
-
 	/* Figure out nvram variable name prefix for this i/f */
 	if (wan_prefix(wan_ifname, prefix) < 0)
 		return -1;
@@ -402,16 +399,36 @@ bound(void)
 	if ((value = getenv("opt43")) && nvram_get_int("tr_discovery") &&
 			(value = hex2bin(value, &size))) {
 		struct opt_hdr *opt;
-		char buf[256], *url = NULL;
+		char buf[256], *url = NULL, *userinfo, *host, *path, *ptr;
 		if ((opt = opt_get(value, size, 1)) &&
-				strstr(stropt(opt, buf), "://") > buf)
+		    (ptr = strstr(stropt(opt, buf), "://")) && ptr > buf)
 			url = buf;
-		else if (strstr(value, "://") > value)
+		else if ((ptr = strstr(value, "://")) && ptr > value)
 			url = trim_r(value);
-		if (url && strncmp(url, "http", sizeof("http") - 1) == 0) {
-			//nvram_set(strcat_r(wanprefix, "tr_acs_url", tmp), url);
-			nvram_set("tr_acs_url", url);
-			nvram_set_int("tr_enable", 1);
+		if (url && (
+		    strncmp(url, "http://", sizeof("http://") - 1) == 0 ||
+		    strncmp(url, "https://", sizeof("https://") - 1) == 0)) {
+			host = ptr + 3;
+			path = strchrnul(host, '/');
+			if ((ptr = strchr(host, '@')) && ptr < path) {
+				ptr = strsep(&host, "@");
+				userinfo = strdup(ptr);
+				url = memmove(host - (ptr - url), url, ptr - url);
+			} else
+				userinfo = NULL;
+			if (host < path) {
+				if ((ptr = userinfo)) {
+					strsep(&ptr, ":");
+					//nvram_set(strcat_r(wanprefix, "tr_username", tmp), userinfo ? : "");
+					//nvram_set(strcat_r(wanprefix, "tr_passwd", tmp), ptr ? : "");
+					nvram_set("tr_username", userinfo ? : "");
+					nvram_set("tr_passwd", ptr ? : "");
+				}
+				//nvram_set(strcat_r(wanprefix, "tr_acs_url", tmp), url);
+				nvram_set("tr_acs_url", url);
+				nvram_set_int("tr_enable", 1);
+			}
+			free(userinfo);
 		}
 		if ((opt = opt_get(value, size, 2))) {
 			//nvram_set(strcat_r(wanprefix, "tr_pvgcode", tmp), stropt(opt, buf));

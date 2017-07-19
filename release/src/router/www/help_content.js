@@ -163,7 +163,8 @@ helpcontent[11] = new Array("",
 							"This feature allows browser to redirect to failed connection warning page when Internet is down, if disabled warning page would not appear.",	/* untranslated */
 							"To set your clock forward one hour in the spring when DST (Daylight Saving Time) starts",	/* untranslated */
 							"To set your clock back one hour in the fall when DST (Daylight Saving Time) ends",	/* untranslated */
-							"For destination IP address, you can:<br/>(a) enter a specific IP address, such as \"192.168.1.2\"<br/>(b) enter IP addresses within one subnet or within the same IP pool, such as \"192.168.1.0/24\""	/* untranslated */
+							"For destination IP address, you can:<br/>(a) enter a specific IP address, such as \"192.168.1.2\"<br/>(b) enter IP addresses within one subnet or within the same IP pool, such as \"192.168.1.0/24\"",	/* untranslated */
+							"This feature allows you to restrict only specified IP address could access the wireless router via SSH / Telnet / Web Access from WAN (if SSH/ Telnet/ Web Access from WAN Enabled) from WAN or LAN side."	/* untranslated */
 		);
 //Log
 helpcontent[12] = new Array("",

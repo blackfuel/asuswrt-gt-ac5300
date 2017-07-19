@@ -434,13 +434,8 @@ start_igmpproxy(char *wan_ifname)
 
 	altnet = nvram_safe_get("mr_altnet_x");
 
-#ifdef RTCONFIG_MULTICAST_IPTV
-	if (!(nvram_get_int("switch_stb_x") > 6 &&
-		nvram_match("switch_wantag", "movistar")))
+	if (nvram_get_int("mr_qleave_x"))
 		fprintf(fp, "quickleave\n");
-#else
-	fprintf(fp, "quickleave\n");
-#endif
 	fprintf(fp,
 		"phyint %s upstream ratelimit 0 threshold 1 altnet %s\n"
 		"phyint %s downstream ratelimit 0 threshold 1\n",
@@ -988,7 +983,9 @@ int check_wan_if(int unit)
 void
 start_wan_if(int unit)
 {
+#if defined(RTCONFIG_DUALWAN) || defined(RTCONFIG_USB_MODEM)
 	int wan_type;
+#endif
 #ifdef RTCONFIG_DUALWAN
 	int pppoerelay_unit;
 #endif
@@ -1037,7 +1034,9 @@ start_wan_if(int unit)
 
 	update_wan_state(prefix, WAN_STATE_INITIALIZING, 0);
 
+#if defined(RTCONFIG_DUALWAN) || defined(RTCONFIG_USB_MODEM)
 	wan_type = get_dualwan_by_unit(unit);
+#endif
 
 #ifdef RTCONFIG_DUALWAN
 	if (is_router_mode()) {
@@ -1160,10 +1159,6 @@ _dprintf("start_wan_if: USB modem is scanning...\n");
 				}
 			}
 		}
-
-#ifdef HND_ROUTER
-		fc_fini();
-#endif
 
 		if((!strcmp(modem_type, "tty") || !strcmp(modem_type, "mbim"))
 				&& write_3g_ppp_conf(get_modemunit_by_type(wan_type))
@@ -2431,7 +2426,7 @@ wan_up(const char *pwan_ifname)
 		start_igmpproxy(wan_ifname);
 	}
 #ifdef RTCONFIG_QUAGGA
-	if (wan_unit == WAN_UNIT_IPTV) {
+	if( (wan_unit == WAN_UNIT_IPTV) || (wan_unit == WAN_UNIT_VOIP) ){
 		stop_quagga();
 		start_quagga();
 	}
@@ -3113,6 +3108,14 @@ start_wan(void)
 	symlink("/sbin/rc", "/tmp/ppp/vpnc-ip-down");
 	symlink("/sbin/rc", "/tmp/ppp/vpnc-ip-pre-up");
 	symlink("/sbin/rc", "/tmp/ppp/vpnc-auth-fail");
+#ifdef RTCONFIG_VPN_FUSION
+	if(!d_exists("/etc/openvpn")) {
+		mkdir("/etc/openvpn", 0700);
+	}
+	symlink("/sbin/rc", "/etc/openvpn/ovpnc-up");
+	symlink("/sbin/rc", "/etc/openvpn/ovpnc-down");
+	symlink("/sbin/rc", "/etc/openvpn/ovpnc-route-up");
+#endif
 #endif
 	symlink("/sbin/rc", "/tmp/udhcpc");
 	symlink("/sbin/rc", "/tmp/zcip");
@@ -3265,7 +3268,9 @@ stop_wan(void)
 
 void convert_wan_nvram(char *prefix, int unit)
 {
+#ifdef RTCONFIG_DUALWAN
 	int mac_clone = 0;
+#endif
 	char tmp[100];
 	char macbuf[32];
 #if defined(CONFIG_BCMWL5) && defined(RTCONFIG_RGMII_BRCM5301X)
@@ -3276,8 +3281,10 @@ void convert_wan_nvram(char *prefix, int unit)
 
 	// setup hwaddr
 	strcpy(macbuf, nvram_safe_get(strcat_r(prefix, "hwaddr_x", tmp)));
-	if (strlen(macbuf)!=0 && strcasecmp(macbuf, "FF:FF:FF:FF:FF:FF")){
+	if (strlen(macbuf)!=0 && strcasecmp(macbuf, "FF:FF:FF:FF:FF:FF")) {
+#ifdef RTCONFIG_DUALWAN
 		mac_clone = 1;
+#endif
 		nvram_set(strcat_r(prefix, "hwaddr", tmp), macbuf);
 		logmessage("wan", "mac clone: [%s] == [%s]\n", tmp, macbuf);
 	}
@@ -3285,7 +3292,7 @@ void convert_wan_nvram(char *prefix, int unit)
 #ifdef RTCONFIG_RGMII_BRCM5301X
 	else{
 		/* QTN */
-		if(strcmp(prefix, "wan1_") == 0){
+		if(strcmp(prefix, "wan1_") == 0) {
 #ifdef RTCONFIG_GMAC3
 			strcpy(hwaddr_5g, nvram_get_int("gmac3_enable")? nvram_safe_get("et2macaddr"): nvram_safe_get("et1macaddr"));
 #else
@@ -3294,7 +3301,7 @@ void convert_wan_nvram(char *prefix, int unit)
 			inc_mac(hwaddr_5g, 7);
 			nvram_set(strcat_r(prefix, "hwaddr", tmp), hwaddr_5g);
 			logmessage("wan", "[%s] == [%s]\n", tmp, hwaddr_5g);
-		}else{
+		} else {
 			nvram_set(strcat_r(prefix, "hwaddr", tmp), nvram_safe_get("lan_hwaddr"));
 			logmessage("wan", "[%s] == [%s]\n", tmp, nvram_safe_get("lan_hwaddr"));
 		}
@@ -3323,7 +3330,7 @@ void convert_wan_nvram(char *prefix, int unit)
 	if (nvram_get_int("switch_stb_x") > 6 &&
 	    unit > 9) {
 		unsigned char ea[6];
-		ether_atoe(nvram_safe_get("et0macaddr"), ea);	/* FIXME: Don't use et[01]macaddr directly. */
+		ether_atoe(nvram_safe_get(strcat_r(prefix, "hwaddr", tmp)), ea);
 		ea[5] = (ea[5] & 0xf0) | ((ea[5] + unit - 9) & 0x0f);
 		ether_etoa(ea, macbuf);
 		nvram_set(strcat_r(prefix, "hwaddr", tmp), macbuf);
@@ -3578,17 +3585,16 @@ int detwan_main(int argc, char *argv[]){
 	char inf_names_buf[MAX_DETWAN][32];
 	char *inf_names[MAX_DETWAN];
 	int inf_mask[MAX_DETWAN];
-	int inf_idx[MAX_DETWAN];
 	int got_inf;
-	char detwan_last[32];
 	int count = 0;
 #define RETRY_COUNT	3
-	int retry = RETRY_COUNT;
 #define SLEEP_SHORT	1
 #define SLEEP_LONG	3
 	int sleep_time = SLEEP_SHORT;
+	int old_x_Setting, x_Setting;
 
 	max_inf = nvram_get_int("detwan_max");
+	old_x_Setting = nvram_get_int("x_Setting");
 
 	allmask = 0;
 	for(idx = 0; idx < max_inf; idx++){
@@ -3599,22 +3605,18 @@ int detwan_main(int argc, char *argv[]){
 			break;
 	}
 
-	logmessage("detwan", "0: max_inf(%d) detwan_last(%s) sw_mode(%s) wan0_ifname(%s) allmask(%08x)\n", max_inf, nvram_get("detwan_last"), nvram_get("sw_mode"), nvram_get("wan0_ifname"), allmask);
+	logmessage("detwan", "0: max_inf(%d) sw_mode(%s) wan0_ifname(%s) allmask(%08x)\n", max_inf, nvram_get("sw_mode"), nvram_get("wan0_ifname"), allmask);
 	while(1){
 		value = nvram_get_int("sw_mode");
 		if (value != SW_MODE_ROUTER 
 			|| nvram_safe_get("rc_service")[0] != '\0'
 		   )
 		{
-			if (value != SW_MODE_ROUTER)
-				retry = RETRY_COUNT;
 			sleep(SLEEP_LONG);
 			continue;
 		}
 		strncpy(wan0_ifname, nvram_safe_get("wan0_ifname"), sizeof(wan0_ifname)-1);
 		wan0_ifname[sizeof(wan0_ifname)-1] = '\0';
-		strncpy(detwan_last, nvram_safe_get("detwan_last"), sizeof(detwan_last)-1);
-		detwan_last[sizeof(detwan_last)-1] = '\0';
 		inf_count = 0;
 		got_inf = -1;
 		for(idx = 0; idx < max_inf; idx++){
@@ -3626,22 +3628,26 @@ int detwan_main(int argc, char *argv[]){
 				if(wan0_ifname == NULL || wan0_ifname[0] == '\0')
 				{ //No WAN
 					if ((phy > 0 && inf_count < MAX_DETWAN && var_value && var_value[0] != '\0')
-					    && (detwan_last[0] == '\0' || (strcmp(detwan_last, var_value) == 0))) {
+					   ) {
 						strncpy(inf_names_buf[inf_count], var_value, sizeof(inf_names_buf[0])-1);
 						inf_names_buf[inf_count][sizeof(inf_names_buf[0])-1] = '\0';
 						inf_names[inf_count] = inf_names_buf[inf_count];
-						inf_idx[inf_count] = idx;
 						inf_mask[inf_count] = value;
 						inf_count++;
-						if(detwan_last[0] != '\0')
-							break;
 					}
 				}
-				else if(var_value != NULL && strcmp(wan0_ifname, var_value) == 0)
-				{ //Is WAN
-				}
-				else if(var_value != NULL)
-				{ //Not WAN
+				else
+				{
+#if 0
+					if(var_value != NULL && strcmp(wan0_ifname, var_value) == 0)
+					{ //Is WAN
+					}
+					else if(var_value != NULL)
+					{ //Not WAN
+					}
+#else
+					sleep_time = SLEEP_LONG;
+#endif
 				}
 			}
 		}
@@ -3649,20 +3655,15 @@ int detwan_main(int argc, char *argv[]){
 			char *lan;
 			time_t now = time(NULL);
 			extern int discover_interfaces(int num, const char **current_wan_ifnames, int dhcp_det, int *got_inf);
-#if defined(RTCONFIG_BT_CONN) && defined(HIVEDOT)
-			int x_Setting = nvram_get_int("x_Setting");
-			if (nvram_match("wan0_proto", "static") && x_Setting)
+			if(inf_count == 1 && old_x_Setting == 0 && (x_Setting = nvram_get_int("x_Setting")))
 			{
-				state = 3;
-				if (inf_count==1)
-					got_inf = 0;
-				else
-					got_inf = nvram_get_int("bt_wanport");
+				state = 0;
+				got_inf = 0;
+				old_x_Setting = x_Setting;
 			}
 			else
-#endif
 			state = discover_interfaces(inf_count, (const char **) inf_names, nvram_match("wan0_proto", "dhcp"), &got_inf);
-			logmessage("detwan", "1: wan0_ifname(%s) detwan_last(%s) inf_count(%d) state(%d) got_inf(%d) %s", wan0_ifname, detwan_last, inf_count, state, got_inf, ctime(&now));
+			logmessage("detwan", "1: wan0_ifname(%s) inf_count(%d) state(%d) got_inf(%d) %s", wan0_ifname, inf_count, state, got_inf, ctime(&now));
 			nvram_set_int("detwan_proto", state);
 			if(state >= 0 && got_inf >= 0) {
 				{
@@ -3713,15 +3714,11 @@ int detwan_main(int argc, char *argv[]){
 				sleep_time = SLEEP_SHORT;
 		}
 		count++;
-		if(((wan0_ifname == NULL || wan0_ifname[0] == '\0') && count >= 10) || count >= 100)
+		if(((wan0_ifname == NULL || wan0_ifname[0] == '\0') && count >= 10) || count >= 1000)
 		{
 			time_t now = time(NULL);
 			logmessage("detwan", "-: wan0_ifname(%s) inf_count(%d) %s", wan0_ifname, inf_count, ctime(&now));
 			count = 0;
-		}
-		if(detwan_last[0] != '\0' && retry-- <= 0) {
-			detwan_last[0] = '\0';
-			nvram_unset("detwan_last");
 		}
 		sleep(sleep_time);
 	}

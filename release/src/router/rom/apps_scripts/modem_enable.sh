@@ -40,6 +40,7 @@ modem_authmode_v6=`nvram get modem_authmode_v6`
 modem_user_v6=`nvram get modem_user_v6`
 modem_pass_v6=`nvram get modem_pass_v6`
 modem_reg_time=`nvram get modem_reg_time`
+wandog_interval=`nvram get wandog_interval`
 modem_bridge=`nvram get modem_bridge`
 atcmd=`nvram get modem_atcmd`
 
@@ -447,6 +448,9 @@ if [ "$modem_type" == "tty" -o "$modem_type" == "qmi" -o "$modem_type" == "mbim"
 			gobi_api $qcqmi SetEnhancedAutoconnect 2 1
 
 			echo "Gobi: set +COPS=2."
+			wait_time1=`expr $wandog_interval + $wandog_interval`
+			wait_time=`expr $wait_time1 + $modem_reg_time`
+			nvram set freeze_duck=$wait_time
 			/usr/sbin/modem_at.sh '+COPS=2' "$modem_reg_time"
 			if [ -z "$atcmd" ] || [ "$atcmd" != "1" ]; then
 				/usr/sbin/modem_at.sh '' # clean the output of +COPS=2.
@@ -584,6 +588,9 @@ if [ "$modem_type" == "tty" -o "$modem_type" == "qmi" -o "$modem_type" == "mbim"
 			echo "COPS: original COPS=\"$ret\"."
 			if [ "$ret" != "2" ]; then # ret was some strings sometimes so couldn't use '-ne'.
 				echo "COPS: set +COPS=2."
+				wait_time1=`expr $wandog_interval + $wandog_interval`
+				wait_time=`expr $wait_time1 + $modem_reg_time`
+				nvram set freeze_duck=$wait_time
 				/usr/sbin/modem_at.sh '+COPS=2' "$modem_reg_time"
 				if [ -z "$atcmd" ] || [ "$atcmd" != "1" ]; then
 					/usr/sbin/modem_at.sh '' # clean the output of +COPS=2.
@@ -600,6 +607,9 @@ if [ "$modem_type" == "tty" -o "$modem_type" == "qmi" -o "$modem_type" == "mbim"
 			# Home service.
 			if [ "$modem_roaming" != "1" ]; then
 				echo "COPS: set +COPS=0."
+				wait_time1=`expr $wandog_interval + $wandog_interval`
+				wait_time=`expr $wait_time1 + $modem_reg_time`
+				nvram set freeze_duck=$wait_time
 				/usr/sbin/modem_at.sh '+COPS=0' "$modem_reg_time"
 				#at_ret=`/usr/sbin/modem_at.sh '+COPS?' 2>&1`
 				#ret=`echo -n "$at_ret" |grep "+COPS:" |awk '{print $2}' |awk 'BEGIN{FS=","}{print $1}' 2>/dev/null`
@@ -625,6 +635,9 @@ if [ "$modem_type" == "tty" -o "$modem_type" == "qmi" -o "$modem_type" == "mbim"
 			else
 				# roaming automatically...
 				echo "roaming automatically..."
+				wait_time1=`expr $wandog_interval + $wandog_interval`
+				wait_time=`expr $wait_time1 + $modem_reg_time`
+				nvram set freeze_duck=$wait_time
 				/usr/sbin/modem_at.sh '+COPS=0' "$modem_reg_time"
 				#at_ret=`/usr/sbin/modem_at.sh '+COPS=0' "$modem_reg_time" 2>&1`
 				#ret=`echo -n $at_ret |grep "OK" 2>/dev/null`

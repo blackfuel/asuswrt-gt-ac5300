@@ -9,37 +9,42 @@ SPNG = $(wildcard dlna/icon_sm.$(LCMODELNAME).png)
 ifeq ($(RTCONFIG_BCMARM),y)
 ifeq ($(RTCONFIG_NEW_APP_ARM),y)
 	pkg_type=arm
-	DM_VERSION=3.1.0.95
-	HTTP_VERSION=3.1.0.88
+	DM_VERSION=9.1.0.101
+	HTTP_VERSION=9.1.0.97
+	OPENSSL_VERSION=9.1.0.2j
 else
 	pkg_type=arm
-	DM_VERSION=3.1.0.93
-	HTTP_VERSION=3.1.0.86
+	DM_VERSION=3.1.0.101
+	HTTP_VERSION=3.1.0.97
+	OPENSSL_VERSION=1.0.2j
 endif
 else ifeq ($(or $(RTCONFIG_QCA),$(RTCONFIG_REALTEK)),y)
 	pkg_type=mipsbig
-	DM_VERSION=3.1.0.90
-	HTTP_VERSION=3.1.0.83
+	DM_VERSION=3.1.0.101
+	HTTP_VERSION=3.1.0.97
+	OPENSSL_VERSION=1.0.2j
 else
 	pkg_type=mipsel
-	DM_VERSION=3.1.0.78
-	HTTP_VERSION=3.1.0.71
+	DM_VERSION=3.1.0.101
+	HTTP_VERSION=3.1.0.97
+	OPENSSL_VERSION=1.0.2j
 endif
 
-PKG_LIST := readline wxbase expat openssl zlib libevent ncurses libxml2 pcre spawn-fcgi
+PKG_LIST := readline wxbase expat zlib libevent ncurses libxml2 pcre spawn-fcgi asuslibcurl
 
 ifeq ($(RTCONFIG_BCMARM),y)
-PKG_LIST += libcurl libsigc++ libpar2
+PKG_LIST += libsigc++ libpar2
 else ifeq ($(RTCONFIG_QCA),y)
 # libuclibc++, libcurl, libsigc++, and libpar2 are not required
 else
-PKG_LIST += libuclibc++ libcurl libsigc++ libpar2
+PKG_LIST += libuclibc++ libsigc++ libpar2
 endif
 
 ifeq ($(RTCONFIG_APP_PREINSTALLED),y)
 endif
 ifeq ($(RTCONFIG_NEW_APP_ARM),y)
-PKG_LIST += asusopenssl asuslibcurl
+PKG_LIST += ncurses-base libiconv
+
 endif
 
 all:
@@ -76,13 +81,13 @@ ifeq ($(RTCONFIG_NEW_APP_ARM),y)
 	install -m 0644 packages_new/asus_base_apps_new_$(pkg_type).tgz $(INSTALLDIR)/rom # Don't need if installing from Internet.	
 	-install -m 0644 $(foreach pkg,$(PKG_LIST),packages_new/$(pkg)_*_$(pkg_type).ipk) $(INSTALLDIR)/rom
 	-install -m 0644 packages_new/downloadmaster_$(DM_VERSION)_$(pkg_type).ipk $(INSTALLDIR)/rom
-	
+	-install -m 0644 packages_new/asusopenssl_$(OPENSSL_VERSION)_$(pkg_type).ipk $(INSTALLDIR)/rom
 	-install -m 0644 packages_new/bzip2_*_$(pkg_type).ipk $(INSTALLDIR)/rom
 else
 	install -m 0644 packages/asus_base_apps_$(pkg_type).tgz $(INSTALLDIR)/rom # Don't need if installing from Internet.
 	-install -m 0644 $(foreach pkg,$(PKG_LIST),packages/$(pkg)_*_$(pkg_type).ipk) $(INSTALLDIR)/rom
 	-install -m 0644 packages/downloadmaster_$(DM_VERSION)_$(pkg_type).ipk $(INSTALLDIR)/rom
-	
+	-install -m 0644 packages/asusopenssl_$(OPENSSL_VERSION)_$(pkg_type).ipk $(INSTALLDIR)/rom
 	-install -m 0644 packages/bzip2_*_$(pkg_type).ipk $(INSTALLDIR)/rom
 endif
 	

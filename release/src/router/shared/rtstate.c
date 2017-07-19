@@ -342,8 +342,6 @@ int get_lanports_status(void)
 	return lanport_status();
 }
 
-extern int wanport_status(int wan_unit);
-
 // OR all wan port status
 int get_wanports_status(int wan_unit)
 {
@@ -471,26 +469,99 @@ get_invoke_later()
 #endif	/* RTCONFIG_MEDIA_SERVER */
 
 #ifdef RTCONFIG_USB
+#if defined(RTCONFIG_ALPINE) || defined(RTCONFIG_LANTIQ)
+char *get_usb_xhci_port(int port){
+	if(port == 2)
+		return USB_XHCI_PORT_2;
+	else
+		return USB_XHCI_PORT_1;
+}
 
+char *get_usb_ehci_port(int port){
+	if(port == 3)
+		return USB_EHCI_PORT_3;
+	else if(port == 2)
+		return USB_EHCI_PORT_2;
+	else
+		return USB_EHCI_PORT_1;
+}
+
+char *get_usb_ohci_port(int port){
+	if(port == 3)
+		return USB_OHCI_PORT_3;
+	else if(port == 2)
+		return USB_OHCI_PORT_2;
+	else
+		return USB_OHCI_PORT_1;
+}
+
+int get_usb_port_number(const char *usb_port){
+	int i;
+
+	for(i = 1; i <= 2; ++i){
+		if(!strcmp(usb_port, get_usb_xhci_port(i))){
+			return i;
+		}
+	}
+
+	for(i = 1; i <= 3; ++i){
+		if(!strcmp(usb_port, get_usb_ehci_port(i))){
+			return i;
+		}
+	}
+
+	for(i = 1; i <= 3; ++i){
+		if(!strcmp(usb_port, get_usb_ohci_port(i))){
+			return i;
+		}
+	}
+
+	return 0;
+}
+
+int get_usb_port_host(const char *usb_port){
+	int i;
+
+	for(i = 1; i <= 2; ++i){
+		if(!strcmp(usb_port, get_usb_xhci_port(i))){
+			return USB_HOST_XHCI;
+		}
+	}
+
+	for(i = 1; i <= 3; ++i){
+		if(!strcmp(usb_port, get_usb_ehci_port(i))){
+			return USB_HOST_EHCI;
+		}
+	}
+
+	for(i = 1; i <= 3; ++i){
+		if(!strcmp(usb_port, get_usb_ohci_port(i))){
+			return USB_HOST_OHCI;
+		}
+	}
+
+	return USB_HOST_NONE;
+}
+#else
 char xhci_string[32];
 char ehci_string[32];
 char ohci_string[32];
 
 char *get_usb_xhci_port(int port)
 {
-        char word[100], *next;
-        int i=0;
+	char word[100], *next;
+	int i=0;
 
-        strcpy(xhci_string, "xxxxxxxx");
+	strcpy(xhci_string, "xxxxxxxx");
 
-        foreach(word, nvram_safe_get("xhci_ports"), next) {
-                if(i==port) {
-                        strcpy(xhci_string, word);
-                        break;
-                }
-                i++;
-        }
-        return xhci_string;
+	foreach(word, nvram_safe_get("xhci_ports"), next){
+		if(i == port){
+			strcpy(xhci_string, word);
+			break;
+		}
+		i++;
+	}
+	return xhci_string;
 }
 
 char *get_usb_ehci_port(int port)
@@ -530,41 +601,33 @@ char *get_usb_ohci_port(int port)
 int get_usb_port_number(const char *usb_port)
 {
 	char word[100], *next;
-	int port_num, i;
+	int i;
 
-	port_num = 0;
 	i = 0;
 	foreach(word, nvram_safe_get("xhci_ports"), next){
 		++i;
 		if(!strcmp(usb_port, word)){
-			port_num = i;
-			break;
+			return i;
 		}
 	}
 
 	i = 0;
-	if(port_num == 0){
-		foreach(word, nvram_safe_get("ehci_ports"), next){
-			++i;
-			if(!strcmp(usb_port, word)){
-				port_num = i;
-				break;
-			}
+	foreach(word, nvram_safe_get("ehci_ports"), next){
+		++i;
+		if(!strcmp(usb_port, word)){
+			return i;
 		}
 	}
 
 	i = 0;
-	if(port_num == 0){
-		foreach(word, nvram_safe_get("ohci_ports"), next){
-			++i;
-			if(!strcmp(usb_port, word)){
-				port_num = i;
-				break;
-			}
+	foreach(word, nvram_safe_get("ohci_ports"), next){
+		++i;
+		if(!strcmp(usb_port, word)){
+			return i;
 		}
 	}
 
-	return port_num;
+	return 0;
 }
 
 int get_usb_port_host(const char *usb_port)
@@ -599,8 +662,9 @@ int get_usb_port_host(const char *usb_port)
 	return USB_HOST_NONE;
 }
 #endif
+#endif // RTCONFIG_USB
 
-#if defined(RTCONFIG_DUALWAN) || defined(RTCONFIG_MULTICAST_IPTV)
+#if defined(RTCONFIG_DUALWAN)
 void set_wanscap_support(char *feature)
 {
 	nvram_set("wans_cap", feature);
@@ -752,7 +816,7 @@ int get_gate_num(void){
 
 	return gate_num;
 }
-#endif	/* RTCONFIG_DUALWAN */
+#endif	/* RTCONFIG_DUALWAN || RTCONFIG_MULTICAST_IPTV */
 
 // no more to use
 /*

@@ -246,6 +246,8 @@ void add_usb_host_module(void)
 
 #elif defined(RTCONFIG_XHCIMODE)
 	modprobe(USB30_MOD);
+#elif defined(RTCONFIG_ALPINE) || defined(RTCONFIG_LANTIQ)
+	modprobe(USB30_MOD);
 #else
 	if (nvram_get_int("usb_usb3") == 1) {
 		modprobe(USB30_MOD);
@@ -384,7 +386,7 @@ void start_usb(int orig)
 	char param[32];
 	int i;
 
-	_dprintf("%s\n", __FUNCTION__);
+	_dprintf("%s\n", __func__);
 
 	tune_bdflush();
 
@@ -397,8 +399,10 @@ void start_usb(int orig)
 			add_usb_modem_modules();
 #endif
 
-#if LINUX_KERNEL_VERSION < KERNEL_VERSION(4,1,0)
 		/* mount usb device filesystem */
+#if LINUX_KERNEL_VERSION >= KERNEL_VERSION(3,2,0)
+		mount("debugfs", "/sys/kernel/debug", "debugfs", MS_MGC_VAL, NULL);
+#else
 		mount(USBFS, "/proc/bus/usb", USBFS, MS_MGC_VAL, NULL);
 #endif
 
@@ -658,7 +662,7 @@ void stop_usb_program(int mode)
 #if defined(RTCONFIG_APP_PREINSTALLED) || defined(RTCONFIG_APP_NETINSTALLED)
 #if defined(RTCONFIG_APP_PREINSTALLED) && defined(RTCONFIG_CLOUDSYNC)
 	if(pids("inotify") || pids("asuswebstorage") || pids("webdav_client") || pids("dropbox_client") || pids("ftpclient") || pids("sambaclient") || pids("usbclient") || pids("google_client")){
-		_dprintf("%s: stop_cloudsync.\n", __FUNCTION__);
+		_dprintf("%s: stop_cloudsync.\n", __func__);
 		stop_cloudsync(-1);
 	}
 #endif
@@ -694,7 +698,7 @@ void stop_usb(int f_force)
 #endif
 	int disabled = !nvram_get_int("usb_enable");
 
-	_dprintf("%s: stopping the USB features...\n", __FUNCTION__);
+	_dprintf("%s: stopping the USB features...\n", __func__);
 
 #ifdef RTCONFIG_USB_MODEM
 	int modem_unit;
@@ -1284,7 +1288,7 @@ _dprintf("cloudsync: other_path=%s.\n", other_path);
 _dprintf("cloudsync: mounted_path=%s.\n", mounted_path);
 
 				if(!strcmp(mounted_path, mnt->mnt_dir)){
-_dprintf("%s: stop_cloudsync.\n", __FUNCTION__);
+_dprintf("%s: stop_cloudsync.\n", __func__);
 					stop_cloudsync(type);
 				}
 			}
@@ -1535,8 +1539,12 @@ done:
 			if(get_path_by_node(usb_node, port_path, 8) != NULL){
 				snprintf(prefix, sizeof(prefix), "usb_path%s", port_path);
 				// for ATE.
-				if(strlen(nvram_safe_get(strcat_r(prefix, "_fs_path0", tmp))) <= 0)
+				if(strlen(nvram_safe_get(strcat_r(prefix, "_fs_path0", tmp))) <= 0){
 					nvram_set(tmp, ptr);
+_dprintf("usb_path: 3. set %s=%s.\n", tmp, ptr);
+				}
+				else
+_dprintf("usb_path: 4. don't set %s.\n", tmp);
 
 #ifdef RTCONFIG_USB_MODEM
 				unsigned int vid, pid;
@@ -1781,7 +1789,7 @@ _dprintf("cloudsync: set nvram....\n");
 			nvram_set("cloud_sync", cloud_setting_buf);
 _dprintf("cloudsync: wait a second...\n");
 			sleep(1); // wait the nvram be ready.
-_dprintf("%s: start_cloudsync.\n", __FUNCTION__);
+_dprintf("%s: start_cloudsync.\n", __func__);
 			start_cloudsync(0);
 		}
 #endif
@@ -1814,7 +1822,7 @@ void hotplug_usb_storage_device(int host_no, int action_add, uint flags)
 	if (!nvram_get_int("usb_enable"))
 		return;
 
-	_dprintf("%s: host %d action: %d\n", __FUNCTION__, host_no, action_add);
+	_dprintf("%s: host %d action: %d\n", __func__, host_no, action_add);
 
 	if (action_add) {
 		if (nvram_get_int("usb_storage") && (nvram_get_int("usb_automount") || action_add < 0)) {
@@ -1857,16 +1865,16 @@ void remove_storage_main(int shutdn)
 #ifdef RTCONFIG_REALTEK
 static const char *path_to_name(const char *path) {
 	const char *s = path, *tmp;
-	//_dprintf("%s(1)\n", __FUNCTION__);
+	//_dprintf("%s(1)\n", __func__);
 
 	if (path == NULL) return 0;
 
 	while ((tmp = strchr(s, '/'))!= 0) {
-		//_dprintf("%s(2 %s)\n", __FUNCTION__, tmp);
+		//_dprintf("%s(2 %s)\n", __func__, tmp);
 		s = &tmp[1];
 	}
 
-	//_dprintf("%s(3 %s)\n", __FUNCTION__, s);
+	//_dprintf("%s(3 %s)\n", __func__, s);
 	if (strlen(s))
 		return s;
 

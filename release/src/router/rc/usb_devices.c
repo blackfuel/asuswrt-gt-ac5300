@@ -2342,7 +2342,7 @@ int write_3g_ppp_conf(int modem_unit){
 	char tmp2[100], prefix2[32];
 
 	if(modem_unit == MODEM_UNIT_NONE){
-		usb_dbg("%s: Don't input the correct modem_unit.\n", __FUNCTION__);
+		usb_dbg("%s: Don't input the correct modem_unit.\n", __func__);
 		return 0;
 	}
 
@@ -2350,7 +2350,7 @@ int write_3g_ppp_conf(int modem_unit){
 
 	snprintf(modem_node, sizeof(modem_node), "%s", nvram_safe_get(strcat_r(prefix2, "act_int", tmp2)));
 	if(strlen(modem_node) <= 0){
-		usb_dbg("%s: Fail to get the act modem node.\n", __FUNCTION__);
+		usb_dbg("%s: Fail to get the act modem node.\n", __func__);
 		return 0;
 	}
 
@@ -2860,6 +2860,8 @@ int set_usb_common_nvram(const char *action, const char *device_name, const char
 	char *ptr;
 	unsigned int val;
 
+	usb_dbg("%s: %s %s %s %s.\n", __func__, action, device_name, usb_node, known_type);
+
 	if(get_path_by_node(usb_node, port_path, 8) == NULL){
 		usb_dbg("(%s): Fail to get usb path.\n", usb_node);
 		return 0;
@@ -2901,6 +2903,7 @@ int set_usb_common_nvram(const char *action, const char *device_name, const char
 					nvram_unset(strcat_r(prefix, "_removed", tmp));
 					nvram_unset(strcat_r(prefix, "_act", tmp)); // for DM.
 					nvram_unset(strcat_r(prefix, "_fs_path0", tmp));
+_dprintf("usb_path: 1. unset %s.\n", tmp);
 #ifdef RTCONFIG_DISK_MONITOR
 					nvram_unset(strcat_r(prefix, "_pool_error", tmp));
 #endif
@@ -2916,6 +2919,7 @@ int set_usb_common_nvram(const char *action, const char *device_name, const char
 					nvram_unset(strcat_r(prefix, "_removed", tmp));
 					nvram_unset(strcat_r(prefix, "_act", tmp)); // for DM.
 					nvram_unset(strcat_r(prefix, "_fs_path0", tmp));
+_dprintf("usb_path: 2. unset %s.\n", tmp);
 #ifdef RTCONFIG_DISK_MONITOR
 					nvram_unset(strcat_r(prefix, "_pool_error", tmp));
 #endif
@@ -2926,6 +2930,8 @@ int set_usb_common_nvram(const char *action, const char *device_name, const char
 		}
 	}
 	else{
+		usb_dbg("%s: for %s.\n", __func__, device_name);
+
 		snprintf(prefix, sizeof(prefix), "usb_path%s", port_path);
 		memset(been_type, 0, 16);
 		strcpy(been_type, nvram_safe_get(prefix));
@@ -2974,6 +2980,8 @@ int set_usb_common_nvram(const char *action, const char *device_name, const char
 			nvram_set(prefix, type);
 		else // unknown device.
 			return 0;
+
+		usb_dbg("%s: %s: start to set usb_path...\n", __func__, device_name);
 
 		strcat_r(prefix, "_vid", tmp);
 		if ((val = get_usb_vid(usb_node)) != 0) {
@@ -3024,6 +3032,7 @@ int set_usb_common_nvram(const char *action, const char *device_name, const char
 
 		strcat_r(prefix, "_node", tmp);
 		nvram_set(tmp, usb_node);
+		usb_dbg("%s: %s %s %s %s: End.\n", __func__, action, device_name, usb_node, known_type);
 	}
 
 	return 0;
@@ -3320,6 +3329,8 @@ int asus_sd(const char *device_name, const char *action)
 		file_unlock(isLock);
 		return 0;
 	}
+	else
+		usb_dbg("(%s): Got usb path: %s.\n", device_name, port_path);
 
 	// Get USB port.
 	if(get_usb_port_by_string(usb_node, usb_port, 32) == NULL){
@@ -3840,7 +3851,7 @@ int asus_sr(const char *device_name, const char *action)
 	int i;
 	for(i = 0; i < 3; ++i){
 		if(strcmp(nvram_value, "printer") && strcmp(nvram_value, "modem")){
-			usb_dbg("%s: wait for the printer/modem interface...\n", __FUNCTION__);
+			usb_dbg("%s: wait for the printer/modem interface...\n", __func__);
 			sleep(1);
 			snprintf(nvram_value, sizeof(nvram_value), "%s", nvram_safe_get(nvram_name));
 		}
@@ -4083,7 +4094,7 @@ int asus_tty(const char *device_name, const char *action)
 	snprintf(prefix, sizeof(prefix), "usb_path%s", port_path);
 
 	// Check Lock and wait
-	while((isLock_tty = file_lock((char *)__FUNCTION__)) == -1){
+	while((isLock_tty = file_lock((char *)__func__)) == -1){
 		usb_dbg("(%s): lock and wait!\n", device_name);
 		usleep(5000);
 	}
@@ -4467,8 +4478,10 @@ int asus_usb_interface(const char *device_name, const char *action)
 	int port_num;
 	int turn_on_led = 1;
 	char class_path[PATH_MAX], class[10] = "";
+#ifdef RTCONFIG_USB_MODEM
 	int modem_unit;
 	char tmp2[100], prefix2[32];
+#endif
 
 	usb_dbg("(%s): action=%s.\n", device_name, action);
 

@@ -584,6 +584,11 @@ static const applets_t applets[] = {
 	{ "vpnc-ip-down",		vpnc_ipdown_main			},
 	{ "vpnc-ip-pre-up",		vpnc_ippreup_main			},
 	{ "vpnc-auth-fail",		vpnc_authfail_main			},
+#ifdef RTCONFIG_VPN_FUSION
+	{ "ovpnc-up",			vpnc_ovpn_up_main				},
+	{ "ovpnc-down",		vpnc_ovpn_down_main			},
+	{ "ovpnc-route-up",	vpnc_ovpn_route_up_main			},
+#endif
 #endif
 #ifdef RTCONFIG_EAPOL
 	{ "wpa_cli",			wpacli_main			},
@@ -692,6 +697,7 @@ static const applets_t applets[] = {
 #endif
 #ifdef RTCONFIG_HTTPS
 	{ "rsasign_check",		rsasign_check_main		},
+	{ "rsarootca_check",		rsarootca_check_main		},
 #endif
 	{ "service",			service_main			},
 #ifdef RTCONFIG_SPEEDTEST
@@ -722,6 +728,9 @@ static const applets_t applets[] = {
 #endif
 #if !(defined(RTCONFIG_QCA) || defined(RTCONFIG_RALINK) || defined(RTCONFIG_REALTEK))
 	{ "erp_monitor",		erp_monitor_main		},
+#endif
+#if defined(HIVESPOT)
+	{ "dpdt_ant",			dpdt_ant_main		},
 #endif
 	{NULL, NULL}
 };
@@ -852,7 +861,7 @@ int main(int argc, char **argv)
                         	if(safe_atoi(argv[1])>0 && safe_atoi(argv[1])<240)
 				{
 					start_wifimon_check(safe_atoi(argv[1]));
-					return 0;	
+					return 0;
 				}
 			}
 			start_wifimon_check(default_sec);
@@ -1368,6 +1377,11 @@ int main(int argc, char **argv)
 	else if (!strcmp(base, "wlcscan")) {
 		return wlcscan_main();
 	}
+#if defined(RTCONFIG_WLCSCAN_RSSI)
+	else if (!strcmp(base, "wlcscan_ssid_rssi")) {
+		return wlcscan_ssid_rssi(atoi(argv[1]), argv[2]);
+	}
+#endif
 #ifdef RTCONFIG_QTN
 	else if (!strcmp(base, "start_psta_qtn")) {
 		return start_psta_qtn();
@@ -1632,7 +1646,7 @@ int main(int argc, char **argv)
 #if defined(RTCONFIG_RALINK) || defined(RTCONFIG_QCA)
 	else if (!strcmp(base, "dump_powertable")) {
 		if (!IS_ATE_FACTORY_MODE())
-            return 0;		
+			return 0;
 		dump_powertable();
 		return 0;
 	}
@@ -1640,7 +1654,7 @@ int main(int argc, char **argv)
 #if defined(RTCONFIG_RALINK)
 	else if (!strcmp(base, "dump_txbftable")) {
 		if (!IS_ATE_FACTORY_MODE())
-            return 0;		
+			return 0;
 		dump_txbftable();
 		return 0;
 	}

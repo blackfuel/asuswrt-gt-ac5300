@@ -5,6 +5,7 @@
 
 #include "rtl_flashmapping.h"
 
+#define BLUETOOTH_HW_SETTING_SUPPORT
 #ifdef RTCONFIG_RTK_NAND
 #ifndef CONFIG_MTD_NAND 
 #error "Check your kernel config, is CONFIG_MTD_NAND enabled?"
@@ -580,7 +581,7 @@ typedef struct hw_wlan_setting {
 	unsigned char pwrdiff_5G_80BW2S_160BW2S_B[MAX_5G_DIFF_NUM] __PACK__;
 	unsigned char pwrdiff_5G_80BW3S_160BW3S_B[MAX_5G_DIFF_NUM] __PACK__;
 	unsigned char pwrdiff_5G_80BW4S_160BW4S_B[MAX_5G_DIFF_NUM] __PACK__;
-#if !defined(RTRTL8881A) && !defined(RPAC53)
+#if defined(RPAC68U)
 	unsigned char pwrdiff_20BW1S_OFDM1T_C[MAX_2G_CHANNEL_NUM_MIB] __PACK__;
 	unsigned char pwrdiff_40BW2S_20BW2S_C[MAX_2G_CHANNEL_NUM_MIB] __PACK__;
 	unsigned char pwrdiff_OFDM2T_CCK2T_C[MAX_2G_CHANNEL_NUM_MIB] __PACK__;
@@ -672,6 +673,16 @@ typedef struct hw_setting {
 	unsigned char territoryCode[8] __PACK__;
 	unsigned char modelName[16] __PACK__;
 } HW_SETTING_T, *HW_SETTING_Tp;
+#ifdef BLUETOOTH_HW_SETTING_SUPPORT
+typedef struct bluetooth_hw_setting {
+	unsigned char btAddr[6] __PACK__;
+	unsigned char txPowerIdx[6] __PACK__;
+	unsigned char thermalVal __PACK__;
+	unsigned char antennaS0 __PACK__;
+	unsigned char antennaS1 __PACK__;
+	unsigned char xtalCapValue __PACK__;
+} BLUETOOTH_HW_SETTING_T, *BLUETOOTH_HW_SETTING_Tp;
+#endif
 #define TAG_LEN					2
 #define SIGNATURE_LEN			4
 #define HW_SETTING_VER			3	// hw setting version
@@ -709,11 +720,243 @@ typedef struct param_header {
 
 #if 1 /* Don't use hardcode offset, refer rtl_flashmapping.h */
 #define HW_SETTING_OFFSET  CONFIG_RTL_HW_SETTING_OFFSET
+#ifdef BLUETOOTH_HW_SETTING_SUPPORT
+#define BLUETOOTH_HW_SETTING_OFFSET  HW_SETTING_OFFSET+0x1000
+#endif
 #define CODE_IMAGE_OFFSET  CONFIG_RTL_LINUX_IMAGE_OFFSET
 #else
 #define HW_SETTING_OFFSET  0x20000
 #define CODE_IMAGE_OFFSET	0x30000
 #endif
+#define RTK_HW_MIB_ITEM(name)  #name,((unsigned long)(long *)&(((HW_SETTING_T *)0)->name)),sizeof(((HW_SETTING_T *)0)->name)
+#ifdef BLUETOOTH_HW_SETTING_SUPPORT
+#define RTK_BLUETOOTH_HW_MIB_ITEM(name)        #name,((unsigned long)(long *)&(((BLUETOOTH_HW_SETTING_T *)0)->name)),sizeof(((BLUETOOTH_HW_SETTING_T *)0)->name)
+#endif
+#define RTK_HW_WLAN_MIB_ITEM(name)     #name,((unsigned long)(long *)&(((HW_WLAN_SETTING_T *)0)->name)),sizeof(((HW_WLAN_SETTING_T *)0)->name)
+
+#define MIB_BUFF_MAX_SIZE 1024
+
+typedef enum {
+	BYTE_T,
+	STRING_T,
+	BYTE_ARRAY_T,
+	WLAN_T
+} MIB_TYPE_T;
+
+typedef struct _hw_mib_info{
+	char name[64];
+	unsigned int offset;
+	unsigned int size;
+	MIB_TYPE_T type;
+} HW_MIB_INFO_T, *HW_MIB_INFO_Tp;
+static const HW_MIB_INFO_T hw_wlan_mib[]={
+	//offset from HW_WLAN_SETTING_T begin
+	//              name,   offset  size            type
+	{RTK_HW_WLAN_MIB_ITEM(macAddr),BYTE_ARRAY_T},
+	{RTK_HW_WLAN_MIB_ITEM(macAddr1),BYTE_ARRAY_T},
+	{RTK_HW_WLAN_MIB_ITEM(macAddr2),BYTE_ARRAY_T},
+	{RTK_HW_WLAN_MIB_ITEM(macAddr3),BYTE_ARRAY_T},
+	{RTK_HW_WLAN_MIB_ITEM(macAddr4),BYTE_ARRAY_T},
+	{RTK_HW_WLAN_MIB_ITEM(macAddr5),BYTE_ARRAY_T},
+	{RTK_HW_WLAN_MIB_ITEM(macAddr6),BYTE_ARRAY_T},
+	{RTK_HW_WLAN_MIB_ITEM(macAddr7),BYTE_ARRAY_T},
+	{RTK_HW_WLAN_MIB_ITEM(pwrlevelCCK_A),BYTE_ARRAY_T},
+	{RTK_HW_WLAN_MIB_ITEM(pwrlevelCCK_B),BYTE_ARRAY_T},
+	{RTK_HW_WLAN_MIB_ITEM(pwrlevelHT40_1S_A),BYTE_ARRAY_T},
+	{RTK_HW_WLAN_MIB_ITEM(pwrlevelHT40_1S_B),BYTE_ARRAY_T},
+	{RTK_HW_WLAN_MIB_ITEM(pwrdiffHT40_2S),BYTE_ARRAY_T},
+	{RTK_HW_WLAN_MIB_ITEM(pwrdiffHT20),BYTE_ARRAY_T},
+	{RTK_HW_WLAN_MIB_ITEM(pwrdiffOFDM),BYTE_ARRAY_T},
+		
+	{RTK_HW_WLAN_MIB_ITEM(regDomain),BYTE_T},
+	{RTK_HW_WLAN_MIB_ITEM(rfType),BYTE_T},
+	{RTK_HW_WLAN_MIB_ITEM(ledType),BYTE_T},
+	{RTK_HW_WLAN_MIB_ITEM(xCap),BYTE_T},
+	{RTK_HW_WLAN_MIB_ITEM(TSSI1),BYTE_T},
+	{RTK_HW_WLAN_MIB_ITEM(TSSI2),BYTE_T},
+	{RTK_HW_WLAN_MIB_ITEM(Ther),BYTE_T},
+	{RTK_HW_WLAN_MIB_ITEM(trswitch),BYTE_T},
+	{RTK_HW_WLAN_MIB_ITEM(trswpape_C9),BYTE_T},
+	{RTK_HW_WLAN_MIB_ITEM(trswpape_CC),BYTE_T},
+	{RTK_HW_WLAN_MIB_ITEM(target_pwr),BYTE_T},
+	{RTK_HW_WLAN_MIB_ITEM(pa_type),BYTE_T},
+	{RTK_HW_WLAN_MIB_ITEM(Ther2),BYTE_T},
+	{RTK_HW_WLAN_MIB_ITEM(xCap2),BYTE_T},
+	{RTK_HW_WLAN_MIB_ITEM(Reserved8),BYTE_T},
+	{RTK_HW_WLAN_MIB_ITEM(Reserved9),BYTE_T},
+	{RTK_HW_WLAN_MIB_ITEM(Reserved10),BYTE_T},
+               
+	{RTK_HW_WLAN_MIB_ITEM(pwrlevel5GHT40_1S_A),BYTE_ARRAY_T},
+	{RTK_HW_WLAN_MIB_ITEM(pwrlevel5GHT40_1S_B),BYTE_ARRAY_T},
+	{RTK_HW_WLAN_MIB_ITEM(pwrdiff5GHT40_2S),BYTE_ARRAY_T},
+	{RTK_HW_WLAN_MIB_ITEM(pwrdiff5GHT20),BYTE_ARRAY_T},
+	{RTK_HW_WLAN_MIB_ITEM(pwrdiff5GOFDM),BYTE_ARRAY_T},
+               
+	{RTK_HW_WLAN_MIB_ITEM(wscPin),BYTE_ARRAY_T},
+               
+	{RTK_HW_WLAN_MIB_ITEM(pwrdiff_20BW1S_OFDM1T_A),BYTE_ARRAY_T},
+	{RTK_HW_WLAN_MIB_ITEM(pwrdiff_40BW2S_20BW2S_A),BYTE_ARRAY_T},
+	{RTK_HW_WLAN_MIB_ITEM(pwrdiff_OFDM2T_CCK2T_A),BYTE_ARRAY_T},
+	{RTK_HW_WLAN_MIB_ITEM(pwrdiff_40BW3S_20BW3S_A),BYTE_ARRAY_T},
+	{RTK_HW_WLAN_MIB_ITEM(pwrdiff_4OFDM3T_CCK3T_A),BYTE_ARRAY_T},
+	{RTK_HW_WLAN_MIB_ITEM(pwrdiff_40BW4S_20BW4S_A),BYTE_ARRAY_T},
+	{RTK_HW_WLAN_MIB_ITEM(pwrdiff_OFDM4T_CCK4T_A),BYTE_ARRAY_T},
+               
+	{RTK_HW_WLAN_MIB_ITEM(pwrdiff_5G_20BW1S_OFDM1T_A),BYTE_ARRAY_T},
+	{RTK_HW_WLAN_MIB_ITEM(pwrdiff_5G_40BW2S_20BW2S_A),BYTE_ARRAY_T},
+	{RTK_HW_WLAN_MIB_ITEM(pwrdiff_5G_40BW3S_20BW3S_A),BYTE_ARRAY_T},
+	{RTK_HW_WLAN_MIB_ITEM(pwrdiff_5G_40BW4S_20BW4S_A),BYTE_ARRAY_T},
+	{RTK_HW_WLAN_MIB_ITEM(pwrdiff_5G_RSVD_OFDM4T_A),BYTE_ARRAY_T},
+	{RTK_HW_WLAN_MIB_ITEM(pwrdiff_5G_80BW1S_160BW1S_A),BYTE_ARRAY_T},
+	{RTK_HW_WLAN_MIB_ITEM(pwrdiff_5G_80BW2S_160BW2S_A),BYTE_ARRAY_T},
+	{RTK_HW_WLAN_MIB_ITEM(pwrdiff_5G_80BW3S_160BW3S_A),BYTE_ARRAY_T},
+	{RTK_HW_WLAN_MIB_ITEM(pwrdiff_5G_80BW4S_160BW4S_A),BYTE_ARRAY_T},
+               
+	{RTK_HW_WLAN_MIB_ITEM(pwrdiff_20BW1S_OFDM1T_B),BYTE_ARRAY_T},
+	{RTK_HW_WLAN_MIB_ITEM(pwrdiff_40BW2S_20BW2S_B),BYTE_ARRAY_T},
+	{RTK_HW_WLAN_MIB_ITEM(pwrdiff_OFDM2T_CCK2T_B),BYTE_ARRAY_T},
+	{RTK_HW_WLAN_MIB_ITEM(pwrdiff_40BW3S_20BW3S_B),BYTE_ARRAY_T},
+	{RTK_HW_WLAN_MIB_ITEM(pwrdiff_OFDM3T_CCK3T_B),BYTE_ARRAY_T},
+	{RTK_HW_WLAN_MIB_ITEM(pwrdiff_40BW4S_20BW4S_B),BYTE_ARRAY_T},
+	{RTK_HW_WLAN_MIB_ITEM(pwrdiff_OFDM4T_CCK4T_B),BYTE_ARRAY_T},
+               
+	{RTK_HW_WLAN_MIB_ITEM(pwrdiff_5G_20BW1S_OFDM1T_B),BYTE_ARRAY_T},
+	{RTK_HW_WLAN_MIB_ITEM(pwrdiff_5G_40BW2S_20BW2S_B),BYTE_ARRAY_T},
+	{RTK_HW_WLAN_MIB_ITEM(pwrdiff_5G_40BW3S_20BW3S_B),BYTE_ARRAY_T},
+	{RTK_HW_WLAN_MIB_ITEM(pwrdiff_5G_40BW4S_20BW4S_B),BYTE_ARRAY_T},
+	{RTK_HW_WLAN_MIB_ITEM(pwrdiff_5G_RSVD_OFDM4T_B),BYTE_ARRAY_T},
+	{RTK_HW_WLAN_MIB_ITEM(pwrdiff_5G_80BW1S_160BW1S_B),BYTE_ARRAY_T},
+	{RTK_HW_WLAN_MIB_ITEM(pwrdiff_5G_80BW2S_160BW2S_B),BYTE_ARRAY_T},
+	{RTK_HW_WLAN_MIB_ITEM(pwrdiff_5G_80BW3S_160BW3S_B),BYTE_ARRAY_T},
+	{RTK_HW_WLAN_MIB_ITEM(pwrdiff_5G_80BW4S_160BW4S_B),BYTE_ARRAY_T},
+#if defined(RPAC68U)
+	{RTK_HW_WLAN_MIB_ITEM(pwrdiff_20BW1S_OFDM1T_C),BYTE_ARRAY_T},
+	{RTK_HW_WLAN_MIB_ITEM(pwrdiff_40BW2S_20BW2S_C),BYTE_ARRAY_T},
+	{RTK_HW_WLAN_MIB_ITEM(pwrdiff_OFDM2T_CCK2T_C),BYTE_ARRAY_T},
+	{RTK_HW_WLAN_MIB_ITEM(pwrdiff_40BW3S_20BW3S_C),BYTE_ARRAY_T},
+		{RTK_HW_WLAN_MIB_ITEM(pwrdiff_4OFDM3T_CCK3T_C),BYTE_ARRAY_T},
+		{RTK_HW_WLAN_MIB_ITEM(pwrdiff_40BW4S_20BW4S_C),BYTE_ARRAY_T},
+		{RTK_HW_WLAN_MIB_ITEM(pwrdiff_OFDM4T_CCK4T_C),BYTE_ARRAY_T},
+               
+	{RTK_HW_WLAN_MIB_ITEM(pwrdiff_5G_20BW1S_OFDM1T_C),BYTE_ARRAY_T},
+	{RTK_HW_WLAN_MIB_ITEM(pwrdiff_5G_40BW2S_20BW2S_C),BYTE_ARRAY_T},
+	{RTK_HW_WLAN_MIB_ITEM(pwrdiff_5G_40BW3S_20BW3S_C),BYTE_ARRAY_T},
+	{RTK_HW_WLAN_MIB_ITEM(pwrdiff_5G_40BW4S_20BW4S_C),BYTE_ARRAY_T},
+	{RTK_HW_WLAN_MIB_ITEM(pwrdiff_5G_RSVD_OFDM4T_C),BYTE_ARRAY_T},
+	{RTK_HW_WLAN_MIB_ITEM(pwrdiff_5G_80BW1S_160BW1S_C),BYTE_ARRAY_T},
+	{RTK_HW_WLAN_MIB_ITEM(pwrdiff_5G_80BW2S_160BW2S_C),BYTE_ARRAY_T},
+	{RTK_HW_WLAN_MIB_ITEM(pwrdiff_5G_80BW3S_160BW3S_C),BYTE_ARRAY_T},
+	{RTK_HW_WLAN_MIB_ITEM(pwrdiff_5G_80BW4S_160BW4S_C),BYTE_ARRAY_T},
+               
+	{RTK_HW_WLAN_MIB_ITEM(pwrdiff_20BW1S_OFDM1T_D),BYTE_ARRAY_T},
+	{RTK_HW_WLAN_MIB_ITEM(pwrdiff_40BW2S_20BW2S_D),BYTE_ARRAY_T},
+	{RTK_HW_WLAN_MIB_ITEM(pwrdiff_OFDM2T_CCK2T_D),BYTE_ARRAY_T},
+	{RTK_HW_WLAN_MIB_ITEM(pwrdiff_40BW3S_20BW3S_D),BYTE_ARRAY_T},
+	{RTK_HW_WLAN_MIB_ITEM(pwrdiff_OFDM3T_CCK3T_D),BYTE_ARRAY_T},
+	{RTK_HW_WLAN_MIB_ITEM(pwrdiff_40BW4S_20BW4S_D),BYTE_ARRAY_T},
+	{RTK_HW_WLAN_MIB_ITEM(pwrdiff_OFDM4T_CCK4T_D),BYTE_ARRAY_T},
+               
+	{RTK_HW_WLAN_MIB_ITEM(pwrdiff_5G_20BW1S_OFDM1T_D),BYTE_ARRAY_T},
+	{RTK_HW_WLAN_MIB_ITEM(pwrdiff_5G_40BW2S_20BW2S_D),BYTE_ARRAY_T},
+	{RTK_HW_WLAN_MIB_ITEM(pwrdiff_5G_40BW3S_20BW3S_D),BYTE_ARRAY_T},
+	{RTK_HW_WLAN_MIB_ITEM(pwrdiff_5G_40BW4S_20BW4S_D),BYTE_ARRAY_T},
+	{RTK_HW_WLAN_MIB_ITEM(pwrdiff_5G_RSVD_OFDM4T_D),BYTE_ARRAY_T},
+	{RTK_HW_WLAN_MIB_ITEM(pwrdiff_5G_80BW1S_160BW1S_D),BYTE_ARRAY_T},
+	{RTK_HW_WLAN_MIB_ITEM(pwrdiff_5G_80BW2S_160BW2S_D),BYTE_ARRAY_T},
+	{RTK_HW_WLAN_MIB_ITEM(pwrdiff_5G_80BW3S_160BW3S_D),BYTE_ARRAY_T},
+	{RTK_HW_WLAN_MIB_ITEM(pwrdiff_5G_80BW4S_160BW4S_D),BYTE_ARRAY_T},
+               
+	{RTK_HW_WLAN_MIB_ITEM(pwrlevelCCK_C),BYTE_ARRAY_T},
+	{RTK_HW_WLAN_MIB_ITEM(pwrlevelCCK_D),BYTE_ARRAY_T},
+	{RTK_HW_WLAN_MIB_ITEM(pwrlevelHT40_1S_C),BYTE_ARRAY_T},
+	{RTK_HW_WLAN_MIB_ITEM(pwrlevelHT40_1S_D),BYTE_ARRAY_T},
+	{RTK_HW_WLAN_MIB_ITEM(pwrlevel5GHT40_1S_C),BYTE_ARRAY_T},
+	{RTK_HW_WLAN_MIB_ITEM(pwrlevel5GHT40_1S_D),BYTE_ARRAY_T},
+#endif
+	{0},
+};
+
+static const HW_MIB_INFO_T hw_mib[]={
+	{RTK_HW_MIB_ITEM(boardVer),BYTE_T},
+	{RTK_HW_MIB_ITEM(nic0Addr),BYTE_ARRAY_T},
+	{RTK_HW_MIB_ITEM(nic1Addr),BYTE_ARRAY_T},
+	{RTK_HW_MIB_ITEM(wlan),WLAN_T},
+	{RTK_HW_MIB_ITEM(countryCode),BYTE_ARRAY_T},
+	{RTK_HW_MIB_ITEM(territoryCode),BYTE_ARRAY_T},
+	{RTK_HW_MIB_ITEM(modelName),STRING_T},
+	{0},
+};
+
+#ifdef BLUETOOTH_HW_SETTING_SUPPORT
+static const HW_MIB_INFO_T bluetooth_hw_mib[]={
+	{RTK_BLUETOOTH_HW_MIB_ITEM(btAddr),BYTE_ARRAY_T},
+	{RTK_BLUETOOTH_HW_MIB_ITEM(txPowerIdx),BYTE_ARRAY_T},
+	{RTK_BLUETOOTH_HW_MIB_ITEM(thermalVal),BYTE_T},
+	{RTK_BLUETOOTH_HW_MIB_ITEM(antennaS0),BYTE_T},
+	{RTK_BLUETOOTH_HW_MIB_ITEM(antennaS1),BYTE_T},
+	{RTK_BLUETOOTH_HW_MIB_ITEM(xtalCapValue),BYTE_T},               
+	{0},
+};
+#endif
+static int flash_get_mib_info(
+		char* name,//input
+		unsigned int *offset,unsigned int *size,MIB_TYPE_T *type//output
+	)
+{
+	int i=0;
+	int wlan_offset=0;
+	unsigned int hw_offset=HW_SETTING_OFFSET+sizeof(PARAM_HEADER_T);
+#ifdef BLUETOOTH_HW_SETTING_SUPPORT
+	unsigned int bluetooth_offset=BLUETOOTH_HW_SETTING_OFFSET+sizeof(PARAM_HEADER_T);
+#endif
+	if(!name||!offset||!size||!type) {
+		fprintf(stderr,"invlid null input!%s\n",__FUNCTION__);
+		return -1;
+	}
+	for(i=0;hw_mib[i].name[0];i++){
+		if(strcmp(name,hw_mib[i].name)==0){
+			*offset=hw_mib[i].offset+hw_offset;
+			*size=hw_mib[i].size;
+			*type=hw_mib[i].type;
+			return 0;
+		}
+	}
+
+	if(strncmp(name,"wlan",4)==0 && name[4]){
+		int wlan_idx=name[4]-'0';
+		if(wlan_idx>=NUM_WLAN_INTERFACE){
+			fprintf(stderr,"invalid wlan idx! max %d\n",NUM_WLAN_INTERFACE-1);
+			return -1;
+		}
+		wlan_offset=((unsigned long)(long *)&(((HW_SETTING_T *)0)->wlan));              
+		wlan_offset+=wlan_idx*sizeof(HW_WLAN_SETTING_T);
+		name+=6;//wlan0_[realName]
+
+		for(i=0;hw_wlan_mib[i].name[0];i++){
+			if(strcmp(name,hw_wlan_mib[i].name)==0){
+				*offset=hw_wlan_mib[i].offset+hw_offset+wlan_offset;
+				*size=hw_wlan_mib[i].size;
+				*type=hw_wlan_mib[i].type;
+				return 0;
+			}
+		}
+	}
+#ifdef BLUETOOTH_HW_SETTING_SUPPORT
+	if(strncmp(name,"bluetooth_",10)==0){   
+		name+=10;//bluetooth_[realName]
+		for(i=0;bluetooth_hw_mib[i].name[0];i++){
+			if(strcmp(name,bluetooth_hw_mib[i].name)==0){
+				*offset=bluetooth_hw_mib[i].offset+bluetooth_offset;
+				*size=bluetooth_hw_mib[i].size;
+				*type=bluetooth_hw_mib[i].type;
+				return 0;
+			}
+		}
+	}
+#endif
+	fprintf(stderr,"can't find the mib %s!\n",name);
+	return -1;
+}
 
 /* Do checksum and verification for configuration data */
 #ifndef WIN32

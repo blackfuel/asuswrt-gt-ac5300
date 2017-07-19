@@ -7,7 +7,6 @@
 #include <dirent.h>
 #include <ctype.h>
 #include <shared.h>
-#include <rtstate.h>
 #include "usb_info.h"
 #include "disk_initial.h"
 #include <shutils.h>
@@ -389,8 +388,10 @@ char *get_usb_port_by_string(const char *target_string, char *buf, const int buf
 		strcpy(buf, (const char *)USB_EHCI_PORT_3);
 	else if(strstr(target_string, (const char *)USB_OHCI_PORT_3))
 		strcpy(buf, (const char *)USB_OHCI_PORT_3);
-	else
+	else{
+		usb_dbg("%s: wrong 1. target_string=%s.\n", __func__, target_string);
 		return NULL;
+	}
 
 	return buf;
 }
@@ -629,16 +630,22 @@ char *get_path_by_node(const char *usb_node, char *buf, const int buf_size){
 	char usb_port[32], *hub_path;
 	int port_num = 0, len;
 
-	if(usb_node == NULL || buf == NULL || buf_size <= 0)
+	if(usb_node == NULL || buf == NULL || buf_size <= 0){
+		usb_dbg("%s: wrong 1.\n", __func__);
 		return NULL;
+	}
 
 	// Get USB port.
-	if(get_usb_port_by_string(usb_node, usb_port, sizeof(usb_port)) == NULL)
+	if(get_usb_port_by_string(usb_node, usb_port, sizeof(usb_port)) == NULL){
+		usb_dbg("%s: wrong 2. usb_node=%s.\n", __func__, usb_node);
 		return NULL;
+	}
 
 	port_num = get_usb_port_number(usb_port);
-	if(port_num == 0)
+	if(port_num == 0){
+		usb_dbg("%s: wrong 3. usb_port=%s.\n", __func__, usb_port);
 		return NULL;
+	}
 
 	if(strlen(usb_node) > (len = strlen(usb_port))){
 		hub_path = (char *)usb_node+len;

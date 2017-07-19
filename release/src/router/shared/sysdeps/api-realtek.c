@@ -592,7 +592,7 @@ int set_tx_calibration(HW_WLAN_SETTING_Tp phw,char* interface,int txpower)
 		system(tmpbuff);
 		rtk_printf("%s\n",tmpbuff);
 
-#if !defined(RTRTL8881A) && !defined(RPAC53)
+#if defined(RPAC68U)
 		setValue = (phw->pwrlevelCCK_C - intVal > 1) ? (phw->pwrlevelCCK_C - intVal):1;
 		hex_to_string(setValue,p,MAX_2G_CHANNEL_NUM_MIB);
 		sprintf(tmpbuff,"iwpriv %s set_mib pwrlevelCCK_C=%s",interface,p);
@@ -616,7 +616,7 @@ int set_tx_calibration(HW_WLAN_SETTING_Tp phw,char* interface,int txpower)
 		sprintf(tmpbuff,"iwpriv %s set_mib pwrlevelHT40_1S_B=%s",interface,p);
 		system(tmpbuff);
 		rtk_printf("%s\n",tmpbuff);
-#if !defined(RTRTL8881A) && !defined(RPAC53)
+#if defined(RPAC68U)
 		setValue = (phw->pwrlevelHT40_1S_C - intVal > 1) ? (phw->pwrlevelHT40_1S_C - intVal ):1;
 		hex_to_string(setValue,p,MAX_2G_CHANNEL_NUM_MIB);
 		sprintf(tmpbuff,"iwpriv %s set_mib pwrlevelHT40_1S_C=%s",interface,p);
@@ -641,7 +641,7 @@ int set_tx_calibration(HW_WLAN_SETTING_Tp phw,char* interface,int txpower)
 		system(tmpbuff);
 		rtk_printf("%s\n",tmpbuff);
 
-#if !defined(RTRTL8881A) && !defined(RPAC53)
+#if defined(RPAC68U)
 		setValue = (phw->pwrlevel5GHT40_1S_C - intVal > 1) ? (phw->pwrlevel5GHT40_1S_C - intVal ):1;
 		hex_to_string(setValue,p,MAX_5G_CHANNEL_NUM_MIB);
 		sprintf(tmpbuff,"iwpriv %s set_mib pwrlevel5GHT40_1S_C=%s",interface,p);
@@ -666,7 +666,7 @@ int set_tx_calibration(HW_WLAN_SETTING_Tp phw,char* interface,int txpower)
 		system(tmpbuff);
 		rtk_printf("%s\n",tmpbuff);
 
-#if !defined(RTRTL8881A) && !defined(RPAC53)
+#if defined(RPAC68U)
 		hex_to_string(phw->pwrlevelCCK_C - intVal,p,MAX_2G_CHANNEL_NUM_MIB);
 		sprintf(tmpbuff,"iwpriv %s set_mib pwrlevelCCK_C=%s",interface,p);
 		system(tmpbuff);
@@ -686,7 +686,7 @@ int set_tx_calibration(HW_WLAN_SETTING_Tp phw,char* interface,int txpower)
 		sprintf(tmpbuff,"iwpriv %s set_mib pwrlevelHT40_1S_B=%s",interface,p);
 		system(tmpbuff);
 		rtk_printf("%s\n",tmpbuff);
-#if !defined(RTRTL8881A) && !defined(RPAC53)
+#if defined(RPAC68U)
 		hex_to_string(phw->pwrlevelHT40_1S_C,p,MAX_2G_CHANNEL_NUM_MIB);
 		sprintf(tmpbuff,"iwpriv %s set_mib pwrlevelHT40_1S_C=%s",interface,p);
 		system(tmpbuff);
@@ -707,7 +707,7 @@ int set_tx_calibration(HW_WLAN_SETTING_Tp phw,char* interface,int txpower)
 		system(tmpbuff);
 		rtk_printf("%s\n",tmpbuff);
 
-#if !defined(RTRTL8881A) && !defined(RPAC53)
+#if defined(RPAC68U)
 		hex_to_string(phw->pwrlevel5GHT40_1S_C,p,MAX_5G_CHANNEL_NUM_MIB);
 		sprintf(tmpbuff,"iwpriv %s set_mib pwrlevel5GHT40_1S_C=%s",interface,p);
 		system(tmpbuff);
@@ -736,7 +736,7 @@ int set_tx_calibration(HW_WLAN_SETTING_Tp phw,char* interface,int txpower)
 	rtk_printf("%s\n",tmpbuff);
 
 #if 1
-#if !defined(RTRTL8881A) && !defined(RPAC53)
+#if defined(RPAC68U)
 	hex_to_string(phw->pwrdiff_40BW3S_20BW3S_A,p,MAX_2G_CHANNEL_NUM_MIB);
 	sprintf(tmpbuff,"iwpriv %s set_mib pwrdiff_40BW3S_20BW3S_A=%s",interface,p);
 	system(tmpbuff);
@@ -860,7 +860,7 @@ int set_tx_calibration(HW_WLAN_SETTING_Tp phw,char* interface,int txpower)
 #endif //end #if 1
 	
 #ifdef CONFIG_RTL_92D_SUPPORT
-#if !defined(RTRTL8881A) && !defined(RPAC53)
+#if defined(RPAC68U) || defined(RPAC55)
 	hex_to_string(phw->pwrdiff5GHT40_2S,p,MAX_5G_CHANNEL_NUM_MIB);
 	sprintf(tmpbuff,"iwpriv %s set_mib pwrdiff5GHT40_2S=%s",interface,p);
 	system(tmpbuff);
@@ -2006,7 +2006,7 @@ wl_ioctl(char *name, int cmd, void *buf, int len)
 			bzero(apinfos,sizeof(apinf_t)*APINFO_MAX);
 			for(i=0;i<scan_status.number;i++)
 			{
-				cprintf("%s:%d bdBssId=%02x:%02x:%02x:%02x:%02x:%02x\n",__FUNCTION__,__LINE__,
+				rtklog("%s:%d bdBssId=%02x:%02x:%02x:%02x:%02x:%02x\n",__FUNCTION__,__LINE__,
 					scan_status.bssdb[i].bdBssId[0],
 					scan_status.bssdb[i].bdBssId[1],
 					scan_status.bssdb[i].bdBssId[2],

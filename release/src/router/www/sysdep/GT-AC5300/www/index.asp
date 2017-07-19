@@ -754,6 +754,7 @@ function clickEvent(obj){
 	else if(obj.id.indexOf("Router") > 0){
 		icon = "iconRouter";
 		stitle = "<#menu5_7_1#>";
+		document.getElementById("statusframe").src = "/device-map/router.asp";
 	}
 	else if(obj.id.indexOf("Client") > 0){
 		icon = "iconClient";
@@ -821,7 +822,7 @@ function clickEvent(obj){
 		obj.style.backgroundPosition = '65% 95%';
 	}
 	else{
-		obj.style.backgroundPosition = '0% 50%';
+		obj.style.backgroundPosition = '0% 100%';
 	}
 
 	document.getElementById('helpname').innerHTML = stitle;	

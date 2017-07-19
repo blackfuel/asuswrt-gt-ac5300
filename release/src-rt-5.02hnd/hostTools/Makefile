@@ -59,12 +59,20 @@ BUILD_SET = build_mkfs build_cmplzma build_lz4cmp build_imageutil fakeroot build
 all: $(BUILD_SET)
 
 
-build_imageutil: bcmImageBuilder addvtoken BcmFsTag gencrc32 nvram_files
+build_imageutil: bcmImageBuilder version addvtoken BcmFsTag gencrc32 nvram_files
 
 bcmImageBuilder: bcmImageBuilder.c
 	$(CC) $(CFLAGS) -o bcmImageBuilder bcmImageBuilder.c
+version:
+	cp -f ../router/shared/version.h .
+ifneq ($(wildcard ./prebuilt/addvtoken),)
+addvtoken:
+	@-cp -f ./prebuilt/addvtoken .
+else
 addvtoken: addvtoken.c
-	$(CC) $(CFLAGS) -o addvtoken addvtoken.c 
+	rm -rf addvtoken
+	$(CC) $(CFLAGS) -o addvtoken addvtoken.c
+endif
 gencrc32: gencrc32.c
 	$(CC) $(CFLAGS) -o gencrc32 gencrc32.c 
 
@@ -244,7 +252,7 @@ build_doxygen: doxygen
 ######################################################################
 
 clean:
-	rm -f bcmImageBuilder addvtoken mksquashfs mkcramfs mkfs.jffs2 lzmacmd cmplzma $(HOST_GENKEY) BcmFsTag gencrc32 nvram.h nvram_defaults.h
+	rm -f bcmImageBuilder addvtoken version.h mksquashfs mkcramfs mkfs.jffs2 lzmacmd cmplzma $(HOST_GENKEY) BcmFsTag gencrc32 nvram.h nvram_defaults.h
 	rm -fr *.o core
 	rm -fr $(GENKEY_DIR)/*.o
 	make -C $(SQUASHFS_DIR) clean

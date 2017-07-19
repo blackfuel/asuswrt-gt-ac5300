@@ -5,8 +5,8 @@ ASUSWRTTOOLSDIR2 = $(SRCBASE)/router/tools/Lnx_ToolHelp
 
 MODELS_HAVE_USB3 = "DSL-AC68U RT-AC3200 RT-AC87U RT-AC68U RT-AC68A 4G-AC68U RT-AC56S RT-AC56U RT-AC55U RT-AC55UHP RT-N18U RT-N65U RT-AC88U RT-AC3100 RT-AC5300 GT-AC5300 RT-AC86U AC2900 RT-AC58U RT-AC82U RP-AC68U RT-AC85U RT-AC65U"
 
-MODELS_HAVE_TRAFFIC_ANALYZER = RT-AC3200 RT-AC87U RT-AC88U RT-AC86U AC2900 RT-AC3100 RT-AC5300 GT-AC5300 DSL-AC68U RT-AC68U RT-AC68A \
-	4G-AC68U RT-AC68R RT-AC68W RT-AC68RW RT-AC1900P RT-AC67U RT-AC56U RT-AC56R RT-AC85U
+MODELS_HAVE_TRAFFIC_ANALYZER = RT-AC3200 RT-AC87U RT-AC88U RT-AC86U RT-AC3100 RT-AC5300 GT-AC5300 DSL-AC68U RT-AC68U \
+	4G-AC68U RT-AC68R RT-AC68W RT-AC68RW RT-AC1900P RT-AC67U RT-AC56U RT-AC56R RT-AC85U BRT-AC828
 
 all:
 ifeq ($(and $(HND_ROUTER),$(RTCONFIG_VISUALIZATION)),y)
@@ -456,7 +456,7 @@ ifneq ($(RTCONFIG_TOR), y)
 	rm -rf $(INSTALLDIR)/www/Advanced_TOR_Content.asp
 endif
 
-ifneq ($(BUILD_NAME),$(filter $(BUILD_NAME), RT-AC3200 RT-AC88U RT-AC3100 RT-AC5300 GT-AC5300 RT-AC86U AC2900 RT-AC87U DSL-AC68U RT-AC56U RT-AC56R RT-AC68U RT-AC68R RT-AC68W RT-AC68RW RT-AC1900P RT-AC67U 4G-AC68U))
+ifneq ($(BUILD_NAME),$(filter $(BUILD_NAME), $(MODELS_HAVE_TRAFFIC_ANALYZER)))
 	rm -rf $(INSTALLDIR)/www/TrafficAnalyzer_Statistic.asp
 	rm -rf $(INSTALLDIR)/www/images/New_ui/TrafficAnalyzer.gif
 	rm -rf $(INSTALLDIR)/www/images/New_ui/cancel.svg
@@ -525,6 +525,12 @@ endif
 	rm -rf $(INSTALLDIR)/www/images/New_ui/logout_hover.svg
 	rm -rf $(INSTALLDIR)/www/images/New_ui/upgrade.svg
 	rm -rf $(INSTALLDIR)/www/images/New_ui/upgrade_hover.svg	
+endif
+
+ifneq ($(RTCONFIG_IPSEC), y)
+	rm -rf $(INSTALLDIR)/www/Advanced_VPN_IPSec.asp
+	rm -rf $(INSTALLDIR)/www/ajax_ipsec.asp
+	rm -rf $(INSTALLDIR)/www/ajax_ipsec_log.xml
 endif
 
 ifneq ($(RTCONFIG_CAPTIVE_PORTAL), y)
@@ -601,6 +607,12 @@ endif
 
 ifeq ($(BUILD_NAME),RT-AC68A)
 	cd $(INSTALLDIR)/www/require && mv menuTrees/menuTree_RTAC68A.js modules/menuTree.js
+else ifeq ($(BUILD_NAME),AC2900)
+	cd $(INSTALLDIR)/www/require && mv menuTrees/menuTree_AC2900.js modules/menuTree.js
+else ifeq ($(BUILD_NAME),RT-AC85U)
+	cd $(INSTALLDIR)/www/require && mv menuTrees/menuTree_RT-AC85U.js modules/menuTree.js
+else ifeq ($(BUILD_NAME),RT-AC65U)
+	cd $(INSTALLDIR)/www/require && mv menuTrees/menuTree_RT-AC65U.js modules/menuTree.js
 else ifeq ($(BUILD_NAME),GT-AC5300)
 	cd $(INSTALLDIR)/www/require && mv menuTrees/menuTree_ROG.js modules/menuTree.js
 else ifeq ($(BUILD_NAME),BRT-AC828)
@@ -619,4 +631,8 @@ endif
 ifneq ($(BUILD_NAME),$(filter $(BUILD_NAME), BRT-AC828))
 	rm -rf $(INSTALLDIR)/www/images/New_ui/networkmap/M2.png
 	rm -rf $(INSTALLDIR)/www/images/New_ui/networkmap/M2_default.png
+endif
+
+ifeq ($(RTCONFIG_ROG), y)
+	rm -rf $(INSTALLDIR)/www/images/New_ui/networkmap/white_04.gif
 endif

@@ -578,14 +578,14 @@ SSL_CTX_callback_ctrl(ssl,SSL_CTRL_SET_TLSEXT_TICKET_KEY_CB,(void (*)(void))cb)
 # define TLS1_TXT_DHE_DSS_WITH_RC4_128_SHA               "DHE-DSS-RC4-SHA"
 
 /* AES ciphersuites from RFC3268 */
-//# define TLS1_TXT_RSA_WITH_AES_128_SHA                   "AES128-SHA"
+# define TLS1_TXT_RSA_WITH_AES_128_SHA                   "AES128-SHA"
 # define TLS1_TXT_DH_DSS_WITH_AES_128_SHA                "DH-DSS-AES128-SHA"
 # define TLS1_TXT_DH_RSA_WITH_AES_128_SHA                "DH-RSA-AES128-SHA"
 # define TLS1_TXT_DHE_DSS_WITH_AES_128_SHA               "DHE-DSS-AES128-SHA"
 # define TLS1_TXT_DHE_RSA_WITH_AES_128_SHA               "DHE-RSA-AES128-SHA"
 # define TLS1_TXT_ADH_WITH_AES_128_SHA                   "ADH-AES128-SHA"
 
-//# define TLS1_TXT_RSA_WITH_AES_256_SHA                   "AES256-SHA"
+# define TLS1_TXT_RSA_WITH_AES_256_SHA                   "AES256-SHA"
 # define TLS1_TXT_DH_DSS_WITH_AES_256_SHA                "DH-DSS-AES256-SHA"
 # define TLS1_TXT_DH_RSA_WITH_AES_256_SHA                "DH-RSA-AES256-SHA"
 # define TLS1_TXT_DHE_DSS_WITH_AES_256_SHA               "DHE-DSS-AES256-SHA"

@@ -16,8 +16,8 @@ fi
 # current signature information
 current_sig_ver=`nvram get bwdpi_sig_ver`
 current_sig_ver=`echo $current_sig_ver | sed s/'\.'//g;`
-echo $current_sig_ver
-echo $current_sig_ver >> /tmp/sig_upgrade.log
+echo "$current_sig_ver"
+echo "$current_sig_ver" > /tmp/sig_upgrade.log
 
 #get FULL / PARTIAL signature
 dut_mem_size=`grep MemTotal /proc/meminfo | awk '{print $2}'`
@@ -31,12 +31,11 @@ fi
 forsq=`nvram get apps_sq`
 
 # get signature information
-wl0_support=`nvram show | grep rc_support | grep 2.4G`
-
-if [ "$wl0_support" != "" ]; then
-	country_code=`nvram get wl0_country_code`_$sig_type
+tcode=`nvram get territory_code`
+if [ "$tcode" == "" ]; then
+	territory_type="WW"_"$sig_type"
 else
-	country_code=`nvram get wl1_country_code`_$sig_type
+	territory_type="$tcode"_"$sig_type"
 fi
 
 if [ "$forsq" == "1" ]; then
@@ -45,24 +44,24 @@ if [ "$forsq" == "1" ]; then
 else
 	echo "---- sig update real normal----" >> /tmp/sig_upgrade.log
 	wget $wget_options https://dlcdnets.asus.com/pub/ASUS/LiveUpdate/Release/Wireless/sig2nd_update.zip -O /tmp/sig_update.txt
-fi	
+fi
+r=$?
 
-if [ "$?" != "0" ]; then
-	echo "Download info Failure"
-	echo "Download info Failure" >> /tmp/sig_upgrade.log
+if [ "$r" != "0" ]; then
+	echo "Download sig info Failure, return_code : $r"
+	echo "Download sig info Failure, return_code : $r" >> /tmp/sig_upgrade.log
 	nvram set sig_state_error=1
 else
-	echo "Download info OK"
-	echo "Download info OK" >> /tmp/sig_upgrade.log
+	echo "Download sig info OK"
+	echo "Download sig info OK" >> /tmp/sig_upgrade.log
 	# TODO get and parse information
-	sig_ver=`grep $country_code /tmp/sig_update.txt | sed s/.*#//;`
-	echo $sig_ver
+	sig_ver=`grep $territory_type /tmp/sig_update.txt | sed s/.*#//;`
 	if [ "$sig_ver" == "" ]; then
 		WW_type="WW"_$sig_type
 		sig_ver=`grep $WW_type /tmp/sig_update.txt | sed s/.*#//;`
-		nvram set SKU="WW"_$sig_type;
+		nvram set SKU="WW"_"$sig_type"
 	else
-		nvram set SKU=$country_code;
+		nvram set SKU="$territory_type"
 	fi
 	echo `nvram get SKU`
 	echo `nvram get SKU` >> /tmp/sig_upgrade.log
@@ -77,17 +76,19 @@ fi
 update_sig_state_info=`nvram get sig_state_info`
 last_sig_state_info=`nvram get sig_last_info`
 
-echo "---- $sig_ver ---" >> /tmp/sig_upgrade.log
 if [ "$sig_ver" == "" ]; then
 	nvram set sig_state_error=1	# exist no Info
 else
 	if [ "$current_sig_ver" -lt "$sig_ver" ]; then
+		echo "---- sig_ver: $sig_ver ----"
 		echo "---- sig_ver: $sig_ver ----" >> /tmp/sig_upgrade.log
 		nvram set sig_state_flag=1	# Do upgrade
 		if [ "$IS_SUPPORT_NOTIFICATION_CENTER" != "" ]; then
 			if [ "$last_sig_state_info" != "$update_sig_state_info" ]; then
-						Notify_Event2NC "$SYS_NEW_SIGNATURE_UPDATED_EVENT" "{\"fw_ver\":\"$update_sig_state_info\"}"	#Send Event to Notification Center
-						nvram set sig_last_info="$update_webs_state_info"
+				echo "---- The 1st time to detect new sig ver available ----"
+				echo "---- The 1st time to detect new sig ver available ----" >> /tmp/sig_upgrade.log
+				Notify_Event2NC "$SYS_NEW_SIGNATURE_UPDATED_EVENT" "{\"fw_ver\":\"$update_sig_state_info\"}"	#Send Event to Notification Center
+				nvram set sig_last_info="$update_sig_state_info"
 			fi
 		fi
 	fi	

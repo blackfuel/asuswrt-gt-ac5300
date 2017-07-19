@@ -927,7 +927,7 @@ OPENSSL_GLOBAL SSL_CIPHER ssl3_ciphers[] = {
 
 /* New AES ciphersuites */
 /* Cipher 2F */
-    /*{
+    {
      1,
      TLS1_TXT_RSA_WITH_AES_128_SHA,
      TLS1_CK_RSA_WITH_AES_128_SHA,
@@ -940,7 +940,7 @@ OPENSSL_GLOBAL SSL_CIPHER ssl3_ciphers[] = {
      SSL_HANDSHAKE_MAC_DEFAULT | TLS1_PRF,
      128,
      128,
-     },*/
+     },
 /* Cipher 30 */
     {
      1,
@@ -1018,7 +1018,7 @@ OPENSSL_GLOBAL SSL_CIPHER ssl3_ciphers[] = {
      },
 
 /* Cipher 35 */
-    /*{
+    {
      1,
      TLS1_TXT_RSA_WITH_AES_256_SHA,
      TLS1_CK_RSA_WITH_AES_256_SHA,
@@ -1031,7 +1031,7 @@ OPENSSL_GLOBAL SSL_CIPHER ssl3_ciphers[] = {
      SSL_HANDSHAKE_MAC_DEFAULT | TLS1_PRF,
      256,
      256,
-     },*/
+     },
 /* Cipher 36 */
     {
      1,

@@ -85,6 +85,7 @@ var webs_state_info_beta = '<% nvram_get("webs_state_info_beta"); %>';
 var confirm_show = '<% get_parameter("confirm_show"); %>';
 var webs_release_note= "";
 
+var fwdl_percent="";
 var varload = 0;
 var helplink = "";
 var dpi_engine_status = <%bwdpi_engine_status();%>;
@@ -357,7 +358,7 @@ function detect_httpd(){
 var rebooting = 0;
 function isDownloading(){
 	$.ajax({
-    		url: '/detect_firmware.asp',
+    		url: '/ajax_fwdl_percent.asp',
     		dataType: 'script',
 				timeout: 1500,
     		error: function(xhr){
@@ -373,31 +374,32 @@ function isDownloading(){
 						
     		},
     		success: function(){
-					if(webs_state_upgrade == 0){				
-    				setTimeout("isDownloading();", 1000);
-			}
-			else{ 	// webs_upgrade.sh is done
+				if(webs_state_upgrade == 0){
+					document.getElementById("drword").innerHTML = "&nbsp;&nbsp;&nbsp;<#fw_downloading#>..."+fwdl_percent;
+    				setTimeout("isDownloading();", 1000);    				
+				}
+				else{ 	// webs_upgrade.sh is done
 					
-				if(webs_state_error == 1){
-					document.getElementById("drword").innerHTML = "<#connect_failed#>";
-					return false;
-				}
-				else if(webs_state_error == 2){
-					document.getElementById("drword").innerHTML = "Memory space is NOT enough to upgrade on internet. Please wait for rebooting.<br><#FW_desc1#>";	/* untranslated */ //Untranslated.fw_size_higher_mem
-					return false;						
-				}
-				else if(webs_state_error == 3){
-					document.getElementById("drword").innerHTML = "<#FIRM_fail_desc#><br><#FW_desc1#>";
-					return false;												
-				}
-				else{		// start upgrading
-					document.getElementById("hiddenMask").style.visibility = "hidden";
-					showLoadingBar(270);
-					setTimeout("detect_httpd();", 272000);
-					return false;
-				}
+					if(webs_state_error == 1){
+						document.getElementById("drword").innerHTML = "<#connect_failed#>";
+						return false;
+					}
+					else if(webs_state_error == 2){
+						document.getElementById("drword").innerHTML = "Memory space is NOT enough to upgrade on internet. Please wait for rebooting.<br><#FW_desc1#>";	/* untranslated */ //Untranslated.	fw_size_higher_mem
+						return false;						
+					}
+					else if(webs_state_error == 3){
+						document.getElementById("drword").innerHTML = "<#FIRM_fail_desc#><br><#FW_desc1#>";
+						return false;												
+					}
+					else{		// start upgrading
+						document.getElementById("hiddenMask").style.visibility = "hidden";
+						showLoadingBar(270);
+						setTimeout("detect_httpd();", 272000);
+						return false;
+					}
 						
-			}
+				}
   			}
   		});
 }

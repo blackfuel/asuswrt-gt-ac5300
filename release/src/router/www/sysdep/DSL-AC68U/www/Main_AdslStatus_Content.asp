@@ -104,6 +104,10 @@ var log_PowerDown;
 var log_PowerUp;
 var log_INPDown;
 var log_INPUp;
+var log_INPSHINEDown;
+var log_INPSHINEUp;
+var log_INPREINDown;
+var log_INPREINUp;
 var log_CRCDown;
 var log_CRCUp;
 var log_FarEndVendorID;
@@ -205,6 +209,10 @@ function update_log(){
 				document.getElementById("div_PowerUp").innerHTML = log_PowerUp;
 				document.getElementById("div_INPDown").innerHTML = log_INPDown;
 				document.getElementById("div_INPUp").innerHTML = log_INPUp;
+				document.getElementById("div_INPSHINEDown").innerHTML = log_INPSHINEDown;
+				document.getElementById("div_INPSHINEUp").innerHTML = log_INPSHINEUp;
+				document.getElementById("div_INPREINDown").innerHTML = log_INPREINDown;
+				document.getElementById("div_INPREINUp").innerHTML = log_INPREINUp;
 				document.getElementById("div_CRCDown").innerHTML = log_CRCDown;
 				document.getElementById("div_CRCUp").innerHTML = log_CRCUp;
 				}
@@ -483,6 +491,24 @@ function showadslbootTime(){
 								</td>
 								<td>
 									<div id="div_INPUp"><% nvram_get("dsllog_inpup"); %></div>
+								</td>
+							</tr>
+							<tr>
+								<th>INP-SHINE</th>
+								<td>
+									<div id="div_INPSHINEDown"><% nvram_get("dsllog_inpshinedown"); %></div>
+								</td>
+								<td>
+									<div id="div_INPSHINEUp"><% nvram_get("dsllog_inpshineup"); %></div>
+								</td>
+							</tr>
+							<tr>
+								<th>INP-REIN</th>
+								<td>
+									<div id="div_INPREINDown"><% nvram_get("dsllog_inpreindown"); %></div>
+								</td>
+								<td>
+									<div id="div_INPREINUp"><% nvram_get("dsllog_inpreinup"); %></div>
 								</td>
 							</tr>
 							<tr>

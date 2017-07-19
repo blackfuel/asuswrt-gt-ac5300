@@ -61,6 +61,26 @@ function initial(){
 	else	
 		document.getElementById("IPTV_desc").style.display = "";
 
+	//Fine tune ISP option start
+	if(!nz_isp_support){
+		document.getElementById('sfOption').outerHTML = "";
+	}
+
+	/* MODELDEP */
+	if( based_modelid != "RT-N14U" )
+	{
+		document.getElementById('meoOption').outerHTML = "";
+		document.getElementById('vodafoneOption').outerHTML = "";
+	}
+
+	if(based_modelid == "AC2900"){	//MODELDEP: AC2900(RT-AC86U)		
+		for(var r=document.form.switch_wantag.length-2;r>0;r--){	//Keep none & Manual
+			document.form.switch_wantag.remove(r);
+		}
+	}
+	//Fine tune ISP option end
+	
+	
 	if(based_modelid == "RT-AC87U"){ //MODELDEP: RT-AC87 : Quantenna port
 		document.form.switch_stb_x.remove(5);	//LAN1 & LAN2
 		document.form.switch_stb_x.remove(1);	//LAN1
@@ -89,14 +109,6 @@ function initial(){
 		document.getElementById("voip_port3").innerHTML = "LAN port 1";
 		document.getElementById("iptv_port4").innerHTML = "LAN port 2";
 	}
-
-	if( based_modelid != "RT-N14U" )
-	{
-		document.getElementById('meoOption').outerHTML = "";
-		document.getElementById('vodafoneOption').outerHTML = "";
-	}
-	if(!nz_isp_support)
-		document.getElementById('sfOption').outerHTML = "";
 }
 
 function load_ISP_profile(){

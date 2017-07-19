@@ -261,10 +261,10 @@ static int ct_seq_show(struct seq_file *s, void *v)
 		else
 		   ctExpiryVal = (long)(ct->timeout.expires - jiffies)/HZ;
 	}
-	if (seq_printf(s, "%-8s %u %-8s %u %ld ",
+	seq_printf(s, "%-8s %u %-8s %u %ld ",
 			   l3proto->name, nf_ct_l3num(ct),
 			   l4proto->name, nf_ct_protonum(ct),
-			   ctExpiryVal) != 0)
+			   ctExpiryVal);
 #else
 	seq_printf(s, "%-8s %u %-8s %u %ld ",
 		   l3proto->name, nf_ct_l3num(ct),

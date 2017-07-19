@@ -15,8 +15,9 @@ struct model_s {
 
 static const struct model_s model_list[] = {
 #if defined(RTCONFIG_REALTEK)
-	{ "RP-AC68U",	MODEL_RPAC68U	},
+	{ "RP-AC68U",   MODEL_RPAC68U   },
 	{ "RP-AC53",	MODEL_RPAC53	},
+	{ "RP-AC55",	MODEL_RPAC55	},
 #elif defined(RTCONFIG_RALINK)
 #ifdef RTCONFIG_DSL
 	{ "DSL-N55U",	MODEL_DSLN55U	},
@@ -65,7 +66,7 @@ static const struct model_s model_list[] = {
 	{ "BRT-AC828",	MODEL_BRTAC828},
 	{ "RT-AC88S",	MODEL_RTAC88S	},
 #elif defined(RTCONFIG_ALPINE)
-	{ "RT-AC96X",	MODEL_RTAC96X	},
+	{ "GT-AC9600",	MODEL_GTAC9600	},
 #elif defined(RTCONFIG_LANTIQ)
 	{ "BLUECAVE",	MODEL_BLUECAVE	},
 #else

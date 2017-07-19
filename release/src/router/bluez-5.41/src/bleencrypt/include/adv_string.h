@@ -259,10 +259,10 @@ static void AdvSplit_CombineStr(char *source, char *dim, char *header, char *uni
 {
 	int len_128=128;
 	char *tmp=strtok(source, dim);
-	char *result=malloc(len_128);
+	char result[len_128];
 	memset(result, '\0', len_128);
 
-	sprintf(result, "%s%s%s", result, header, unit);
+	snprintf(result, sizeof(result), "%s%s%s", result, header, unit);
 
 	while (tmp != NULL)
 	{
@@ -276,7 +276,6 @@ static void AdvSplit_CombineStr(char *source, char *dim, char *header, char *uni
 			memcpy(output, result, strlen(result));
 	}
 
-	free(result);
 	return;
 }
 //---------------------------------------------------------------------------

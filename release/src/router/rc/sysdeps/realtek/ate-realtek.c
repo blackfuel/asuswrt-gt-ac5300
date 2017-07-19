@@ -87,73 +87,107 @@ void ate_commit_bootlog(char *err_code)
 }
 
 #if defined(RTCONFIG_CONCURRENTREPEATER)
-#ifdef RPAC53
+#if defined(RPAC53) || defined(RPAC55)
 int set_off_led(led_state_t *led)
 {
-	int model = get_model();
-
-	if (model ==  MODEL_RPAC53) {
-		switch(led->id) {
-			case LED_POWER:
-				led_control(LED_POWER_RED, LED_OFF);
-				led_control(LED_POWER, LED_OFF);
-				break;
-			case LED_2G:
-				led_control(LED_2G_ORANGE, LED_OFF);
-                                led_control(LED_2G_GREEN, LED_OFF);
-                                led_control(LED_2G_RED, LED_OFF);
-                                break;
-                        case LED_5G:
-		                led_control(LED_5G_ORANGE, LED_OFF);
-                                led_control(LED_5G_GREEN, LED_OFF);
-                                led_control(LED_5G_RED, LED_OFF);
-                                break;
-			case LED_LAN:
-				led_control(LED_LAN, LED_OFF);
-                                break;
-                        default:
-	                        dbG("Not support the LED ID:%d\n", led->id);
-		}
+#if  defined(RPAC53)
+	switch (led->id) {
+	case LED_POWER:
+		led_control(LED_POWER_RED, LED_OFF);
+		led_control(LED_POWER, LED_OFF);
+		break;
+	case LED_2G:
+		led_control(LED_2G_ORANGE, LED_OFF);
+		led_control(LED_2G_GREEN, LED_OFF);
+		led_control(LED_2G_RED, LED_OFF);
+		break;
+	case LED_5G:
+		led_control(LED_5G_ORANGE, LED_OFF);
+		led_control(LED_5G_GREEN, LED_OFF);
+		led_control(LED_5G_RED, LED_OFF);
+		break;
+	case LED_LAN:
+		led_control(LED_LAN, LED_OFF);
+		break;
+	default:
+		dbG("Not support the LED ID:%d\n", led->id);
 	}
+#elif defined(RPAC55)
+	switch (led->id) {
+	case LED_POWER:
+		led_control(LED_POWER, LED_OFF);
+		led_control(LED_POWER_RED, LED_OFF);
+		break;
+	case LED_WIFI:
+		led_control(LED_WIFI, LED_OFF);
+		break;
+	case LED_SIG1:
+		led_control(LED_SIG1, LED_OFF);
+		break;
+	case LED_SIG2:
+		led_control(LED_SIG2, LED_OFF);
+		break;
+	default:
+		dbG("Not support the LED ID:%d\n", led->id);
+	}
+#endif
 	led->state = LED_OFF;
 	return 0;
 }
 
 int set_on_led(led_state_t *led)
 {
-	int model = get_model();
-
-	if (model ==  MODEL_RPAC53) {
-		switch(led->id) {
-			case LED_POWER:
-				if (led->color == LED_GREEN)
-					led_control(LED_POWER, LED_ON);
-				else if (led->color == LED_RED)
-					led_control(LED_POWER_RED, LED_ON);
-				break;
-			case LED_2G:
-				if (led->color == LED_RED)
-					led_control(LED_2G_RED, LED_ON);
-				else if (led->color == LED_GREEN)
-					led_control(LED_2G_GREEN, LED_ON);
-				else if (led->color == LED_ORANGE)
-					led_control(LED_2G_ORANGE, LED_ON);
-				break;
-			case LED_5G:
-				if (led->color == LED_RED)
-					led_control(LED_5G_RED, LED_ON);
-				else if (led->color == LED_GREEN)
-					led_control(LED_5G_GREEN, LED_ON);
-				else if (led->color == LED_ORANGE)
-					led_control(LED_5G_ORANGE, LED_ON);
-				break;
-			case LED_LAN:
-				led_control(LED_LAN, LED_ON);
-				break;
-			default:
-				dbG("Not support the LED ID:%d\n", led->id);
-		}
+#if defined(RPAC53)
+	switch (led->id) {
+	case LED_POWER:
+		if (led->color == LED_GREEN)
+			led_control(LED_POWER, LED_ON);
+		else if (led->color == LED_RED)
+			led_control(LED_POWER_RED, LED_ON);
+		break;
+	case LED_2G:
+		if (led->color == LED_RED)
+			led_control(LED_2G_RED, LED_ON);
+		else if (led->color == LED_GREEN)
+			led_control(LED_2G_GREEN, LED_ON);
+		else if (led->color == LED_ORANGE)
+			led_control(LED_2G_ORANGE, LED_ON);
+		break;
+	case LED_5G:
+		if (led->color == LED_RED)
+			led_control(LED_5G_RED, LED_ON);
+		else if (led->color == LED_GREEN)
+			led_control(LED_5G_GREEN, LED_ON);
+		else if (led->color == LED_ORANGE)
+			led_control(LED_5G_ORANGE, LED_ON);
+		break;
+	case LED_LAN:
+		led_control(LED_LAN, LED_ON);
+		break;
+	default:
+		dbG("Not support the LED ID:%d\n", led->id);
 	}
+#elif defined(RPAC55)
+	switch (led->id) {
+	case LED_POWER:
+		if (led->color == LED_BLUE)
+			led_control(LED_POWER, LED_ON);
+		else if (led->color == LED_RED)
+			led_control(LED_POWER_RED, LED_ON);
+		break;
+	case LED_WIFI:
+		led_control(LED_WIFI, LED_ON);
+		break;
+	case LED_SIG1:
+		led_control(LED_SIG1, LED_ON);
+		break;
+	case LED_SIG2:
+		led_control(LED_SIG2, LED_ON);
+		break;
+	default:
+		dbG("Not support the LED ID:%d\n", led->id);
+	}
+#endif
 	led->state = LED_ON;
 	return 0;
 }
@@ -171,30 +205,28 @@ void update_gpiomode(int gpio, int mode)
 int setAllLedOn(void)
 {	
 	rtklog("%s\n",__FUNCTION__);
-#ifdef RPAC68U
+#if defined(RPAC68U)
 	set_led(LED_ON_ALL, LED_ON_ALL);
-#else
-	int model = get_model();
-
+#elif defined(RPAC53)
 	led_control(LED_POWER, LED_ON);
 	led_control(LED_WAN, LED_ON);
 	led_control(LED_LAN, LED_ON);
 	led_control(LED_USB, LED_ON);
 
-	switch (model) {
-		case MODEL_RPAC53:
-			update_gpiomode(14, 1);
-			led_control(LED_POWER_RED, LED_ON);
-			led_control(LED_2G_ORANGE, LED_ON);
-			led_control(LED_2G_GREEN, LED_ON);
-			led_control(LED_2G_RED, LED_ON);
-			led_control(LED_5G_ORANGE, LED_ON);
-			led_control(LED_5G_GREEN, LED_ON);
-			led_control(LED_5G_RED, LED_ON);
-			break;
-		default:
-			break;
-	}
+	update_gpiomode(14, 1);
+	led_control(LED_POWER_RED, LED_ON);
+	led_control(LED_2G_ORANGE, LED_ON);
+	led_control(LED_2G_GREEN, LED_ON);
+	led_control(LED_2G_RED, LED_ON);
+	led_control(LED_5G_ORANGE, LED_ON);
+	led_control(LED_5G_GREEN, LED_ON);
+	led_control(LED_5G_RED, LED_ON);
+#elif defined(RPAC55)
+	led_control(LED_POWER, LED_ON);
+	led_control(LED_POWER_RED, LED_ON);
+	led_control(LED_WIFI, LED_ON);
+	led_control(LED_SIG1, LED_ON);
+	led_control(LED_SIG2, LED_ON);
 #endif
 	puts("1");
 	return 0;
@@ -203,30 +235,28 @@ int setAllLedOn(void)
 int setAllLedOff(void)
 {
 	rtklog("%s\n",__FUNCTION__);
-#ifdef RPAC68U
+#if defined(RPAC68U)
 	set_led(LED_OFF_ALL, LED_OFF_ALL);
-#else
-	int model = get_model();
-
+#elif defined(RPAC53)
 	led_control(LED_POWER, LED_OFF);
 	led_control(LED_WAN, LED_OFF);
 	led_control(LED_LAN, LED_OFF);
 	led_control(LED_USB, LED_OFF);
 
-	switch (model) {
-		case MODEL_RPAC53:
-			update_gpiomode(14, 1);
-			led_control(LED_POWER_RED, LED_OFF);
-			led_control(LED_2G_ORANGE, LED_OFF);
-			led_control(LED_2G_GREEN, LED_OFF);
-			led_control(LED_2G_RED, LED_OFF);
-			led_control(LED_5G_ORANGE, LED_OFF);
-			led_control(LED_5G_GREEN, LED_OFF);
-			led_control(LED_5G_RED, LED_OFF);
-			break;
-		default:
-			break;
-	}
+	update_gpiomode(14, 1);
+	led_control(LED_POWER_RED, LED_OFF);
+	led_control(LED_2G_ORANGE, LED_OFF);
+	led_control(LED_2G_GREEN, LED_OFF);
+	led_control(LED_2G_RED, LED_OFF);
+	led_control(LED_5G_ORANGE, LED_OFF);
+	led_control(LED_5G_GREEN, LED_OFF);
+	led_control(LED_5G_RED, LED_OFF);
+#elif defined(RPAC55)
+	led_control(LED_POWER, LED_OFF);
+	led_control(LED_POWER_RED, LED_OFF);
+	led_control(LED_WIFI, LED_OFF);
+	led_control(LED_SIG1, LED_OFF);
+	led_control(LED_SIG2, LED_OFF);
 #endif
 	puts("1");
 	return 0;
@@ -258,13 +288,42 @@ int setAllOrangeLedOn(void)
 	puts("1");
 	return 0;
 }
+#endif
+#if defined(RPAC53) || defined(RPAC55)
 int setAllRedLedOn(void)
 {	
 	rtklog("%s\n",__FUNCTION__);
 
+	/* Turn off other lights.*/
+#if defined(RPAC55)
+	led_control(LED_POWER, LED_OFF);
+	led_control(LED_WIFI, LED_OFF);
+	led_control(LED_SIG1, LED_OFF);
+	led_control(LED_SIG2, LED_OFF);
+#endif
+
 	led_control(LED_POWER_RED, LED_ON);
+#if defined(RPAC53)
 	led_control(LED_2G_RED, LED_ON);
 	led_control(LED_5G_RED, LED_ON);
+#endif
+
+	puts("1");
+	return 0;
+}
+#endif
+#ifdef RPAC55
+int setAllBlueLedOn(void)
+{	
+	rtklog("%s\n",__FUNCTION__);
+
+	/* Turn off other lights.*/
+	led_control(LED_POWER_RED, LED_OFF);
+
+	led_control(LED_POWER, LED_ON);
+	led_control(LED_WIFI, LED_ON);
+	led_control(LED_SIG1, LED_ON);
+	led_control(LED_SIG2, LED_ON);
 
 	puts("1");
 	return 0;
@@ -352,6 +411,46 @@ int setMAC_5G(const char *mac)
 	}
 	return 1;
 }
+
+#ifdef RPAC55
+int setMAC_BT(const char *mac)
+{
+	rtklog("%s\n",__FUNCTION__);
+	char ea[ETHER_ADDR_LEN];
+	int offset = BLUETOOTH_HW_SETTING_OFFSET;
+	if (mac==NULL || !isValidMacAddr(mac))
+		return 0;
+
+	if (!IS_ATE_FACTORY_MODE())
+		return 0;
+
+	if (ether_atoe(mac, ea))
+	{
+		offset += sizeof(PARAM_HEADER_T);
+		offset += (int)(&(((BLUETOOTH_HW_SETTING_T *)0)->btAddr));
+		rtk_flash_write(ea,offset,6);
+
+		getMAC_BT();
+	}
+	return 1;
+}
+int getMAC_BT(const char *mac)
+{
+	rtklog("%s\n",__FUNCTION__);
+	unsigned char buffer[6];
+	char macaddr[18];
+	int offset = BLUETOOTH_HW_SETTING_OFFSET;
+	memset(buffer, 0, sizeof(buffer));
+	memset(macaddr, 0, sizeof(macaddr));
+
+	offset += sizeof(PARAM_HEADER_T);
+	offset += (int)(&(((BLUETOOTH_HW_SETTING_T *)0)->btAddr));
+	rtk_flash_read(buffer,offset,6);
+
+	ether_etoa(buffer, macaddr);
+	puts(macaddr);
+}
+#endif
 
 int setCountryCode_2G(const char *cc)
 {
@@ -680,6 +779,8 @@ int GetPhyStatus(int verbose)
 	
 #if defined(RPAC53)
 	sprintf(output, "L1=%s;", phystatus[4]);
+#elif defined(RPAC55)
+	sprintf(output, "L1=%s;", phystatus[0]);
 #else
 	sprintf(output, "L1=%s;L2=%s;L3=%s;L4=%s;L5=%s;", 
 			phystatus[0], phystatus[1], phystatus[2], phystatus[3], phystatus[4]);

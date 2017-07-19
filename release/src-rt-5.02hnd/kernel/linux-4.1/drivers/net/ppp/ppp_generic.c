@@ -1563,6 +1563,11 @@ ppp_send_frame(struct ppp *ppp, struct sk_buff *skb)
 	++ppp->stats64.tx_packets;
 	ppp->stats64.tx_bytes += skb->len - 2;
 
+#if defined(CONFIG_BCM_KF_EXTSTATS)
+	ppp->dev->stats.tx_packets++;
+	ppp->dev->stats.tx_bytes += skb->len - 2;
+#endif
+
 	switch (proto) {
 	case PPP_IP:
 		if (!ppp->vj || (ppp->flags & SC_COMP_TCP) == 0)
@@ -2202,6 +2207,11 @@ ppp_receive_nonmp_frame(struct ppp *ppp, struct sk_buff *skb)
 	++ppp->stats64.rx_packets;
 	ppp->stats64.rx_bytes += skb->len - 2;
 
+#if defined(CONFIG_BCM_KF_EXTSTATS)
+	ppp->dev->stats.rx_packets++;
+	ppp->dev->stats.rx_bytes += skb->len - 2;
+#endif
+
 	npi = proto_to_npindex(proto);
 	if (npi < 0) {
 		/* control or unknown frame - pass it to pppd */
@@ -2237,7 +2247,7 @@ ppp_receive_nonmp_frame(struct ppp *ppp, struct sk_buff *skb)
 			return;
 		}
 		if (!(ppp->active_filter &&
-			BPF_PROG_RUN(ppp->pass_filter, skb) == 0))
+			BPF_PROG_RUN(ppp->active_filter, skb) == 0))
 	      if (timestamp)
 			   ppp->last_recv = jiffies;
 		skb_pull(skb, 2);

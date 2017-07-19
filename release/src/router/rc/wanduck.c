@@ -15,8 +15,8 @@
  * MA 02111-1307 USA
  */
 
-
 #include <wanduck.h>
+
 
 //#define DETECT_INTERNET_MORE
 #define NO_IOS_DETECT_INTERNET
@@ -184,45 +184,6 @@ static inline int update_failover_led(void);
 #if defined(RTCONFIG_LANWAN_LED)
 int update_wan_leds(int wan_unit)
 {
-#if defined(RTCONFIG_LP5523) &&  defined(RTCONFIG_BT_CONN)
-#if defined(HIVEDOT) ||  defined(HIVESPOT)
-	if (nvram_match("x_Setting", "1") && nvram_match("sw_mode", "1"))
-	{
-		int count_point = 10;
-		int lp55xx_wan_status = nvram_get_int("lp55xx_wan_status");
-		int link_wan_stauts = link_wan[wan_unit];
-
-		if (!pids("bluetoothd"))
-		{
-			if (link_wan_stauts != lp55xx_wan_status)
-			{
-				if (link_wan_stauts)
-					lp55xx_leds_proc(LP55XX_LIGHT_CYAN_LEDS, LP55XX_ACT_NONE);
-				else {
-					if (lp55xx_wan_status < count_point)
-					{
-						link_wan_stauts = count_point;
-						lp55xx_leds_proc(LP55XX_RED_LEDS, LP55XX_ACT_NONE);
-					}
-					else
-						link_wan_stauts = lp55xx_wan_status +1;
-
-					if (link_wan_stauts> count_point+1)
-					{
-						start_bluetooth_service();
-						link_wan_stauts = count_point;
-					}
-				}
-				nvram_set_int("lp55xx_wan_status", link_wan_stauts);
-			}
-		}
-		else if ((lp55xx_wan_status>=10) && link_wan_stauts)
-		{
-			stop_bluetooth_service();
-		}
-	}
-#endif
-#else
 #if defined(RTCONFIG_WANRED_LED)
 #ifdef RTCONFIG_WPS_ALLLED_BTN
 	if (nvram_match("AllLED", "1"))
@@ -243,7 +204,6 @@ int update_wan_leds(int wan_unit)
 #endif	/* RTCONFIG_WANRED_LED */
 
 	update_failover_led();
-#endif /*RTCONFIG_LP5523*/
 
 	return 0;
 }
@@ -251,7 +211,7 @@ int update_wan_leds(int wan_unit)
 
 static void safe_leave(int signo){
 	int i, ret;
-	char tmp[100]="";
+	char tmp[100] = "";
 
 	_dprintf("\n## wanduck.safeexit ##\n");
 
@@ -1246,6 +1206,7 @@ int if_wan_phyconnected(int wan_unit){
 	int link_ap = 0;
 #endif
 	int link_changed = 0;
+	int link_internet = -1;
 	char tmp[100], prefix[32];
 	char wan_proto[16];
 #ifdef RTCONFIG_USB_MODEM
@@ -1361,15 +1322,8 @@ _dprintf("wanduck: modem_unit=%d, try to get usb_if=%s.\n", modem_unit, usb_if);
 				else
 #endif
 				if(wan_state != WAN_STATE_CONNECTING || sim_state == 100){
-					if(!strcmp(modem_type, "gobi")){
-#ifdef RT4GAC68U
-						// 4G-AC68U: don't use AT commands frequently with this model.
-						if(sim_state == 100
-								|| sim_state < -1 || sim_state == 2 || sim_state == 3
-								)
-#endif
-							eval("/usr/sbin/modem_status.sh", "sim");
-					}
+					if(!strcmp(modem_type, "gobi"))
+						eval("/usr/sbin/modem_status.sh", "sim");
 					else if(sim_state == 100 || sim_state == -2) // QMI
 						eval("/usr/sbin/modem_status.sh", "sim");
 				}
@@ -1527,15 +1481,8 @@ _dprintf("# wanduck: if_wan_phyconnected: x_Setting=%d, link_modem=%d, sim_state
 				else
 #endif
 				if(wan_state != WAN_STATE_CONNECTING || sim_state == 100){
-					if(!strcmp(modem_type, "gobi")){
-#ifdef RT4GAC68U
-						// 4G-AC68U: don't use AT commands frequently with this model.
-						if(sim_state == 100
-								|| sim_state < -1 || sim_state == 2 || sim_state == 3
-								)
-#endif
-							eval("/usr/sbin/modem_status.sh", "sim");
-					}
+					if(!strcmp(modem_type, "gobi"))
+						eval("/usr/sbin/modem_status.sh", "sim");
 					else if(sim_state == 100 || sim_state == -2)
 						eval("/usr/sbin/modem_status.sh", "sim");
 				}
@@ -1561,7 +1508,8 @@ _dprintf("# wanduck: if_wan_phyconnected: x_Setting=%d, link_modem=%d, sim_state
 #else
 						eval("/usr/sbin/modem_status.sh", "signal");
 #endif
-#ifdef RT4GAC55U
+#if 0
+					// from the newest GUI, the signal don't be shown without SIM.
 					else
 						eval("/usr/sbin/modem_status.sh", "signal");
 #endif
@@ -1597,6 +1545,15 @@ _dprintf("# wanduck(%d): if_wan_phyconnected: x_Setting=%d, link_modem=%d, sim_s
 			else
 				link_changed = 1;
 		}
+
+#ifdef RTCONFIG_NOTIFICATION_CENTER
+		if(wan_unit == wan_primary_ifunit()
+#ifdef RTCONFIG_DUALWAN
+				&& strcmp(dualwan_mode, "lb")
+#endif
+				&& link_wan[wan_unit] == 0)
+			sent_unpublic = 0;
+#endif
 
 		if(link_wan[wan_unit] == 3)
 			return SET_PIN;
@@ -1639,8 +1596,18 @@ _dprintf("# wanduck(%d): if_wan_phyconnected: x_Setting=%d, link_modem=%d, sim_s
 		}
 
 		// after update_wan_state(), auxstate will be cleaned.
-		if(!link_wan[wan_unit])
+		if(!link_wan[wan_unit]){
 			record_wan_state_nvram(wan_unit, -1, -1, WAN_AUXSTATE_NOPHY);
+
+#ifdef RTCONFIG_NOTIFICATION_CENTER
+			if(wan_unit == wan_primary_ifunit()
+#ifdef RTCONFIG_DUALWAN
+					&& strcmp(dualwan_mode, "lb")
+#endif
+					)
+				sent_unpublic = 0;
+#endif
+		}
 	}
 
 #ifdef RTCONFIG_LANWAN_LED
@@ -1671,6 +1638,8 @@ _dprintf("# wanduck(%d): if_wan_phyconnected: x_Setting=%d, link_modem=%d, sim_s
 			nvram_set_int("link_ap", link_ap);
 	}
 #endif
+
+	link_internet = nvram_get_int("link_internet");
 
 	if(sw_mode == SW_MODE_ROUTER){
 		// this means D2C because of reconnecting the WAN port.
@@ -1725,7 +1694,10 @@ _dprintf("# wanduck(%d): if_wan_phyconnected: x_Setting=%d, link_modem=%d, sim_s
 #ifdef RTCONFIG_DUALWAN
 			if(strcmp(dualwan_mode, "lb"))
 #endif
+			{
 				nvram_set_int("link_internet", 1);
+				link_internet = 1;
+			}
 
 			if((nvram_get_int("web_redirect")&WEBREDIRECT_FLAG_NOLINK)){
 				disconn_case[wan_unit] = CASE_DISWAN;
@@ -1750,6 +1722,7 @@ _dprintf("# wanduck(%d): if_wan_phyconnected: x_Setting=%d, link_modem=%d, sim_s
 		if(!link_wan[wan_unit]){
 			// ?: type error?
 			nvram_set_int("link_internet", 1);
+			link_internet = 1;
 
 			record_wan_state_nvram(wan_unit, -1, -1, WAN_AUXSTATE_NOPHY);
 
@@ -1759,8 +1732,10 @@ _dprintf("# wanduck(%d): if_wan_phyconnected: x_Setting=%d, link_modem=%d, sim_s
 			}
 		}
 #else
-		if(nvram_get_int("link_internet") != 2)
+		if(link_internet != 2){
 			nvram_set_int("link_internet", 2);
+			link_internet = 2;
+		}
 
 #ifdef RTCONFIG_DHCP_OVERRIDE
 		if (nvram_match("dnsqmode", "2")) {
@@ -1769,14 +1744,17 @@ _dprintf("# wanduck(%d): if_wan_phyconnected: x_Setting=%d, link_modem=%d, sim_s
 		}
 		else
 #endif
+
 		return CONNED;
 #endif
 	}
 #ifdef RTCONFIG_WIRELESSREPEATER
 	else{ // sw_mode == SW_MODE_REPEATER, SW_MODE_HOTSPOT.
 		if(!link_ap){
-			if(nvram_get_int("link_internet") != 1)
+			if(link_internet != 1){
 				nvram_set_int("link_internet", 1);
+				link_internet = 1;
+			}
 
 			if(sw_mode == SW_MODE_HOTSPOT)
 				record_wan_state_nvram(wan_unit, -1, -1, WAN_AUXSTATE_NOPHY);
@@ -1792,14 +1770,18 @@ _dprintf("# wanduck(%d): if_wan_phyconnected: x_Setting=%d, link_modem=%d, sim_s
 #endif
 		{
 			if(nvram_match("lan_proto", "dhcp") && nvram_get_int("lan_state_t") != LAN_STATE_CONNECTED){
-				if(nvram_get_int("link_internet") != 1)
+				if(link_internet != 1){
 					nvram_set_int("link_internet", 1);
+					link_internet = 1;
+				}
 
 				return DISCONN;
 			}
 			else{
-				if(nvram_get_int("link_internet") != 2)
+				if(link_internet != 2){
 					nvram_set_int("link_internet", 2);
+					link_internet = 2;
+				}
 
 				return CONNED;
 			}
@@ -1809,6 +1791,48 @@ _dprintf("# wanduck(%d): if_wan_phyconnected: x_Setting=%d, link_modem=%d, sim_s
 
 	return CONNED;
 }
+
+#ifdef RTCONFIG_NOTIFICATION_CENTER
+void check_unpublic_event(const int wan_unit, const int link_internet){
+	int needed = 0;
+	char tmp[100];
+#ifdef RTCONFIG_GETREALIP
+	char prefix[16];
+	char wanip[32], realip[32];
+
+	if(wan_unit != wan_primary_ifunit()
+#ifdef RTCONFIG_DUALWAN
+			|| !strcmp(dualwan_mode, "lb")
+#endif
+			)
+		return;
+
+	snprintf(prefix, sizeof(prefix), "wan%d_", wan_unit);
+#endif
+
+	if(link_internet == CONNED && !sent_unpublic){
+		if(dualwan_unit__usbif(wan_unit))
+			needed = 1;
+#ifdef RTCONFIG_GETREALIP
+		else if(nvram_get_int(strcat_r(prefix, "realip_state", tmp)) == 2){
+			snprintf(wanip, sizeof(wanip), "%s", nvram_safe_get(strcat_r(prefix, "ipaddr", tmp)));
+			snprintf(realip, sizeof(realip), "%s", nvram_safe_get(strcat_r(prefix, "realip_ip", tmp)));
+
+			if(strcmp(wanip, realip))
+				needed = 1;
+		}
+#endif
+
+		if(needed && !sent_unpublic){
+			_dprintf("wanduck(%d): NC send SYS_WAN_UNPUBLIC_IP_EVENT.\n", wan_unit);
+			snprintf(tmp, sizeof(tmp), "0x%x", SYS_WAN_UNPUBLIC_IP_EVENT);
+			eval("Notify_Event2NC", tmp, "");
+
+			sent_unpublic = 1;
+		}
+	}
+}
+#endif
 
 int if_wan_connected(int wan_unit){
 	char tmp[100], prefix[16];
@@ -1831,9 +1855,19 @@ int if_wan_connected(int wan_unit){
 			(!strcmp(wan_proto, "pppoe") ||
 			 !strcmp(wan_proto, "pptp") ||
 			 !strcmp(wan_proto, "l2tp")) &&
-			nvram_get_int(strcat_r(prefix, "ppp_echo", tmp)) == 2)
+			nvram_get_int(strcat_r(prefix, "ppp_echo", tmp)) == 2){
+
+#ifdef RTCONFIG_NOTIFICATION_CENTER
+			check_unpublic_event(wan_unit, link_internet);
+#endif
+
 			return link_internet;
+		}
 	}
+
+#ifdef RTCONFIG_NOTIFICATION_CENTER
+	check_unpublic_event(wan_unit, CONNED);
+#endif
 
 	return CONNED;
 }
@@ -3620,6 +3654,7 @@ _dprintf("wanduck(%d): detect the modem to be reset...\n", current_wan_unit);
 				conn_state_old[current_wan_unit] = conn_state[current_wan_unit];
 
 #ifdef RTCONFIG_DSL /* Paul add 2013/7/29, for Non-DualWAN 3G/4G WAN -> DSL WAN, auto Fail-Back feature */
+#ifdef RTCONFIG_USB_MODEM
 				if (nvram_match("dsltmp_adslsyncsts","up") && current_wan_unit == WAN_UNIT_SECOND){
 					_dprintf("\n# wanduck: adslsync up.\n");
 					set_disconn_count(current_wan_unit, S_IDLE);
@@ -3630,6 +3665,7 @@ _dprintf("wanduck(%d): detect the modem to be reset...\n", current_wan_unit);
 				}
 				else
 					set_disconn_count(current_wan_unit, S_IDLE);
+#endif
 #else
 				set_disconn_count(current_wan_unit, S_IDLE);
 #endif

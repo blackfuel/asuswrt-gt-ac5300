@@ -14,6 +14,7 @@ modem_vid=`nvram get ${prefix}act_vid`
 modem_pid=`nvram get ${prefix}act_pid`
 modem_dev=`nvram get ${prefix}act_dev`
 modem_reg_time=`nvram get modem_reg_time`
+wandog_interval=`nvram get wandog_interval`
 atcmd=`nvram get modem_atcmd`
 
 usb_gobi2=`nvram get usb_gobi2`
@@ -105,6 +106,9 @@ if [ "$modem_type" == "gobi" ]; then
 
 		gobi_api $qcqmi SetEnhancedAutoconnect 2 1
 
+		wait_time1=`expr $wandog_interval + $wandog_interval`
+		wait_time=`expr $wait_time1 + $modem_reg_time`
+		nvram set freeze_duck=$wait_time
 		/usr/sbin/modem_at.sh '+COPS=2' "$modem_reg_time"
 		if [ -z "$atcmd" ] || [ "$atcmd" != "1" ]; then
 			/usr/sbin/modem_at.sh '' # clean the output of +COPS=2.
