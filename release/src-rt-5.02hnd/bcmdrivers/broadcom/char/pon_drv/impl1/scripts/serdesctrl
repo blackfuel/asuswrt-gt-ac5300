@@ -1,0 +1,104 @@
+#!/bin/sh
+# Serdes Debug CLI, work via /porc entry of Serdes driver
+# Create by Fuguo Xu <fuguoxu@broadcom.com>, 2016/01/08
+
+
+proc_entry_reg="/proc/serdes/wan/reg"
+proc_entry_prbs="/proc/serdes/wan/prbs"
+proc_entry_display="/proc/serdes/wan/display"
+proc_entry_pllsel="/proc/serdes/wan/pllsel"
+
+help_all()
+{
+    echo "$0 reg addr                          : read register"
+    echo "$0 reg addr value                    : write register"
+    echo help > $proc_entry_reg
+
+    echo
+    echo "$0 prbs                              : show prbs status"
+    echo "$0 prbs [pm1] [pm2] [pm3] [pm4]      : enable/disable prbs"
+    echo help > $proc_entry_prbs
+
+    echo
+    echo "$0 show [pm1] [pm2] ...              : show diag data, lane state legend, etc."
+    echo help > $proc_entry_display
+    
+    echo "$0 pllsel                            : read pll selection"
+    echo "$0 pllsel <0|1>                      : write pll selection"
+    echo help > $proc_entry_pllsel
+}
+
+reg_access()
+{
+    if [ "$2" = "" ]; then
+        # read
+        echo "$1" > $proc_entry_reg
+        cat $proc_entry_reg
+        echo
+    else
+        # write
+        echo "$1 $2" > $proc_entry_reg
+    fi
+}
+
+prbs_ctrl()
+{
+    if [ "$1" = "" ]; then
+        # show status
+        cat $proc_entry_prbs
+        echo
+    else
+        echo "$1 $2 $3 $4" > $proc_entry_prbs
+    fi
+}
+
+show_data()
+{
+    echo "$1 $2" > $proc_entry_display
+}
+
+pll_sel()
+{
+    if [ "$1" = "" ]; then
+        # read
+        cat $proc_entry_pllsel
+        echo
+    else
+        # write
+        echo "$1" > $proc_entry_pllsel
+    fi
+}
+
+# main
+case "$1" in
+    reg)
+        reg_access $2 $3
+        exit 0
+        ;;
+        
+    pllsel)
+        pll_sel $2
+        exit 0
+        ;;
+
+    prbs)
+        prbs_ctrl $2 $3 $4 $5
+        exit 0
+        ;;
+
+    show)
+        show_data $2 $3
+        exit 0
+        ;;
+
+    -h | --help)
+        help_all
+        exit 0
+        ;;
+
+     *)
+        echo "$0: unrecognized option [$1]"
+        help_all
+        exit 1
+        ;;
+esac

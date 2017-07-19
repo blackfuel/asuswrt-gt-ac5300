@@ -1,0 +1,4 @@
+export IPKG_TOOLS := /home/alan/arm/optware/mbwe-bluering/toolchain/ipkg-utils-1.7
+
+all:
+	@$(IPKG_TOOLS)/ipkg-build smartsync-pkg-1.0 ./

@@ -1,0 +1,6 @@
+CROSS_COMPILE := mipsel-linux-
+export CROSS_COMPILER := $(CROSS_COMPILE)
+export IPKG_TOOLS := $(shell cd $(dir $(shell which $(CROSS_COMPILE)gcc))../../../ipkg-utils-1.7 && pwd)
+
+all:
+	@$(IPKG_TOOLS)/ipkg-build smartsync-pkg-1.0 ./

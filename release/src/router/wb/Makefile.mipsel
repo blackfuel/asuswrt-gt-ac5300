@@ -1,0 +1,61 @@
+#include ../common.mak
+
+export LD :=/home/alan/oleg/optware/toolchain/mipsel-linux-uclibc/gcc-4.1.1-uclibc-0.9.28/bin/mipsel-linux-uclibc-ld
+export EXTRACFLAGS := -DBCMWPA2 -fno-delete-null-pointer-checks -mips32 -mtune=mips32
+export CC := /home/alan/oleg/optware/toolchain/mipsel-linux-uclibc/gcc-4.1.1-uclibc-0.9.28/bin/mipsel-linux-uclibc-gcc
+export AR := /home/alan/oleg/optware/toolchain/mipsel-linux-uclibc/gcc-4.1.1-uclibc-0.9.28/bin/mipsel-linux-uclibc-ar
+export INSTALLDIR := /WorkSpace_oleg/AiCloud/shared
+export STRIP := /home/alan/oleg/optware/toolchain/mipsel-linux-uclibc/gcc-4.1.1-uclibc-0.9.28/bin/mipsel-linux-uclibc-strip
+export SIZE := /home/alan/oleg/optware/toolchain/mipsel-linux-uclibc/gcc-4.1.1-uclibc-0.9.28/bin/mipsel-linux-size
+export AS:=/home/alan/oleg/optware/toolchain/mipsel-linux-uclibc/gcc-4.1.1-uclibc-0.9.28/bin/mipsel-linux-uclibc-as 
+export NM:=/home/alan/oleg/optware/toolchain/mipsel-linux-uclibc/gcc-4.1.1-uclibc-0.9.28/bin/mipsel-linux-uclibc-nm 
+export CPP:="/home/alan/oleg/optware/toolchain/mipsel-linux-uclibc/gcc-4.1.1-uclibc-0.9.28/bin/mipsel-linux-uclibc-gcc -E" 
+export GCC:=/home/alan/oleg/optware/toolchain/mipsel-linux-uclibc/gcc-4.1.1-uclibc-0.9.28/bin/mipsel-linux-uclibc-gcc 
+export CXX:=/home/alan/oleg/optware/toolchain/mipsel-linux-uclibc/gcc-4.1.1-uclibc-0.9.28/bin/mipsel-linux-uclibc-g++ 
+
+WSLIB=libws.so
+
+CURL_DIR=../curl-7.21.7
+XML2_DIR=../libxml2
+OPENSSL_DIR=../openssl
+
+WS_SRC=ws_src
+OUTPUT=output
+
+SRC=$(wildcard *.c)
+OBJS=$(patsubst %.c, %.o, $(SRC))
+#WS_SOURCES := $(WS_SRC)/curl_api.c $(WS_SRC)/parse_xml.c $(WS_SRC)/wb.c $(WS_SRC)/wb_util.c $(WS_SRC)/ssl_api.c $(WS_SRC)/log.c
+WS_SOURCES := $(wildcard $(WS_SRC)/*.c)
+WSLIB_OBJS := $(WS_SOURCES:%.c=$(OUTPUT)/%.o)
+
+all: $(WSLIB)
+
+CFLAGS = -fPIC -I$(CURL_DIR)/include -I$(OPENSSL_DIR)/include -I$(XML2_DIR)/include -I.  -I$(WS_SRC)
+
+LDFLAGS = -L$(OPENSSL_DIR) -lcrypto -lssl
+LDFLAGS += -L$(CURL_DIR)/lib/.libs -lcurl
+LDFLAGS += -L$(XML2_DIR)/.libs -lxml2 -lpthread
+LDFLAGS += -ldl
+LDFLAGS += -Wl,-rpath,/opt/lib -Wl,-rpath-link,$(SRCBASE)/opt/lib
+
+#$(WSLIB): $(WSLIB_OBJS)
+#	$(LD) -shared -o $@ $^ $(LDFLAGS)
+
+#$(WSLIB_OBJS): $(OUTPUT)/%.o: %.c
+#	mkdir -p $(dir $@)	
+#	$(CC) $(CFLAGS) -c $< -o $@
+
+$(WSLIB): $(WS_SOURCES)
+	mkdir -p $(dir $@)	
+	$(CC) $(CFLAGS) -shared -o $@ $^ $(LDFLAGS)
+
+%.o: %.c
+	$(CC) $(CFLAGS) -c $< -o $@ 
+
+install: all
+	$(STRIP) $(WSLIB)
+	install -D $(WSLIB) $(INSTALLDIR)/lib/$(WSLIB)
+
+clean:
+	rm -rf *.o  *.so output
+
