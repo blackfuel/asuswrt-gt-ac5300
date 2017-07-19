@@ -45,6 +45,12 @@ function wl_chanspec_list_change(){
 								wl_channel_list_5g.splice(wl_channel_list_5g.getIndexByValue("165"),1);
 						
 						if(bw_cap == "0"){	// [20/40/80 MHz] (auto)
+
+							if((country == "EU" || country == "E0") && wl_channel_list_5g.indexOf("116") != -1){			// remove channel 116, 
+								var index = wl_channel_list_5g.indexOf("116");
+								wl_channel_list_5g.splice(index, 1);
+							}
+
 							document.getElementById('wl_nctrlsb_field').style.display = "";
 								for(var i=0;i<wl_channel_list_5g.length;i++){
 										if(wl_channel_list_5g[i] == "165" || wl_channel_list_5g[i] == "140")		//140, 165 belong to 20MHz
@@ -358,6 +364,12 @@ function wl_chanspec_list_change(){
 						}
 						
 						if(bw_cap == "0"){	// [20/40/80 MHz] (auto)
+
+							if((country == "EU" || country == "E0") && wl_channel_list_5g_2.indexOf("116") != -1){			// remove channel 116, 
+								var index = wl_channel_list_5g_2.indexOf("116");
+								wl_channel_list_5g_2.splice(index, 1);
+							}
+
 							document.getElementById('wl_nctrlsb_field').style.display = "";
 							for(var i=0;i<wl_channel_list_5g_2.length;i++){
 								if(wl_channel_list_5g_2[i] == "165" || wl_channel_list_5g_2[i] == "140")		//165 belong to 20MHz

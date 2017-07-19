@@ -277,7 +277,7 @@ function cal_panel_block(obj){
 									</div>
 									<div style="margin:5px">
 										<table style="margin-left:0px;" width="95%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="FormTable">
-											<th><#Adaptive_History#></th>
+											<th>Enable Web History</th>
 											<td>
 												<div align="center" class="left" style="width:94px; float:left; cursor:pointer;" id="bwdpi_wh_enable"></div>
 															<script type="text/javascript">
@@ -328,7 +328,7 @@ function cal_panel_block(obj){
 									<div id="log_field">
 										<div style="margin:10px 5px">
 											<select id="clientListOption" class="input_option" name="clientList" onchange="getWebHistory(this.value);">
-												<option value="" selected><#All_Client#></option>
+												<option value="" selected>All client</option>
 											</select>
 											<label style="margin: 0 5px 0 20px;visibility:hidden;cursor:pointer" id="previous_button" onclick="change_page('previous');">Previous</label>
 											<input class="input_3_table" value="1" id="current_page"></input>

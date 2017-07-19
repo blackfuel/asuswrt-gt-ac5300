@@ -80,10 +80,10 @@ define(function(){
 					{url: "NULL", tabName: "__INHERIT__"}
 				] 
 			},			{
-				menuName: "<#Game_Profile#>",
+				menuName: "Game Profile",
 				index: "menu_GameProfile", 
 				tab: [
-					{url: "GameProfile.asp", tabName: "<#Game_Profile#>"},
+					{url: "GameProfile.asp", tabName: "Game Profile"},
 					{url: "NULL", tabName: "__INHERIT__"}
 				] 
 			},
@@ -96,10 +96,10 @@ define(function(){
 				] 
 			},
 			{
-				menuName: "<#WiFi_radar#>",
+				menuName: "WiFi Radar",
 				index: "menu_WifiRadar", 
 				tab: [
-					{url: "WiFi_Insight.asp", tabName: "<#WiFi_radar#>"},
+					{url: "WiFi_Insight.asp", tabName: "WiFi Radar"},
 					{url: "NULL", tabName: "__INHERIT__"}
 				] 
 			},
@@ -119,7 +119,7 @@ define(function(){
 				menuName: "<#Traffic_Analyzer#>",
 				index: "menu_TrafficAnalyzer", 
 				tab: [
-					{url: "TrafficAnalyzer_Statistic.asp", tabName: "<#Statistic#>"},
+					{url: "TrafficAnalyzer_Statistic.asp", tabName: "Statistic"},
 					{url: "Main_TrafficMonitor_realtime.asp", tabName: "<#traffic_monitor#>"},
 					{url: "Main_TrafficMonitor_last24.asp", tabName: "__INHERIT__"},
 					{url: "Main_TrafficMonitor_daily.asp", tabName: "__INHERIT__"},

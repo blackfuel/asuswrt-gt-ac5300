@@ -7,7 +7,7 @@
 <meta HTTP-EQUIV="Pragma" CONTENT="no-cache">
 <meta HTTP-EQUIV="Expires" CONTENT="-1">
 <link rel="shortcut icon" href="images/favicon.png">
-<link rel="icon" href="images/favicon.png"><title><#Web_Title#> - <#WiFi_radar#></title>
+<link rel="icon" href="images/favicon.png"><title><#Web_Title#> - WiFi Radar</title>
 <link rel="stylesheet" type="text/css" href="index_style.css">
 <link rel="stylesheet" type="text/css" href="form_style.css">
 <link rel="stylesheet" type="text/css" href="usp_style.css">
@@ -57,7 +57,7 @@ function initial(){
 									<table width="730px">
 										<tr>
 											<td align="left">
-												<span class="formfonttitle"><#WiFi_radar#></span>
+												<span class="formfonttitle">WiFi Radar</span>
 											</td>
 										</tr>
 									</table>
@@ -84,10 +84,10 @@ function initial(){
 												</td>
 												<td class="app_table_radius_right" style="width:350px;height:120px;">
 													<div class="app_name">
-														<a style="text-decoration: underline;" href="visindex.asp" target="_blank"><#WiFi_sitesurvey#></a>
+														<a style="text-decoration: underline;" href="visindex.asp" target="_blank">WiFi Site Survey</a>
 													</div>
 													<div class="app_desc" style="height:60px;">
-														<li><#WiFi_sitesurvey_desc#></li>
+														<li>WiFi Site survey will discover all wireless access point in your environment.</li>
 													</div>
 												</td>
 											</tr>
@@ -99,10 +99,10 @@ function initial(){
 												</td>
 												<td class="app_table_radius_right" style="width:350px;height:120px;">
 													<div class="app_name">
-														<a style="text-decoration: underline;" href="channelcapacity.asp" target="_blank"><#WiFi_Statistics#></a>
+														<a style="text-decoration: underline;" href="channelcapacity.asp" target="_blank">Wireless Channel Statistics</a>
 													</div>
 													<div class="app_desc" style="height:60px;">
-														<li><#WiFi_Statistics_desc#></li>
+														<li>Wireless channel statistics will show all wireless signal interferences nearby, and insight channel capacity as well.</li>
 													</div>
 												</td>
 											</tr>
@@ -113,10 +113,10 @@ function initial(){
 												</td>
 												<td class="app_table_radius_right" style="width:350px;height:120px;">
 													<div class="app_name">
-														<a style="text-decoration: underline;" href="metrics.asp" target="_blank"><#WiFi_TroubleShooting#></a>
+														<a style="text-decoration: underline;" href="metrics.asp" target="_blank">Advanced Trouble Shooting</a>
 													</div>
 													<div class="app_desc" style="height:60px;">
-														<li><#WiFi_TroubleShooting_desc#></li>
+														<li>Advanced trouble shooting will insight most of the counters like AMPDU(if available), Glitch, Chanim and Packet Queue Statistics.</li>
 													</div>
 												</td>
 											</tr>
@@ -131,7 +131,7 @@ function initial(){
 														<a style="text-decoration: underline;" href="configure.asp" target="_blank"><#Settings#></a>
 													</div>
 													<div class="app_desc" style="height:60px;">
-														<li><#WiFi_radar_desc#></li>
+														<li>Configure all parameters of WiFi Radar.</li>
 													</div>
 												</td>
 											</tr>

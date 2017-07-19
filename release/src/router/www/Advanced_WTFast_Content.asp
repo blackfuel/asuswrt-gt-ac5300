@@ -1100,7 +1100,7 @@ function clean_macerr(){
 				</td>
 			</tr>
 		</table>
-		<div style="color:#949393; font-size:12px; text-align:center;"><#Manual_Setting_notice#> <#GB_management_note1#></div>
+		<div style="color:#949393; font-size:12px; text-align:center;">*Note: As you use Game Boost powered by WTFast, you agree with WTFast <span><a href="javascript:open_link('terms')" style="text-decoration:underline;color:#008DE5;">Terms of Use</a></span> and <span><a href="javascript:open_link('privacy')" style="text-decoration:underline;color:#008DE5;">Privacy Policy</a></span>.</div>
 		<div>
 			<canvas id="fire" style="width:760px;height:430px; display:block;position:absolute; top:491px; z-index:-1;"></canvas>
 			<img id="fire_pic" style="position: absolute; top: 499px; z-index: -1; margin-left: 3px;display:none;" src="images/fire.jpg">
@@ -1165,7 +1165,7 @@ function clean_macerr(){
 								</td>
 								<td id="ended_date_td">
 							  		<span id="ended_date"></span><span id="days_title" style="margin-left:10px;">( Days Left: <span id="days_left"></span> )</span> <!--untranslated-->
-							  		<div id="trail_desc" style="color:#FFCC00; margin-top: 10px;"><#GB_ended_date_desc#></div>
+							  		<div id="trail_desc" style="color:#FFCC00; margin-top: 10px;">WTFast provides every new user 14 days advanced trial period, this is only concerning the Advanced account with more proxy server options. After the trial period expires, you can still enjoy a lifetime subscription with basic account features which is free and with traffic limits.</div><!--untranslated-->
 								</td>
 							</tr>
 						</table>
@@ -1217,7 +1217,7 @@ function clean_macerr(){
 						<table cellspacing="0"><tr><td><div id="wtfast_rulelist_Block"></div></td></tr></table>
 						<ul>
 							<li style="color: #FFCC00;"><div class="comment_div"><#GB_management_note1#></div></li>
-							<li style="color: #FFCC00;"><div class="comment_div"><#GB_management_note2#></div></li>
+							<li style="color: #FFCC00;"><div class="comment_div">WTFast is still working on the development of game console support, which we have also stated in the disclaimer on our product page. For a list of the games that are currently supported please refer to <span><a href="javascript:open_link('gameList')" style="text-decoration:underline;color:#008DE5;">this list</a></span>. (updated on a regular basis)</div></li>
 							<li style="color: #FFCC00;"><div class="comment_div"><#GB_management_note3#></div></li>
 							<li style="color: #FFCC00;"><div class="comment_div"><#GB_management_note4#></div></li>
 							<li style="color: #FFCC00;"><div class="comment_div"><#GB_management_note5#></div></li>

@@ -124,7 +124,7 @@ define(function(){
 				menuName: "<#Traffic_Analyzer#>",
 				index: "menu_TrafficAnalyzer",
 				tab: [
-					{url: "TrafficAnalyzer_Statistic.asp", tabName: "<#Statistic#>"},
+					{url: "TrafficAnalyzer_Statistic.asp", tabName: "Statistic"},
 					{url: "AdaptiveQoS_WebHistory.asp", tabName: "<#Adaptive_History#>"},
 					{url: "NULL", tabName: "__INHERIT__"}
 				]

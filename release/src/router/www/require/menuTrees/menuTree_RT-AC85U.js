@@ -88,7 +88,7 @@ define(function(){
 				menuName: "<#Traffic_Analyzer#>",
 				index: "menu_TrafficAnalyzer", 
 				tab: [
-					{url: "TrafficAnalyzer_Statistic.asp", tabName: "<#Statistic#>"},
+					{url: "TrafficAnalyzer_Statistic.asp", tabName: "Statistic"},
 					{url: "NULL", tabName: "__INHERIT__"}
 				] 
 			},
