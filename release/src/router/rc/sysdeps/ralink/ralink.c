@@ -393,6 +393,10 @@ int getCountryRegion5G(const char *countryCode, int *warning, int IEEE80211H)
 		if (nvram_contains_word("rc_support", "loclist") && !strcasecmp(countryCode, "AU"))
 			return 9;
 #endif
+#if defined(RTAC53)
+		if (nvram_contains_word("rc_support", "loclist") && !strcasecmp(countryCode, "SG"))
+			return 18;
+#endif
 		return 0;
 	}
 	else if (
@@ -1365,8 +1369,30 @@ int gen_ralink_config(int band, int is_iNIC)
 #else
 			&& wlc_band == band
 #endif
-			) 
+			)
+		{ 
 			fprintf(fp, "AutoChannelSelect=%d\n", 1);
+#ifdef RTCONFIG_RALINK_DFS
+			if(band){
+					snprintf(prefix_mssid, sizeof(prefix_mssid), "wl%d.1_", band);
+					if(nvram_get_int(strcat_r(prefix_mssid, "channel", tmp)) == 0){
+						memset(tmpstr, 0x0, sizeof(tmpstr));
+						if ((nvram_get_int(strcat_r(prefix_mssid, "bw", tmp)) == 1) || (nvram_get_int(strcat_r(prefix_mssid, "bw", tmp)) == 3)){
+							if(band && IEEE80211H){
+								sprintf(tmpstr,"%d;%d;%d;%d",116,132,136,140);
+								fprintf(fp,"AutoChannelSkipList=%s\n",tmpstr);
+							}
+						}
+						else if (nvram_get_int(strcat_r(prefix_mssid, "bw", tmp)) == 2){
+							if(band && IEEE80211H){
+								sprintf(tmpstr,"%d;%d",116,140);
+								fprintf(fp,"AutoChannelSkipList=%s\n",tmpstr);
+							}
+						}
+					}
+				}
+#endif	/* RTCONFIG_RALINK_DFS */
+		}
 		else if (str && strlen(str))
 		{
 			if (atoi(str) == 0)
@@ -1387,8 +1413,14 @@ int gen_ralink_config(int band, int is_iNIC)
 					sprintf(tmpstr,"%d",165);// skip 165 in A band when bw setting to 20/40Mhz or 40Mhz.
 
 #ifdef RTCONFIG_RALINK_DFS
-					if(band && IEEE80211H)
-						sprintf(tmpstr,"%s;%d",tmpstr,116);	//skip 116 when BW > 20MHz
+					if(band && IEEE80211H){
+						if((nvram_get_int(strcat_r(prefix, "bw", tmp))==1) || (nvram_get_int(strcat_r(prefix, "bw", tmp))==3)){
+							sprintf(tmpstr,"%s;%d;%d;%d;%d",tmpstr,116,132,136,140);	//skip 116 132 136 140 under auto mode					
+						}
+						else if(nvram_get_int(strcat_r(prefix, "bw", tmp))==2){
+							sprintf(tmpstr,"%s;%d;%d",tmpstr,116,140);	//skip 116 132 136 140 under auto mode					
+						}
+					}
 #endif	/* RTCONFIG_RALINK_DFS */
 				}
 
@@ -2606,6 +2638,24 @@ int gen_ralink_config(int band, int is_iNIC)
 #if defined(RTCONFIG_MUMIMO_2G) || defined(RTCONFIG_MUMIMO_5G)
 		mumimo = atoi(nvram_safe_get(strcat_r(prefix, "mumimo", tmp)));
 #endif
+#ifdef RTCONFIG_TXBF_BAND3ONLY
+		if (sw_mode == SW_MODE_AP) {
+
+			cht =  nvram_get_int(strcat_r(prefix, "channel", tmp));
+			if (cht >= 100 && cht <= 144) { // BAND3
+				nvram_set_int(strcat_r(prefix, "txbf", tmp), 1);
+				nvram_set_int(strcat_r(prefix, "txbf_en", tmp), 1);
+			}
+			else {
+				nvram_set_int(strcat_r(prefix, "txbf", tmp), 0);
+				nvram_set_int(strcat_r(prefix, "txbf_en", tmp), 0);
+			}
+
+		} else {
+			nvram_set_int(strcat_r(prefix, "txbf", tmp), 0);
+			nvram_set_int(strcat_r(prefix, "txbf_en", tmp), 0);
+		}
+#endif		
 		str = nvram_safe_get(strcat_r(prefix, "txbf", tmp));
 		if ((atoi(str) > 0) && nvram_match(strcat_r(prefix, "txbf_en", tmp), "1"))
 		{
@@ -3931,7 +3981,7 @@ getSiteSurvey(int band,char* ofile)
 				for (i = 0; i < apCount; i++){
 					if(atoi(ssap->SiteSurvey[i].channel) < 0 )
 					{
-						fprintf(fp, "\"ERR_BNAD\",");
+						fprintf(fp, "\"ERR_BAND\",");
 					}else if( atoi(ssap->SiteSurvey[i].channel) > 0 && atoi(ssap->SiteSurvey[i].channel) < 14)
 					{
 						fprintf(fp, "\"2G\",");
@@ -3940,7 +3990,7 @@ getSiteSurvey(int band,char* ofile)
 						fprintf(fp, "\"5G\",");
 					}
 					else{
-						fprintf(fp, "\"ERR_BNAD\",");
+						fprintf(fp, "\"ERR_BAND\",");
 					}
 
 					if (strlen(ssap->SiteSurvey[i].ssid) == 0){
@@ -4451,6 +4501,7 @@ wps_pin(int pincode)
 			++i;
 			continue;
 		}
+		SKIP_ABSENT_BAND_AND_INC_UNIT(i);
 		snprintf(prefix, sizeof(prefix), "wl%d_", i);
 
 		if (!need_to_start_wps_band(i)) {
@@ -4514,6 +4565,7 @@ __wps_pbc(const int multiband)
 			++i;
 			continue;
 		}
+		SKIP_ABSENT_BAND_AND_INC_UNIT(i);
 		snprintf(prefix, sizeof(prefix), "wl%d_", i);
 
 		if (!need_to_start_wps_band(i)) {
@@ -4633,6 +4685,7 @@ wps_pin(int pincode)
 			++i;
 			continue;
 		}
+		SKIP_ABSENT_BAND_AND_INC_UNIT(i);
 		snprintf(prefix, sizeof(prefix), "wl%d_", i);
 
 		if (!need_to_start_wps_band(i)) {
@@ -4671,6 +4724,7 @@ __wps_pbc(const int multiband)
 			++i;
 			continue;
 		}
+		SKIP_ABSENT_BAND_AND_INC_UNIT(i);
 		snprintf(prefix, sizeof(prefix), "wl%d_", i);
 
 		if (!need_to_start_wps_band(i)) {
@@ -4740,6 +4794,7 @@ __wps_oob(const int multiband)
 			++i;
 			continue;
 		}
+		SKIP_ABSENT_BAND_AND_INC_UNIT(i);
 		snprintf(prefix, sizeof(prefix), "wl%d_", i);
 		nvram_set("w_Setting", "0");
 		if (!i)
@@ -4980,6 +5035,7 @@ start_wsc(void)
 			++i;
 			continue;
 		}
+		SKIP_ABSENT_BAND_AND_INC_UNIT(i);
 		snprintf(prefix, sizeof(prefix), "wl%d_", i);
 
 		if (!need_to_start_wps_band(i)) {
@@ -5046,6 +5102,7 @@ start_wsc_pin_enrollee(void)
 			++i;
 			continue;
 		}
+		SKIP_ABSENT_BAND_AND_INC_UNIT(i);
 		snprintf(prefix, sizeof(prefix), "wl%d_", i);
 
 		if (!need_to_start_wps_band(i)) {
@@ -5087,6 +5144,7 @@ __stop_wsc(int multiband)
 			++i;
 			continue;
 		}
+		SKIP_ABSENT_BAND_AND_INC_UNIT(i);
 		snprintf(prefix, sizeof(prefix), "wl%d_", i);
 
 		if (!need_to_start_wps_band(i)) {
@@ -5241,6 +5299,10 @@ wsc_user_commit(void)
 	const char *wif;
 
 	for (i = 0; i < MAX_NR_WL_IF; ++i) {
+#if !defined(RTCONFIG_HAS_5G_2)
+		if (i == 2)
+			continue;
+#endif
 		sprintf(prefix, "wl%d_", i);
 		if (!nvram_match(strcat_r(prefix, "wsc_config_state", tmp), "2"))
 			continue;

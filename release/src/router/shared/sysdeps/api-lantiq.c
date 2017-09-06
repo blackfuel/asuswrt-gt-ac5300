@@ -77,8 +77,8 @@ ieee80211_mhz2ieee(u_int freq)
 /////////////
 
 #if defined(RTCONFIG_LANTIQ)
-const char WIF_5G[] = "wifi2_0";
-const char WIF_2G[] = "wifi0_0";
+const char WIF_5G[] = "wlan2";
+const char WIF_2G[] = "wlan0";
 const char STA_5G[] = "wifi2_0";
 const char STA_2G[] = "wifi0_0";
 const char VPHY_5G[] = "wifi2_0";
@@ -159,19 +159,46 @@ int get_switch_model(void)
 	return SWITCH_UNKNOWN;
 }
 
-uint32_t get_phy_status(uint32_t portmask)
+uint32_t get_phy_status(int wan_unit)
 {
-	// TODO
-	return 1;		/* FIXME */
+	char tmp[100], prefix[] = "wanXXXXXXXXXX_";
+	char *wan_ifname;
+	char buf[32];
+
+	snprintf(prefix, sizeof(prefix), "wan%d_", wan_unit);
+	wan_ifname = nvram_safe_get(strcat_r(prefix, "ifname", tmp));
+
+	if(strlen(wan_ifname) <= 0)
+		return 0;
+
+	snprintf(tmp, sizeof(tmp), "/sys/class/net/%s/operstate", wan_ifname);
+
+	f_read_string(tmp, buf, sizeof(buf));
+	if(!strncmp(buf, "up", 2))
+		return 1;
+	else
+		return 0;
 }
 
-uint32_t get_phy_speed(uint32_t portmask)
+uint32_t get_phy_speed(int wan_unit)
 {
-	// TODO
-	return 1;		/* FIXME */
+	char tmp[100], prefix[] = "wanXXXXXXXXXX_";
+	char *wan_ifname;
+	char buf[32];
+
+	snprintf(prefix, sizeof(prefix), "wan%d_", wan_unit);
+	wan_ifname = nvram_safe_get(strcat_r(prefix, "ifname", tmp));
+
+	if(strlen(wan_ifname) <= 0)
+		return 0;
+
+	snprintf(tmp, sizeof(tmp), "/sys/class/net/%s/speed", wan_ifname);
+
+	f_read_string(tmp, buf, sizeof(buf));
+	return strtoul(buf, NULL, 10);
 }
 
-uint32_t set_phy_ctrl(uint32_t portmask, int ctrl)
+uint32_t set_phy_ctrl(int wan_unit, int ctrl)
 {
 	// TODO
 	return 1;		/* FIXME */
@@ -345,7 +372,7 @@ char *wl_vifname_wave(int unit, int subunit)
 	if(unit == 0)
 		wave_unit=0;	/* 2G */
 	else if(unit ==1)
-		wave_unit=1;	/* 5G */
+		wave_unit=2;	/* 5G */
 
 	if ((subunit > 0) && (subunit < 4))
 	{
@@ -1192,7 +1219,41 @@ char *get_2g_hwaddr(void)
 	return nvram_safe_get(get_lan_mac_name());
 }
 
+char *get_label_mac()
+{
+	return get_2g_hwaddr();
+}
+
 char *get_wan_hwaddr(void)
 {
         return nvram_safe_get(get_wan_mac_name());
+}
+
+char *get_wlifname(int unit, int subunit, int subunit_x, char *buf)
+{
+	sprintf(buf, "wl%d.%d", unit, subunit);
+
+	return buf;
+}
+
+char *get_wififname(int band)
+{
+        const char *wif[] = { WIF_2G, WIF_5G };
+        if (band < 0 || band >= ARRAY_SIZE(wif)) {
+                dbg("%s: Invalid wl%d band!\n", __func__, band);
+                band = 0;
+        }
+        return (char*) wif[band];
+}
+
+/**
+ * Generate VAP interface name of wlX.Y for Guest network, Free Wi-Fi, and Facebook Wi-Fi
+ * @x:		X of wlX.Y, aka unit
+ * @y:		Y of wlX.Y
+ * @buf:	Pointer to buffer of VAP interface name. Must greater than or equal to IFNAMSIZ
+ * @return:
+ */
+char *get_wlxy_ifname(int x, int y, char *buf)
+{
+	return get_wlifname(x, y, y, buf);
 }

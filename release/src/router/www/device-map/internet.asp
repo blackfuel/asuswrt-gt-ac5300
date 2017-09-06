@@ -22,6 +22,7 @@ if(parent.location.pathname.search("index") === -1) top.location.href = "../"+'<
 <% secondary_wanlink(); %>
 
 //active wan
+var wans_caps = '<% nvram_get("wans_cap"); %>';
 var wanip = wanlink_ipaddr();
 var wannetmask = wanlink_netmask();
 var wandns = wanlink_dns();
@@ -291,6 +292,7 @@ function initial(){
 		update_all_xip(wanxip, wanxnetmask, wanxdns, wanxgateway, unit);
 	}
 
+	set_NM_height();
 }
 
 function update_connection_type(dualwan_unit){
@@ -423,8 +425,13 @@ function update_all_ip(wanip, wannetmask, wandns, wangateway, unit){
 	if(unit == 0){
 		showtext($("#WANIP")[0], wanip);
 		showtext($("#netmask")[0], wannetmask);
-		showtext2($("#DNS1")[0], dnsArray[0], dnsArray[0]);
-		showtext2($("#DNS2")[0], dnsArray[1], dnsArray[1]);
+		if(wandns.length == 0){
+			$("#DNS1")[0].style.height = "20px";
+		}
+		else{
+			showtext2($("#DNS1")[0], dnsArray[0], dnsArray[0]);
+			showtext2($("#DNS2")[0], dnsArray[1], dnsArray[1]);
+		}
 		showtext($("#gateway")[0], wangateway);
 
 		if(parent.wans_flag){
@@ -444,8 +451,13 @@ function update_all_ip(wanip, wannetmask, wandns, wangateway, unit){
 	else{
 		showtext($("#secondary_WANIP")[0], wanip);
 		showtext($("#secondary_netmask")[0], wannetmask);
-		showtext2($("#secondary_DNS1")[0], dnsArray[0], dnsArray[0]);
-		showtext2($("#secondary_DNS2")[0], dnsArray[1], dnsArray[1]);
+		if(wandns.length == 0){
+			$("#secondary_DNS1")[0].style.height = "20px";
+		}
+		else{
+			showtext2($("#secondary_DNS1")[0], dnsArray[0], dnsArray[0]);
+			showtext2($("#secondary_DNS2")[0], dnsArray[1], dnsArray[1]);
+		}
 		showtext($("#secondary_gateway")[0], wangateway);
 		if (secondary_wanlink_type() == "dhcp") {
 			showtext($("#secondary_lease")[0], format_time(secondary_lease, "Renewing..."));
@@ -642,7 +654,10 @@ function goToWAN(){
 			else
 				document.act_form.current_page.value = "Advanced_Modem_Content.asp";
 		}
-		else if(wans_dualwan.split(" ")[wan_selected].toUpperCase() == "WAN" || wans_dualwan.split(" ")[wan_selected].toUpperCase() == "LAN"){
+		else if(wans_dualwan.split(" ")[wan_selected].toUpperCase() == "WAN" ||
+			wans_dualwan.split(" ")[wan_selected].toUpperCase() == "WAN2" ||
+			wans_dualwan.split(" ")[wan_selected].toUpperCase() == "LAN")
+		{
 			document.act_form.current_page.value = "Advanced_WAN_Content.asp";
 		}
 		else if(wans_dualwan.split(" ")[wan_selected].toUpperCase() == "DSL")
@@ -777,17 +792,28 @@ function manualSetup(){
 				<script type="text/javascript">
 						$('#radio_dualwan_enable').iphoneSwitch(parent.wans_flag, 
 							 function() {
-								if(wans_dualwan.split(" ")[0] == "usb"){
+								if(wans_dualwan.split(" ")[0] == "usb" || wans_dualwan.split(" ")[0] == "lan"){
+									document.internetForm.wans_dualwan.value = wans_dualwan.split(" ")[0]+" wan";
+									document.internetForm.action_wait.value = '<% get_default_reboot_time(); %>';
+									document.internetForm.action_script.value = "reboot";
+								}
+								else if(wans_dualwan.split(" ")[0] == "wan2"){
 									document.internetForm.wans_dualwan.value = wans_dualwan.split(" ")[0]+" wan";
 									document.internetForm.action_wait.value = '<% get_default_reboot_time(); %>';
 									document.internetForm.action_script.value = "reboot";
 									document.internetForm.flag.value = "Internet";
 								}
 								else{
-									document.internetForm.wans_dualwan.value = wans_dualwan.split(" ")[0]+" usb";
-									document.internetForm.action_wait.value = '2';
-									document.internetForm.action_script.value = "start_multipath";
-									setTimeout(parent.refreshpage, 1000);
+									if(wans_caps.search("wan2") >= 0) {
+										document.internetForm.wans_dualwan.value = wans_dualwan.split(" ")[0]+" wan2";
+										document.internetForm.action_wait.value = '<% get_default_reboot_time(); %>';
+										document.internetForm.action_script.value = "reboot";
+									}else{
+										document.internetForm.wans_dualwan.value = wans_dualwan.split(" ")[0]+" usb";
+										document.internetForm.action_wait.value = '2';
+										document.internetForm.action_script.value = "start_multipath";
+										setTimeout(parent.refreshpage, 1000);
+									}
 								}
 
 								document.internetForm.submit();

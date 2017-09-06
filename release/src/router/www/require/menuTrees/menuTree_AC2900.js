@@ -182,8 +182,7 @@ define(function(){
 					{url: "Advanced_BasicFirewall_Content.asp", tabName: "<#menu5_1_1#>"},
 					{url: "Advanced_URLFilter_Content.asp", tabName: "<#menu5_5_2#>"},
 					{url: "Advanced_KeywordFilter_Content.asp", tabName: "<#menu5_5_5#>"},
-					{url: "Advanced_Firewall_Content.asp", tabName: "<#menu5_5_4#>"},
-					{url: "Advanced_Firewall_IPv6_Content.asp", tabName: "<#menu5_5_6#>"},			
+					{url: "Advanced_Firewall_Content.asp", tabName: "<#menu5_5_4#>"},			
 					{url: "NULL", tabName: "__INHERIT__"}
 				]
 			},
@@ -480,7 +479,6 @@ define(function(){
 
 				if(!IPv6_support){
 					retArray.push("Main_IPV6Status_Content.asp");
-					retArray.push("Advanced_Firewall_IPv6_Content.asp");
 				}
 
 				if(!fbwifi_support){

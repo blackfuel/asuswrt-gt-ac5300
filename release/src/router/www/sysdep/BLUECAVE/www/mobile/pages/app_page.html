@@ -1,0 +1,118 @@
+<div style="margin:30px 0 0 30px;">
+	<table style="width:100%">
+		<tr>
+			<td style="padding:0;width:17px;">
+				<div style="margin-right:20px;">
+					<a href="#navigation">
+						<div class="icon_menu" style="width:17px;height:17px;display:none"></div>
+					</a>
+				</div>
+			</td>
+			<td style="padding:0;width:130px;">
+				<div>
+					<div class="icon_logo"></div>
+				</div>
+			</td>
+			<td style="padding:0;">
+				<div class="model_welcome"></div>
+			</td>
+		</tr>
+	</table>
+</div>
+<div class="desktop_left_field">
+	<div>
+		<div style="font-size:60px;">Tips</div>
+	</div>
+</div>
+<div class="table_td">
+	<div class="pageDesc">
+		<div>You can also download [ASUS <#Web_Title2#>] to connect another <#Web_Title2#> to the first <#Web_Title2#>.</div>
+
+		<div class="lyraGood"></div>
+		<div>
+			<div class="desktopView AppDownloadLink">
+				<table class="appTable">
+					<tr>
+						<td rowspan="2" align="right">
+							<div class="appQR"></div>
+						</td>
+						<td>
+							<div class="itunesStore"></div>
+						</td>
+					</tr>
+					<tr>
+						<td>
+							<div class="googlePlay"></div>
+						</td>
+					</tr>
+				</table>
+
+				<div class="appMobile"></div>
+			</div>
+
+			<div class="mobileView">
+				<div class="appMobile"></div>
+			</div>
+		</div>
+	</div>
+
+	<div>
+		<div class="footer_desktop">
+			<div class="desktop_abortBtn" onclick='abort.APP()'><#CTL_prev#></div>
+			<div class="desktop_applyBtn iOS_go goToDownload AppDownloadLink" onclick="apply.openStore();">Open iTunes Store</div>
+			<div class="desktop_applyBtn android_go goToDownload AppDownloadLink" onclick="apply.openStore();">Open Google Play</div>
+		</div>
+
+		<div class="footer_mobile">
+			<table style="width:100%;" cellpadding="0" cellspacing="0">
+				<tr style="height:102px;text-align:center">
+					<td class="mobileAbort" style="width:100%" onclick='abort.APP()'>
+						<div  class="mobile_abortBtn"><#CTL_prev#></div>
+					</td>
+				</tr>
+			</table>
+		</div>
+	</div>
+	<script>
+		(function(){
+			var mobileOS = (function(){
+				var userAgent = navigator.userAgent || navigator.vendor || window.opera;
+				if (/android/i.test(userAgent)) return "Android";
+				if(/iPad|iPhone|iPod/.test(userAgent) && !window.MSStream) return "iOS";
+				return "unknown"; 
+			})();
+
+			switch(mobileOS){
+				case "Android":
+					goTo.openStore = function(){
+						window.open("https://play.google.com/store/apps/details?id=com.asustek.aicloud");
+					}
+
+					$(".iOS_go").hide();
+					$(".desktopView").hide();							
+				break;
+
+				case "iOS":
+					goTo.openStore = function(){
+						window.open("https://itunes.apple.com/us/app/aicloud-lite/id527118674");
+					}
+
+					$(".android_go").hide();
+					$(".desktopView").hide();								
+				break;
+
+				case "unknown":
+					$(".mobileView").hide();
+					$(".goToDownload").hide();
+
+					$(".appIconContainer").css({
+						"margin-top": "0px",
+						"margin-left": "60px",
+						"padding-bottom": "20px",
+						"position": "relative"
+					})
+				break;
+			}
+		})()
+	</script>
+</div>

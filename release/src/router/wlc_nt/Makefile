@@ -28,12 +28,16 @@ LDFLAGS += -lpthread
 endif
 endif
 
+ifeq ($(RTCONFIG_SW_HW_AUTH),y)
+CFLAGS  += -I$(TOP)/sw-hw-auth
+endif
+
 vpath %.c $(SRCBASE)/shared $(WLAN_ComponentSrcDirs)
 
 ifeq ($(wildcard $(SRCBASE)/router/wlc_nt/*.c),)
 all:
-	-cp -f prebuilt/wlc_nt ./
-	-cp -f prebuilt/libwlc_nt_client.so ./
+	-cp -f prebuild/wlc_nt ./
+	-cp -f prebuild/libwlc_nt_client.so ./
 else
 all: wlc_nt libwlc_nt_client.so
 endif

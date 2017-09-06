@@ -108,6 +108,7 @@ OBJS += discover.o
 OBJS += base64.o
 OBJS += nvparse.o
 OBJS += bwdpi_utils.o
+OBJS += bwdpi_utils.o
 OBJS += mac_name_tab.o
 OBJS += stun.o
 ifeq ($(RTCONFIG_TRAFFIC_LIMITER),y)
@@ -239,6 +240,10 @@ CFLAGS	+= -I$(TOP)/bled
 OBJS	+= bled.o
 endif
 
+ifeq ($(RTCONFIG_SAVEJFFS),y)
+OBJS	+= $(if $(wildcard jffs_cfgs.c),jffs_cfgs.o,prebuild/jffs_cfgs.o)
+endif
+
 ifeq ($(RTCONFIG_QCA_PLC_UTILS),y)
 OBJS	+= $(if $(wildcard plc_utils.c),plc_utils.o,prebuild/plc_utils.o)
 endif
@@ -248,6 +253,8 @@ OBJS	+= $(if $(wildcard tcode.c),tcode.o,prebuild/tcode.o)
 endif
 
 OBJS	+= $(if $(wildcard shutils_private.c),shutils_private.o,prebuild/shutils_private.o)
+
+OBJS += $(if $(wildcard spwenc.c), spwenc.o, prebuild/spwenc.o)
 
 ifeq ($(CONFIG_BCMWL5),y)
 ifneq ($(RTCONFIG_DSL)$(HND_ROUTER),y)
@@ -284,7 +291,7 @@ OBJS += private.o
 vpath %.c sysdeps/ralink
 else ifeq ($(RTCONFIG_QCA),y)
 CFLAGS += $(if $(IPQ40XX),,-DTRX_NEW)
-OBJS += private.o
+OBJS += $(if $(wildcard sysdeps/qca/private.c),private.o,prebuild/private.o)
 vpath %.c sysdeps/qca
 else ifeq ($(RTCONFIG_ALPINE),y)
 OBJS += private.o
@@ -296,6 +303,12 @@ else ifeq ($(RTCONFIG_QTN),y)
 vpath %.c sysdeps sysdeps/broadcom sysdeps/qtn $(SRCBASE)/shared/ $(SRCBASE)/shared/bcmwifi/src $(WLAN_StdSrcDirsA) $(WLAN_ComponentSrcDirs) $(TOP)/libqcsapi_client/qcsapi_rpc_common/client  $(TOP)/libqcsapi_client/qcsapi_rpc_common/common
 else
 vpath %.c sysdeps/broadcom  $(SRCBASE)/shared/bcmwifi/src
+endif
+
+ifeq ($(RTCONFIG_SW_HW_AUTH),y)
+OBJS += sw_auth.o hw_auth.o
+CFLAGS  += -I$(TOP)/sw-hw-auth
+vpath %.c $(TOP)/sw-hw-auth
 endif
 
 all: libshared.so libshared.a
@@ -328,6 +341,16 @@ clean:
 private.o:
 ifneq ($(wildcard ./prebuild/private.o),)
 	@-cp -f ./prebuild/private.o .
+endif
+
+sw_auth.o:
+ifeq ($(wildcard $(SRCBASE)/router/sw-hw-auth/*.c),)
+	cp -f $(TOP)/sw-hw-auth/prebuild/sw_auth.o ./
+endif
+
+hw_auth.o:
+ifeq ($(wildcard $(SRCBASE)/router/sw-hw-auth/*.c),)
+	cp -f $(TOP)/sw-hw-auth/prebuild/hw_auth.o ./
 endif
 
 ifeq ($(RTCONFIG_USB),y)

@@ -1,4 +1,20 @@
-﻿2017-06-06: 2.1.0.118
+﻿2017-07-21: 2.1.0.121
+==> SDK : 1. BugFix (ANT). Fix the deadlock issue that app deinit lib when tunnel is UDP and netwowk is down.
+
+2017-07-19: 2.1.0.120
+==> SDK : 1. BugFix (ANT). Fix the memory leak issue.
+
+2017-07-04: 2.1.0.119
+==> SDK : 1. Update (ANT). Add one day timer for connecting to default SIP.
+          2. Update (ANT). Modify header file to meet iOS compiler.
+          3. Update (ANT). Enlarge the length limit of im mssage from 1024 bytes to 13000 bytes.
+          4. Update (ANT). Random a interval in 5~10 mins when all sip connect fail for next round.
+          5. Update (ANT). Fix init failed issue on RT-AC88U.
+          6. Adding (ANT). Add last_status and last_status_text for natnl_tnl_info structure.
+          7. Adding (ANT). Add stun_last_status and stun_status_text for natnl_tnl_info and natnl_tnl_event structures.
+          8. Adding (ANT). Add turn_last_status and turn_status_text for natnl_tnl_info and natnl_tnl_event structures.
+
+2017-06-06: 2.1.0.118
 ==> SDK : 1. Update (ANT). Modify sip retry count to 6 and interval to 0~60 seconds.
 
 2017-06-01: 2.1.0.117

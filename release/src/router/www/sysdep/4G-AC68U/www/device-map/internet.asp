@@ -251,6 +251,8 @@ function initial(){
 	if(gobi_support){
 		document.getElementById("wan_inf_title").innerHTML = "<#WAN_Interface_Title#>";
 	}
+
+	set_NM_height();
 	
 }
 
@@ -387,8 +389,13 @@ function update_all_ip(wanip, subnet_mask, wandns, wangateway, unit){
 	if(unit == 0){
 		showtext($("#WANIP")[0], wanip);
 		showtext($("#primary_subnet_mask")[0], subnet_mask);
-		showtext2($("#DNS1")[0], dnsArray[0], dnsArray[0]);
-		showtext2($("#DNS2")[0], dnsArray[1], dnsArray[1]);
+		if(wandns.length == 0){
+			$("#DNS1")[0].style.height = "20px";
+		}
+		else{
+			showtext2($("#DNS1")[0], dnsArray[0], dnsArray[0]);
+			showtext2($("#DNS2")[0], dnsArray[1], dnsArray[1]);
+		}
 		showtext($("#gateway")[0], wangateway);
 
 		if(parent.wans_flag){
@@ -408,8 +415,13 @@ function update_all_ip(wanip, subnet_mask, wandns, wangateway, unit){
 	else{
 		showtext($("#secondary_WANIP")[0], wanip);
 		showtext($("#secondary_subnet_mask")[0], subnet_mask);
-		showtext2($("#secondary_DNS1")[0], dnsArray[0], dnsArray[0]);
-		showtext2($("#secondary_DNS2")[0], dnsArray[1], dnsArray[1]);
+		if(wandns.length == 0){
+			$("#secondary_DNS1")[0].style.height = "20px";
+		}
+		else{
+			showtext2($("#secondary_DNS1")[0], dnsArray[0], dnsArray[0]);
+			showtext2($("#secondary_DNS2")[0], dnsArray[1], dnsArray[1]);
+		}
 		showtext($("#secondary_gateway")[0], wangateway);
 		if (secondary_wanlink_type() == "dhcp") {
 			showtext($("#secondary_lease")[0], format_time(secondary_lease, "Renewing..."));

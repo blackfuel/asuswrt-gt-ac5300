@@ -132,7 +132,7 @@ int lteled_main(int argc, char **argv)
 				}
 				else{
 					led_control(LED_3G, LED_ON);
-					led_control(LED_LTE, LED_OFF);
+					led_control(LED_LTE, LED_ON);
 				}
 #endif
 
@@ -213,7 +213,7 @@ int lteled_main(int argc, char **argv)
 				}
 				else{
 					led_control(LED_3G, ((cnt % 5) < 3)? LED_ON : LED_OFF);
-					led_control(LED_LTE, LED_OFF);
+					led_control(LED_LTE, ((cnt % 5) < 3)? LED_ON : LED_OFF);
 				}
 #else
 				led_control(LED_LTE, ((cnt % 5) < 3)? LED_ON : LED_OFF);

@@ -19,6 +19,15 @@ CFLAGS += -I$(HND_SRC)/userspace/public/include -I$(HND_SRC)/userspace/public/in
 LDFLAGS += -L$(TOP)/wlcsm -lwlcsm -L$(TOP)/bcm_flashutil -lbcm_flashutil -L$(TOP)/bcm_util -lbcm_crc -L$(TOP)/bcm_boardctl -lbcm_boardctl
 endif
 
+ifeq ($(RTCONFIG_PERMISSION_MANAGEMENT),y)
+CFLAGS += -I$(TOP)/sqlCipher
+CFLAGS += -I$(TOP)/PMS_DBapis
+CFLAGS += -I$(TOP)/openssl/include/openssl
+LDFLAGS += -L$(TOP)/openssl -lcrypto -lssl
+LDFLAGS += -L $(TOP)/sqlCipher/.libs -lsqlcipher
+LDFLAGS += -L$(TOP)/PMS_DBapis -lpms_sql
+endif
+
 # for QCA toolchain compile issue, xxxx-ld has no pthead and dl in openwrt-toolchain
 ifeq ($(RTCONFIG_QCA),y)
 EXTRACC += -lpthread -ldl
@@ -32,8 +41,8 @@ LD1 += $(LDFLAGS) $(EXTRACC)
 LD2 += $(LDFLAGS) $(EXTRALD)
 
 # ASUSWRT
-OBJS += iqos.o wrs.o stat.o dpi.o wrs_app.o data_collect.o tools.o
-OBJS += watchdog_check.o
+OBJS += iqos.o wrs.o stat.o dpi.o wrs_app.o data_collect.o watchdog_check.o
+OBJS += dpi_support.o  # dpi_support feature to enhance security
 
 # TrendMicro
 OBJS += ioc_wrs.o conf_app.o ioc_common.o ioc_anomaly.o ioc_patrol_tq.o ioc_vp.o ioc_qos.o ioc_internal.o
@@ -46,8 +55,8 @@ vpath %.c $(TOP)/bwdpi_source/src/tdts_udb_sample
 
 ifeq ($(wildcard $(SRCBASE)/router/bwdpi_source/asus/*.c),)
 all:
-	-cp -f prebuilt/libbwdpi.so libbwdpi.so
-	-cp -f prebuilt/hwinfo hwinfo
+	-cp -f prebuild/libbwdpi.so libbwdpi.so
+	-cp -f prebuild/hwinfo hwinfo
 else
 all: hwinfo libbwdpi.so
 endif
@@ -57,6 +66,10 @@ libbwdpi.so: $(OBJS)
 	@$(LD) $(LD2) -shared -o $@ $^
 
 hwinfo: hwinfo.o
+	@$(CC) -o $@ $^ $(LD1) -L. -lgcc_s
+
+# this command is for debug only
+dbg_dpi_support: dbg_dpi_support.o dpi_support.o
 	@$(CC) -o $@ $^ $(LD1) -L. -lgcc_s
 
 # this command is for debug only
@@ -79,4 +92,4 @@ install: all
 	@$(CC) $(CFLAGS) -c $<
 
 clean:
-	rm -f *.so *.o hwinfo bwdpi_cmd
+	rm -f *.so *.o hwinfo bwdpi_cmd dbg_dpi_support

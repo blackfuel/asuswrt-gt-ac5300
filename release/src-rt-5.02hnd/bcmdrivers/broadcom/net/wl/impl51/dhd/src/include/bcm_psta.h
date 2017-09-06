@@ -36,13 +36,13 @@ typedef int32 (*bcm_psta_dhcp_proc_cb)(void *psta_cb, void *cfg_cb,
 #define	BCM_PSTA_SET_ALIAS(cli_mac, mod_mac, ea) \
 do { \
 	ASSERT(BCM_EA_CMP((cli_mac), (ea))); \
-	*((uint8 *)(ea)) = *((uint8 *)(mod_mac)); \
+	memcpy(ea, mod_mac, ETHER_ADDR_LEN); \
 } while (0)
 
 #define	BCM_PSTA_CLR_ALIAS(cli_mac, mod_mac, ea) \
 do { \
 	ASSERT(BCM_EA_CMP((mod_mac), (ea))); \
-	*((uint8 *)(ea)) = *((uint8 *)(cli_mac)); \
+	memcpy(ea, cli_mac, ETHER_ADDR_LEN); \
 } while (0)
 
 #define	BCM_PSTA_IS_ALIAS(mod_mac, ea)	BCM_EA_CMP((mod_mac), (ea))

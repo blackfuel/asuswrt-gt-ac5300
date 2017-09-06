@@ -58,10 +58,10 @@ define(function(){
 				index: "menu_AiProtection", 
 				tab: [
 					{url: "AiProtection_HomeSecurity.asp", tabName: "__HIDE__"},
-					{url: "AiProtection_MaliciousSitesBlocking.asp", tabName: "__INHERIT__"},
-					{url: "AiProtection_IntrusionPreventionSystem.asp", tabName: "__INHERIT__"},
-					{url: "AiProtection_InfectedDevicePreventBlock.asp", tabName: "__INHERIT__"},
 					{url: "AiProtection_HomeProtection.asp", tabName: "<#AiProtection_Home#>"},
+					{url: "AiProtection_MaliciousSitesBlocking.asp", tabName: "<#AiProtection_sites_blocking#>"},
+					{url: "AiProtection_IntrusionPreventionSystem.asp", tabName: "<#AiProtection_two-way_IPS#>"},
+					{url: "AiProtection_InfectedDevicePreventBlock.asp", tabName: "<#AiProtection_detection_blocking#>"},
 					{url: "AiProtection_WebProtector.asp", tabName: "<#Parental_Control#>"},
 					{url: "ParentalControl.asp", tabName: "__INHERIT__"},
 					{url: "AiProtection_AdBlock.asp", tabName: "Ad Blocking"},
@@ -198,8 +198,7 @@ define(function(){
 					{url: "Advanced_BasicFirewall_Content.asp", tabName: "<#menu5_1_1#>"},
 					{url: "Advanced_URLFilter_Content.asp", tabName: "<#menu5_5_2#>"},
 					{url: "Advanced_KeywordFilter_Content.asp", tabName: "<#menu5_5_5#>"},
-					{url: "Advanced_Firewall_Content.asp", tabName: "<#menu5_5_4#>"},
-					{url: "Advanced_Firewall_IPv6_Content.asp", tabName: "<#menu5_5_6#>"},			
+					{url: "Advanced_Firewall_Content.asp", tabName: "<#menu5_5_4#>"},		
 					{url: "NULL", tabName: "__INHERIT__"}
 				]
 			},
@@ -495,7 +494,6 @@ define(function(){
 
 				if(!IPv6_support){
 					retArray.push("Main_IPV6Status_Content.asp");
-					retArray.push("Advanced_Firewall_IPv6_Content.asp");
 				}
 
 				if(!fbwifi_support){

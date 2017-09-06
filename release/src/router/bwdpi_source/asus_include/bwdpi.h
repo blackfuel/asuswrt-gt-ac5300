@@ -123,6 +123,17 @@ struct bwdpi_client{
 	char device_name[100];
 };
 
+/* dpi_support index */
+enum{
+	INDEX_ALL = 0,
+	INDEX_AIPROTECTION = 1,
+	INDEX_ADAPTIVE_QOS,
+	INDEX_TRAFFIC_ANALYZER,
+	INDEX_WEBS_FILTER,
+	INDEX_APPS_FILTER,
+	INDEX_WEB_HISTORY,        // NOTE: will remove in the future, replaced by web_mon
+	INDEX_BANDWIDTH_MONITOR
+};
 
 //wrs.c
 void free_id_list(cid_s **target_list);

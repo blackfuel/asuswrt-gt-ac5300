@@ -264,6 +264,11 @@ static int rctest_main(int argc, char *argv[])
 		start_dfs();
 	}
 #endif
+#ifdef RTCONFIG_PERMISSION_MANAGEMENT
+	else if (strcmp(argv[1], "permission") == 0) {
+		setup_passwd();
+	}
+#endif
 	else if (strcmp(argv[1], "GetPhyStatus")==0) {
 		printf("Get Phy status:%d\n", GetPhyStatus(0));
 	}
@@ -413,6 +418,12 @@ static int rctest_main(int argc, char *argv[])
 		else if (strcmp(argv[1], "psta_monitor") == 0) {
 			if (on) start_psta_monitor();
 			else stop_psta_monitor();
+		}
+#endif
+#if defined(AMAS) && defined(RTCONFIG_BCMWL6)
+		else if (strcmp(argv[1], "obd") == 0) {
+			if (on) start_obd();
+			else stop_obd();
 		}
 #endif
 #ifdef RTCONFIG_IPERF
@@ -600,7 +611,8 @@ static int hotplug_firmware(void)
 	sprintf(sysfs_path, "%s/%s/loading", sysfs_root, devpath);
 	f_loading = fopen(sysfs_path, "w");
 	if (!f_loading) {
-		_dprintf("[%s] Open %s fail\n", __func__,f_loading);
+		_dprintf("Open %s/%s/loading fail, errno %d (%s)\n",
+			sysfs_root, devpath, errno, strerror(errno));
 		goto err_exit1;
 	}
 	sprintf(sysfs_path, "%s/%s/data", sysfs_root, devpath);
@@ -748,6 +760,9 @@ static const applets_t applets[] = {
 #if defined(RTCONFIG_BCMWL6) && defined(RTCONFIG_PROXYSTA)
 	{ "psta_monitor",		psta_monitor_main		},
 #endif
+#if defined(AMAS) && defined(RTCONFIG_BCMWL6) && !defined(RTCONFIG_DISABLE_REPEATER_UI)
+	{ "obd",			obd_main			},
+#endif
 #ifdef RTCONFIG_IPERF
 	{ "monitor",			monitor_main			},
 #endif
@@ -833,7 +848,7 @@ static const applets_t applets[] = {
 #ifdef RTCONFIG_SPEEDTEST
 	{ "speedtest",			speedtest_main			},
 #endif
-#ifdef RTCONFIG_BWDPI
+#if defined(RTCONFIG_BWDPI)
 	{ "bwdpi",			bwdpi_main			},
 	{ "bwdpi_check",		bwdpi_check_main		},
 	{ "bwdpi_wred_alive",		bwdpi_wred_alive_main		},
@@ -841,8 +856,13 @@ static const applets_t applets[] = {
 	{ "rsasign_sig_check",		rsasign_sig_check_main		},
 #endif
 	{ "hour_monitor",		hour_monitor_main		},
+#ifdef RTCONFIG_USB_MODEM
 #ifdef RTCONFIG_INTERNAL_GOBI
 	{ "lteled",			lteled_main			},
+#if defined(RTCONFIG_JFFS2) || defined(RTCONFIG_BRCM_NAND_JFFS2) || defined(RTCONFIG_UBIFS)
+	{ "modem_data",			modem_data_main			},
+#endif
+#endif
 #endif
 #ifdef RTCONFIG_TR069
 	{ "dhcpc_lease",		dhcpc_lease_main		},
@@ -856,6 +876,9 @@ static const applets_t applets[] = {
 #if defined(RTCONFIG_KEY_GUARD)
 	{ "keyguard",			keyguard_main			},
 #endif
+#ifdef RTCONFIG_LETSENCRYPT
+	{ "le_acme",				le_acme_main			},
+#endif
 #if !(defined(RTCONFIG_QCA) || defined(RTCONFIG_RALINK) || defined(RTCONFIG_REALTEK))
 	{ "erp_monitor",		erp_monitor_main		},
 #endif
@@ -865,6 +888,9 @@ static const applets_t applets[] = {
 #if defined(MAPAC1300) || defined(VRZAC1300)
 	{ "thermal_txpwr",		thermal_txpwr_main		},
 #endif	/* MAPAC1300 VRZAC1300 */
+#ifdef RTCONFIG_ADTBW
+	{ "adtbw",			adtbw_main		},
+#endif
 	{NULL, NULL}
 };
 
@@ -1420,6 +1446,12 @@ int main(int argc, char **argv)
 #endif
 #endif
 #ifdef RTCONFIG_LANTIQ
+	else if(!strcmp(base, "update_client")) {
+		_dprintf("update_client\n");
+		if(argc == 4)
+			update_client_event(argv[1], argv[2], atoi(argv[3]));
+		return 0;
+	}
 	else if(!strcmp(base, "restart_bluetoothd")) {
 		system("killall bluetoothd");
 		system("hciconfig hci0 down");
@@ -1427,6 +1459,20 @@ int main(int argc, char **argv)
 		system("hciconfig hci0 up");
 		system("hciconfig hci0 leadv 0");
 		system("bluetoothd -n &");
+		return 0;
+	}
+	else if(!strcmp(base, "set_usb3_to_usb2")) {
+		set_usb3_to_usb2();
+		puts("1");
+		return 0;
+	}
+	else if(!strcmp(base, "set_usb2_to_usb3")) {
+		set_usb2_to_usb3();
+		puts("1");
+		return 0;
+	}
+	else if (!strcmp(base, "start_repeater")) {
+		start_repeater();
 		return 0;
 	}
 #endif
@@ -1553,7 +1599,7 @@ int main(int argc, char **argv)
 #if defined(CONFIG_BCMWL5) \
 		|| (defined(RTCONFIG_RALINK) && defined(RTCONFIG_WIRELESSREPEATER)) \
 		|| defined(RTCONFIG_QCA) || defined(RTCONFIG_REALTEK) \
-		|| defined(RTCONFIG_QSR10G)
+		|| defined(RTCONFIG_QSR10G) || defined(RTCONFIG_LANTIQ)
 	else if (!strcmp(base, "wlcscan")) {
 		return wlcscan_main();
 	}
@@ -1604,7 +1650,6 @@ int main(int argc, char **argv)
 	else if (!strcmp(base, "led_ctrl")) {
 		return(led_control(atoi(argv[1]), atoi(argv[2])));
 	}
-#ifdef RTCONFIG_BCMARM
 #ifdef HND_ROUTER
 	else if (!strcmp(base, "hnd-erase")) {
 		if (argv[1] && (!strcmp(argv[1], "nvram"))) {
@@ -1632,6 +1677,7 @@ int main(int argc, char **argv)
 		erase_nvram();
 		return 0;
 	}
+#ifdef RTCONFIG_BCMARM
 #if defined(RTAC1200G) || defined(RTAC1200GP)
 	/* mtd-erase2 [device] */
 	else if (!strcmp(base, "mtd-erase2")) {

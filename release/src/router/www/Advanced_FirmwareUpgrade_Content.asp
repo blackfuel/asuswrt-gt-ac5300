@@ -89,9 +89,13 @@ var fwdl_percent="";
 var varload = 0;
 var helplink = "";
 var dpi_engine_status = <%bwdpi_engine_status();%>;
-var lyra_fwup = "<% nvram_get("lyra_fwup"); %>";
-var cfg_check = '<% nvram_get("cfg_check"); %>';
 var sig_ver_ori = '<% nvram_get("bwdpi_sig_ver"); %>';
+var sig_update_t = '<% nvram_get("sig_update_t"); %>';
+if(cfg_sync_support){
+	var cfg_check = '<% nvram_get("cfg_check"); %>';
+	var cfg_upgrade = '<% nvram_get("cfg_upgrade"); %>';
+}
+
 
 function initial(){
 	show_menu();
@@ -101,21 +105,26 @@ function initial(){
 		else
 			document.getElementById("sig_ver_field").style.display="none";
 			
-		var sig_ver_ori = '<% nvram_get("bwdpi_sig_ver"); %>';
 		if(sig_ver_ori == "")
 			document.getElementById("sig_ver_word").innerHTML = "1.008";
 		else
 			document.getElementById("sig_ver_word").innerHTML = sig_ver_ori;
 
-		var sig_update_t = "<% nvram_get("sig_update_t"); %>";
 		if(sig_update_t == "" || sig_update_t == "0")
 			document.getElementById("sig_update_date").innerHTML = "";
 		else
 			document.getElementById("sig_update_date").innerHTML = "&nbsp;&nbsp;"+transferTimeFormat(sig_update_t*1000);
 	}
 
-	if(webs_state_upgrade != "" && webs_state_upgrade != "1"){   //Show firmware is still downloading or fw upgrade loading bar if doing webs_upgrade.sh 
-		startDownloading();
+	if(cfg_sync_support){
+		if(cfg_upgrade != "" && cfg_upgrade != "10"){   //Show firmware is still downloading or fw upgrade loading bar if doing webs_upgrade.sh 
+			startDownloading();
+		}
+	}
+	else{
+		if(webs_state_upgrade != "" && webs_state_upgrade != "1"){   //Show firmware is still downloading or fw upgrade loading bar if doing webs_upgrade.sh 
+			startDownloading();
+		}
 	}
 
 	if(no_update_support){
@@ -179,13 +188,6 @@ function initial(){
 		inputCtrl(document.form.file, 1);
 		inputCtrl(document.form.upload, 1);
 	}
-
-	if(lyra_hide_support){
-		document.getElementById("productid_tr").style.display = "none";
-		document.getElementById("beta_firmware_path_span").style.display = "none";
-		if(lyra_fwup != "1")
-			document.getElementById("manually_upgrade_tr").style.display = "none";
-	}
 }
 
 var dead = 0;
@@ -206,40 +208,80 @@ function detect_firmware(flag){
 		},
 
 		success: function(){
-			if(webs_state_update == "0" || (lyra_hide_support && (cfg_check == "0" || cfg_check == "1" || cfg_check == "5"))){
-				setTimeout("detect_firmware();", 1000);
-  			}
-  			else{	// got fw info
-				if(webs_state_error == "1" || (lyra_hide_support && cfg_check == "2")){	//1:wget fail
-					document.getElementById('update_scan').style.display="none";
-					if(document.start_update.firmware_path.value==1){	//Beta Firmware not available yet
-						document.getElementById('update_states').innerHTML="No beta firmware available now.";	/* untranslated */
-					}
-					else{
-						document.getElementById('update_states').innerHTML="<#connect_failed#>";
-					}
-					document.getElementById('update').disabled = false;
+			if(cfg_sync_support){
+				if(cfg_check == "0" || cfg_check == "1" || cfg_check == "5"){
+					setTimeout("detect_firmware();", 1000);
 				}
-				else if(webs_state_error == "3" || (lyra_hide_support && cfg_check == "4")){	//3: FW check/RSA check fail
-					document.getElementById('update_scan').style.display="none";
-					document.getElementById('update_states').innerHTML="<#FIRM_fail_desc#><br><#FW_desc1#>";
-					document.getElementById('update').disabled = false;
+				else{	// got fw info
+					if(cfg_check == "2"){	//1:wget fail
+						document.getElementById('update_scan').style.display="none";
+						if(document.start_update.firmware_path.value==1){	//Beta Firmware not available yet
+							document.getElementById('update_states').innerHTML="No beta firmware available now.";	/* untranslated */
+						}
+						else{
+							document.getElementById('update_states').innerHTML="<#connect_failed#>";
+						}
+						document.getElementById('update').disabled = false;
+					}
+					else if(cfg_check == "4"){	//3: FW check/RSA check fail
+						document.getElementById('update_scan').style.display="none";
+						document.getElementById('update_states').innerHTML="<#FIRM_fail_desc#><br><#FW_desc1#>";
+						document.getElementById('update').disabled = false;
 
-				}
-				else{
-					document.getElementById('update_scan').style.display="none";
-					document.getElementById('update_states').innerHTML="";
-					document.getElementById('update').disabled = false;
-					var check_webs_state_info = webs_state_info;
-					if(document.start_update.firmware_path.value==1){		//check beta path
-						check_webs_state_info = webs_state_info_beta;						
-						note_display=1;
 					}
 					else{
-						note_display=0;	
+						document.getElementById('update_scan').style.display="none";
+						document.getElementById('update_states').innerHTML="";
+						document.getElementById('update').disabled = false;
+						var check_webs_state_info = webs_state_info;
+						if(document.start_update.firmware_path.value==1){		//check beta path
+							check_webs_state_info = webs_state_info_beta;
+							note_display=1;
+						}
+						else{
+							note_display=0;
+						}
+
+						do_show_confirm(check_webs_state_info, document.start_update.firmware_path.value, current_firmware_path);
 					}
-					
-					do_show_confirm(check_webs_state_info, document.start_update.firmware_path.value, current_firmware_path);				
+				}
+			}
+			else{
+				if(webs_state_update == "0"){
+					setTimeout("detect_firmware();", 1000);
+				}
+				else{	// got fw info
+					if(webs_state_error == "1"){	//1:wget fail
+						document.getElementById('update_scan').style.display="none";
+						if(document.start_update.firmware_path.value==1){	//Beta Firmware not available yet
+							document.getElementById('update_states').innerHTML="No beta firmware available now.";	/* untranslated */
+						}
+						else{
+							document.getElementById('update_states').innerHTML="<#connect_failed#>";
+						}
+						document.getElementById('update').disabled = false;
+					}
+					else if(webs_state_error == "3"){	//3: FW check/RSA check fail
+						document.getElementById('update_scan').style.display="none";
+						document.getElementById('update_states').innerHTML="<#FIRM_fail_desc#><br><#FW_desc1#>";
+						document.getElementById('update').disabled = false;
+
+					}
+					else{
+						document.getElementById('update_scan').style.display="none";
+						document.getElementById('update_states').innerHTML="";
+						document.getElementById('update').disabled = false;
+						var check_webs_state_info = webs_state_info;
+						if(document.start_update.firmware_path.value==1){		//check beta path
+							check_webs_state_info = webs_state_info_beta;
+							note_display=1;
+						}
+						else{
+							note_display=0;
+						}
+
+						do_show_confirm(check_webs_state_info, document.start_update.firmware_path.value, current_firmware_path);
+					}
 				}
 			}
 		}
@@ -285,7 +327,7 @@ function do_show_confirm(FWVer, CheckPath, CurrentPath){
          					left_button_args: {},
          					right_button: "<#CTL_upgrade#>",
 							right_button_callback: function(){
-										if(lyra_hide_support){
+										if(cfg_sync_support){
 											cfgsync_firmware_upgrade();
 										}
 										else{
@@ -346,7 +388,7 @@ function cfgsync_firmware_upgrade(){
 
 function detect_update(firmware_path){
 	if(sw_mode != "1" || (link_status == "2" && link_auxstatus == "0") || (link_status == "2" && link_auxstatus == "2")){
-		if(lyra_hide_support){
+		if(cfg_sync_support){
 			cfgsync_firmware_check();
 		}
 		else{
@@ -420,34 +462,58 @@ function isDownloading(){
 							document.getElementById("drword").innerHTML = "<#connect_failed#>";
 							return false;
 					}
-						
+
     		},
     		success: function(){
-				if(webs_state_upgrade == 0){
-					document.getElementById("drword").innerHTML = "&nbsp;&nbsp;&nbsp;<#fw_downloading#>..."+fwdl_percent;
-    				setTimeout("isDownloading();", 1000);    				
+				if(cfg_sync_support){
+					if(cfg_upgrade == "1"){
+						document.getElementById("drword").innerHTML = "&nbsp;&nbsp;&nbsp;<#fw_downloading#>...";
+						setTimeout("isDownloading();", 1000);
+					}
+					else{
+						if(cfg_upgrade == "2"){
+							document.getElementById("drword").innerHTML = "<#connect_failed#>";
+							return false;
+						}
+						else if(cfg_upgrade == "3"){
+							document.getElementById("drword").innerHTML = "<#FIRM_fail_desc#><br><#FW_desc1#>";
+							return false;
+						}
+						else{		// start upgrading
+							document.getElementById("hiddenMask").style.visibility = "hidden";
+							showLoadingBar(270);
+							setTimeout("detect_httpd();", 272000);
+							return false;
+						}
+					}
 				}
-				else{ 	// webs_upgrade.sh is done
-					
-					if(webs_state_error == 1){
-						document.getElementById("drword").innerHTML = "<#connect_failed#>";
-						return false;
+				else{
+					if(webs_state_upgrade == 0){
+						document.getElementById("drword").innerHTML = "&nbsp;&nbsp;&nbsp;<#fw_downloading#>..."+fwdl_percent;
+						setTimeout("isDownloading();", 1000);
 					}
-					else if(webs_state_error == 2){
-						document.getElementById("drword").innerHTML = "Memory space is NOT enough to upgrade on internet. Please wait for rebooting.<br><#FW_desc1#>";	/* untranslated */ //Untranslated.	fw_size_higher_mem
-						return false;						
-					}
-					else if(webs_state_error == 3){
-						document.getElementById("drword").innerHTML = "<#FIRM_fail_desc#><br><#FW_desc1#>";
-						return false;												
-					}
-					else{		// start upgrading
-						document.getElementById("hiddenMask").style.visibility = "hidden";
-						showLoadingBar(270);
-						setTimeout("detect_httpd();", 272000);
-						return false;
-					}
+					else{ 	// webs_upgrade.sh is done
 						
+						if(webs_state_error == 1){
+							document.getElementById("drword").innerHTML = "<#connect_failed#>";
+							return false;
+						}
+						else if(webs_state_error == 2){
+							document.getElementById("drword").innerHTML = "Memory space is NOT enough to upgrade on internet. Please wait for rebooting.<br><#FW_desc1#>";	/* untranslated */ //Untranslated.	fw_size_higher_mem
+							return false;
+						}
+						else if(webs_state_error == 3){
+							document.getElementById("drword").innerHTML = "<#FIRM_fail_desc#><br><#FW_desc1#>";
+							return false;
+						}
+						else{		// start upgrading
+							document.getElementById("hiddenMask").style.visibility = "hidden";
+							showLoadingBar(270);
+							setTimeout("detect_httpd();", 272000);
+							return false;
+						}
+
+					}
 				}
   			}
   		});
@@ -493,7 +559,7 @@ function sig_check_status(){
 	$.ajax({
     	url: '/detect_firmware.asp',
     	dataType: 'script',
-	timeout: 3000,
+    	timeout: 3000,
     	error:	function(xhr){
 			sdead++;
 			if(sdead < 20){				
@@ -517,10 +583,7 @@ function sig_check_status(){
 					document.getElementById("sig_check").disabled = false;
 				}
 				else{
-					if(sig_state_upgrade == 1){		//update complete
-						$("#sig_status").html("Signature update completely");	/* Untranslated */
-						document.getElementById("sig_update_scan").style.display = "none";
-
+					if(sig_state_upgrade == 1){		//update complete						
 						update_sig_ver();
 						document.getElementById("sig_check").disabled = false;
 					}
@@ -540,13 +603,16 @@ function update_sig_ver(){
     	dataType: 'script',
 		timeout: 3000,
     	error:	function(xhr){
-    		setTimeout('update_sig_ver();', 2000);
+    		setTimeout('update_sig_ver();', 1000);
     	},
     	success: function(){
-    		if(sig_ver_ori == sig_ver){
-    			setTimeout('update_sig_ver();', 2000);
+    		if(sig_ver_ori == sig_ver){    			
+    			setTimeout('update_sig_ver();', 1000);
     		}	
     		else{
+    			document.getElementById("sig_update_date").innerHTML = "";
+    			document.getElementById("sig_update_scan").style.display = "none";
+    			$("#sig_status").html("Signature update completely");	/* Untranslated */
     			$("#sig_ver_word").html(sig_ver);
     		}			
   		}
@@ -611,9 +677,9 @@ function updateDateTime()
 					document.firmware_form.upgrade_date_x_Fri,
 					document.firmware_form.upgrade_date_x_Sat);
 		document.firmware_form.fw_schedule.value = setfirmwareTimeRange(
-																									document.firmware_form.fw_schedule,
-																									document.firmware_form.upgrade_time_x_hour,
-																									document.firmware_form.upgrade_time_x_min);
+					document.firmware_form.fw_schedule,
+					document.firmware_form.upgrade_time_x_hour,
+					document.firmware_form.upgrade_time_x_min);
 	}	
 }
 
@@ -683,7 +749,7 @@ function transferTimeFormat(time){
 		minute = "0" + minute;
 	}
 
-	var date_format = "Updated : " + year + "/" + month + "/" + date + " " + hour + ":" + minute;
+	var date_format = "<#FW_updated#> : " + year + "/" + month + "/" + date + " " + hour + ":" + minute;
 	return date_format;
 }
 </script>
@@ -800,7 +866,7 @@ function transferTimeFormat(time){
 
 <!--###HTML_PREP_END###-->
 			<tr id="sig_ver_field" style="display:none">
-				<th>Signature Version</th>
+				<th><#sig_ver#></th>
 				<td >
 					<div style="height:33px;margin-top:5px;"><span id="sig_ver_word" style="color:#FFFFFF;"></span><span id="sig_update_date"></span></div>
 					<div style="margin-left:200px;margin-top:-38px;">
@@ -819,7 +885,7 @@ function transferTimeFormat(time){
 					<div id="update_div" style="margin-left:200px;margin-top:-38px;display:none;">
 						<input type="button" id="update" name="update" class="button_gen" onclick="detect_update(document.start_update.firmware_path.value);" value="<#liveupdate#>" />
 						<span id="beta_firmware_path_span" style="display:none;">
-							<input type="checkbox" name="beta_firmware_path" id="beta_firmware_path" onclick="change_firmware_path(this.checked==true);"  <% nvram_match("firmware_path", "1", "checked"); %>>Get Beta Firmware</input>
+							<input type="checkbox" name="beta_firmware_path" id="beta_firmware_path" onclick="change_firmware_path(this.checked==true);"  <% nvram_match("firmware_path", "1", "checked"); %>><#get_beta#></input>
 						</span>
 					</div>
 					<div id="linkpage_div" class="button_helplink" style="margin-left:200px;margin-top:-38px;display:none;">

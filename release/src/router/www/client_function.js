@@ -983,6 +983,7 @@ function card_show_custom_image(flag) {
 		}
 	}
 }
+var card_custom_name = decodeURIComponent('<% nvram_char_to_ascii("", "custom_clientlist"); %>').replace(/&#62/g, ">").replace(/&#60/g, "<");
 function card_confirm(callBack) {
 	var validClientListForm = function() {
 		document.getElementById("card_client_name").value = document.getElementById("card_client_name").value.trim();
@@ -1005,7 +1006,7 @@ function card_confirm(callBack) {
 		}
 		return true;
 	};
-	var custom_name = decodeURIComponent('<% nvram_char_to_ascii("", "custom_clientlist"); %>').replace(/&#62/g, ">").replace(/&#60/g, "<");
+
 	if(validClientListForm()){
 		document.card_clientlist_form.custom_clientlist.disabled = false;
 		// customize device name
@@ -1021,7 +1022,7 @@ function card_confirm(callBack) {
 				clientTypeNum = "0";
 			}
 		}
-		originalCustomListArray = custom_name.split('<');
+		originalCustomListArray = card_custom_name.split('<');
 		onEditClient[0] = document.getElementById("card_client_name").value.trim();
 		onEditClient[1] = document.getElementById("client_macaddr_field").value;
 		onEditClient[2] = 0;
@@ -1040,8 +1041,8 @@ function card_confirm(callBack) {
 		}
 
 		originalCustomListArray.push(onEditClient.join('>'));
-		custom_name = originalCustomListArray.join('<');
-		document.card_clientlist_form.custom_clientlist.value = custom_name;
+		card_custom_name = originalCustomListArray.join('<');
+		document.card_clientlist_form.custom_clientlist.value = card_custom_name;
 
 		// handle user image
 		document.card_clientlist_form.custom_usericon.disabled = true;
@@ -1065,13 +1066,43 @@ function card_confirm(callBack) {
 		setTimeout(function() {
 			var updateClientListObj = function () {
 				$.ajax({
-					url: '/update_clients.asp',
+					url: '/update_customList.asp',
 					dataType: 'script', 
 					error: function(xhr) {
 						setTimeout("updateClientListObj();", 1000);
 					},
 					success: function(response){
 						genClientList();
+
+						for(var i = 0; i < custom_clientlist_array.length; i += 1) {
+							var thisClient = custom_clientlist_array[i].split(">");
+							var thisClientMacAddr = (typeof thisClient[1] == "undefined") ? false : thisClient[1].toUpperCase();
+
+							if(!thisClientMacAddr || thisClient.length != 6){
+								continue;
+							}
+
+							if(typeof clientList[thisClientMacAddr] == "undefined"){
+								clientList.push(thisClientMacAddr);
+								clientList[thisClientMacAddr] = new setClientAttr();
+								clientList[thisClientMacAddr].from = "customList";
+							}
+
+							clientList[thisClientMacAddr].mac = thisClient[1].toUpperCase();
+							clientList[thisClientMacAddr].group = thisClient[2];
+							clientList[thisClientMacAddr].type = thisClient[3];
+							clientList[thisClientMacAddr].callback = thisClient[4];
+
+							if(thisClient[0] == "New device") {
+								if(clientList[thisClientMacAddr].name == "") {
+									clientList[thisClientMacAddr].nickName = thisClient[0];
+								}
+							}
+							else {
+								clientList[thisClientMacAddr].nickName = thisClient[0];
+							}
+						}
+
 						switch(callBack) {
 							case "DHCP" :
 								showDropdownClientList('setClientIP', 'mac>ip', 'all', 'ClientList_Block_PC', 'pull_arrow', 'all');
@@ -1097,12 +1128,13 @@ function card_confirm(callBack) {
 								showDropdownClientList('setClientIP', 'mac', 'all', 'ClientList_Block_PC', 'pull_arrow', 'all');
 								genMain_table();
 								break;
+							case "ATF" :
+								showDropdownClientList('setClientmac', 'mac', 'wl', 'WL_MAC_List_Block', 'pull_arrow', 'all');
+								show_wl_atf_by_client();
+								break;
 							case "WTFast" :
 								showDropdownClientList('setClientmac', 'mac', 'all', 'ClientList_Block_PC', 'pull_arrow', 'all');
 								show_rulelist();
-							case "ATF" :
-								showWLMACList();
-								show_wl_atf_by_client();
 								break;
 							default :
 								refreshpage();
@@ -1739,7 +1771,7 @@ function pop_clientlist_listview() {
 }
 
 function exportClientListLog() {
-	var data = [["Internet access state", "Device Type", "Clients Name", "Clients IP Address", "IP Method", "Clients MAC Address", "Interface", "Tx Rate", "Rx Rate", "Access time"]];
+	var data = [["Internet access state", "Device Type", "<#Client_Name#>", "<#vpn_client_ip#>", "IP Method", "<#ParentalCtrl_hwaddr#>", "<#wan_interface#>", "Tx Rate", "Rx Rate", "Access time"]];
 	var tempArray = new Array();
 	var ipStateExport = new Array();
 	ipStateExport["Static"] =  "Static IP";
@@ -1868,7 +1900,7 @@ function create_clientlist_listview() {
 			drawSwitchModeHtml += "<div class='block_filter_name' style='color:#93A9B1;'><#All#></div>";
 			drawSwitchModeHtml += "</div>";
 			drawSwitchModeHtml += "<div class='block_filter clientlist_ByInterface' style='cursor:pointer'>";
-			drawSwitchModeHtml += "<div class='block_filter_name' onclick='changeClientListViewMode();'>By interface</div>";/*untranslated*/
+			drawSwitchModeHtml += "<div class='block_filter_name' onclick='changeClientListViewMode();'><#wan_interface#></div>";
 			drawSwitchModeHtml += "</div>";
 		}
 		else {							
@@ -1876,7 +1908,7 @@ function create_clientlist_listview() {
 			drawSwitchModeHtml += "<div class='block_filter_name' onclick='changeClientListViewMode();'><#All#></div>";
 			drawSwitchModeHtml += "</div>";
 			drawSwitchModeHtml += "<div class='block_filter_pressed clientlist_ByInterface'>";
-			drawSwitchModeHtml += "<div class='block_filter_name' style='color:#93A9B1;'>By interface</div>";/*untranslated*/
+			drawSwitchModeHtml += "<div class='block_filter_name' style='color:#93A9B1;'><#wan_interface#></div>";
 			drawSwitchModeHtml += "</div>";
 		}
 		drawSwitchModeHtml += "</div>";
@@ -1896,9 +1928,9 @@ function create_clientlist_listview() {
 			code += "</td></tr></thead>";
 			code += "<tr id='tr_all_title' height='40px'>";
 			code += "<th class='IE8HACK' width=" + obj_width[0] + "><#Internet#></th>";
-			code += "<th class='IE8HACK' width=" + obj_width[1] + ">Icon</th>";/*untranslated*/
+			code += "<th class='IE8HACK' width=" + obj_width[1] + "><#Client_Icon#></th>";
 			code += "<th width=" + obj_width[2] + " onclick='sorter.addBorder(this);sorter.doSorter(2, \"str\", \"all_list\");' style='cursor:pointer;'><#ParentalCtrl_username#></th>";
-			code += "<th width=" + obj_width[3] + " onclick='sorter.addBorder(this);sorter.doSorter(3, \"num\", \"all_list\");' style='cursor:pointer;'>Clients IP Address</th>";/*untranslated*/
+			code += "<th width=" + obj_width[3] + " onclick='sorter.addBorder(this);sorter.doSorter(3, \"num\", \"all_list\");' style='cursor:pointer;'><#vpn_client_ip#></th>";/*untranslated*/
 			code += "<th width=" + obj_width[4] + " onclick='sorter.addBorder(this);sorter.doSorter(4, \"str\", \"all_list\");' style='cursor:pointer;'><#ParentalCtrl_hwaddr#></th>";
 			if(!(isSwMode('mb') || isSwMode('ew')))
 				code += "<th width=" + obj_width[5] + " onclick='sorter.addBorder(this);sorter.doSorter(5, \"num\", \"all_list\");' style='cursor:pointer;'><#wan_interface#></th>";
@@ -1918,9 +1950,9 @@ function create_clientlist_listview() {
 			code += "</td></tr></thead>";
 			code += "<tr id='tr_wired_title' height='40px'>";
 			code += "<th class='IE8HACK' width=" + obj_width[0] + "><#Internet#></th>";
-			code += "<th class='IE8HACK' width=" + obj_width[1] + ">Icon</th>";/*untranslated*/
+			code += "<th class='IE8HACK' width=" + obj_width[1] + "><#Client_Icon#></th>";
 			code += "<th width=" + obj_width[2] + " onclick='sorter.addBorder(this);sorter.doSorter(2, \"str\", \"wired_list\");' style='cursor:pointer;'><#ParentalCtrl_username#></th>";
-			code += "<th width=" + obj_width[3] + " onclick='sorter.addBorder(this);sorter.doSorter(3, \"num\", \"wired_list\");' style='cursor:pointer;'>Clients IP Address</th>";/*untranslated*/
+			code += "<th width=" + obj_width[3] + " onclick='sorter.addBorder(this);sorter.doSorter(3, \"num\", \"wired_list\");' style='cursor:pointer;'><#vpn_client_ip#></th>";/*untranslated*/
 			code += "<th width=" + obj_width[4] + " onclick='sorter.addBorder(this);sorter.doSorter(4, \"str\", \"wired_list\");' style='cursor:pointer;'><#ParentalCtrl_hwaddr#></th>";
 			if(!(isSwMode('mb') || isSwMode('ew')))
 				code += "<th width=" + obj_width[5] + " ><#wan_interface#></th>";
@@ -1942,9 +1974,9 @@ function create_clientlist_listview() {
 				code += "</td></tr></thead>";
 				code += "<tr id='tr_wl" + wl_map[wl_nband_title[i]] + "_title' height='40px'>";
 				code += "<th class='IE8HACK' width=" + obj_width[0] + "><#Internet#></th>";
-				code += "<th class='IE8HACK' width=" + obj_width[1] + ">Icon</th>";/*untranslated*/
+				code += "<th class='IE8HACK' width=" + obj_width[1] + "><#Client_Icon#></th>";
 				code += "<th width=" + obj_width[2] + " onclick='sorter.addBorder(this);sorter.doSorter(2, \"str\", \"wl"+wl_map[wl_nband_title[i]]+"_list\");' style='cursor:pointer;'><#ParentalCtrl_username#></th>";
-				code += "<th width=" + obj_width[3] + " onclick='sorter.addBorder(this);sorter.doSorter(3, \"num\", \"wl"+wl_map[wl_nband_title[i]]+"_list\");' style='cursor:pointer;'>Clients IP Address</th>";
+				code += "<th width=" + obj_width[3] + " onclick='sorter.addBorder(this);sorter.doSorter(3, \"num\", \"wl"+wl_map[wl_nband_title[i]]+"_list\");' style='cursor:pointer;'><#vpn_client_ip#></th>";
 				code += "<th width=" + obj_width[4] + " onclick='sorter.addBorder(this);sorter.doSorter(4, \"str\", \"wl"+wl_map[wl_nband_title[i]]+"_list\");' style='cursor:pointer;'><#ParentalCtrl_hwaddr#></th>";
 				if(!(isSwMode('mb') || isSwMode('ew')))
 					code += "<th width=" + obj_width[5] + " onclick='sorter.addBorder(this);sorter.doSorter(5, \"num\", \"wl"+wl_map[wl_nband_title[i]]+"_list\");' style='cursor:pointer;'><#wan_interface#></th>";

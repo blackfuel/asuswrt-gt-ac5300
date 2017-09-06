@@ -298,6 +298,9 @@ bound(void)
 	char wanprefix[sizeof("wanXXXXXXXXXX_")];
 	int unit, ifunit;
 	int changed = 0;
+#if defined(RTCONFIG_PORT_BASED_VLAN) || defined(RTCONFIG_TAGGED_BASED_VLAN)
+	char ip_mask[sizeof("192.168.100.200/255.255.255.255XXX")];
+#endif
 #ifdef RTCONFIG_TR069
 	size_t size = 0;
 #endif
@@ -378,7 +381,7 @@ bound(void)
 
 #ifdef RTCONFIG_IPV6
 	if ((value = getenv("ip6rd")) &&
-			(get_ipv6_service() == IPV6_6RD && nvram_match(ipv6_nvname("ipv6_6rd_dhcp"), "1"))) {
+	    (get_ipv6_service() == IPV6_6RD && nvram_match(ipv6_nvname("ipv6_6rd_dhcp"), "1"))) {
 		char *ptr, *pvalue, *values[4];
 		int i;
 
@@ -468,6 +471,21 @@ bound(void)
 		update_wan_state(prefix, WAN_STATE_STOPPED, WAN_STOPPED_REASON_INVALID_IPADDR);
 		return 0;
 	}
+
+#if defined(RTCONFIG_PORT_BASED_VLAN) || defined(RTCONFIG_TAGGED_BASED_VLAN)
+	/* If return value of test_and_get_free_char_network() is 1 and
+	 * we got different IP/netmask from it, the WAN IP/netmask conflicts with known networks.
+	 */
+	snprintf(ip_mask, sizeof(ip_mask), "%s/%s",
+		nvram_pf_safe_get(prefix, "ipaddr"), nvram_pf_safe_get(prefix, "netmask"));
+	if (test_and_get_free_char_network(7, ip_mask, EXCLUDE_NET_ALL_EXCEPT_LAN_VLAN) == 1) {
+		logmessage("dhcp", "%s/%s conflicts with known networks",
+			nvram_pf_safe_get(prefix, "ipaddr"), nvram_pf_safe_get(prefix, "netmask"));
+		update_wan_state(prefix, WAN_STATE_STOPPED, WAN_STOPPED_REASON_INVALID_IPADDR);
+		return 0;
+	}
+#endif
+	restart_coovachilli_if_conflicts(nvram_pf_get(prefix, "ipaddr"), nvram_pf_get(prefix, "netmask"));
 
 	/* Clean nat conntrack for this interface,
 	 * but skip physical VPN subinterface for PPTP/L2TP */

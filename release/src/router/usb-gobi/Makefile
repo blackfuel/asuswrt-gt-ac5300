@@ -1,21 +1,28 @@
 include ../common.mak
 
+GOBI_LIB_VER=00.00.05
+
 NET_USB_GOBI = $(INSTALLDIR)/lib/modules/$(LINUX_KERNEL)/kernel/drivers/net/usb/
 ifeq ($(RTCONFIG_BCMARM),y)
-GOBI_LIB_DIR=src/lib.broadcom_arm
+GOBI_LIB_DIR=lib/bcm.arm
 LIBSTDC=$(shell dirname $(shell which $(CXX)))/../arm-brcm-linux-uclibcgnueabi/lib/libstdc++.so.6
 NET_USB_GOBI = $(INSTALLDIR)/lib/modules/2.6.36.4brcmarm/kernel/drivers/net/usb/
 else # QCA
-GOBI_LIB_DIR=src/lib
+ifeq ($(RTCONFIG_SOC_IPQ40XX),y)
+GOBI_LIB_DIR=lib/ipq40xx
+else
+GOBI_LIB_DIR=lib/qca95xx
+endif
 LIBSTDC=$(shell dirname $(shell which $(CXX)))/../lib/libstdc++.so.6
 endif
 LIBRT=$(shell dirname $(shell which $(CXX)))/../lib/librt.so.0
 
+export GOBI_LIB_DIR
 
 ifeq ($(wildcard src),)
 GOBI_KO_DIR = prebuild
 GOBI_UTIL_DIR = prebuild
-GOBI_LIB_DIR = prebuild
+GOBI_LIB_DIR = .
 else
 PWD = $(shell pwd)
 MODULE_DIR = $(PWD)/kernel_module/gobi
@@ -26,7 +33,7 @@ endif
 
 GOBI_KO = $(GOBI_KO_DIR)/gobi.ko
 GOBI_UTIL = $(GOBI_UTIL_DIR)/gobi_api
-LIB_GOBI_CONN_MGMT = libGobiConnectionMgmt.00.00.04.so
+LIB_GOBI_CONN_MGMT = libGobiConnectionMgmt.$(GOBI_LIB_VER).so
 
 
 ifeq ($(wildcard src),)
@@ -52,11 +59,11 @@ install: $(GOBI_KO) $(GOBI_UTIL)
 	@install -D $(GOBI_KO) $(NET_USB_GOBI)/gobi.ko
 	@install -D $(LIBRT) $(INSTALLDIR)/lib/librt.so.0
 	@install -D $(LIBSTDC) $(INSTALLDIR)/usr/lib/libstdc++.so.6
-	@install -D $(GOBI_LIB_DIR)/$(LIB_GOBI_CONN_MGMT) $(INSTALLDIR)/lib/$(LIB_GOBI_CONN_MGMT)
+	@install -D $(GOBI_UTIL_DIR)/$(GOBI_LIB_DIR)/$(LIB_GOBI_CONN_MGMT) $(INSTALLDIR)/lib/$(LIB_GOBI_CONN_MGMT)
 	@cd $(INSTALLDIR)/lib/ && ln -s $(LIB_GOBI_CONN_MGMT) libGobiConnectionMgmt.so
 	@install -D $(GOBI_UTIL_DIR)/sample $(INSTALLDIR)/usr/sbin/sample
 	@$(STRIP) $(INSTALLDIR)/usr/sbin/sample
-	install -D $(GOBI_UTIL_DIR)/gobi_api $(INSTALLDIR)/usr/sbin/gobi_api
+	install -D $(GOBI_UTIL) $(INSTALLDIR)/usr/sbin/gobi_api
 	$(STRIP) $(INSTALLDIR)/usr/sbin/gobi_api
 	#@install $(GOBI_UTIL_DIR)/open_tty $(INSTALLDIR)/usr/sbin/open_tty
 	#@$(STRIP) $(INSTALLDIR)/usr/sbin/open_tty

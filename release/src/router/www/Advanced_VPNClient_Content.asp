@@ -88,6 +88,7 @@
 var subnetIP_support_IPv6 = false;
 var vpnc_clientlist_array = [];
 var vpnc_pptp_options_x_list_array = [];
+
 var restart_vpncall_flag = 0; //Viz add 2014.04 for Edit Connecting rule then restart_vpncall
 
 <% wanlink(); %>
@@ -115,7 +116,6 @@ function parseNvramToArray(_oriNvram, _arrayLength) {
 	}
 	return parseArray;
 }
-
 function initial(){
 	show_menu();
 	vpnc_clientlist_array = parseNvramToArray('<% nvram_char_to_ascii("","vpnc_clientlist"); %>', 5);
@@ -143,38 +143,19 @@ function initial(){
 		while(document.ipsec_form.ipsec_local_public_interface.options.length > 0){
 			document.ipsec_form.ipsec_local_public_interface.remove(0);
 		}
-		var wans_cap = '<% nvram_get("wans_cap"); %>'.split(" ");
 		var wan_type_list = [];
-		for(var i = 0; i < wans_cap.length; i += 1) {
-			var option_value = "";
-			var option_text = "";
-			option_value = wans_cap[i];
-			
-			switch(wans_cap[i]) {
-				case "wan" :
-					option_text = "<#menu5_3#>";
-					break;
-				case "wan2" :
-					option_text = wans_cap[i].toUpperCase();
-					break;
-				case "usb" :
-					option_text = wans_cap[i].toUpperCase();
-					break;
-				case "lan" :
-					option_text = "Ethernet LAN";
-					break;
-			}
-
-			var option = [option_value, option_text];
+		var option = ["wan", "<#dualwan_primary#>"];
+		wan_type_list.push(option);
+		if(dualWAN_support) {
+			option = ["wan2", "<#dualwan_secondary#>"];
 			wan_type_list.push(option);
 		}
-		var selectobject = document.ipsec_form.ipsec_local_public_interface;
 
 		for(var i = 0; i < wan_type_list.length; i += 1) {
 			var option = document.createElement("option");
 			option.value = wan_type_list[i][0];
 			option.text = wan_type_list[i][1];
-			selectobject.add(option);
+			document.ipsec_form.ipsec_local_public_interface.add(option);
 		}
 	}
 }
@@ -798,11 +779,11 @@ function show_vpnc_rulelist(){
 				if(vpnc_proto == "OpenVPN"){ 
 					if(client_state != 0) {	//connecting
 						code += '<td width="10%"><input class="remove_btn" type="button" onclick="del_Row(this, \'vpnc_enable\');" value=""/></td>';
-						code += '<td width="25%"><input class="button_gen" type="button" onClick="connect_Row(this, \'disconnect\');" id="disonnect_btn" value="Deactivate" style="padding:0 0.3em 0 0.3em;" >';
+						code += '<td width="25%"><input class="button_gen" type="button" onClick="connect_Row(this, \'disconnect\');" id="disonnect_btn" value="<#CTL_Deactivate#>" style="padding:0 0.3em 0 0.3em;" >';
 					}
 					else{			//OpenVPN is not connecting
 						code += '<td width="10%"><input class="remove_btn" type="button" onclick="del_Row(this, \'vpnc\');" value=""/></td>';
-						code += '<td width="25%"><input class="button_gen" type="button" onClick="connect_Row(this, \'vpnc\');" id="Connect_btn" name="Connect_btn" value="Activate" style="padding:0 0.3em 0 0.3em;" >';
+						code += '<td width="25%"><input class="button_gen" type="button" onClick="connect_Row(this, \'vpnc\');" id="Connect_btn" name="Connect_btn" value="<#CTL_Activate#>" style="padding:0 0.3em 0 0.3em;" >';
 					}
 				}
 				else{
@@ -810,11 +791,11 @@ function show_vpnc_rulelist(){
 					 && vpnc_server == document.form.vpnc_heartbeat_x.value 
 					 && vpnc_username == document.form.vpnc_pppoe_username.value){		// This rule is connecting
 						code += '<td width="10%"><input class="remove_btn" type="button" onclick="del_Row(this, \'vpnc_enable\');" value=""/></td>';
-						code += '<td width="25%"><input class="button_gen" type="button" onClick="connect_Row(this, \'disconnect\');" id="disonnect_btn" value="Deactivate" style="padding:0 0.3em 0 0.3em;" >';
+						code += '<td width="25%"><input class="button_gen" type="button" onClick="connect_Row(this, \'disconnect\');" id="disonnect_btn" value="<#CTL_Deactivate#>" style="padding:0 0.3em 0 0.3em;" >';
 					}
 					else{		// This rule is not connecting
 						code += '<td width="10%"><input class="remove_btn" type="button" onclick="del_Row(this, \'vpnc\');" value=""/></td>';
-						code += '<td width="25%"><input class="button_gen" type="button" onClick="connect_Row(this, \'vpnc\');" id="Connect_btn" name="Connect_btn" value="Activate" style="padding:0 0.3em 0 0.3em;" >';
+						code += '<td width="25%"><input class="button_gen" type="button" onClick="connect_Row(this, \'vpnc\');" id="Connect_btn" name="Connect_btn" value="<#CTL_Activate#>" style="padding:0 0.3em 0 0.3em;" >';
 					}
 				}
 			}
@@ -855,10 +836,10 @@ function show_vpnc_rulelist(){
 				code +='<td width="10%"><input class="remove_btn" onclick="del_profile_list(this);" value=""/></td>';
 				code +='<td width="25%">';
 				if(ipsec_profilelist_arraylist[i][38] == 0) {
-					code += '<input class="button_gen" type="button" onClick="connect_Row_IPSec(this, \''+ipsec_profilelist_arraylist[i][0]+'\', \'active\');" value="Activate">';/*untranslated*/
+					code += '<input class="button_gen" type="button" onClick="connect_Row_IPSec(this, \''+ipsec_profilelist_arraylist[i][0]+'\', \'active\');" value="<#CTL_Activate#>">';
 				}
 				else {
-					code += '<input class="button_gen" type="button" onClick="connect_Row_IPSec(this, \''+ipsec_profilelist_arraylist[i][0]+'\', \'deactivate\');" value="Deactivate">';/*untranslated*/
+					code += '<input class="button_gen" type="button" onClick="connect_Row_IPSec(this, \''+ipsec_profilelist_arraylist[i][0]+'\', \'deactivate\');" value="<#CTL_Deactivate#>">';
 					control_profile_flag = false;
 				}
 				code +='</td>';
@@ -1464,8 +1445,12 @@ function gen_subnet_input(_type, _idx, _value) {
 	subnet_input_obj.value = _value;
 	if(subnetIP_support_IPv6)
 		subnet_input_obj.maxLength = "39";
-	else
+	else {
 		subnet_input_obj.maxLength = "18";
+		subnet_input_obj.onkeypress = function() {
+			return validator.isIPAddrPlusNetmask(this,event);
+		};
+	}
 	subnet_input_obj.style.marginTop = "4px";
 	return subnet_input_obj;
 }
@@ -1508,6 +1493,7 @@ function initialIPSecProfile() {
 	switchSettingsMode("1");
 	document.ipsec_form.ipsec_profilename.value = "";
 	settingRadioItemCheck(document.ipsec_form.ipsec_remote_gateway_method, "0");
+	changeRemoteGatewayMethod();
 	document.ipsec_form.ipsec_remote_gateway.value = "";
 	document.ipsec_form.ipsec_local_public_interface.value = "wan";
 	document.ipsec_form.ipsec_preshared_key.value = "";
@@ -1638,6 +1624,7 @@ function UpdatePSecProfile(array) {
 	switchSettingsMode("1");
 	document.ipsec_form.ipsec_profilename.value = array[2];
 	settingRadioItemCheck(document.ipsec_form.ipsec_remote_gateway_method, array[3]);
+	changeRemoteGatewayMethod();
 	document.ipsec_form.ipsec_remote_gateway.value = array[4];
 	document.ipsec_form.ipsec_local_public_interface.value = array[5];
 	document.ipsec_form.ipsec_preshared_key.value = array[8];
@@ -1761,6 +1748,21 @@ function save_ipsec_profile_panel() {
 			return false;
 		if(!Block_chars(document.ipsec_form.ipsec_remote_gateway, [">", "<"]))
 			return false;
+
+		if(getRadioItemCheck(document.ipsec_form.ipsec_remote_gateway_method) == "0") {
+			if(!validator.ipv4_addr(document.ipsec_form.ipsec_remote_gateway.value)) {
+				document.ipsec_form.ipsec_remote_gateway.focus();
+				alert(document.ipsec_form.ipsec_remote_gateway.value + " <#JS_validip#>");
+				return false;
+			}
+		}
+		else if(getRadioItemCheck(document.ipsec_form.ipsec_remote_gateway_method) == "1") {
+			if(!validator.domainName(document.ipsec_form.ipsec_remote_gateway.value)) {
+				document.ipsec_form.ipsec_remote_gateway.focus();
+				alert(document.ipsec_form.ipsec_remote_gateway.value + " is invalid Domain Name");/*untranslated*/
+				return false;
+			}
+		}
 
 		if(!validator.isEmpty(document.ipsec_form.ipsec_preshared_key))
 			return false;
@@ -1908,6 +1910,7 @@ function save_ipsec_profile_panel() {
 		remote_subnet_list = get_subnet_list("remote");
 
 		var local_public_ip = "";
+		/*
 		var wans_dualwan_array = '<% nvram_get("wans_dualwan"); %>'.split(" ");
 		var wans_index = 0;
 		for(var i = 0; i < wans_dualwan_array.length; i += 1) {
@@ -1926,6 +1929,7 @@ function save_ipsec_profile_panel() {
 				local_public_ip = secondary_wanlink_ipaddr();
 				break;
 		}
+		*/
 
 		var auth_method_vaule = document.ipsec_form.ipsec_preshared_key.value;
 		var ipsec_profilename = document.ipsec_form.ipsec_profilename.value + "_c" + profile_idx;
@@ -2091,6 +2095,20 @@ function parseArrayToStr_vpnc_pptp_options_x_list() {
 		}
 	}
 	return vpnc_pptp_options_x_list_str;
+}
+function changeRemoteGatewayMethod() {
+	$("#ipsec_remote_gateway").removeAttr("maxlength");
+	$('#ipsec_remote_gateway').unbind("keypress");
+	var clickItem = getRadioItemCheck(document.ipsec_form.ipsec_remote_gateway_method);
+	if(clickItem == "0") {
+		$("#ipsec_remote_gateway").keypress(function() {
+			return validator.isIPAddr(this,event);
+		});
+		$("#ipsec_remote_gateway").attr("maxlength", "15");
+	}
+	else if(clickItem == "1") {
+		$("#ipsec_remote_gateway").attr("maxlength", "64");
+	}
 }
 </script>
 </head>
@@ -2338,17 +2356,19 @@ function parseArrayToStr_vpnc_pptp_options_x_list() {
 							<input type="text" class="input_25_table" name="ipsec_profilename">
 						</td>
 					</tr>
-					<tr id="tr_remote_gateway_method" style="display:none;">
+					<tr id="tr_remote_gateway_method">
 						<th>Remote Gateway Method<!--untranslated--></th>
 						<td>
-							<input type="radio" name="ipsec_remote_gateway_method" class="input" value="0" checked>Static IP Address<!--untranslated-->
-							<input type="radio" name="ipsec_remote_gateway_method" class="input" value="1"><#LANHostConfig_x_LDNSServer1_itemname#>
+							<input type="radio" name="ipsec_remote_gateway_method" id="ipsec_remote_gateway_ip" class="input" value="0" onchange="changeRemoteGatewayMethod()" checked>
+							<label for='ipsec_remote_gateway_ip' id="ipsec_remote_gateway_ip_label">Static IP Address<!--untranslated--></label>
+							<input type="radio" name="ipsec_remote_gateway_method" id="ipsec_remote_gateway_ddns" class="input" value="1" onchange="changeRemoteGatewayMethod()">
+							<label for='ipsec_remote_gateway_ddns' id="ipsec_remote_gateway_ddns_label"><#LANHostConfig_x_LDNSServer1_itemname#></label>
 						</td>
 					</tr>
 					<tr id="tr_remote_gateway">
 						<th>Remote Gateway<!--untranslated--></th>
 						<td>
-							<input type="text" class="input_25_table" name="ipsec_remote_gateway">
+							<input type="text" class="input_25_table" name="ipsec_remote_gateway" id="ipsec_remote_gateway" autocorrect="off" autocapitalize="off">
 						</td>
 					</tr>
 					<tr>
@@ -2358,9 +2378,9 @@ function parseArrayToStr_vpnc_pptp_options_x_list() {
 						</td>
 					</tr>
 					<tr id="tr_presharedKey">
-						<th>Preshared Key<!--untranslated--></th>
+						<th><#vpn_preshared_key#></th>
 						<td>
-							<input id="ipsec_preshared_key" name="ipsec_preshared_key" type="password" autocapitalization="off" onBlur="switchType(this, false);" onFocus="switchType(this, true);" class="input_25_table" maxlength="32" placeholder="Enter Preshared Key"><!--untranslated-->
+							<input id="ipsec_preshared_key" name="ipsec_preshared_key" type="password" autocapitalization="off" onBlur="switchType(this, false);" onFocus="switchType(this, true);" class="input_25_table" maxlength="32" placeholder="<#vpn_preshared_key_hint#>">
 						</td>
 					</tr>
 					<tr id="tr_adv_local_id">

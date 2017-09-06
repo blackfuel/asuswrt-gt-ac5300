@@ -125,7 +125,7 @@ void notify_nas(const char *ifname)
 #if defined(CONFIG_BCMWL5) \
 		|| (defined(RTCONFIG_RALINK) && defined(RTCONFIG_WIRELESSREPEATER)) \
 		|| defined(RTCONFIG_QCA) || defined(RTCONFIG_REALTEK) \
-		|| defined(RTCONFIG_QSR10G)
+		|| defined(RTCONFIG_QSR10G) || defined(RTCONFIG_LANTIQ)
 #define APSCAN_INFO "/tmp/apscan_info.txt"
 
 static int lock = -1;
@@ -134,6 +134,7 @@ static void wlcscan_safeleave(int signo) {
 	signal(SIGTERM, SIG_IGN);
 
 	nvram_set_int("wlc_scan_state", WLCSCAN_STATE_STOPPED);
+
 	file_unlock(lock);
 	exit(0);
 }
@@ -169,6 +170,7 @@ int wlcscan_main(void)
 		client_qcsapi_set_rpcclient(clnt);
 	}
 #endif
+
 	/* clean APSCAN_INFO */
 	lock = file_lock("sitesurvey");
 	if ((fp = fopen(APSCAN_INFO, "w")) != NULL) {
@@ -177,6 +179,7 @@ int wlcscan_main(void)
 	file_unlock(lock);
 
 	nvram_set_int("wlc_scan_state", WLCSCAN_STATE_INITIALIZING);
+
 	/* Starting scanning */
 	i = 0;
 #if defined(RTCONFIG_CONCURRENTREPEATER) && defined(RTCONFIG_MTK_REP)
@@ -195,6 +198,7 @@ int wlcscan_main(void)
 	foreach (word, nvram_safe_get("wl_ifnames"), next)
 #endif
 	{	
+		SKIP_ABSENT_BAND_AND_INC_UNIT(i);
 #if defined(RTCONFIG_BCM_7114) || defined(HND_ROUTER)
 		snprintf(prefix, sizeof(prefix), "wl%d_", i);
 		if (!nvram_match(strcat_r(prefix, "mode", tmp), "wds"))
@@ -202,19 +206,24 @@ int wlcscan_main(void)
 		else
 #endif
 			wlcscan_core(APSCAN_INFO, word);
+
 		// suppose only two or less interface handled
 		nvram_set_int("wlc_scan_state", WLCSCAN_STATE_2G+i);
+
 		i++;
 	}
+
 #ifdef RTCONFIG_QTN
 	wlcscan_core_qtn(APSCAN_INFO, "wifi0");
 #endif
-	nvram_set_int("wlc_scan_state", WLCSCAN_STATE_FINISHED);
 #ifdef RTCONFIG_QSR10GBAK
 	if(clnt != NULL){
 		clnt_destroy(clnt);
 	}
 #endif
+
+	nvram_set_int("wlc_scan_state", WLCSCAN_STATE_FINISHED);
+
 	return 1;
 }
 
@@ -243,18 +252,21 @@ _dprintf("%s: Start to run...\n", __FUNCTION__);
 	int ret, old_ret = -1;
 	int link_setup = 0, wlc_count = 0;
 	int wanduck_notify = NOTIFY_IDLE;
+	int wlc_wait_time = nvram_get_int("wl_time") ? : 5;
 #if defined(RTCONFIG_BLINK_LED)
 	int unit = nvram_get_int("wlc_band");
-	char *led_gpio = unit? "led_5g_gpio" : "led_2g_gpio";
+	char *led_gpio = get_wl_led_gpio_nv(unit);
 #endif
-
-	int wlc_wait_time = nvram_get_int("wl_time") ? : 5;
 
 	signal(SIGTERM, wlcconnect_safeleave);
 
 	nvram_set_int("wlc_state", WLC_STATE_INITIALIZING);
 	nvram_set_int("wlc_sbstate", WLC_STOPPED_REASON_NONE);
 	nvram_set_int("wlc_state", WLC_STATE_CONNECTING);
+
+#ifdef RTCONFIG_LANTIQ
+	start_repeater();
+#endif
 
 	while (1) {
 		ret = wlcconnect_core();
@@ -371,6 +383,7 @@ void repeater_pap_disable(void)
 	i = 0;
 
 	foreach(word, nvram_safe_get("wl_ifnames"), next) {
+		SKIP_ABSENT_BAND_AND_INC_UNIT(i);
 		if (nvram_get_int("wlc_band") == i) {
 			eval("ebtables", "-t", "filter", "-I", "FORWARD", "-i", word, "-j", "DROP");
 			break;
@@ -389,9 +402,15 @@ void update_wifi_led_state_in_wlcmode(void)
 	if (!repeater_mode() && !mediabridge_mode())
 		return;
 
-	for (band = 0; band < 2; ++band) {
-		id = band? LED_5G : LED_2G;
-		led_gpio = band? "led_5g_gpio" : "led_2g_gpio";
+	for (band = 0; band < MAX_NR_WL_IF; ++band) {
+		SKIP_ABSENT_BAND(band);
+		if (band >= 2) {
+			/* 2-nd 5G LED and 11ad LED have not been supported! */
+			dbg("%s: Unknown LED for wl%d\n", __func__, band);
+			continue;
+		}
+		id = get_wl_led_id(band);
+		led_gpio = get_wl_led_gpio_nv(band);
 		if (band != wlc_band) {
 			if (mediabridge_mode())
 				led_control(id, LED_OFF);

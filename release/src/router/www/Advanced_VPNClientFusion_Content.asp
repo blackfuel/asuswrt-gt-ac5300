@@ -8,7 +8,7 @@
 <meta HTTP-EQUIV="Expires" CONTENT="-1">
 <link rel="shortcut icon" href="images/favicon.png">
 <link rel="icon" href="images/favicon.png">
-<title><#Web_Title#> - VPN Fusion<!--untranslated--></title>
+<title><#Web_Title#> - <#VPN_Fusion#></title>
 <link rel="stylesheet" type="text/css" href="index_style.css"> 
 <link rel="stylesheet" type="text/css" href="form_style.css">
 <link rel="stylesheet" type="text/css" href="usp_style.css">
@@ -22,6 +22,7 @@
 <script type="text/javascript" src="/switcherplugin/jquery.iphone-switch.js"></script>
 <script type="text/javascript" language="JavaScript" src="/client_function.js"></script>
 <script type="text/javascript" language="JavaScript" src="/js/table/table.js"></script>
+<script type="text/javascript" src="form.js"></script>
 <style type="text/css">
 .contentM_qis{
 	position:absolute;
@@ -251,54 +252,38 @@ function initial(){
 		while(document.ipsec_form.ipsec_local_public_interface.options.length > 0){
 			document.ipsec_form.ipsec_local_public_interface.remove(0);
 		}
-		var wans_cap = '<% nvram_get("wans_cap"); %>'.split(" ");
 		var wan_type_list = [];
-		for(var i = 0; i < wans_cap.length; i += 1) {
-			var option_value = "";
-			var option_text = "";
-			option_value = wans_cap[i];
-			
-			switch(wans_cap[i]) {
-				case "wan" :
-					option_text = "<#menu5_3#>";
-					break;
-				case "wan2" :
-					option_text = wans_cap[i].toUpperCase();
-					break;
-				case "usb" :
-					option_text = wans_cap[i].toUpperCase();
-					break;
-				case "lan" :
-					option_text = "Ethernet LAN";
-					break;
-			}
-
-			var option = [option_value, option_text];
+		var option = ["wan", "<#dualwan_primary#>"];
+		wan_type_list.push(option);
+		if(dualWAN_support) {
+			option = ["wan2", "<#dualwan_secondary#>"];
 			wan_type_list.push(option);
 		}
-		var selectobject = document.ipsec_form.ipsec_local_public_interface;
 
 		for(var i = 0; i < wan_type_list.length; i += 1) {
 			var option = document.createElement("option");
 			option.value = wan_type_list[i][0];
 			option.text = wan_type_list[i][1];
-			selectobject.add(option);
+			document.ipsec_form.ipsec_local_public_interface.add(option);
 		}
 	}
 
 	get_vpnc_profile_status();
 	gen_exception_list_table();
+
+	$("#faq1").attr("href", "https://www.asus.com/support/FAQ/1033909");//this id is include in string : #VPN_Fusion_FAQ#	
 }
 function gen_exception_list_table() {
 	//set table Struct
 	var tableStruct = {
 		data: vpnc_dev_policy_list_array,
 		container: "exception_list_table",
-		title: "Exception List", /*untranslated*/
-		titieHint : "You can add exception policies in the list to make client device connecting to different VPN tunnels.", /*untranslated*/
+		title: "<#VPN_Fusion_Exception_List#>",
+		titieHint : "<#VPN_Fusion_Exception_List_hint#>",
 		capability: {
 			add: true,
 			del: true,
+			before_del_callBackFun : del_exception_list_confirm,
 			clickEdit: true
 		},
 		header: [ 
@@ -311,11 +296,11 @@ function gen_exception_list_table() {
 				"width" : "20%"
 			},
 			{
-				"title" : "Connection Name", /*untranslated*/
+				"title" : "<#VPN_Fusion_Connection_Name#>",
 				"width" : "30%"
 			},
 			{
-				"title" : "Activate", /*untranslated*/
+				"title" : "<#CTL_Activate#>",
 				"width" : "10%"
 			}
 		],
@@ -335,7 +320,7 @@ function gen_exception_list_table() {
 				},
 				{
 					"editMode" : "select",
-					"title" : "Connection Name", /*untranslated*/
+					"title" : "<#VPN_Fusion_Connection_Name#>",
 					"option" : {"<#Internet#>" : "0"}
 				},
 				{
@@ -355,7 +340,8 @@ function gen_exception_list_table() {
 				},
 				{
 					"editMode" : "select",
-					"option" : {"<#Internet#>" : "0"}
+					"option" : {"<#Internet#>" : "0"},
+					"before_edit_callBackFun" : edit_exception_list_confirm
 				},
 				{
 					"editMode" : "activateIcon",
@@ -479,13 +465,12 @@ function addRow_Group(upper, flag, idx){
 		duplicateCheck.tmpIdx = "";
 		duplicateCheck.saveTotmpIdx(idx);
 		duplicateCheck.tmpDataArray = [];
+		duplicateCheck.saveToTmpDataArray(description_obj);
 		duplicateCheck.saveToTmpDataArray(type_obj);
 		duplicateCheck.saveToTmpDataArray(server_obj);
 		duplicateCheck.saveToTmpDataArray(username_obj);
 		duplicateCheck.saveToTmpDataArray(password_obj);
 		if(duplicateCheck.isDuplicate()){
-			username_obj.focus();
-			username_obj.select();
 			alert("<#JS_duplicate#>")
 			return false;
 		}
@@ -577,10 +562,25 @@ var duplicateCheck = {
 	isDuplicate: function(){
 		var index_del = parseInt(this.tmpIdx);
 		for(var i = 0; i < vpnc_clientlist_array.length; i += 1) {
-			var compareDataArray = vpnc_clientlist_array[i].slice();
+			var compareDataArray = [];
+			var currentEditDataArray = [];
+			//compare VPN Server,Username,Password
+			compareDataArray = vpnc_clientlist_array[i].slice();
 			compareDataArray.splice(0, 1);
+			compareDataArray.splice(4, 5);
+			currentEditDataArray = this.tmpDataArray.slice();
+			currentEditDataArray.splice(0, 1);
 			if(i != index_del) {
-				if(this.tmpDataArray.toString() == compareDataArray.toString())
+				if(currentEditDataArray.toString() == compareDataArray.toString())
+					return true;
+			}
+			//compare Description
+			compareDataArray = vpnc_clientlist_array[i].slice();
+			compareDataArray.splice(1);
+			currentEditDataArray = this.tmpDataArray.slice();
+			currentEditDataArray.splice(1);
+			if(i != index_del) {
+				if(currentEditDataArray.toString() == compareDataArray.toString())
 					return true;
 			}
 		}
@@ -698,6 +698,7 @@ function tabclickhandler(_type){
 		document.getElementById('pptpcTitle_' + tab_id + '').className = "vpnClientTitle_td_click";
 		document.getElementById('openvpnc_setting').style.display = "block";
 		document.getElementById('trPPTPOptions').style.display = "";
+		adjust_panel_block_top("openvpnc_setting", 200);
 	}
 	else if(_type == 1){
 		save_flag = "L2TP";
@@ -705,6 +706,7 @@ function tabclickhandler(_type){
 		document.vpnclientForm.vpnc_type.value = "L2TP";
 		document.getElementById('l2tpcTitle_' + tab_id + '').className = "vpnClientTitle_td_click";
 		document.getElementById('openvpnc_setting').style.display = "block";
+		adjust_panel_block_top("openvpnc_setting", 200);
 	}
 	else if(_type == 2){
 		save_flag = "OpenVPN";
@@ -712,6 +714,7 @@ function tabclickhandler(_type){
 		document.vpnclientForm.vpnc_type.value = "OpenVPN";
 		document.getElementById('opencTitle_' + tab_id + '').className = "vpnClientTitle_td_click";
 		document.getElementById('openvpnc_setting_openvpn').style.display = "block";
+		adjust_panel_block_top("openvpnc_setting_openvpn", 200);
 		if(add_profile_flag)
 			update_unit_option();
 	}
@@ -726,7 +729,7 @@ function tabclickhandler(_type){
 		document.vpnclientForm.vpnc_type.value = "IPSec";
 		document.getElementById('ipsecTitle_' + tab_id + '').className = "vpnClientTitle_td_click";
 		document.getElementById('openvpnc_setting_ipsec').style.display = "block";
-		
+		adjust_panel_block_top("openvpnc_setting_ipsec", 200);	
 	}
 
 	if (openvpn_arrayLength == 5 && openvpnd_support && add_profile_flag) {
@@ -1087,7 +1090,7 @@ function Edit_Row(rowdata) {
 	idx = idx - 1;
 	var vpnc_activate_status = vpnc_clientlist_array[idx_tmp][5];
 	if(vpnc_activate_status == "1") {
-		alert("Please deactivate before using editor.");/*untranslated*/
+		alert("<#VPN_Fusion_Deactivate_Editor_Alert#>");
 		return false;
 	}
 	
@@ -1188,16 +1191,34 @@ function del_Row(rowdata) {
 	var idx_array = idx - 1;
 	var vpnc_activate_status = vpnc_clientlist_array[idx_array][5];
 	if(vpnc_activate_status == "1") {
-		alert("Please deactivate before clicking delete button.");/*untranslated*/
+		alert("<#VPN_Fusion_Deactivate_Delete_Alert#>");
 		return false;
 	}
-	
-	if(!confirm("Are you sure to delete this profile?"))/*untranslated*/
-		return false;
+
+	var vpnc_clientlist_delete_array = vpnc_clientlist_array.slice(idx_array, (idx_array + 1));
+	var delete_connect_type = vpnc_clientlist_delete_array[0][6];
+
+	//check Exception List whether exist vpn profile.
+	var exist_exception_list_flag = false;
+	for(var idx_policy in vpnc_dev_policy_list_array){
+		if (vpnc_dev_policy_list_array.hasOwnProperty(idx_policy)) {
+			if(vpnc_dev_policy_list_array[idx_policy][2] == delete_connect_type) {
+				exist_exception_list_flag = true;
+				break;
+			}
+		}
+	}
+	if(exist_exception_list_flag) {
+		if(!confirm("<#VPN_Fusion_Exception_Policies_Delete_Alert#>"))
+			return false;
+	}
+	else {
+		if(!confirm("<#VPN_Fusion_Delete_Alert#>"))
+			return false;
+	}
 
 	document.getElementById("vpnc_clientlist_table").deleteRow(idx);
 
-	var vpnc_clientlist_delete_array = vpnc_clientlist_array.slice(idx_array, (idx_array + 1));
 	vpnc_clientlist_array.splice(idx_array, 1);
 	vpnc_status_array.splice(idx_array, 1);
 				
@@ -1207,7 +1228,6 @@ function del_Row(rowdata) {
 	}
 
 	//change vpnc_dev_policy_list to internet type
-	var delete_connect_type = vpnc_clientlist_delete_array[0][6];
 	var vpnc_dev_policy_list_array_temp = vpnc_dev_policy_list_array.slice();
 	vpnc_dev_policy_list_array = [];
 	for(var i in vpnc_dev_policy_list_array_temp){
@@ -1479,6 +1499,7 @@ function gen_vpnc_tab_list(_type) {
 }
 function cancel_ipsec_profile_panel() {
 	$("#openvpnc_setting_ipsec").fadeOut(300);
+	$("body").find(".fullScreen").fadeOut(300, function() { tableApi.removeElement("fullScreen"); });
 }
 function switchSettingsMode(mode) {
 	if(mode == "1") {
@@ -1588,6 +1609,7 @@ function initialIPSecProfile() {
 	switchSettingsMode("1");
 	document.ipsec_form.ipsec_profilename.value = "";
 	settingRadioItemCheck(document.ipsec_form.ipsec_remote_gateway_method, "0");
+	changeRemoteGatewayMethod();
 	document.ipsec_form.ipsec_remote_gateway.value = "";
 	document.ipsec_form.ipsec_local_public_interface.value = "wan";
 	document.ipsec_form.ipsec_preshared_key.value = "";
@@ -1672,11 +1694,11 @@ function editIPSecProfile(mode) {
 }
 function delIPSecProfile(obj) {
 	if(!control_profile_flag) {
-		alert("Please deactivate before clicking delete button.");/*untranslated*/
+		alert("<#VPN_Fusion_Deactivate_Delete_Alert#>");
 		return true;
 	}
 
-	if(!confirm("Are you sure to delete this profile?"))/*untranslated*/
+	if(!confirm("<#VPN_Fusion_Delete_Alert#>"))
 		return false;
 	
 	var delRowID = obj.parentNode.parentNode.id;
@@ -1717,6 +1739,7 @@ function UpdatePSecProfile(array) {
 	switchSettingsMode("1");
 	document.ipsec_form.ipsec_profilename.value = array[2];
 	settingRadioItemCheck(document.ipsec_form.ipsec_remote_gateway_method, array[3]);
+	changeRemoteGatewayMethod();
 	document.ipsec_form.ipsec_remote_gateway.value = array[4];
 	document.ipsec_form.ipsec_local_public_interface.value = array[5];
 	document.ipsec_form.ipsec_preshared_key.value = array[8];
@@ -1840,6 +1863,21 @@ function save_ipsec_profile_panel() {
 			return false;
 		if(!Block_chars(document.ipsec_form.ipsec_remote_gateway, [">", "<"]))
 			return false;
+
+		if(getRadioItemCheck(document.ipsec_form.ipsec_remote_gateway_method) == "0") {
+			if(!validator.ipv4_addr(document.ipsec_form.ipsec_remote_gateway.value)) {
+				document.ipsec_form.ipsec_remote_gateway.focus();
+				alert(document.ipsec_form.ipsec_remote_gateway.value + " <#JS_validip#>");
+				return false;
+			}
+		}
+		else if(getRadioItemCheck(document.ipsec_form.ipsec_remote_gateway_method) == "1") {
+			if(!validator.domainName(document.ipsec_form.ipsec_remote_gateway.value)) {
+				document.ipsec_form.ipsec_remote_gateway.focus();
+				alert(document.ipsec_form.ipsec_remote_gateway.value + " is invalid Domain Name");/*untranslated*/
+				return false;
+			}
+		}
 
 		if(!validator.isEmpty(document.ipsec_form.ipsec_preshared_key))
 			return false;
@@ -1987,6 +2025,7 @@ function save_ipsec_profile_panel() {
 		remote_subnet_list = get_subnet_list("remote");
 
 		var local_public_ip = "";
+		/*
 		var wans_dualwan_array = '<% nvram_get("wans_dualwan"); %>'.split(" ");
 		var wans_index = 0;
 		for(var i = 0; i < wans_dualwan_array.length; i += 1) {
@@ -2005,6 +2044,7 @@ function save_ipsec_profile_panel() {
 				local_public_ip = secondary_wanlink_ipaddr();
 				break;
 		}
+		*/
 
 		var auth_method_vaule = document.ipsec_form.ipsec_preshared_key.value;
 		var ipsec_profilename = document.ipsec_form.ipsec_profilename.value + "_c" + profile_idx;
@@ -2185,6 +2225,20 @@ function parseArrayToStr_vpnc_pptp_options_x_list() {
 		}
 	}
 	return vpnc_pptp_options_x_list_str;
+}
+function changeRemoteGatewayMethod() {
+	$("#ipsec_remote_gateway").removeAttr("maxlength");
+	$('#ipsec_remote_gateway').unbind("keypress");
+	var clickItem = getRadioItemCheck(document.ipsec_form.ipsec_remote_gateway_method);
+	if(clickItem == "0") {
+		$("#ipsec_remote_gateway").keypress(function() {
+			return validator.isIPAddr(this,event);
+		});
+		$("#ipsec_remote_gateway").attr("maxlength", "15");
+	}
+	else if(clickItem == "1") {
+		$("#ipsec_remote_gateway").attr("maxlength", "64");
+	}
 }
 function parseArrayToStr_vpnc_dev_policy_list(_array) {
 	var vpnc_dev_policy_list = "";
@@ -2386,6 +2440,41 @@ function applyExceptionList() {
 
 	vpnc_dev_policy_list_array_ori = JSON.parse(JSON.stringify(vpnc_dev_policy_list_array));
 }
+function edit_exception_list_confirm(_parArray) {
+	var activate_status = "0";
+	activate_status = _parArray[3];
+	if(activate_status == "1") {
+		alert("<#VPN_Fusion_Deactivate_Editor_Alert#>");
+		return false;
+	}
+
+	return true;
+}
+function del_exception_list_confirm(_parArray) {
+	var activate_status = "0";
+	var ipAddr = "";
+	ipAddr = _parArray[1];
+	activate_status = _parArray[3];
+	if(activate_status == "1") {
+		alert("<#VPN_Fusion_Deactivate_Delete_Alert#>");
+		return false;
+	}
+	else {
+		var manually_dhcp_list_array_ori = new Array();
+		var dhcp_staticlist_array = '<% nvram_get("dhcp_staticlist"); %>';
+		var dhcp_staticlist_row = dhcp_staticlist_array.split('&#60');
+		for(var i = 1; i < dhcp_staticlist_row.length; i += 1) {
+			var dhcp_staticlist_col = dhcp_staticlist_row[i].split('&#62');
+			manually_dhcp_list_array_ori[dhcp_staticlist_col[1]] = dhcp_staticlist_col[0].toUpperCase();
+		}
+		if(manually_dhcp_list_array_ori[ipAddr] != undefined) {
+			if(!confirm("<#VPN_Fusion_Exception_Policy_And_IP_Binding_Delete_Alert#>"))
+				return false;
+		}
+	}
+
+	return true;
+}
 </script>
 </head>
 
@@ -2455,7 +2544,7 @@ function applyExceptionList() {
 								<option value="+mppe-128">MPPE 128</option>
 							</select>
 							<div id="pptpOptionHint" style="display:none;">
-								<span><#PPTPOptions_OpenVPN_hint#><!--untranslated--></span>
+								<span><#PPTPOptions_OpenVPN_hint#></span>
 							</div>
 						</td>	
 					</tr>		 
@@ -2491,49 +2580,50 @@ function applyExceptionList() {
 					<tr>
 						<td bgcolor="#4D595D" valign="top">
 							<div>&nbsp;</div>
-							<div class="formfonttitle">VPN - VPN Fusion<!--untranslated--></div>
+							<div class="formfonttitle">VPN - <#VPN_Fusion#></div>
 							<div style="margin-left:5px;margin-top:10px;margin-bottom:10px"><img src="/images/New_ui/export/line_export.png"></div>
 							<div>
 								<div class='vpn_illustration'></div>
-								<div class="formfontdesc">
-									VPN Fusion allow you connect several VPN server simultaneously and assign your client device connect to different VPN tunnel. Some devices like set-top boxes, smart TVs and Blu-ray players do not support VPN software. This feature provides VPN access to these devices in a home network without having to install VPN software , but remains your smart phone on the general Internet connection.
+								<div class="formfontdesc" style="float:left;width:75%;">
+									<#VPN_Fusion_desc1#>
 									<br>
-									For Gamer, VPN Fusion counteracts DDoS attack to prevent your PC game or your stream from disconnecting with game server. Build a VPN connection via VPN Fusion also can simply change your IP address to the region where game server locate to improve your ping to gaming servers.<!--untranslated-->
+									<#VPN_Fusion_desc2#>
 								</div>
 							</div>
+							<div style="clear:both;"></div>
 							<div class="formfontdesc">
-								To start a VPN Fusion, please follow the steps below:<!--untranslated-->
+								<#VPN_Fusion_desc_step#>
 								<br>
-								1. Click "+" button in Server List to add a new VPN Tunnel.<!--untranslated--> 
+								1. <#VPN_Fusion_desc_step1#>
 								<br>
-								2. Activate the VPN connection you create in Server List.<!--untranslated--> 
+								2. <#VPN_Fusion_desc_step2#>
 								<br>
-								3. Click "+" button in Exception List and choose the online client you want to configure.<!--untranslated--> 
+								3. <#VPN_Fusion_desc_step3#>
 								<br>
-								4. Assign a VPN connection to the client device, and click ok.<!--untranslated--> 
+								4. <#VPN_Fusion_desc_step4#>
 								<br>
-								5. Activate the policy in Exception List, and click apply at the bottom.<!--untranslated-->
-								<br>
-								6. If any questions, please refer to VPN Fusion FAQ.<!--untranslated-->
+								5. <#VPN_Fusion_desc_step5#>
+							</div>
+							<div class="formfontdesc" style="margin-bottom:-10px;">
+								<#VPN_Fusion_FAQ#>
 							</div>
 						</td>
         			</tr>
 					<tr>
 						<td>
 							<div class="addRuleFrame">
-								<div class="addRuleText">Server List<!--untranslated--> ( <#List_limit#> 16 )</div>
+								<div class="addRuleText"><#VPN_Fusion_Server_List#> ( <#List_limit#> 16 )</div>
 								<div class="add_btn" style="float:left;" onclick="Add_profile(16)"></div>
 							</div>
-							<span style="color:#FC0;margin-left:5px;">Create profiles in server list to connect to VPN Server and the max number of concurrent active VPN connections is up to 4.<!--untranslated--> 
-							</span>
+							<span style="color:#FC0;margin-left:5px;"><#VPN_Fusion_Server_List_hint#></span>
 							<table width="98%" border="1" align="center" cellpadding="4" cellspacing="0" class="FormTable_table">
 								<tr>
 									<th width="10%"><a class='hintstyle' href='javascript:void(0);' onClick='openHint(32, 1);'><#Setting_factorydefault_value#></a></th>
 									<th width="15%"><#Status_Str#></th>
-									<th width="30%">Connection Name<!--untranslated--></th>
+									<th width="30%"><#VPN_Fusion_Connection_Name#></th>
 									<th width="15%"><#QIS_internet_vpn_type#></th>
-									<th width="15%">Activate<!--untranslated--></th>
-									<th width="15%">Editor<!--untranslated--></th>
+									<th width="15%"><#VPN_Fusion_Activate#></th>
+									<th width="15%"><#VPN_Fusion_Editor#></th>
 								</tr>
 							</table>
 							<div id="vpnc_clientlist_Block"></div>
@@ -2640,17 +2730,19 @@ function applyExceptionList() {
 							<input type="text" class="input_25_table" name="ipsec_profilename">
 						</td>
 					</tr>
-					<tr id="tr_remote_gateway_method" style="display:none;">
+					<tr id="tr_remote_gateway_method">
 						<th>Remote Gateway Method<!--untranslated--></th>
 						<td>
-							<input type="radio" name="ipsec_remote_gateway_method" class="input" value="0" checked>Static IP Address<!--untranslated-->
-							<input type="radio" name="ipsec_remote_gateway_method" class="input" value="1"><#LANHostConfig_x_LDNSServer1_itemname#>
+							<input type="radio" name="ipsec_remote_gateway_method" id="ipsec_remote_gateway_ip" class="input" value="0" onchange="changeRemoteGatewayMethod()" checked>
+							<label for='ipsec_remote_gateway_ip' id="ipsec_remote_gateway_ip_label">Static IP Address<!--untranslated--></label>
+							<input type="radio" name="ipsec_remote_gateway_method" id="ipsec_remote_gateway_ddns" class="input" value="1" onchange="changeRemoteGatewayMethod()">
+							<label for='ipsec_remote_gateway_ddns' id="ipsec_remote_gateway_ddns_label"><#LANHostConfig_x_LDNSServer1_itemname#></label>
 						</td>
 					</tr>
 					<tr id="tr_remote_gateway">
 						<th>Remote Gateway<!--untranslated--></th>
 						<td>
-							<input type="text" class="input_25_table" name="ipsec_remote_gateway">
+							<input type="text" class="input_25_table" name="ipsec_remote_gateway" id="ipsec_remote_gateway" autocorrect="off" autocapitalize="off">
 						</td>
 					</tr>
 					<tr>
@@ -2660,9 +2752,9 @@ function applyExceptionList() {
 						</td>
 					</tr>
 					<tr id="tr_presharedKey">
-						<th>Preshared Key<!--untranslated--></th>
+						<th><#vpn_preshared_key#></th>
 						<td>
-							<input id="ipsec_preshared_key" name="ipsec_preshared_key" type="password" autocapitalization="off" onBlur="switchType(this, false);" onFocus="switchType(this, true);" class="input_25_table" maxlength="32" placeholder="Enter Preshared Key"><!--untranslated-->
+							<input id="ipsec_preshared_key" name="ipsec_preshared_key" type="password" autocapitalization="off" onBlur="switchType(this, false);" onFocus="switchType(this, true);" class="input_25_table" maxlength="32" placeholder="<#vpn_preshared_key_hint#>">
 						</td>
 					</tr>
 					<tr id="tr_adv_local_id">

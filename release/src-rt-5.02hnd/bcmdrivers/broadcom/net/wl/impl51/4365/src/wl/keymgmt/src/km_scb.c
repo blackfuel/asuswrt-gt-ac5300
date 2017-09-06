@@ -712,6 +712,14 @@ upd_amt:
 	amt_attr = wlc_clear_addrmatch(km->wlc, amt_idx);
 	if (!(amt_attr & AMT_ATTR_VALID))
 		amt_attr = 0;
+#ifdef PSTA
+	// for psta wpa-psk issue
+	if (BSSCFG_STA(bsscfg) && PSTA_ENAB(KM_PUB(km)))
+	{
+		amt_attr |= AMT_ATTR_A1;
+	}
+#endif
+
 	amt_attr |= (AMT_ATTR_VALID | AMT_ATTR_A2);
 	wlc_set_addrmatch(km->wlc, amt_idx, ea, amt_attr);
 

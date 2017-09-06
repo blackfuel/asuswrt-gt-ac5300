@@ -117,6 +117,11 @@ start_wps_method(void)
 	}
 
 	wps_band = nvram_get_int("wps_band_x");
+#ifdef RTCONFIG_DPSTA
+	if (is_dpsta(wps_band) || is_dpsr(wps_band))
+	snprintf(prefix, sizeof(prefix), "wl%d.1_", wps_band);
+	else
+#endif
 	snprintf(prefix, sizeof(prefix), "wl%d_", wps_band);
 	wps_sta_pin = nvram_safe_get("wps_sta_pin");
 
@@ -275,6 +280,11 @@ int is_wps_stopped(void)
 	time_t wps_uptime = strtoul(nvram_safe_get("wps_uptime"), NULL, 10);
 	char tmp[100];
 
+#ifdef AMAS
+	if (is_router_mode() && !nvram_get_int("w_Setting") && nvram_match("amesh_led", "1"))
+		return 0;
+#endif
+
 	nvram_set_int("wps_proc_status_x", status);
 
 	if ((now - wps_uptime) < 2)
@@ -381,7 +391,7 @@ int is_wps_stopped(void)
 			break;
 		case 10: /* WPS_UI_ASSOCIATING */
 			ret = 0;
-			dbg("Assciating with access point...\n");
+			dbg("Associating with access point...\n");
 			break;
 		default:
 			ret = 0;

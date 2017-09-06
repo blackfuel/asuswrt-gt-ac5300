@@ -499,6 +499,9 @@ function initial(){
 				else if(getflag == "pppoe_fail"){
 					return;
 				}
+				else if(getflag == "sim"){
+					qis_delay_redirect('/qis/QIS_detect.htm?flag=sim');
+				}
 				else{
 					if(isMobile())
 						setTimeout("qis_delay_redirect('/qis_m/QIS_verify_detect.htm');", restart_time*1000);
@@ -563,7 +566,7 @@ function initial(){
 	else if(action_script.indexOf("aidisk_asusddns_register") != -1){
 		setTimeout("parent.checkDDNSReturnCode();", 1000);
 	}
-	else if(action_script.indexOf("restart_ddns") != -1) {
+	else if(action_script.indexOf("restart_ddns") != -1 && action_script.indexOf("restart_httpd") == -1 && action_script.indexOf("restart_ddns_le") == -1) {
   		setTimeout("parent.parent.checkDDNSReturnCode();", 1000);
 	}
 	else if(action_script.indexOf("start_webs_upgrade") != -1) {
@@ -588,6 +591,9 @@ function initial(){
 		setTimeout("parent.detect_firmware();", 5000);
 	}	
 	else if(action_script == "start_diskscan"){
+		parent.show_loadingBar_field();
+	}
+	else if(action_script == "start_diskformat"){
 		parent.show_loadingBar_field();
 	}
 	else if(action_script == "restart_diskmon"){

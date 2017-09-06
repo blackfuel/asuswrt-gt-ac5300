@@ -187,7 +187,7 @@ function del_Row(r){
 
 	if(vpn_fusion_support) {
 		if(manually_dhcp_list_array_ori[delIP] != undefined) {
-			if(!confirm("Delete this policy will also remove the exception policy setting in VPN Fusion feature. Are you sure want to delete?"))/*untranslated*/
+			if(!confirm("Remove the client's IP binding will also delete the client's policy in the exception list of VPN Fusion. Are you sure you want to delete?"))/*untranslated*/
 				return false;
 		}
 	}
@@ -694,7 +694,7 @@ function parse_vpnc_dev_policy_list(_oriNvram) {
 			<table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" class="FormTable" style="margin-top:8px;" >
 		  	<thead>
 		  		<tr>
-					<td colspan="3"><#LANHostConfig_ManualDHCPEnable_itemname#></td>
+					<td colspan="3"><#LANHostConfig_ManualDHCPEnable_title#></td>
 		  		</tr>
 		  	</thead>
 

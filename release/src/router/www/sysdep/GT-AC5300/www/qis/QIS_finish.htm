@@ -1434,9 +1434,16 @@ function game_wifi_next(){
 }
 
 function bandwidth_utilzation_next(){
-	$("#rog_ssid_0").html(decodeURIComponent(document.form.wl0_ssid2.value));
-	$("#rog_ssid_1").html(decodeURIComponent(document.form.wl1_ssid2.value));
-	$("#rog_ssid_2").html(decodeURIComponent(document.form.wl2_ssid2.value));
+	var wl0_ssid2 = decodeURIComponent(document.form.wl0_ssid2.value);
+	var wl1_ssid2 = decodeURIComponent(document.form.wl1_ssid2.value);
+	var wl2_ssid2 = decodeURIComponent(document.form.wl2_ssid2.value);
+	var _wl0_ssid2 = wl0_ssid2.replace(/\</g, "&lt;").replace(/\>/g, "&gt;");   //replace < to &lt and > to &gt
+	var _wl1_ssid2 = wl1_ssid2.replace(/\</g, "&lt;").replace(/\>/g, "&gt;");   //replace < to &lt and > to &gt
+	var _wl2_ssid2 = wl2_ssid2.replace(/\</g, "&lt;").replace(/\>/g, "&gt;");   //replace < to &lt and > to &gt
+
+	$("#rog_ssid_0").html(_wl0_ssid2);
+	$("#rog_ssid_1").html(_wl1_ssid2);
+	$("#rog_ssid_2").html(_wl2_ssid2);
 	$("#rog_password_0").html(decodeURIComponent(document.form.wl0_wpa_psk.value));
 	$("#rog_password_1").html(decodeURIComponent(document.form.wl1_wpa_psk.value));
 	$("#rog_password_2").html(decodeURIComponent(document.form.wl2_wpa_psk.value));
@@ -1949,8 +1956,8 @@ function cancel(){
 	<!-- END Stage Game Protection -->	
 	<!-- Stage VR -->
 	<div id="vr_field" style="display:none">
-		<div style="font-size: 32px;color:rgb(207,10,44); margin: 60px 0 0 70px;"><#AiProtection_title_VR#></div>
-		<div style="display:inline-flex;margin:310px 0 0 70px;">
+		<div style="font-size: 32px;color:#FFF; margin: 60px 0 0 70px;"><#AiProtection_title_VR#></div>
+		<div style="display:inline-flex;margin:273px 0 0 70px;">
 			<div style="font-size: 18px;width:500px;"><#AiProtection_title_VR_desc#></div>
 			<div>
 				<div class="qis_button" style="text-align: center;width:150px;height:36px;line-height: 36px;font-size: 16px;margin: 0 auto;border-radius:4px;cursor:pointer;" onclick="vr_next();"><#CTL_next#></div>

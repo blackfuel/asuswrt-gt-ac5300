@@ -1186,6 +1186,11 @@ char *get_lan_mac_name(void)
 	return mac_name;
 }
 
+char *get_label_mac()
+{
+	return get_2g_hwaddr();
+}
+
 /* Return nvram variable name, e.g. et0macaddr, which is used to repented as WAN MAC.
  * @return:
  */
@@ -1222,4 +1227,23 @@ char *get_2g_hwaddr(void)
 char *get_wan_hwaddr(void)
 {
         return nvram_safe_get(get_wan_mac_name());
+}
+
+char *get_wlifname(int unit, int subunit, int subunit_x, char *buf)
+{
+	sprintf(buf, "wl%d.%d", unit, subunit);
+
+	return buf;
+}
+
+/**
+ * Generate VAP interface name of wlX.Y for Guest network, Free Wi-Fi, and Facebook Wi-Fi
+ * @x:		X of wlX.Y, aka unit
+ * @y:		Y of wlX.Y
+ * @buf:	Pointer to buffer of VAP interface name. Must greater than or equal to IFNAMSIZ
+ * @return:
+ */
+char *get_wlxy_ifname(int x, int y, char *buf)
+{
+	return get_wlifname(x, y, y, buf);
 }

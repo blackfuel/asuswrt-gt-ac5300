@@ -157,6 +157,7 @@ typedef struct {
 
 struct apinfo apinfos[MAX_NUMBER_OF_APINFO];
 char buf[WLC_IOCTL_MAXLEN];
+static char scan_result[WLC_SCAN_RESULT_BUF_LEN];
 
 /* Helper routine to print the infrastructure mode while pretty printing the BSS list */
 #if 0
@@ -1860,7 +1861,7 @@ ERROR:
 static int ej_wl_chanspecs(int eid, webs_t wp, int argc, char_t **argv, int unit)
 {
 	int i, retval = 0;
-	char tmp[256], tmp1[256], tmpx[256], tmp2[256], prefix[] = "wlXXXXXXXXXX_";
+	char tmp[1024], tmp1[1024], tmp2[1024], tmpx[1024], prefix[] = "wlXXXXXXXXXX_";
 	char *name;
 	char word[256], *next;
 	int unit_max = 0, count = 0;
@@ -1927,14 +1928,13 @@ static int ej_wl_chanspecs(int eid, webs_t wp, int argc, char_t **argv, int unit
 	for (i = 0; i < count; i++) {
 		c = (chanspec_t)dtoh32(list->element[i]);
 		wf_chspec_ntoa(c, chanbuf);
-		dbg("chanspec: %s\n", chanbuf);
 
 		if (i == 0)
 		{
 			sprintf(tmp1, "[\"%s\",", chanbuf);
 			sprintf(tmp2, "%s", chanbuf);
 		}
-		else if (i == (dtoh32(list->count) - 1))
+		else if (i == (count - 1))
 		{
 			sprintf(tmpx,  "%s \"%s\"]", tmp1, chanbuf);
 			strlcpy(tmp1, tmpx, sizeof(tmp1));
@@ -2673,6 +2673,7 @@ ej_wps_info_2g(int eid, webs_t wp, int argc, char_t **argv)
 	return wl_wps_info(eid, wp, argc, argv, 0);
 }
 
+#if 0
 static int wpa_key_mgmt_to_bitfield(const unsigned char *s)
 {
 	if (memcmp(s, WPA_AUTH_KEY_MGMT_UNSPEC_802_1X, WPA_SELECTOR_LEN) == 0)
@@ -3001,8 +3002,6 @@ static const char * wpa_key_mgmt_txt(int key_mgmt, int proto)
 	}
 }
 
-static char scan_result[WLC_SCAN_RESULT_BUF_LEN];
-
 int
 ej_SiteSurvey(int eid, webs_t wp, int argc, char_t **argv)
 {
@@ -3067,8 +3066,6 @@ ej_SiteSurvey(int eid, webs_t wp, int argc, char_t **argv)
 
 	nvram_set("ap_selecting", "1");
 	fprintf(stderr, "Please wait (web hook) ");
-	fprintf(stderr, ".");
-	sleep(1);
 	fprintf(stderr, ".");
 	sleep(1);
 	fprintf(stderr, ".\n\n");
@@ -3479,6 +3476,7 @@ ap_list:
 
 	return retval;
 }
+#endif
 
 int
 ej_urelease(int eid, webs_t wp, int argc, char_t **argv)

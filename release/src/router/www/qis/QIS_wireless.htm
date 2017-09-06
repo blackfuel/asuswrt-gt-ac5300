@@ -217,18 +217,13 @@ function check_wan_state(){
 		},
 		success: function(response){
 			setTimeout("check_wan_state();", 1000);
-			if((wanstate  == 1 && wansbstate == 0 && wanauxstate == 0) || (wanstate  == 6 && wansbstate == 0 && wanauxstate == 0) || (wanstate  == 4 && wansbstate == 2 && wanauxstate == 0)){
-				if(!parent.flag_manual)
-					parent.pppoe_failed_flag = true;
+			if(wanstate == 4 && wansbstate == 2 && wanauxstate == 0){
+				parent.pppoe_failed_flag = true;
 			}
-			else if(wanstate == 4 && wansbstate == 4 && wanauxstate == 0){
+			else{
 				parent.pppoe_failed_flag = false;
-				parent.changeSubnet = true;
-			}
-			else{	
-				if(wanstate  == 2 && wansbstate == 0 && wanauxstate == 0){
-					parent.pppoe_failed_flag = false;
-				}
+				if(wanstate == 4 && wansbstate == 4 && wanauxstate == 0)
+					parent.changeSubnet = true;
 			}
 		}
 	});	
@@ -316,8 +311,8 @@ function submitForm(){
 				if(!confirm("<#JS_common_passwd#>")){
 					document.form.wl0_wpa_psk.focus();
 					document.form.wl0_wpa_psk.select();
-					return false;   
-				}       
+					return false;
+				}
 			}
 		}else
 		{
@@ -417,8 +412,8 @@ function submitForm(){
 						if(!confirm("<#JS_common_passwd#>")){
 							document.form.wl1_wpa_psk.focus();
 							document.form.wl1_wpa_psk.select();
-							return false;   
-						}       
+							return false;
+						}
 					}
 				}
 				else{

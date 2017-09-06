@@ -5,12 +5,11 @@
 
 ifneq ($(PREBUILT_EXTRAMOD),1)
 bcmspu-objs += spu.o cipher.o util.o
-else
-bcmspu-objs := bcmspu_preb.o
-endif
-
 ifneq ($(strip $(CONFIG_BLOG)),)
 bcmspu-objs += spu_blog.o
+endif
+else
+bcmspu-objs := bcmspu_preb.o
 endif
 
 obj-$(CONFIG_BCM_SPU) += bcmspu.o

@@ -372,6 +372,15 @@ static void build_wan_lan_mask(int stb)
 #endif	/* RTCONFIG_DETWAN */
 }
 
+static void edma_group_mask_to_bmp(int groupid, unsigned int mask)
+{
+        char path[50], buf[10];
+
+        snprintf(path, sizeof(path)-1, "/proc/sys/net/edma/default_group%d_bmp", groupid);
+	snprintf(buf, sizeof(buf)-1, "%d", mask);
+	f_write_string(path, buf, 0, 0);
+}
+
 /**
  * Configure LAN/WAN partition base on generic IPTV type.
  * @type:
@@ -405,6 +414,7 @@ static void config_ipq40xx_LANWANPartition(int type)
 
 	// LAN 
 	ipq40xx_vlan_set(1, 0, (lan_mask | CPU_PORT_LAN_MASK), lan_mask);
+	edma_group_mask_to_bmp(2, lan_mask);
 
 	// WAN & DUALWAN
 	if (sw_mode == SW_MODE_ROUTER) {
@@ -418,6 +428,7 @@ static void config_ipq40xx_LANWANPartition(int type)
 			break;
 		case WANSCAP_WAN:
 			ipq40xx_vlan_set(2, 0, (wan_mask      | CPU_PORT_WAN_MASK), wan_mask);
+			edma_group_mask_to_bmp(1, wan_mask);
 			break;
 		default:
 			_dprintf("%s: Unknown WANSCAP %x\n", __func__, wanscap_wanlan);

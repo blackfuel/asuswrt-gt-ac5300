@@ -13,6 +13,9 @@ SHARED_DIR=$(TOP)/shared
 WB_DIR=$(TOP)/wb
 QCSAPI_DIR=$(TOP)/libqcsapi_client
 NT_CENTER_DIR=$(TOP)/nt_center
+ifeq ($(RTCONFIG_SW_HW_AUTH),y)
+SW_HW_AUTH_DIR=$(TOP)/sw-hw-auth
+endif
 
 NATNL_DIR=$(TOP)/asusnatnl/natnl
 ASUSNATNL_CFLAGS=-I$(NATNL_DIR)
@@ -39,7 +42,7 @@ endif
 
 ifeq ("$(MAKECMDGOALS)", $(filter "$(MAKECMDGOALS)", "router" "mastiff"))
 ROUTER_CFLAGS=-DNVRAM=1 -DEMBEDDED -I$(SHARED_DIR)
-ROUTER_CFLAGS+=-DTNL_CALLBACK_ENABLE -DTNL_2.X -DUSE_IM_IPC
+ROUTER_CFLAGS+=-DTNL_CALLBACK_ENABLE -DTNL_2_X -DUSE_IM_IPC
 ifeq ($(RTCONFIG_QTN),y)
 ROUTER_LIBS=-lnvram -lshared -lqcsapi_client
 ROUTER_LDFLAGS=-L$(NVRAM_DIR) -L$(SHARED_DIR) -L$(QCSAPI_DIR)
@@ -60,6 +63,11 @@ endif
 ifeq ($(HND_ROUTER),y)
 LDFLAGS += -L$(TOP)/wlcsm -lwlcsm -lgcc_s
 endif
+
+ifeq ($(RTCONFIG_SW_HW_AUTH),y)
+CFLAGS += -I$(SW_HW_AUTH_DIR) -DSW_HW_AUTH
+endif
+
 ifeq ($(wildcard $(TOP)/aaews/*.c),)
 $(DOG):
 	-cp -f $(TOP)/aaews/prebuild/mastiff mastiff

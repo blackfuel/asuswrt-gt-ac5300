@@ -3,7 +3,7 @@
 # echo "This is a script to enable the modem."
 
 
-if [ -z "$unit" ] || [ "$unit" -eq "0" ]; then
+if [ -z "$unit" ] || [ "$unit" == "0" ]; then
 	prefix="usb_modem_"
 else
 	prefix="usb_modem${unit}_"
@@ -42,16 +42,11 @@ modem_pass_v6=`nvram get modem_pass_v6`
 modem_reg_time=`nvram get modem_reg_time`
 wandog_interval=`nvram get wandog_interval`
 modem_bridge=`nvram get modem_bridge`
-modem_step_orig=`nvram get modem_step_orig`
 atcmd=`nvram get modem_atcmd`
 
 usb_gobi2=`nvram get usb_gobi2`
 Dev3G=`nvram get Dev3G`
 kernel_version=`uname -r`
-
-if [ "$modem_pdp" == "0" ] || [ "$modem_pdp" == "1" ]; then
-	modem_step_orig=1
-fi
 
 
 # $1: ifname.
@@ -66,7 +61,10 @@ _get_wdm_by_usbnet(){
 	i=0
 	while [ $i -lt 5 ]; do
 		ver_head=`echo -n $kernel_version |awk 'BEGIN{FS="."}{print $1}'`
+		ver_2nd=`echo -n $kernel_version |awk 'BEGIN{FS="."}{print $2}'`
 		if [ "$ver_head" -ge "4" ]; then
+			rp2=`readlink -f /sys/class/usbmisc/cdc-wdm$i/device 2>/dev/null`
+		elif [ "$ver_head" -eq "3" ] && [ "$ver_2nd" -ge "10" ]; then # ex: BlueCave
 			rp2=`readlink -f /sys/class/usbmisc/cdc-wdm$i/device 2>/dev/null`
 		else
 			rp2=`readlink -f /sys/class/usb/cdc-wdm$i/device 2>/dev/null`
@@ -186,11 +184,11 @@ _find_usb_path(){
 _get_pdp_str(){
 	str=""
 
-	if [ "$modem_pdp" -eq "1" ]; then
+	if [ "$modem_pdp" == "1" ]; then
 		str="PPP"
-	elif [ "$modem_pdp" -eq "2" ]; then
+	elif [ "$modem_pdp" == "2" ]; then
 		str="IPV6"
-	elif [ "$modem_pdp" -eq "3" ]; then
+	elif [ "$modem_pdp" == "3" ]; then
 		str="IPV4V6"
 	else
 		str="IP"
@@ -202,11 +200,11 @@ _get_pdp_str(){
 _get_qmi_pdp_str(){
 	str=""
 
-	if [ "$modem_pdp" -eq "1" ]; then
+	if [ "$modem_pdp" == "1" ]; then
 		str="unspecified"
-	elif [ "$modem_pdp" -eq "2" ]; then
+	elif [ "$modem_pdp" == "2" ]; then
 		str="ipv6"
-	elif [ "$modem_pdp" -eq "3" ]; then
+	elif [ "$modem_pdp" == "3" ]; then
 		str="unspecified"
 	else
 		str="ipv4"
@@ -246,6 +244,10 @@ elif [ "$modem_enable" == "4" ]; then
 	exit 0
 fi
 
+if [ "$wandog_interval" == "" -o "$wandog_interval" == "0" ]; then
+	wandog_interval=5
+fi
+
 act_node=
 #if [ "$modem_type" == "tty" -o "$modem_type" == "mbim" ]; then
 #	if [ "$modem_type" == "tty" -a "$modem_vid" == "6610" ]; then # e.q. ZTE MF637U
@@ -262,11 +264,35 @@ echo "     modem_type($modem_type) modem_vid($modem_vid) modem_pid($modem_pid)";
 echo "     modem_isp($modem_isp) modem_apn($modem_apn)";
 
 if [ "$modem_type" == "tty" -o "$modem_type" == "qmi" -o "$modem_type" == "mbim" -o "$modem_type" == "gobi" ] || [ "$usb_gobi2" == "1" ]; then
+	if [ "$modem_type" == "gobi" ]; then
+		/usr/sbin/modem_status.sh imsi
+		target=`nvram get ${prefix}act_imsi |cut -c '1-5' 2>/dev/null`
+		val="24405,24421"
+		at_ret=`/usr/sbin/modem_at.sh '$NV65602' 2>&1 |grep "$val"`
+		if [ "$target" == "24421" ]; then # Let the old SIM: Saunalahti to be with Elisa in Finland.
+			if [ -z "$at_ret" ]; then
+				echo "Setting Home..."
+				/usr/sbin/modem_at.sh \$NV65602=$val 2>/dev/null
+				nvram set modem_act_reset=1
+			else
+				echo "Had be set Home."
+				nvram set modem_act_reset=0
+			fi
+		elif [ -n "$at_ret" ]; then
+			echo "Cleaning the EHPLMN..."
+			/usr/sbin/modem_at.sh \$NV65602=0 2>/dev/null
+			nvram set modem_act_reset=1
+		fi
+	fi
+
 	nvram_reset=`nvram get modem_act_reset`
 	#if [ "$nvram_reset" == "1" -o "$modem_vid" == "6610" -a "$modem_pid" == "644" ]; then # ZTE MF880
 	if [ "$nvram_reset" == "1" ]; then
 		# Reset modem.
 		echo "Reset modem."
+		wait_time1=`expr $wandog_interval + $wandog_interval`
+		wait_time=`expr $wait_time1 + $modem_reg_time`
+		nvram set freeze_duck=$wait_time
 		nvram set ${prefix}act_reset=1
 		nvram set ${prefix}act_reset_path="$modem_act_path"
 		at_ret=`/usr/sbin/modem_at.sh '+CFUN=1,1' 2>&1`
@@ -283,8 +309,10 @@ if [ "$modem_type" == "tty" -o "$modem_type" == "qmi" -o "$modem_type" == "mbim"
 			done
 			if [ -n "$modem_act_node" ]; then
 				echo "Reset modem: Fail to reset modem."
+				nvram set modem_act_reset=0
 				nvram set ${prefix}act_reset=0
 				nvram set ${prefix}act_reset_path=""
+				nvram commit
 				exit 5
 			fi
 
@@ -303,6 +331,8 @@ if [ "$modem_type" == "tty" -o "$modem_type" == "qmi" -o "$modem_type" == "mbim"
 			nvram set ${prefix}act_reset_path=""
 			if [ "$reset_flag" != "2" ]; then
 				echo "Reset modem: modem can't wake up after reset."
+				nvram set modem_act_reset=0
+				nvram commit
 				exit 5
 			else
 				echo "Reset modem: modem had woken up after reset."
@@ -316,10 +346,15 @@ if [ "$modem_type" == "tty" -o "$modem_type" == "qmi" -o "$modem_type" == "mbim"
 			fi
 		else
 			echo "Reset modem: Can't reset modem."
+			nvram set modem_act_reset=0
 			nvram set ${prefix}act_reset=0
 			nvram set ${prefix}act_reset_path=""
+			nvram commit
 			exit 5
 		fi
+
+		nvram set modem_act_reset=0
+		nvram commit
 	fi
 
 	/usr/sbin/find_modem_node.sh
@@ -408,14 +443,16 @@ if [ "$modem_type" == "tty" -o "$modem_type" == "qmi" -o "$modem_type" == "mbim"
 	fi
 
 	if [ "$modem_enable" != "2" ]; then # Don't get IMSI with CDMA2000.
-		/usr/sbin/modem_status.sh imsi
+		if [ "$modem_type" != "gobi" ]; then
+			/usr/sbin/modem_status.sh imsi
+		fi
 		/usr/sbin/modem_status.sh iccid
 
 		# Auto-APN
-		if [ "$modem_autoapn" != "" -a "$modem_autoapn" != "0" -a "$modem_auto_spn" == "" ]; then
-			echo "Running autoapn..."
-			/usr/sbin/modem_autoapn.sh
+		echo "Running autoapn..."
+		/usr/sbin/modem_autoapn.sh
 
+		if [ "$modem_autoapn" != "" -a "$modem_autoapn" != "0" -a "$modem_auto_spn" == "" ]; then
 			modem_isp=`nvram get modem_isp`
 			modem_spn=`nvram get modem_spn`
 			modem_apn=`nvram get modem_apn`
@@ -472,16 +509,7 @@ if [ "$modem_type" == "tty" -o "$modem_type" == "qmi" -o "$modem_type" == "mbim"
 			# WDS set the autoconnect & roaming
 			# autoconnect: 0, disable; 1, enable; 2, pause.
 			# roaming: 0, allow; 1, disable. Only be activated when autoconnect is enabled.
-			if [ "$modem_step_orig" == "1" ] || [ "$modem_roaming" == "0" ]; then
-				gobi_api $qcqmi SetEnhancedAutoconnect 0 1
-			else
-				if [ "$modem_roaming_mode" == "1" ] && [ -n "$modem_roaming_isp" ]; then
-					echo "Enable the manual roaming ..."
-				else
-					echo "Enable the automatic roaming ..."
-				fi
-				gobi_api $qcqmi SetEnhancedAutoconnect 0 0
-			fi
+			gobi_api $qcqmi SetEnhancedAutoconnect 0 1
 
 			echo "Gobi: set +COPS=2."
 			wait_time1=`expr $wandog_interval + $wandog_interval`
@@ -492,11 +520,20 @@ if [ "$modem_type" == "tty" -o "$modem_type" == "qmi" -o "$modem_type" == "mbim"
 				/usr/sbin/modem_at.sh '' # clean the output of +COPS=2.
 			fi
 
-			if [ "$modem_step_orig" == "1" ]; then
-				echo "Gobi($qcqmi): set the ISP profile."
-				# SetDefaultProfile can replace with +CGDCONT.
-				gobi_api $qcqmi SetDefaultProfile "$modem_pdp" "$modem_isp" "$modem_apn" "$modem_authmode" "$modem_user" "$modem_pass"
+			if [ "$modem_pdp" != "2" ]; then # IPv4
+				echo "Gobi($qcqmi): set the ISP IPv4 profile."
+				/usr/sbin/modem_at.sh '+CGDCONT=1,"IP","'$modem_apn'"'
+				/usr/sbin/modem_at.sh '$QCPDPP=1,'$modem_authmode',"'$modem_pass'","'$modem_user'"'
 			fi
+
+			if [ "$modem_pdp" == "2" ] || [ "$modem_pdp" == "3" ]; then # IPv6
+				echo "Gobi($qcqmi): set the ISP IPv6 profile."
+				/usr/sbin/modem_at.sh '+CGDCONT=2,"IPV6","'$modem_apn'"'
+				/usr/sbin/modem_at.sh '$QCPDPP=2,'$modem_authmode',"'$modem_pass'","'$modem_user'"'
+			fi
+
+			echo "Reset Modem for the new profile..."
+			/usr/sbin/modem_at.sh +CMODEMRESET=1
 		fi
 
 		echo "Gobi: Successfull to set the ISP profile."
@@ -608,7 +645,7 @@ if [ "$modem_type" == "tty" -o "$modem_type" == "qmi" -o "$modem_type" == "mbim"
 
 	# set COPS.
 	is_Docomo=`_is_Docomo_modem`
-	if [ "$Dev3G" == "Docomo_dongles" ] || [ "$is_Docomo" -eq "1" ]; then
+	if [ "$Dev3G" == "Docomo_dongles" ] || [ "$is_Docomo" == "1" ]; then
 		echo "COPS: Docomo dongles cannot COPS=0, so skip it."
 	elif [ "$modem_vid" == "6797" -a "$modem_pid" == "4098" ]; then # BandLuxe C120.
 		echo "COPS: BandLuxe C120 start with CFUN=0, so don't need to unregister the network."
@@ -679,7 +716,7 @@ if [ "$modem_type" == "tty" -o "$modem_type" == "qmi" -o "$modem_type" == "mbim"
 
 	if [ "$modem_type" != "qmi" -a "$modem_type" != "gobi"  ]; then
 		# check the register state after set COPS.
-		if [ "$Dev3G" == "Docomo_dongles" ] || [ "$is_Docomo" -eq "1" ]; then
+		if [ "$Dev3G" == "Docomo_dongles" ] || [ "$is_Docomo" == "1" ]; then
 			echo "COPS: Docomo dongles cannot CGATT=1, so skip it."
 		elif [ "$modem_vid" == "4204" -a "$modem_pid" == "14104" ]; then # Pantech UML290VW: VID=0x106c, PID=0x3718
 			echo "COPS: Pantech UML290VW cannot CGATT?, so skip it."
@@ -749,43 +786,32 @@ if [ "$modem_type" == "tty" -o "$modem_type" == "qmi" -o "$modem_type" == "mbim"
 
 		echo "Successfull to register network."
 	elif [ "$modem_type" == "gobi" ]; then
-		if [ "$modem_step_orig" == "1" ]; then
-			echo "Connect the line automatically."
-			if [ "$usb_gobi2" == "1" ]; then
-				at_ret=`/usr/sbin/modem_at.sh '+CAUTOCONNECT=1' 2>&1`
-				ret=`echo -n $at_ret |grep "OK" 2>/dev/null`
-				if [ -z "$ret" ]; then
-					echo "Gobi2: Fail to start the autoconnect."
-					exit 0
-				fi
-			else
-				# WDS set the autoconnect & roaming
-				# autoconnect: 0, disable; 1, enable; 2, pause.
-				# roaming: 0, allow; 1, disable. Only be activated when autoconnect is enabled.
-				if [ "$modem_roaming" == "0" ]; then
-					echo "Disable roaming..."
-					gobi_api $qcqmi SetEnhancedAutoconnect 1 1
-				else
-					if [ "$modem_roaming_mode" == "1" ] && [ -n "$modem_roaming_isp" ]; then
-						echo "Start the manual roaming ..."
-					else
-						echo "Start the automatic roaming ..."
-					fi
-					gobi_api $qcqmi SetEnhancedAutoconnect 1 0
-				fi
+		if [ "$usb_gobi2" == "1" ]; then
+			at_ret=`/usr/sbin/modem_at.sh '+CAUTOCONNECT=1' 2>&1`
+			ret=`echo -n $at_ret |grep "OK" 2>/dev/null`
+			if [ -z "$ret" ]; then
+				echo "Gobi2: Fail to start the autoconnect."
+				exit 0
 			fi
 		else
-			echo "Send +CMODEMRESET=1..."
-			modem_at.sh +CMODEMRESET=1
-			if [ "$modem_pdp" -eq "2" ]; then
+			# WDS set the autoconnect & roaming
+			# autoconnect: 0, disable; 1, enable; 2, pause.
+			# roaming: 0, allow; 1, disable. Only be activated when autoconnect is enabled.
+			if [ "$modem_roaming" == "0" ]; then
+				echo "Autoconnect IPv4 without roaming..."
+				gobi_api $qcqmi SetEnhancedAutoconnect 1 1
+			else
+				if [ "$modem_roaming_mode" == "1" ] && [ -n "$modem_roaming_isp" ]; then
+					echo "Autoconnect IPv4 with the manual roaming ..."
+				else
+					echo "Autoconnect IPv4 with the automatic roaming ..."
+				fi
+				gobi_api $qcqmi SetEnhancedAutoconnect 1 0
+			fi
+
+			if [ "$modem_pdp" == "2" ] || [ "$modem_pdp" == "3" ]; then # IPv6
 				echo "StartDataSessionWith IPv6..."
 				gobi_api qcqmi0 StartDataSessionWithIPFamily 6 "$modem_apn" "$modem_authmode" "$modem_user" "$modem_pass" &
-			elif [ "$modem_pdp" -eq "3" ]; then
-				echo "StartDataSessionWith IPv4v6..."
-				gobi_api qcqmi0 StartDataSessionV4V6 "$modem_apn" "$modem_authmode" "$modem_user" "$modem_pass" "$modem_apn" "$modem_authmode" "$modem_user" "$modem_pass" &
-			else
-				echo "StartDataSessionWith IPv4..."
-				gobi_api qcqmi0 StartDataSessionWithIPFamily 4 "$modem_apn" "$modem_authmode" "$modem_user" "$modem_pass" &
 			fi
 		fi
 

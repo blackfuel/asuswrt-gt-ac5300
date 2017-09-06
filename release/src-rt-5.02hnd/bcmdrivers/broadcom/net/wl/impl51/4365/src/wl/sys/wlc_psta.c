@@ -909,6 +909,7 @@ wlc_psta_create(wlc_psta_info_t *psta, wlc_info_t *wlc, struct ether_addr *ea,
 	struct ether_addr ds_ea;
 	chanspec_t chanspec;
 	psta_bsscfg_cubby_t *psta_cfg;
+	wl_psta_primary_intf_event_t psta_prim_e;
 #ifdef BCMDBG
 	char eabuf[ETHER_ADDR_STR_LEN];
 #endif /* BCMDBG */
@@ -1054,6 +1055,11 @@ wlc_psta_create(wlc_psta_info_t *psta, wlc_info_t *wlc, struct ether_addr *ea,
 		         psta->pub->unit, bcm_ether_ntoa(ea, eabuf)));
 		return BCME_NOTASSOCIATED;
 	}
+
+	/* Inform host about original mac (ds_ea) and proxy mac (ea) */
+	memcpy(&psta_prim_e.prim_ea, &psta_cfg->psa->ds_ea, sizeof(struct ether_addr));
+	wlc_bss_mac_event(wlc, cfg, WLC_E_PSTA_PRIMARY_INTF_IND, ea, 0,
+		FC_SUBTYPE_REASSOC_REQ, 0, &psta_prim_e, sizeof(wl_psta_primary_intf_event_t));
 
 	/* Join the UAP */
 	bcopy(&pcfg->BSSID, &assoc_params.bssid, ETHER_ADDR_LEN);

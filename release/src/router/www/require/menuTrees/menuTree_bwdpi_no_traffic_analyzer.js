@@ -58,10 +58,10 @@ define(function(){
 				index: "menu_AiProtection", 
 				tab: [
 					{url: "AiProtection_HomeSecurity.asp", tabName: "__HIDE__"},
-					{url: "AiProtection_MaliciousSitesBlocking.asp", tabName: "__INHERIT__"},
-					{url: "AiProtection_IntrusionPreventionSystem.asp", tabName: "__INHERIT__"},
-					{url: "AiProtection_InfectedDevicePreventBlock.asp", tabName: "__INHERIT__"},
 					{url: "AiProtection_HomeProtection.asp", tabName: "<#AiProtection_Home#>"},
+					{url: "AiProtection_MaliciousSitesBlocking.asp", tabName: "<#AiProtection_sites_blocking#>"},
+					{url: "AiProtection_IntrusionPreventionSystem.asp", tabName: "<#AiProtection_two-way_IPS#>"},
+					{url: "AiProtection_InfectedDevicePreventBlock.asp", tabName: "<#AiProtection_detection_blocking#>"},
 					{url: "AiProtection_WebProtector.asp", tabName: "<#Parental_Control#>"},
 					{url: "ParentalControl.asp", tabName: "<#Parental_Control#>"},
 					{url: "AiProtection_AdBlock.asp", tabName: "Ad Blocking"},
@@ -203,8 +203,7 @@ define(function(){
 					{url: "Advanced_BasicFirewall_Content.asp", tabName: "<#menu5_1_1#>"},
 					{url: "Advanced_URLFilter_Content.asp", tabName: "<#menu5_5_2#>"},
 					{url: "Advanced_KeywordFilter_Content.asp", tabName: "<#menu5_5_5#>"},
-					{url: "Advanced_Firewall_Content.asp", tabName: "<#menu5_5_4#>"},
-					{url: "Advanced_Firewall_IPv6_Content.asp", tabName: "<#menu5_5_6#>"},			
+					{url: "Advanced_Firewall_Content.asp", tabName: "<#menu5_5_4#>"},		
 					{url: "NULL", tabName: "__INHERIT__"}
 				]
 			},
@@ -382,7 +381,7 @@ define(function(){
 					retArray.push("Main_TrafficMonitor_realtime.asp");
 				}
 			
-				if(!ParentalCtrl2_support || based_modelid != "RT-AC65U"){
+				if(!ParentalCtrl2_support){
 					retArray.push("ParentalControl.asp");
 				}
 
@@ -500,7 +499,6 @@ define(function(){
 
 				if(!IPv6_support){
 					retArray.push("Main_IPV6Status_Content.asp");
-					retArray.push("Advanced_Firewall_IPv6_Content.asp");
 				}
 
 				if(!fbwifi_support){
@@ -608,16 +606,6 @@ define(function(){
 				else if(based_modelid == "RT-N300"){
 					retArray.push("Advanced_WMode_Content.asp");
 					retArray.push("Advanced_IPTV_Content.asp");
-				}
-				else if(sed_modelid == "RT-AC65U"){
-					retArray.push("AiProtection_WebProtector.asp");
-				}
-
-				if(based_modelid === '4G-AC55U' || based_modelid === '4G-AC68U'){
-					retArray.push("Advanced_Modem_Content.asp");
-				}
-				else{
-					retArray.push("Advanced_MobileBroadband_Content.asp");
 				}
 
 				return retArray;

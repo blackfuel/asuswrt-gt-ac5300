@@ -26,10 +26,14 @@ CFLAGS += -g -I$(NATBASE) -I$(NATBASE)/msvc_prjs/asusnatnl
 CFLAGS += -DTUNNEL_V=\"$(VERSION)\"
 CFLAGS += -I$(UDTBASE) -I$(SCTPBASE)
 #CFLAGS += -Wall
-CPPFLAGS += -fPIC $(CFLAGS)
+CPPFLAGS += -fPIC $(CFLAGS) 
 
 ifeq ($(AR),)
 AR=ar
+endif
+
+ifeq ($(RTCONFIG_SW_HW_AUTH),y)
+CFLAGS += -DSW_HW_AUTH
 endif
 
 ifeq ($(router), yes)

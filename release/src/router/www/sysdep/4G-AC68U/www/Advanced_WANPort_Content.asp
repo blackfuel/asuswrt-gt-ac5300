@@ -197,12 +197,6 @@ function form_show(v){
 		appendLANoption1(document.form.wans_primary);
 		appendLANoption2(document.form.wans_second);
 
-		if(document.form.wans_mode.value == "lb")
-			document.getElementById("wans_mode_option").value = "lb";
-		else{
-			document.getElementById("wans_mode_option").value = "fo";
-		}
-
 		appendModeOption(document.form.wans_mode.value);
 		show_wans_rules();
 		document.getElementById("wans_mode_tr").style.display = "";

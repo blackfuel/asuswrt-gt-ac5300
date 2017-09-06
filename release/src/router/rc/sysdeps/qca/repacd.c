@@ -43,6 +43,8 @@
 #endif 
 
 //#define DETECT_5G 1
+//#define RADAR_FAILOVER
+
 
 #if defined(MAPAC1300) || defined(MAPAC2200) || defined(VRZAC1300)
 //parameter control
@@ -54,6 +56,7 @@ int dbdc_reptr_enable=1-wifi_son_mode;
 int block_dfs_enable=0; 	//only for athX
 int disable_steering=0;
 int scaling_factor=70;
+int distance=0;
 #ifdef RTCONFIG_DUAL_BACKHAUL
 int disable_2g=0;
 #endif
@@ -191,29 +194,6 @@ int get_phyrate(int band)
 		}
 	}
 	return 0;
-}
-
-
-int get_ch(int freq)
-{
-#define IS_CHAN_IN_PUBLIC_SAFETY_BAND(_c) ((_c) > 4940 && (_c) < 4990)
-	if (freq < 2412)
-		return 0;
-    	if (freq == 2484)
-       		return 14;
-   	if (freq < 2484)
-        	return (freq - 2407) / 5;
-    	if (freq < 5000) {
-       		if (IS_CHAN_IN_PUBLIC_SAFETY_BAND(freq)) {
-            		return ((freq * 10) +
-                	(((freq % 5) == 2) ? 5 : 0) - 49400)/5;
-        	} else if (freq > 4900) {
-            		return (freq - 4000) / 5;
-       		} else {
-            		return 15 + ((freq - 2512) / 20);
-        	}
-    	}
-    	return (freq - 5000) / 5;
 }
 
 
@@ -1271,6 +1251,45 @@ void set_wifi_otherband_bssid(int band)
 		 nvram_safe_get(strcat_r(prefix_wl, "part1", tmp)),nvram_safe_get(strcat_r(prefix_wl, "part2", tmp)));
 }
 
+
+#ifdef RTCONFIG_DUAL_BACKHAUL
+int short_distance(void)
+{
+	int dist_2g=255,dist_5g=255;
+	dist_2g=wifimon_check_hops(0);	
+	dist_5g=wifimon_check_hops(1);
+	if(dist_2g < dist_5g)
+		return dist_2g;
+	else
+		return dist_5g;
+}
+#endif
+
+void set_hops_count(void)
+{
+#ifdef RTCONFIG_DUAL_BACKHAUL
+	distance=short_distance();
+#else
+	distance=wifimon_check_hops(1);	
+#endif
+	if(distance<256) //0~255
+	{
+		doSystem("iwpriv %s set_whc_dist %d", get_wififname(0),distance);
+		doSystem("iwpriv %s set_whc_dist %d", get_wififname(1),distance);
+#if defined(MAPAC2200)
+		doSystem("iwpriv %s set_whc_dist %d", get_wififname(2),distance);
+#endif	
+	}
+
+	if(distance==255)
+	{
+		doSystem("iwpriv %s set_whc_ul_rate 0", get_staifname(0));
+		doSystem("iwpriv %s set_whc_ul_rate 0", get_staifname(1));
+	}
+
+	_dprintf("Distance form sta1 is %d, apply to athx !!\n",distance);
+}
+
 //4 vaps: ath0(pre-created) ath1(pre-crated) 
 //      : sta0(pre-created) sta1(pre-crated) 
 void set_vap(int role, int band)
@@ -1283,7 +1302,12 @@ void set_vap(int role, int band)
 	doSystem("iwpriv %s extap 0", get_wififname(band));
 	doSystem("iwpriv %s blockdfschan %d", get_wififname(band), block_dfs_enable);
 	doSystem("iwpriv %s son 1", get_wififname(band));
-	doSystem("iwpriv %s athnewind 1", get_wififname(band));
+	 if(!nvram_get_int("dfs_check_period"))   
+		doSystem("iwpriv %s athnewind 1", get_wififname(band));
+	if(role) //range extender
+		doSystem("iwpriv %s set_whc_dist 255", get_wififname(band));
+	else
+		doSystem("iwpriv %s set_whc_dist 0", get_wififname(band));
 	set_wifi_otherband_bssid(band);
 
 	if(role) //range extender
@@ -1298,11 +1322,13 @@ void set_vap(int role, int band)
 #endif
 		doSystem("iwpriv %s wds 1",get_staifname(band));
 		doSystem("iwpriv %s set_whc_sfactor %d",get_staifname(band),scaling_factor);
-		doSystem("iwpriv %s athnewind 1",get_staifname(band));
+	 	if(!nvram_get_int("dfs_check_period"))   
+			doSystem("iwpriv %s athnewind 1",get_staifname(band));
 		doSystem("iwpriv %s shortgi 1",get_staifname(band));
+		doSystem("iwpriv %s set_whc_dist 255", get_staifname(band));
 		//doSystem("iwpriv %s mode auto",get_staifname(band));
-		if(nvram_get_int("dfs_check_period") && band)
-			doSystem("iwpriv wifi%d staDFSEn 1",band);
+	//	if(nvram_get_int("dfs_check_period") && band)
+	//		doSystem("iwpriv wifi%d staDFSEn 1",band);
 	}
 }
 
@@ -1696,8 +1722,13 @@ void wpa_supplicant_start(int band)
 
 	}
 
-	sleep(1);
-        doSystem("ifconfig %s up",get_wififname(band));
+	if(nvram_get_int("dfs_check_period"))
+		_dprintf("RE=> DFS, avoid ath1 into cac-time..[wpa_supplicant]!!\n");
+	else
+	{
+		sleep(1);
+        	doSystem("ifconfig %s up",get_wififname(band));
+	}
 
 }
 
@@ -1871,6 +1902,23 @@ void start_re(int c)
 #else
 	{
 
+		
+		gen_qca_wifi_cfgs();
+
+		if(nvram_get_int("dfs_check_period"))
+		{
+			while(1)
+			{
+				if(f_exists("/var/run/hostapd_ath1.pid"))
+				{
+					doSystem("ifconfig ath1 down");
+					_dprintf("RE=> DFS, avoid ath1 into cac-time..[start_re]!!\n");
+					break;
+				}
+				sleep(1);
+			}
+		}
+
 #ifdef RTCONFIG_DUAL_BACKHAUL
 		for(i=0;i<2;i++)
 #else
@@ -1883,11 +1931,9 @@ void start_re(int c)
 			sleep(1);
 		}
 
-		gen_qca_wifi_cfgs();
-
 	}
 #endif
-	for(i=0;i<2;i++)
+	for(i=0;i<2;i++)  
         	doSystem("ifconfig %s down",get_wififname(i));
 
 	sleep(5);
@@ -2088,14 +2134,29 @@ int sta_is_assoc(int band)
 			{
 				if(get_role()) //RE
 				{
-					if(ch!=0xff && ch!=get_ch(get_freq(band)))
+					int ath1, sta1;
+
+					ath1 = get_channel(get_wififname(band));
+					sta1 = get_channel(get_staifname(band));
+
+					if(ath1 <= 0 || sta1 <= 0)
 					{
-						iface = nvram_safe_get(strcat_r(prefix_wl, "ifname", tmp));
-						doSystem("iwconfig %s channel %d",iface,get_ch(get_freq(band)));
-						_dprintf("=> RE: channel conflict on ath%d/sta%d. fix it.\n",band,band);
+						logmessage(__func__, "RE: get_channel error. band(%d) wififname(%s): %d staifname(%s): %d\n", band, get_wififname(band), ath1, get_staifname(band), sta1);
+						return 0;
+					}
+
+					if(ch!=0xff && ch != sta1)
+					{
 						sprintf(tmp,"wl%d_channel",band);
-						sprintf(tmpch,"%d",get_ch(get_freq(band)));
-						nvram_set(tmp,tmpch);
+						nvram_set_int(tmp, sta1);
+					}
+
+					if(ath1 != sta1)
+					{
+						logmessage(__func__, "RE: channel conflict on band(%d) wififname(%s): %d staifname(%s): %d. fix it.\n", band, get_wififname(band), ath1, get_staifname(band), sta1);
+						iface = nvram_safe_get(strcat_r(prefix_wl, "ifname", tmp));
+						doSystem("iwconfig %s channel %d",iface, sta1);
+						_dprintf("RE: channel conflict on band(%d) wififname(%s): %d staifname(%s): %d. fix it.\n", band, get_wififname(band), ath1, get_staifname(band), sta1);
 					}
 				}
 				return 1;
@@ -2633,7 +2694,7 @@ int wifimon_check_assoc(int retry)
 	return 2;	
 }
 
-#else
+#else //NOT CSU2.2
 #ifdef RTCONFIG_DUAL_BACKHAUL
 int once=0;
 #endif
@@ -2726,6 +2787,33 @@ int wifimon_check_assoc(void)
 
 #endif
 
+int get_cac_state(void)
+{
+        char buf[1024];
+        FILE *fp;
+        int len;
+        char *pt1,*cac=NULL;
+       
+        sprintf(buf, "iwpriv ath1 get_cac_state");
+
+        fp = popen(buf, "r");
+        if (fp) {
+                memset(buf, 0, sizeof(buf));
+                len = fread(buf, 1, sizeof(buf), fp);
+                pclose(fp);
+                if (len > 1) {
+                        buf[len-1] = '\0';
+                        pt1 = strstr(buf, "get_cac_state:");
+                        if(pt1)
+                        {
+                                cac= pt1 + strlen("get_cac_state:");
+                                chomp(cac);
+                        }
+                }
+        }
+        return atoi(cac);
+}
+
 //measure the rate to the serving AP.
 //get the phyrate of the associated sta interface and calculate the min and max threshold rates.
 //only the 5 GHz link is measured for daisy chain
@@ -2816,6 +2904,19 @@ int detect_loop(void) //only for 5G
 	return 0;
 }
 
+int check_nol()
+{
+	char *outpt;
+	int nolnum=0;
+	if (outpt=get_qca_iwpriv("wifi1", "get_nolcnt")) 
+	{
+		nolnum= atoi(outpt);
+		free(outpt);
+	}
+	//_dprintf("RE => get nolnum=[%d]\n", nolnum);
+	return nolnum;	
+}
+
 #if defined(RTCONFIG_CSU2_2)
 void start_wifimon_check(int delay)
 {
@@ -2835,7 +2936,7 @@ void start_wifimon_check(int delay)
 		check_period=30;
 
 	retry=0;
-	assoc_timeout=0;
+	assoc_timeout=-1; //unknown
 	//temporarily disable 2G
 	force_down_2g();
 
@@ -2843,13 +2944,24 @@ void start_wifimon_check(int delay)
 		_dprintf("=> wifi monitor check: delay %d sec ...\n",delay);
 	sleep(delay);
 
-	for(i=0;i<2;i++)
-	{
-        	doSystem("ifconfig %s down",get_wififname(i));
-		sleep(1);
-        	doSystem("ifconfig %s up",get_wififname(i));
-	}
 
+	if(nvram_get_int("dfs_check_period"))
+	{
+		_dprintf("RE=> DFS, avoid ath1 into cac-time..[wifimon_check]!!\n");
+	}
+	else
+	{
+		for(i=0;i<2;i++)
+		{
+	       	 	doSystem("ifconfig %s down",get_wififname(i));
+			sleep(1);
+	       	 	doSystem("ifconfig %s up",get_wififname(i));
+		}
+	}
+	/*assoc_timeout: 
+			eth-backhaul:-2(eth-backhaul)
+			wifi-backhaul:-1(init or unknown), 0(assoc), >0(not-assoc)
+	*/
 	while(1)
 	{
 		if(dbg_m)
@@ -2859,19 +2971,50 @@ void start_wifimon_check(int delay)
 		{
 			case 0:
 			case 1:
+				if(assoc_timeout==-1 || assoc_timeout>=1 
+#ifdef RTCONFIG_DUAL_BACKHAUL
+				|| distance != short_distance())
+#else
+				|| distance != wifimon_check_hops(1))   
+#endif
+					set_hops_count();
 				assoc_timeout=0;
 				break;
 			case 2: //5G not-assoc, 2G unknown
+				if(assoc_timeout==-1 || assoc_timeout==0) 
+					set_hops_count();
+				if(assoc_timeout<0)  //fix assoc value if unknown or eth-backhaul case
+					assoc_timeout=0;
 				assoc_timeout++;
 #ifdef RTCONFIG_ETHBACKHAUL
-				if(nvram_get_int("eth_detect_proc")) //eth backhaul process, ignore wifimon
-					assoc_timeout=0;
+				_dprintf("=> RE: eth_backl=%d\n",nvram_get_int("eth_backl"));
+				if(nvram_get_int("eth_detect_proc") || nvram_get_int("eth_backl")) //eth backhaul process, ignore wifimon
+					assoc_timeout=-2;
 #endif
 				break;
 			default:
 				break;
 		}
-		sleep(check_period);
+
+		if(nvram_get_int("dfs_check_period")&& assoc_timeout!=0) //not-assoc in DFS
+		{
+			sleep(check_period-30);
+			if(sta_is_assoc(1))
+			{
+				_dprintf("=> RE: avoid long waiting-time, bring ath1 up!!!\n");
+				check_iface_all(); //avoid long waiting-time for bring-up ath1    
+#ifdef RTCONFIG_DUAL_BACKHAUL
+				if( distance != short_distance())
+#else
+				if(distance != wifimon_check_hops(1))   
+#endif
+					set_hops_count();
+
+			}  
+			sleep(30);
+		}
+		else
+			sleep(check_period);
 		
 		if(restart_process)
 		{
@@ -2928,8 +3071,18 @@ void start_wifimon_check(int delay)
 #endif
 				{
 					_dprintf("=> RE: 5G is not assoc.Reset wpa_supplicant for 5G!!\n");
-					wpa_supplicant_stop(1);
-					wpa_supplicant_start(1);
+#ifdef RADAR_FAILOVER
+					if(nvram_get_int("dfs_check_period") && check_nol())
+					{
+						_dprintf("=> RE: restart wireless for radar fail-over\n");
+						restart_wireless();
+					}
+					else
+#endif
+					{
+						wpa_supplicant_stop(1);
+						wpa_supplicant_start(1);
+					}
 					force_down_2g();
 #ifdef DETECT_5G
 					detect_5g=1;
@@ -2937,7 +3090,7 @@ void start_wifimon_check(int delay)
 				}
 			}
 			restart_process=1;
-			assoc_timeout=0;
+			assoc_timeout=-1;
 		}
 		else
 			restart_process=0;
@@ -2951,7 +3104,7 @@ void start_wifimon_check(int delay)
 
 	}
 }
-#else //CSU2_2
+#else //NOT CSU2.2
 
 void start_wifimon_check(int delay)
 {

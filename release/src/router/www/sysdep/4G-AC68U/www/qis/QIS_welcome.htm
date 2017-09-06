@@ -189,6 +189,10 @@ function QKinternettype_load_body(){
 		document.getElementById("Productdesc_2").innerHTML = check_desc2;
 		document.getElementById("Productdesc_3").innerHTML = check_desc3;
 		document.getElementById("Productdesc_4").innerHTML = check_desc4;
+		if(based_modelid == "4G-AC68U"){
+			document.getElementById("Productdesc_5").style.display = "";
+			document.getElementById("Productdesc_5").innerHTML ="<#QIS_welcome_feature5#>";
+		}
 	}
 
 	if(parent.gobi_support){
@@ -201,12 +205,8 @@ function QKinternettype_load_body(){
 	document.getElementById("btn_next_step").focus();
 	
 	if(!parent.dual_ewan){
-		if(wanauxstate != 1){
-			if(parent.gobi_support){
-				startDetect();
-			}
-			else	
-				submitForm(1);
+		if(wanauxstate != 1 || parent.sim_state == "1" || parent.sim_state == "2"){
+			location.href = "/qis/QIS_admin_pass.htm";
 		}
 		else{
 			document.getElementById("QISmain").style.display = "";
@@ -219,6 +219,11 @@ function QKinternettype_load_body(){
 		else{
 			document.getElementById("QISmain").style.display = "";
 		}
+	}
+
+	if(based_modelid == "4G-AC68U"){
+		parent.document.getElementById("contentM").height = "580";
+		parent.document.getElementById("contentM_qis_div").style.height = "580px";
 	}
 }
 
@@ -425,16 +430,16 @@ function startDetect(){
 			if(wanstate  == 2 && wansbstate == 0 && wanauxstate == 0)
 				submitForm(1);
 			else
-				update_wan_info();
+				detect_if_wan_plug();
 		}
 		else{
 			if((first_wanstate  == 2 && first_wansbstate == 0 && first_wanauxstate == 0) || 
 			   (second_wanstate == 2 && second_wansbstate == 0 && second_wanauxstate == 0))
 				submitForm(1);
 			else
-				update_wan_info();			
+				detect_if_wan_plug();
 		}
-	}	
+	}
 }
 
 function skip(){
@@ -560,12 +565,13 @@ function disable_button(){
 						<td id="desc_td" width="55%" colspan="2" >
 							<div id="productDesc" style="font-style:italic;">				
 								<p style="font-size:20px;font-weight:bolder;margin-bottom:15px;"><#statusTitle_System#></p>
-								<ul>							
+								<ul>
 									<li style="line-height:25px;" id="Productdesc_1"></li>
 									<li style="line-height:25px;" id="Productdesc_2"></li>
 									<li style="line-height:25px;" id="Productdesc_3"></li>
 									<li style="line-height:25px;" id="Productdesc_4"></li>
-								</ul>	
+									<li style="line-height:25px; display:none;" id="Productdesc_5"></li>
+								</ul>
 							</div>
 						</td>
 						<td id="product_td" width="45%" style="height:300px">

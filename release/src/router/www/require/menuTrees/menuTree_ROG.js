@@ -228,6 +228,15 @@ define(function(){
 				] 
 			},
 			{
+				menuName: "Alexa & IFTTT",
+				index: "menu_Alexa_IFTTT",
+				tab: [
+					{url: "Advanced_Smart_Home_Alexa.asp", tabName: "__INHERIT__"},
+					{url: "Advanced_Smart_Home_IFTTT.asp", tabName: "__INHERIT__"},
+					{url: "NULL", tabName: "__INHERIT__"}
+				]
+			},
+			{
 				menuName: "IPv6",
 				index: "menu_IPv6",
 				tab: [
@@ -243,8 +252,7 @@ define(function(){
 					{url: "Advanced_BasicFirewall_Content.asp", tabName: "<#menu5_1_1#>"},
 					{url: "Advanced_URLFilter_Content.asp", tabName: "<#menu5_5_2#>"},
 					{url: "Advanced_KeywordFilter_Content.asp", tabName: "<#menu5_5_5#>"},
-					{url: "Advanced_Firewall_Content.asp", tabName: "<#menu5_5_4#>"},
-					{url: "Advanced_Firewall_IPv6_Content.asp", tabName: "<#menu5_5_6#>"},			
+					{url: "Advanced_Firewall_Content.asp", tabName: "<#menu5_5_4#>"},			
 					{url: "NULL", tabName: "__INHERIT__"}
 				]
 			},
@@ -318,6 +326,10 @@ define(function(){
 
 				if(!cloudsync_support && !aicloudipk_support){
 					retArray.push("menu_AiCloud");
+				}
+
+				if(!ifttt_support && !alexa_support){
+					retArray.push("menu_Alexa_IFTTT");
 				}
 
 				if(!IPv6_support){
@@ -543,9 +555,16 @@ define(function(){
 					retArray.push("AdaptiveQoS_ROG.asp");
 				}
 
+				if(!alexa_support){
+					retArray.push("Advanced_Smart_Home_Alexa.asp");
+				}
+
+				if(!ifttt_support){
+					retArray.push("Advanced_Smart_Home_IFTTT.asp");
+				}
+
 				if(!IPv6_support){
 					retArray.push("Main_IPV6Status_Content.asp");
-					retArray.push("Advanced_Firewall_IPv6_Content.asp");
 				}
 
 				if(!fbwifi_support){

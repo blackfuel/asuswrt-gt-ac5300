@@ -153,6 +153,8 @@ var first_wanlink_status = first_wanlink_statusstr();
 var first_wanlink_ipaddr = first_wanlink_ipaddr();
 var secondary_wanlink_status = secondary_wanlink_statusstr();
 var secondary_wanlink_ipaddr = secondary_wanlink_ipaddr();
+var le_enable = '<% nvram_get("le_enable"); %>';
+var le_state = '<% nvram_get("le_state"); %>';
 
 if(gobi_support) {
 	var dualwan_first_if = wans_dualwan_array[0];
@@ -175,6 +177,7 @@ window.onresize = function() {
 	}
 } 
 
+var orig_NM_container_height;
 function initial(){
 	var autodet_state = '<% nvram_get("autodet_state"); %>';
 	var autodet_auxstate = '<% nvram_get("autodet_auxstate"); %>';	
@@ -381,6 +384,8 @@ function initial(){
 			notification.notiClick();
 		}
 	}
+
+	orig_NM_container_height = parseInt($(".NM_radius_bottom_container").css("height"));
 }
 
 function show_smart_connect_status(){
@@ -424,7 +429,12 @@ function show_ddns_status(){
 			}
         }
 	}
-	
+
+    if(le_enable == "1" && le_state == "1")
+    	document.getElementById("le_icon").style.display = "";
+    else
+    	document.getElementById("le_icon").style.display = "none";
+
 	setTimeout("show_ddns_status();", 2000);
 }
 
@@ -1709,7 +1719,7 @@ function check_usb3(){
 	if(based_modelid == "DSL-AC68U" || based_modelid == "RT-AC3200" || based_modelid == "RT-AC87U" || based_modelid == "RT-AC68U" || based_modelid == "RT-AC68A" || based_modelid == "RT-AC56S" || based_modelid == "RT-AC56U" || based_modelid == "RT-AC55U" || based_modelid == "RT-AC55UHP" || based_modelid == "RT-N18U" || based_modelid == "RT-AC88U" || based_modelid == "RT-AC86U" || based_modelid == "AC2900" || based_modelid == "RT-AC3100" || based_modelid == "RT-AC5300" || based_modelid == "RP-AC68U" || based_modelid == "RT-AC58U"  || based_modelid == "RT-AC82U" || based_modelid == "RT-AC85U" || based_modelid == "RT-AC65U"|| based_modelid == "4G-AC68U" || based_modelid == "BLUECAVE"){
 		document.getElementById('usb_text_1').innerHTML = "USB 3.0";
 	}
-	else if(based_modelid == "RT-AC88Q" || based_modelid == "RT-N65U" || based_modelid == "GT-AC5300" || based_modelid == "GT-AC9600"){
+	else if(based_modelid == "RT-AC88Q" || based_modelid == "RT-AD7200" || based_modelid == "RT-N65U" || based_modelid == "GT-AC5300" || based_modelid == "GT-AC9600"){
 		document.getElementById('usb_text_1').innerHTML = "USB 3.0";
 		document.getElementById('usb_text_2').innerHTML = "USB 3.0";
 	}
@@ -2102,13 +2112,13 @@ function closeClientDetailView() {
 					<canvas id="canvasUserIcon" class="client_canvasUserIcon" width="85px" height="85px"></canvas>
 				</div>
 				<div id="changeClientIconControl" class="changeClientIcon">
-					<span title="Change to default client icon" class="IE8HACK" onclick="setDefaultIcon();">Default</span><!--untranslated-->
-					<span id="changeIconTitle" class="IE8HACK" title="Change client icon" style="margin-left:10px;" onclick="show_custom_image();">Change</span><!--untranslated-->
+					<span title="Change to default client icon" class="IE8HACK" onclick="setDefaultIcon();"><#CTL_Default#></span>
+					<span id="changeIconTitle" class="IE8HACK" title="Change client icon" style="margin-left:10px;" onclick="show_custom_image();"><#CTL_Change#></span>
 				</div>
 			</td>
 			<td style="vertical-align:top;text-align:center;">
 				<div class="clientTitle">
-					Name
+					<#Clientlist_name#>
 				</div>
 				<div  class="clientTitle" style="margin-top:10px;">
 					IP
@@ -2117,7 +2127,7 @@ function closeClientDetailView() {
 					MAC
 				</div>
 				<div  class="clientTitle" style="margin-top:10px;">
-					Device
+					<#Clientlist_device#>
 				</div>
 			</td>
 			<td style="vertical-align:top;width:280px;">
@@ -2245,7 +2255,7 @@ function closeClientDetailView() {
 				<div class="clientList_line"></div>
 				<div style="height:32px;width:100%;margin:5px 0;">
 					<div style="width:65%;float:left;line-height:32px;">
-						<span onmouseover="return overlib('Enable this button to block this device to access internet.');" onmouseout="return nd();">Block Internet Access<!--untranslated--></span>
+						<span onmouseover="return overlib('Enable this button to block this device to access internet.');" onmouseout="return nd();"><#Clientlist_block_internet#></span><!--untranslated-->
 					</div>
 					<div class="left" style="cursor:pointer;float:right;" id="radio_BlockInternet_enable"></div>
 				</div>
@@ -2260,7 +2270,7 @@ function closeClientDetailView() {
 				<div class="clientList_line"></div>
 				<div style="height:32px;width:100%;margin:5px 0;">
 					<div style="width:65%;float:left;line-height:32px;">
-						<span onmouseover="return overlib('Enable this button to bind specific IP with MAC Address of this device.');" onmouseout="return nd();">MAC and IP address Binding<!--untranslated--></span>
+						<span onmouseover="return overlib('Enable this button to bind specific IP with MAC Address of this device.');" onmouseout="return nd();"><#Clientlist_IPMAC_Binding#></span><!--untranslated-->
 					</div>
 					<div align="center" class="left" style="cursor:pointer;float:right;" id="radio_IPBinding_enable" ></div>
 				</div>
@@ -2366,6 +2376,7 @@ function closeClientDetailView() {
 							<span style="font-size:12px;font-family: Verdana, Arial, Helvetica, sans-serif;">DDNS:</span>
 							<strong id="ddnsHostName" class="index_status" style="font-size:14px;"><#QIS_detectWAN_desc2#></strong>
 							<span id="ddns_fail_hint" class="notificationoff" onClick="show_ddns_fail_hint();" onMouseOut="nd();"></span>
+							<span><img id="le_icon" src="images/New_ui/networkmap/LE_badge_color.svg" style="width:25px; height:25px; display:none;"></span>
 						</div>
 						<div id="wlc_band_div" style="margin-top:5px;display:none">
 							<span style="font-size:14px;font-family: Verdana, Arial, Helvetica, sans-serif;"><#Interface#>:</span>
@@ -2482,7 +2493,7 @@ function closeClientDetailView() {
 							<div id="helpname" style="padding-top:10px;font-size:16px;"></div>
 						</div>							
 						<div class="NM_radius_bottom_container">
-							<iframe id="statusframe" class="NM_radius_bottom" style="display:none;margin-left:0px\9" name="statusframe" width="320px" height="735px" frameborder="0"></iframe>
+							<iframe id="statusframe" class="NM_radius_bottom" style="display:none;margin-left:0px;height:760px;width:320px;\9" name="statusframe" frameborder="0"></iframe>
 						</div>
 				
 						<script>

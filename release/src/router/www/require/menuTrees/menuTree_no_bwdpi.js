@@ -192,8 +192,7 @@ define(function(){
 					{url: "Advanced_BasicFirewall_Content.asp", tabName: "<#menu5_1_1#>"},
 					{url: "Advanced_URLFilter_Content.asp", tabName: "<#menu5_5_2#>"},
 					{url: "Advanced_KeywordFilter_Content.asp", tabName: "<#menu5_5_5#>"},
-					{url: "Advanced_Firewall_Content.asp", tabName: "<#menu5_5_4#>"},
-					{url: "Advanced_Firewall_IPv6_Content.asp", tabName: "<#menu5_5_6#>"},			
+					{url: "Advanced_Firewall_Content.asp", tabName: "<#menu5_5_4#>"},			
 					{url: "NULL", tabName: "__INHERIT__"}
 				]
 			},
@@ -304,7 +303,7 @@ define(function(){
 					retArray.push("menu_VLAN");
 					retArray.push("menu_Firewall");
 
-					if(!userRSSI_support){
+					if(!concurrep_support){
 						retArray.push("menu_Wireless");
 					}
 				}
@@ -350,7 +349,7 @@ define(function(){
 					retArray.push("menu_VLAN");
 					retArray.push("menu_Firewall");
 
-					if(!userRSSI_support){
+					if(!concurrep_support){
 						retArray.push("menu_Wireless");
 					}
 				}
@@ -506,7 +505,6 @@ define(function(){
 
 				if(!IPv6_support){
 					retArray.push("Main_IPV6Status_Content.asp");
-					retArray.push("Advanced_Firewall_IPv6_Content.asp");
 				}
 
 				if(!fbwifi_support){
@@ -562,16 +560,18 @@ define(function(){
 					retArray.push("Main_IPTStatus_Content.asp");
 					retArray.push("Main_ConnStatus_Content.asp");
 
-					if(userRSSI_support){
-						if(!concurrep_support){
-							retArray.push("Advanced_Wireless_Content.asp");
-							retArray.push("Advanced_ACL_Content.asp");
-						}
-
-						retArray.push("Advanced_WWPS_Content.asp");
-						retArray.push("Advanced_WMode_Content.asp");
-						retArray.push("Advanced_WSecurity_Content.asp");
+					if(!concurrep_support){
+						retArray.push("Advanced_Wireless_Content.asp");
+						retArray.push("Advanced_ACL_Content.asp");				
 					}
+
+					if(!userRSSI_support && !location_list_support){
+						retArray.push("Advanced_WAdvanced_Content.asp");
+					}
+
+					retArray.push("Advanced_WWPS_Content.asp");
+					retArray.push("Advanced_WMode_Content.asp");
+					retArray.push("Advanced_WSecurity_Content.asp");
 				}
 				else if(isSwMode("ap")){
 					retArray.push("GameBoost.asp");
@@ -623,13 +623,6 @@ define(function(){
 				else if(based_modelid == "RT-N300"){
 					retArray.push("Advanced_WMode_Content.asp");
 					retArray.push("Advanced_IPTV_Content.asp");
-				}
-
-				if(based_modelid === '4G-AC55U' || based_modelid === '4G-AC68U'){
-					retArray.push("Advanced_Modem_Content.asp");
-				}
-				else{
-					retArray.push("Advanced_MobileBroadband_Content.asp");
 				}
 
 				return retArray;

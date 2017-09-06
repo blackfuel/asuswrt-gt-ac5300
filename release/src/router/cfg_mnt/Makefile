@@ -7,12 +7,17 @@ CFLAGS += -I./sysdeps
 CFLAGS += -I$(TOP)/openssl/include
 CFLAGS += -I$(TOP)/json-c
 
-LDFLAGS += -L$(TOP)/nvram${BCMEX} -lnvram -L$(TOP)/shared -lshared
+LDFLAGS += -L$(TOP)/nvram${BCMEX}${EX7} -lnvram -L$(TOP)/shared -lshared
 LDFLAGS += -L$(TOP)/openssl -lcrypto -lssl
 LDFLAGS += -lpthread
 LDFLAGS += -L$(TOP)/json-c/.libs -ljson-c
 LDFLAGS += -lm
 LDFLAGS += -L$(TOP)/libevent-2.0.21/.libs -levent
+
+ifeq ($(HND_ROUTER),y)
+CFLAGS += -DPTHREAD_STACK_SIZE_2M
+LDFLAGS += -L$(TOP)/wlcsm -lwlcsm
+endif
 
 ifeq ($(RTCONFIG_BCMARM),y)
 CFLAGS += -I$(SRCBASE)/shared/bcmwifi/include -DTYPEDEF_FLOAT_T
@@ -55,7 +60,13 @@ CFLAGS += -DONBOARDING
 # for roaming info for sta
 #COMMON_OBJS += cfg_roaminginfo.o
 #CFLAGS += -DROAMING_INFO
+# for master detection
+#CFLAGS += -DMASTER_DET
 endif
+endif
+
+ifeq ($(RTCONFIG_MASTER_DET),y)
+CFLAGS += -DMASTER_DET
 endif
 
 ifeq ($(wildcard $(SRCBASE)/router/cfg_mnt/*.c),)

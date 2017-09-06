@@ -335,9 +335,9 @@ set_wsec(char *ifname, void *credential, int mode)
 		wps_osl_set_conf(strcat_r(prefix, "akm", tmp), "psk ");
 		if (wps_ui_act_enroll)
 		{
-			wps_osl_set_conf(strcat_r(pfcred, "auth_mode_x", tmp), "psk");
-			wps_osl_set_conf(strcat_r(pfcred0, "auth_mode_x", tmp), "psk");
-			wps_osl_set_conf(strcat_r(pfcred1, "auth_mode_x", tmp), "psk");
+			wps_osl_set_conf(strcat_r(pfcred, "auth_mode", tmp), "psk");
+			wps_osl_set_conf(strcat_r(pfcred0, "auth_mode", tmp), "psk");
+			wps_osl_set_conf(strcat_r(pfcred1, "auth_mode", tmp), "psk");
 		}
 		else
 		wps_osl_set_conf(strcat_r(prefix, "auth_mode_x", tmp), "psk");
@@ -346,9 +346,9 @@ set_wsec(char *ifname, void *credential, int mode)
 		wps_osl_set_conf(strcat_r(prefix, "akm", tmp), "psk2 ");
 		if (wps_ui_act_enroll)
 		{
-			wps_osl_set_conf(strcat_r(pfcred, "auth_mode_x", tmp), "psk2");
-			wps_osl_set_conf(strcat_r(pfcred0, "auth_mode_x", tmp), "psk2");
-			wps_osl_set_conf(strcat_r(pfcred1, "auth_mode_x", tmp), "psk2");
+			wps_osl_set_conf(strcat_r(pfcred, "auth_mode", tmp), "psk2");
+			wps_osl_set_conf(strcat_r(pfcred0, "auth_mode", tmp), "psk2");
+			wps_osl_set_conf(strcat_r(pfcred1, "auth_mode", tmp), "psk2");
 		}
 		else
 		wps_osl_set_conf(strcat_r(prefix, "auth_mode_x", tmp), "psk2");
@@ -357,9 +357,9 @@ set_wsec(char *ifname, void *credential, int mode)
 		wps_osl_set_conf(strcat_r(prefix, "akm", tmp), "psk psk2 ");
 		if (wps_ui_act_enroll)
 		{
-			wps_osl_set_conf(strcat_r(pfcred, "auth_mode_x", tmp), "psk2");
-			wps_osl_set_conf(strcat_r(pfcred0, "auth_mode_x", tmp), "psk2");
-			wps_osl_set_conf(strcat_r(pfcred1, "auth_mode_x", tmp), "psk2");
+			wps_osl_set_conf(strcat_r(pfcred, "auth_mode", tmp), "psk2");
+			wps_osl_set_conf(strcat_r(pfcred0, "auth_mode", tmp), "psk2");
+			wps_osl_set_conf(strcat_r(pfcred1, "auth_mode", tmp), "psk2");
 		}
 		else
 		wps_osl_set_conf(strcat_r(prefix, "auth_mode_x", tmp), "pskpsk2");
@@ -368,9 +368,9 @@ set_wsec(char *ifname, void *credential, int mode)
 		wps_osl_set_conf(strcat_r(prefix, "akm", tmp), "");
 		if (wps_ui_act_enroll)
 		{
-			wps_osl_set_conf(strcat_r(pfcred, "auth_mode_x", tmp), "open");
-			wps_osl_set_conf(strcat_r(pfcred0, "auth_mode_x", tmp), "open");
-			wps_osl_set_conf(strcat_r(pfcred1, "auth_mode_x", tmp), "open");
+			wps_osl_set_conf(strcat_r(pfcred, "auth_mode", tmp), "open");
+			wps_osl_set_conf(strcat_r(pfcred0, "auth_mode", tmp), "open");
+			wps_osl_set_conf(strcat_r(pfcred1, "auth_mode", tmp), "open");
 		}
 		else
 		wps_osl_set_conf(strcat_r(prefix, "auth_mode_x", tmp), "open");
@@ -382,9 +382,9 @@ set_wsec(char *ifname, void *credential, int mode)
 		wps_osl_set_conf(strcat_r(prefix, "auth", tmp), "1");
 		if (wps_ui_act_enroll)
 		{
-			wps_osl_set_conf(strcat_r(pfcred, "auth_mode_x", tmp), "shared");
-			wps_osl_set_conf(strcat_r(pfcred0, "auth_mode_x", tmp), "shared");
-			wps_osl_set_conf(strcat_r(pfcred1, "auth_mode_x", tmp), "shared");
+			wps_osl_set_conf(strcat_r(pfcred, "auth_mode", tmp), "shared");
+			wps_osl_set_conf(strcat_r(pfcred0, "auth_mode", tmp), "shared");
+			wps_osl_set_conf(strcat_r(pfcred1, "auth_mode", tmp), "shared");
 		}
 		else
 		wps_osl_set_conf(strcat_r(prefix, "auth_mode_x", tmp), "shared");
@@ -405,9 +405,9 @@ set_wsec(char *ifname, void *credential, int mode)
 		wps_osl_set_conf(strcat_r(prefix, "wep", tmp), "disabled");
 		if (wps_ui_act_enroll)
 		{
-			wps_osl_set_conf(strcat_r(pfcred, "wep_x", tmp), "0");
-			wps_osl_set_conf(strcat_r(pfcred0, "wep_x", tmp), "0");
-			wps_osl_set_conf(strcat_r(pfcred1, "wep_x", tmp), "0");
+			wps_osl_set_conf(strcat_r(pfcred, "wep", tmp), "0");
+			wps_osl_set_conf(strcat_r(pfcred0, "wep", tmp), "0");
+			wps_osl_set_conf(strcat_r(pfcred1, "wep", tmp), "0");
 		}
 		else
 		wps_osl_set_conf(strcat_r(prefix, "wep_x", tmp), "0");
@@ -423,9 +423,9 @@ set_wsec(char *ifname, void *credential, int mode)
 		wps_osl_set_conf(strcat_r(prefix, "wep", tmp), "disabled");
 		if (wps_ui_act_enroll)
 		{
-			wps_osl_set_conf(strcat_r(pfcred, "wep_x", tmp), "0");
-			wps_osl_set_conf(strcat_r(pfcred0, "wep_x", tmp), "0");
-			wps_osl_set_conf(strcat_r(pfcred1, "wep_x", tmp), "0");
+			wps_osl_set_conf(strcat_r(pfcred, "wep", tmp), "0");
+			wps_osl_set_conf(strcat_r(pfcred0, "wep", tmp), "0");
+			wps_osl_set_conf(strcat_r(pfcred1, "wep", tmp), "0");
 		}
 		else
 		wps_osl_set_conf(strcat_r(prefix, "wep_x", tmp), "0");
@@ -477,21 +477,26 @@ set_wsec(char *ifname, void *credential, int mode)
 		}
 		sprintf(buf, "key%d", cred->wepIndex);
 		set_wep_key(strcat_r(prefix, buf, tmp), cred->nwKey, cred->nwKeyLen);
+		if (wps_ui_act_enroll) {
+			set_wep_key(strcat_r(pfcred, "wep_key", tmp), cred->nwKey, cred->nwKeyLen);
+			set_wep_key(strcat_r(pfcred0, "wep_key", tmp), cred->nwKey, cred->nwKeyLen);
+			set_wep_key(strcat_r(pfcred1, "wep_key", tmp), cred->nwKey, cred->nwKeyLen);
+		}
 		if ((cred->nwKeyLen == 5) || (cred->nwKeyLen == 10)) {
 			if (wps_ui_act_enroll)
 			{
-				wps_osl_set_conf(strcat_r(pfcred, "wep_x", tmp), "1");
-				wps_osl_set_conf(strcat_r(pfcred0, "wep_x", tmp), "1");
-				wps_osl_set_conf(strcat_r(pfcred1, "wep_x", tmp), "1");
+				wps_osl_set_conf(strcat_r(pfcred, "wep", tmp), "1");
+				wps_osl_set_conf(strcat_r(pfcred0, "wep", tmp), "1");
+				wps_osl_set_conf(strcat_r(pfcred1, "wep", tmp), "1");
 			}
 			else
 			wps_osl_set_conf(strcat_r(prefix, "wep_x", tmp), "1");
 		} else {
 			if (wps_ui_act_enroll)
 			{
-				wps_osl_set_conf(strcat_r(pfcred, "wep_x", tmp), "2");
-				wps_osl_set_conf(strcat_r(pfcred0, "wep_x", tmp), "2");
-				wps_osl_set_conf(strcat_r(pfcred1, "wep_x", tmp), "2");
+				wps_osl_set_conf(strcat_r(pfcred, "wep", tmp), "2");
+				wps_osl_set_conf(strcat_r(pfcred0, "wep", tmp), "2");
+				wps_osl_set_conf(strcat_r(pfcred1, "wep", tmp), "2");
 			}
 			else
 			wps_osl_set_conf(strcat_r(prefix, "wep_x", tmp), "2");

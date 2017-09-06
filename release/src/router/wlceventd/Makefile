@@ -36,13 +36,17 @@ CFLAGS  += -I$(TOP)/nt_center/actMail
 CFLAGS  += -I$(TOP)/wlc_nt
 CFLAGS  += -DASUSWRT_SDK
 LDFLAGS += -L$(TOP)/json-c/.libs -ljson-c
-LDFLAGS += -L$(TOP)/sqlite/.libs -lsqlite3 -lpthread -L$(TOP)/nt_center/lib -lnt
+LDFLAGS += -L$(TOP)/sqlite/.libs -lsqlite3 -lpthread -L$(TOP)/nt_center/lib -lnt -lm
 LDFLAGS += -L$(TOP)/wlc_nt -lwlc_nt_client
 endif
 
 ifeq ($(RTCONFIG_CFGSYNC),y)
 CFLAGS  += -I$(TOP)/cfg_mnt
 LDFLAGS += -L$(TOP)/cfg_mnt -lcfgmnt
+endif
+
+ifeq ($(RTCONFIG_SW_HW_AUTH), y)
+CFLAGS += -I$(TOP)/sw-hw-auth
 endif
 
 vpath %.c $(SRCBASE)/shared $(WLAN_ComponentSrcDirs)
