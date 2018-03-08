@@ -437,9 +437,3 @@ void do_upgrade_adsldrv(void)
 	else
 		cprintf("Skip upgrade tc firmware\n");
 }
-
-char *get_label_mac()
-{
-	/* TBD */
-	return "";
-}

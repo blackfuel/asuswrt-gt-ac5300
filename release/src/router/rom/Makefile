@@ -151,6 +151,7 @@ ifeq ($(RTCONFIG_HTTPS),y)
 	cp -f webs_scripts/ssl_webs_upgrade.sh $(INSTALLDIR)/usr/sbin/webs_upgrade.sh
 ifeq ($(RTCONFIG_CFGSYNC),y)
 	cp -f webs_scripts/ssl_webs_download.sh $(INSTALLDIR)/usr/sbin/webs_download.sh
+	cp -f webs_scripts/ssl_webs_note.sh $(INSTALLDIR)/usr/sbin/webs_note.sh
 endif
 else
 	cp -f webs_scripts/nozip_webs_upgrade.sh $(INSTALLDIR)/usr/sbin/webs_upgrade.sh
@@ -235,4 +236,9 @@ endif
 
 ifeq ($(RTCONFIG_LETSENCRYPT),y)
 	install -m 0644 rom/etc/ssl/certs/DST_Root_CA_X3.pem $(INSTALLDIR)/rom/etc/ssl/certs/letsencrypt.pem
+endif
+
+ifeq ($(HND_ROUTER),y)
+	mkdir -p $(INSTALL_DIR)/rom/rom/usr/share/zoneinfo
+	cp -rf zoneinfo/* $(INSTALL_DIR)/rom/rom/usr/share/zoneinfo/
 endif

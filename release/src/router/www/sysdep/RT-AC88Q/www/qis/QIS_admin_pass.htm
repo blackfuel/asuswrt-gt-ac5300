@@ -66,12 +66,6 @@ for(var i=0; i<accounts.length; i++){
 var wans_mode = '<% nvram_get("wans_mode"); %>';
 
 function QKinternettype_load_body(){
-	if(parent.based_modelid == "RT-N11P" || parent.based_modelid == "RT-N300" || parent.based_modelid == "PL-N12" || parent.based_modelid == "PL-AC56" || parent.based_modelid == "BRT-AC828"){
-			document.getElementById("point4").style.display = "none";
-	}
-	else{
-			document.getElementById("general_desc4").style.display = "";
-	}		
 	
 	if(parent.ISMOBILE){
 		parent.document.title = "<#Web_Title2#>";
@@ -198,19 +192,19 @@ function check_autodet_state(){
 					wanauxstate = resJson.wan0_auxstate_t;
 				}
 			}
-
-			if( (autodet_state == "0"  || autodet_state == "1") && retry_times > 0 ){
-				setTimeout('check_autodet_state();', 500);
-				retry_times--;
-			}
-			else
-				submitForm();
 		}
 	});
 }
 
 function submitForm(){
 	changeiuiBackground(1);
+
+	check_autodet_state();
+	if( (autodet_state == "0"  || autodet_state == "1") && retry_times > 0 ){
+		setTimeout('submitForm();', 500);
+		retry_times--;
+		return false;
+	}
 
 	showtext(document.getElementById("alert_msg1"), "");
 	if(parent.ISMOBILE)
@@ -374,7 +368,6 @@ function submitForm(){
 	else if(parent.flag_manual == "modem")
 		document.form.action = "/qis/QIS_modem.htm";
 	else if(parent.document.QKform.sw_mode.value == "1"){
-		//document.form.action = "/qis/QIS_detect.htm";
 		if(!parent.dual_ewan){
 			if(autodet_state == "6" || autodet_auxstate == "6"){
 				if((wanstate  == 2 && wansbstate == 0 && wanauxstate == 0) && (link_internet == "2" || wan0_realip_state == "2" || wan1_realip_state == "2")){
@@ -528,7 +521,7 @@ function paste_password(){
 </script>
 </head>  
 <body onLoad="QKinternettype_load_body();" onunload="">
-<form method="post" name="form" action="/start_apply.htm" target="" onsubmit="return check_autodet_state();">
+<form method="post" name="form" action="/start_apply.htm" target="" onsubmit="return submitForm();">
 <input type="hidden" name="current_page" value="/qis/QIS_admin_pass.htm">
 <input type="hidden" name="next_page" value="/QIS_wizard.htm">   
 <input type="hidden" name="prev_page" value="/QIS_wizard.htm">
@@ -609,7 +602,6 @@ function paste_password(){
 	<div id="adminPassDesc" class="QISTutorFont_admin_pass" style="height:200px;margin-left:-10px;">
 		<ul>
 			<li><#QIS_pass_desc3#>
-			<li id="point4"><div id="general_desc4" style="display:none;"><#QIS_pass_desc4#></div>
 			<li><#QIS_pass_desc5#>&nbsp;<% nvram_default_get("http_username"); %>&nbsp;/&nbsp;<% nvram_default_get("http_passwd"); %>
 		</ul>
 	</div>
@@ -618,7 +610,7 @@ function paste_password(){
 <br>
 
 <fieldset class="theFieldset" id="theFieldset2" style="display:none;">
-	<div class="row"><a id="loadingIcon_iui" class="iuiA" onclick="check_autodet_state();"><#CTL_next#></a></div>
+	<div class="row"><a id="loadingIcon_iui" class="iuiA" onclick="submitForm();"><#CTL_next#></a></div>
 	<div class="row_end"><a id="loadingIcon_skip" class="iuiA" onclick="skipsetting();"><#CTL_Skip#></a></div>
 </fieldset>
 

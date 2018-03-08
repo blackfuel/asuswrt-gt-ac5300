@@ -51,7 +51,7 @@
 #include <wlscan.h>
 #ifdef RTCONFIG_BCMWL6
 #include <dirent.h>
-#if defined(RTCONFIG_BCM_7114) || defined(HND_ROUTER)
+#if defined(RTCONFIG_BCM7) || defined(RTCONFIG_BCM_7114) || defined(HND_ROUTER)
 #include <security_ipc.h>
 #endif
 
@@ -1733,26 +1733,16 @@ int
 ej_wl_control_channel(int eid, webs_t wp, int argc, char_t **argv)
 {
 	int ret = 0;
-	int channel_24 = 0, channel_50 = 0;
-	int channel_50_2 = 0;
 	char word[256], *next;
 	int count_wl_if = 0;
 
 	foreach (word, nvram_safe_get("wl_ifnames"), next)
 		count_wl_if++;
-
-	channel_24 = wl_control_channel(0);
-
-	if (!(channel_50 = wl_control_channel(1)))
-		ret = websWrite(wp, "[\"%d\", \"%d\"]", channel_24, 0);
-	else if (count_wl_if < 3)
-		ret = websWrite(wp, "[\"%d\", \"%d\"]", channel_24, channel_50);
-	else {
-		if (!(channel_50_2 = wl_control_channel(2)))
-			ret = websWrite(wp, "[\"%d\", \"%d\", \"%d\"]", channel_24, channel_50, 0);
-		else
-			ret = websWrite(wp, "[\"%d\", \"%d\", \"%d\"]", channel_24, channel_50, channel_50_2);
-	}
+	
+	ret = websWrite(wp, "[\"%d\", \"%d\"", wl_control_channel(0), wl_control_channel(1));
+	if (count_wl_if >= 3)
+		ret += websWrite(wp, ", \"%d\"", wl_control_channel(2));
+	ret += websWrite(wp, "]");
 
 	return ret;
 }
@@ -4176,7 +4166,7 @@ typedef struct wlc_ap_list_info
 
 static wlc_ap_list_info_t ap_list[WLC_MAX_AP_SCAN_LIST_LEN];
 
-#if defined(RTCONFIG_BCM_7114) || defined(HND_ROUTER)
+#if defined(RTCONFIG_BCM7) || defined(RTCONFIG_BCM_7114) || defined(HND_ROUTER)
 #define MAX_SSID_LEN	32
 
 typedef struct escan_wksp_s {
@@ -4185,6 +4175,7 @@ typedef struct escan_wksp_s {
 } escan_wksp_t;
 
 static escan_wksp_t *d_info;
+static escan_wksp_t escan_wksp_static;
 
 /* open a UDP packet to event dispatcher for receiving/sending data */
 static int
@@ -4200,7 +4191,7 @@ escan_open_eventfd()
 	memset(&sockaddr, 0, sizeof(sockaddr));
 	sockaddr.sin_family = AF_INET;
 	sockaddr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
-	sockaddr.sin_port = htons(EAPD_WKSP_DCS_UDP_SPORT);
+	sockaddr.sin_port = htons(EAPD_WKSP_WLEVENT_UDP_SPORT);
 
 	if ((fd = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP)) < 0) {
 		dbg("Unable to create loopback socket\n");
@@ -4255,7 +4246,7 @@ get_scan_escan(char *scan_buf, uint buf_len)
 	struct escan_bss *escan_bss_tail = NULL;
 	struct escan_bss *result;
 
-	d_info = (escan_wksp_t*)malloc(sizeof(escan_wksp_t));
+	d_info = (escan_wksp_t*) &escan_wksp_static;
 
 	escan_open_eventfd();
 
@@ -4358,6 +4349,7 @@ get_scan_escan(char *scan_buf, uint buf_len)
 			else {
 				dbg("sync_id: %d, status:%d, misc. error/abort\n",
 					escan_data->sync_id, status);
+				retval = -1;
 				goto exit;
 			}
 		}
@@ -4389,14 +4381,8 @@ get_scan_escan(char *scan_buf, uint buf_len)
 	}
 
 exit:
-	if (d_info) {
-		if (d_info->event_fd != -1) {
-			close(d_info->event_fd);
-			d_info->event_fd = -1;
-		}
-
-		free(d_info);
-	}
+	close(fd);
+	d_info->event_fd == -1;
 
 	/* free scan results */
 	result = escan_bss_head;
@@ -4462,10 +4448,11 @@ wl_get_scan_results_escan(char *ifname)
 	wl_ioctl(ifname, WLC_SET_SCAN_CHANNEL_TIME, &org_scan_time, sizeof(org_scan_time));
 
 	if (ret == 0) {
-		ret = get_scan_escan(scan_result, WLC_SCAN_RESULT_BUF_LEN);
-		if (ret < 0 ) {
-			if (wlscan_debug)
-			dbg("get scan result failed\n");
+		retry_times = 0;
+		while ((ret = get_scan_escan(scan_result, WLC_SCAN_RESULT_BUF_LEN)) < 0 &&
+			retry_times++ < 2) {
+			dbg("get escan results failed, retry %d\n", retry_times);
+			sleep(1);
 		}
 	}
 
@@ -4522,7 +4509,7 @@ wl_get_scan_results(char *ifname)
 		list->buflen = htod32(WLC_SCAN_RESULT_BUF_LEN);
 		ret = wl_ioctl(ifname, WLC_SCAN_RESULTS, scan_result, WLC_SCAN_RESULT_BUF_LEN);
 		if (ret < 0)
-			printf("get scan result failed, retry %d\n", retry_times);
+			printf("get scan result failed\n");
 	}
 
 	if (ret < 0)
@@ -4554,12 +4541,19 @@ wl_scan(int eid, webs_t wp, int argc, char_t **argv, int unit)
 	unsigned char *bssidp;
 	char ssid_str[128];
 	char macstr[18];
-	int retval = 0;
+	int retval = 0, ctl_ch;
 
 	snprintf(prefix, sizeof(prefix), "wl%d_", unit);
 	name = nvram_safe_get(strcat_r(prefix, "ifname", tmp));
 
-#if defined(RTCONFIG_BCM_7114) || defined(HND_ROUTER)
+	ctl_ch = wl_control_channel(unit);
+        if (!nvram_match(strcat_r(prefix, "reg_mode", tmp), "off")
+		&& ((ctl_ch > 48) && (ctl_ch < 149))) {
+                dbg("scan rejected under DFS mode\n");
+                return 0;
+        }
+
+#if defined(RTCONFIG_BCM7) || defined(RTCONFIG_BCM_7114) || defined(HND_ROUTER)
 	if (!nvram_match(strcat_r(prefix, "mode", tmp), "wds")) {
 		if (wl_get_scan_results_escan(name) == NULL) {
 			return 0;
@@ -4573,7 +4567,7 @@ wl_scan(int eid, webs_t wp, int argc, char_t **argv, int unit)
 
 	if (list->count == 0)
 		return 0;
-#if !(defined(RTCONFIG_BCM_7114) || defined(HND_ROUTER))
+#if !(defined(RTCONFIG_BCM7) || defined(RTCONFIG_BCM_7114) || defined(HND_ROUTER))
 	else if (list->version != WL_BSS_INFO_VERSION
 			&& list->version != LEGACY_WL_BSS_INFO_VERSION
 #ifdef RTCONFIG_BCMWL6

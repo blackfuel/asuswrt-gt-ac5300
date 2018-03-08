@@ -464,7 +464,7 @@
 	(wlc->cfg->associated && wlc->cfg->pm->PM != PM_OFF && wlc->pub->align_wd_tbtt)
 /* debug/trace */
 uint wl_msg_level =
-#if defined(BCMDBG) || defined(BCMDBG_ERR)
+#if defined(BCMDBG)
 	WL_ERROR_VAL;
 #else
 	0;
@@ -33648,7 +33648,7 @@ wlc_event_if(wlc_info_t *wlc, wlc_bsscfg_t *cfg, wlc_event_t *e, const struct et
 
 	if (addr != NULL && !ETHER_ISMULTI(addr) && cfg != NULL &&
 	    (scb = wlc_scbfind(wlc, cfg, addr)) != NULL &&
-	    (wlcif = SCB_WDS(scb)) != NULL && wlcif->wlif != NULL && !SCB_DWDS(scb))
+	    (wlcif = SCB_WDS(scb)) != NULL && wlcif->wlif != NULL && !SCB_DWDS_CAP(scb))
 		_wlc_event_if(wlc, e, SCB_BSSCFG(scb), wlcif, wlcif);
 	else if (cfg != NULL && (wlcif = cfg->wlcif) != NULL) {
 		if (wlcif->wlif != NULL)

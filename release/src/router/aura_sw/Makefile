@@ -6,7 +6,8 @@ CFLAGS  += -s -O2 -DNO_PARALLEL
 LDFLAGS += -lm -L$(TOP)/shared -lshared -L$(TOP)/nvram${BCMEX} -lnvram
 LDFLAGS += -L$(TOP)/shared -lshared -L$(TOP)/nvram${BCMEX}${EX7} -lnvram 
 
-include $(SRCBASE)/.config
+include $(SRCBASE)/router/.config
+
 
 ifeq ($(wildcard $(SRCBASE)/router/aura_sw/*.c),)
 all: 

@@ -33,7 +33,6 @@ CFLAGS += -Wall -g -Os -D_GNU_SOURCE $(EXTRACFLAGS) -D_FILE_OFFSET_BITS=64 \
 	-I$(TOP)/libexif -I$(TOP)/libid3tag -I$(TOP)/libogg/include \
 	-I$(TOP)/libvorbis/include \
 
-
 ifneq ($(STATIC),1)
 LDFLAGS += -L$(TOP)/zlib -L$(TOP)/sqlite/.libs -L$(TOP)/jpeg -L$(TOP)/libvorbis/lib/.libs \
 	-L$(TOP)/libogg/src/.libs -L$(TOP)/libexif/libexif/.libs -L$(TOP)/flac/src/libFLAC/.libs \
@@ -104,10 +103,10 @@ BASEOBJS = minidlna.o upnphttp.o upnpdescgen.o upnpsoap.o \
 	   upnpreplyparse.o minixml.o \
 	   getifaddr.o process.o upnpglobalvars.o \
 	   options.o minissdp.o uuid.o upnpevents.o \
-	   sql.o utils.o metadata.o scanner.o inotify.o \
+	   sql.o utils.o metadata.o scanner.o monitor.o \
 	   tivo_utils.o tivo_beacon.o tivo_commands.o \
 	   containers.o \
-	   tagutils/tagutils.o \
+	   avahi.o tagutils/tagutils.o \
 	   playlist.o image_utils.o albumart.o log.o clients.o
 
 ALLOBJS = $(BASEOBJS) $(LNXOBJS)

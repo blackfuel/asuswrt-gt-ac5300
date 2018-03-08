@@ -792,7 +792,7 @@ static void calc(void)
 	char *ifname;
 	char ifname_desc[12], ifname_desc2[12];
 	char *p;
-	unsigned long long counter[MAX_COUNTER];
+	unsigned long long counter[MAX_COUNTER] = { 0 }, curr_rx = 0, curr_tx = 0;
 	unsigned long long rx2, tx2;
 	speed_t *sp;
 	int i, j, t;
@@ -810,6 +810,9 @@ static void calc(void)
 		char desc[20];
 		unsigned long long counter[MAX_COUNTER];
 	} tmp_speed[IFID_MAX], *tmp;
+	ino_t inode;
+	struct ifino_s *ifino;
+	static struct ifname_ino_tbl ifstat_tbl = { 0 };
 #ifdef RTCONFIG_ISP_METER
         char traffic[64];
 #endif
@@ -831,7 +834,7 @@ static void calc(void)
 	nv_lan_ifnames = nvram_safe_get("lan_ifnames");
 
 #ifdef RTCONFIG_LANTIQ
-	if (nvram_get_int("switch_stb_x") == 0) {
+	if ((nvram_get_int("switch_stb_x") == 0 || nvram_get_int("switch_stb_x") > 6) && ppa_support(WAN_UNIT_FIRST)) {
 		if(nvram_get_int("wave_ready") == 0 ||
 			nvram_get_int("wave_action") != 0 ) return;
 		memset(tmp_speed, 0, sizeof(tmp_speed));
@@ -846,7 +849,7 @@ static void calc(void)
 
 	if (!f) return;
 #ifdef RTCONFIG_LANTIQ
-	if (nvram_get_int("switch_stb_x") > 0)
+	if ((nvram_get_int("switch_stb_x") > 0 && nvram_get_int("switch_stb_x") <= 6) || !ppa_support(WAN_UNIT_FIRST))
 #endif
 	{
 		fgets(buf, sizeof(buf), f);	// header
@@ -855,7 +858,7 @@ static void calc(void)
 	memset(tmp_speed, 0, sizeof(tmp_speed));
 	while (fgets(buf, sizeof(buf), f)) {
 #ifdef RTCONFIG_LANTIQ
-		if (nvram_get_int("switch_stb_x") > 0) {
+		if ((nvram_get_int("switch_stb_x") > 0 && nvram_get_int("switch_stb_x") <= 6) || !ppa_support(WAN_UNIT_FIRST)) {
 #endif
 			if ((p = strchr(buf, ':')) == NULL) continue;
 				//_dprintf("\n=== %s\n", buf);
@@ -899,6 +902,39 @@ loopagain:
 			continue;
 		tmp = &tmp_speed[id];
 		strcpy(tmp->desc, ifname_desc);
+
+		/* If inode of a interface changed, it means the interface was closed and reopened.
+		 * In this case, we should calculate difference of old TX/RX bytes and new TX/RX
+		 * bytes and shift from new TX/RX bytes to old TX/RX bytes.
+		 */
+		inode = get_iface_inode(ifname);
+		curr_rx = counter[0];
+		curr_tx = counter[1];
+		if ((ifino = ifname_ino_ptr(&ifstat_tbl, ifname)) != NULL) {
+			if (ifino->inode && ifino->inode != inode) {
+				ifino->inode = inode;
+				ifino->shift_rx = curr_rx - ifino->last_rx + ifino->shift_rx;
+				ifino->shift_tx = curr_tx - ifino->last_tx + ifino->shift_tx;
+			}
+		} else {
+			if ((ifstat_tbl.nr_items + 1) <= ARRAY_SIZE(ifstat_tbl.items)) {
+				ifino = &ifstat_tbl.items[ifstat_tbl.nr_items];
+				strlcpy(ifino->ifname, ifname, sizeof(ifino->ifname));
+				ifino->inode = inode;
+				ifino->last_rx = curr_rx;
+				ifino->last_tx = curr_tx;
+				ifino->shift_rx = ifino->shift_tx = 0;
+				ifstat_tbl.nr_items++;
+			}
+		}
+
+		if (ifino != NULL) {
+			counter[0] = curr_rx - ifino->shift_rx;
+			counter[1] = curr_tx - ifino->shift_tx;
+			ifino->last_rx = curr_rx;
+			ifino->last_tx = curr_tx;
+		}
+
 		for (i = 0; i < ARRAY_SIZE(tmp->counter); ++i)
 			tmp->counter[i] += counter[i];
 
@@ -927,7 +963,7 @@ loopagain:
 #endif
 	}
 #ifdef RTCONFIG_LANTIQ
-	if (nvram_get_int("switch_stb_x") == 0) {
+	if ((nvram_get_int("switch_stb_x") == 0 || nvram_get_int("switch_stb_x") > 6) && ppa_support(WAN_UNIT_FIRST)) {
 		unlink(RS_PPACMD_WAN_PATH);
 		unlink(RS_PPACMD_LAN_PATH);
 		unlink(RS_PPACMD_TRAFFIC_PATH);

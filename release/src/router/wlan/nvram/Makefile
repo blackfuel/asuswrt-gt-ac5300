@@ -11,6 +11,8 @@ KERNEL_NVRAM_FILE_NAME := kernel_nvram.setting
 
 include $(BUILD_DIR)/make.common
 
+include $(TOP)/.config
+
 ifneq ("$(wildcard $(KERNEL_DIR)/.config)","")
 include $(KERNEL_DIR)/.config
 endif
@@ -71,6 +73,7 @@ ALLOWED_INCLUDE_PATHS += -I$(INC_BRCMDRIVER_PUB_PATH)/$(BRCM_BOARD)  \
 CFLAGS += -DDSLCPE_WLCSM_EXT -DKERNEL_NVRAM_FILE_NAME='"/data/.$(KERNEL_NVRAM_FILE_NAME)"'
 ALLOWED_INCLUDE_PATHS += -I$(TOP)/wlcsm/include 
 WLCSM_LIB := -L$(INSTALL_DIR)/lib -lwlcsm
+SHARED_LIB := -L$(TOP)/shared -lshared
 LIBS += -lwlcsm
 ifneq ($(findstring CONFIG_DUMP_PREV_OOPS_MSG=, $(shell cat $(LINUXDIR)/.config)),)
 CFLAGS += -DDUMP_PREV_OOPS_MSG
@@ -130,7 +133,7 @@ install:
 dynamic: all
 
 libnvram: nvram_shared.o brcm_generic_lock.o
-	$(LD) -shared -soname libnvram.so -o libnvram.so nvram_shared.o brcm_generic_lock.o  -L$(LIBDIR) $(WLCSM_LIB) -lc 
+	$(LD) -shared -soname libnvram.so -o libnvram.so nvram_shared.o brcm_generic_lock.o  -L$(LIBDIR) $(WLCSM_LIB) $(SHARED_LIB) -lc
 	install -m 755 libnvram.so $(INSTALL_DIR)/lib
 
 nvram: libnvram main.o

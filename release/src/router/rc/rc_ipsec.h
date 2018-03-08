@@ -67,6 +67,7 @@ typedef enum vpn_type_s{
 typedef enum flag_type_s{
     FLAG_IKE_ENCRYPT,
     FLAG_ESP_HASH,
+    FLAG_DH_GROUP,
     FLAG_KEY_CHAG_VER,
     FLAG_NONE,
 }flag_type_t;
@@ -154,7 +155,7 @@ typedef struct ipsec_prof_s{
     char local_public_interface[SZ_MIN];
     char local_pub_ip[SZ_128BUF];      /*local_public_ip*/
     uint8_t auth_method;
-    char auth_method_key[SZ_MIN];           /*auth_menthod_value*/
+    char auth_method_key[SZ_MIN+1];           /*auth_menthod_value*/
     char local_subnet[SZ_128BUF];
     uint16_t local_port; 
     char remote_subnet[SZ_128BUF];
@@ -171,8 +172,8 @@ typedef struct ipsec_prof_s{
     char remote_id[SZ_MIN];
     uint32_t keylife_p1;         /*IKE default:28800 seconds , 8hr*/
     uint8_t xauth;          /*0:disable,1:server,2:client*/
-    char xauth_account[SZ_MIN];
-    char xauth_password[SZ_MIN];
+    char xauth_account[SZ_MIN+1];
+    char xauth_password[SZ_MIN+1];
     char auth2meth[SZ_MIN];  /*auth2 methon -- xauth_server_type*/
     uint16_t traversal;
     uint16_t ike_isakmp_port;
@@ -185,6 +186,11 @@ typedef struct ipsec_prof_s{
     uint16_t keyingtries;
 	char samba_settings[SZ_64BUF];
     uint8_t ipsec_conn_en;  /*1: up ; 0:down*/
+	uint16_t encryption_p1_ext;
+	uint16_t hash_p1_ext;
+	uint16_t dh_group;
+	uint16_t encryption_p2_ext;
+	uint16_t hash_p2_ext;
 }ipsec_prof_t;
 
 

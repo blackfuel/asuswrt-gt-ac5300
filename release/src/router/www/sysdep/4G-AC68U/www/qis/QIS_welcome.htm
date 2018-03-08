@@ -85,11 +85,6 @@ function assign_color(){
 
 function QKinternettype_load_body(){
 	parent.flag_manual = 0;
-	if('<% check_asus_model(); %>' == '0'){
-		document.getElementById("warming_field").style.display ="";
-		document.getElementById("main_manual").style.display ="none";
-		disable_button();
-	}
 
 	if(parent.document.QKform.sw_mode.value == "1"){
 		if(ttc == "TW" || ttc == "CN"){
@@ -189,10 +184,6 @@ function QKinternettype_load_body(){
 		document.getElementById("Productdesc_2").innerHTML = check_desc2;
 		document.getElementById("Productdesc_3").innerHTML = check_desc3;
 		document.getElementById("Productdesc_4").innerHTML = check_desc4;
-		if(based_modelid == "4G-AC68U"){
-			document.getElementById("Productdesc_5").style.display = "";
-			document.getElementById("Productdesc_5").innerHTML ="<#QIS_welcome_feature5#>";
-		}
 	}
 
 	if(parent.gobi_support){
@@ -205,11 +196,15 @@ function QKinternettype_load_body(){
 	document.getElementById("btn_next_step").focus();
 	
 	if(!parent.dual_ewan){
-		if(wanauxstate != 1 || parent.sim_state == "1" || parent.sim_state == "2"){
-			location.href = "/qis/QIS_admin_pass.htm";
-		}
-		else{
+		if(parent.gobi_support)
 			document.getElementById("QISmain").style.display = "";
+		else{
+			if((wanauxstate != 1 && wanauxstate != -1) || parent.sim_state == "1" || parent.sim_state == "2"){
+				location.href = "/qis/QIS_admin_pass.htm";
+			}
+			else{
+				document.getElementById("QISmain").style.display = "";
+			}
 		}
 	}
 	else{
@@ -219,11 +214,6 @@ function QKinternettype_load_body(){
 		else{
 			document.getElementById("QISmain").style.display = "";
 		}
-	}
-
-	if(based_modelid == "4G-AC68U"){
-		parent.document.getElementById("contentM").height = "580";
-		parent.document.getElementById("contentM_qis_div").style.height = "580px";
 	}
 }
 
@@ -247,6 +237,7 @@ function submitForm(mode){
 	document.form.submit();
 }
 
+var autodet_retry_count = 5;
 function detect_if_wan_plug(flag){
 	if(parent.tmo_support && parent.ISMOBILE)
 		submitForm(1);
@@ -260,7 +251,7 @@ function detect_if_wan_plug(flag){
 		},
 		success: function(response){
 			if(!parent.dual_ewan){ // no dual ethernet wan
-				if(autodet_state == "4"){// ethernet did not plug
+				if(autodet_state == "4" || parent.noWAN_support){// ethernet did not plug
 					if(parent.gobi_support){
 						if( sim_state == "-1")
 							redirect_page("unplug_ethsim");
@@ -294,19 +285,23 @@ function detect_if_wan_plug(flag){
 						document.getElementById("loadingIcon").style.display = "none";
 						changeiuiBackground(0);
 					}
-					setTimeout("update_wan_info(1);", 2000);
 				}
 				else if(autodet_state == "0"  || autodet_state == "1"){
 					detect_if_wan_plug();
 					changeiuiBackground(1);
 				}
 				else if(autodet_state == ""){
-					if(flag == null)
-						update_wan_info();
-					else
-						update_wan_info(1);
+					if(autodet_retry_count > 0){
+						if(flag == null)
+							update_wan_info();
+						else
+							update_wan_info(1);
 
-					changeiuiBackground(1);
+						autodet_retry_count--;
+						changeiuiBackground(1);
+					}
+					else
+						submitForm(0);
 				}
 				else
 					submitForm(1);
@@ -331,19 +326,23 @@ function detect_if_wan_plug(flag){
 						document.getElementById("loadingIcon").style.display = "none";
 						changeiuiBackground(0);
 					}
-					setTimeout("update_wan_info(1);", 2000);
 				}
 				else if(autodet_state == "0" || autodet_state == "1" || autodet1_state == "0" || autodet1_state == "1"){
 					detect_if_wan_plug();
 					changeiuiBackground(1);
 				}
 				else if(autodet_state == "" || autodet1_state == ""){
-					if(flag == null)
-						update_wan_info();
-					else
-						update_wan_info(1);
+					if(autodet_retry_count > 0){
+						if(flag == null)
+							update_wan_info();
+						else
+							update_wan_info(1);
 
-					changeiuiBackground(1);
+						autodet_retry_count--;
+						changeiuiBackground(1);
+					}
+					else
+						submitForm(0);
 				}
 				else 
 					submitForm(1);
@@ -429,16 +428,23 @@ function startDetect(){
 		if(!parent.dual_ewan){
 			if(wanstate  == 2 && wansbstate == 0 && wanauxstate == 0)
 				submitForm(1);
-			else
+			else{
+				document.getElementById("loadingIcon").style.display = "";
+				changeiuiBackground(1);
 				detect_if_wan_plug();
+			}
 		}
 		else{
 			if((first_wanstate  == 2 && first_wansbstate == 0 && first_wanauxstate == 0) || 
 			   (second_wanstate == 2 && second_wansbstate == 0 && second_wanauxstate == 0))
 				submitForm(1);
-			else
+			else{
+				document.getElementById("loadingIcon").style.display = "";
+				changeiuiBackground(1);
 				detect_if_wan_plug();
+			}
 		}
+		document.getElementById("btn_next_step").disabled = true;
 	}
 }
 
@@ -527,14 +533,6 @@ function uploadSetting(){
 	}	
 }
 
-function disable_button(){
-	var disable_button_x = document.getElementsByClassName('button_gen');
-	for(x=disable_button_x.length-1;x>=0;x--){
-		disable_button_x[x].disabled = true;
-	}
-}
-
-
 </script>
 </head>  
 <body onLoad="QKinternettype_load_body();" onunload="" onKeyPress="submitenter(this,event)">
@@ -555,7 +553,6 @@ function disable_button(){
 		<tr>
 			<td>
 				<div style="margin:5px;"><img style="width: 720px; *width: 710px; height: 2px;" src="/images/New_ui/export/line_export.png"></div>
-				<div id="warming_field" style="display:none" class="warming_desc">Note: the router you are using is not an ASUS device or has not been authorised by ASUS. ASUSWRT might not work properly on this device.</div>
 			</td>
 		</tr>	
 		<tr>
@@ -570,7 +567,6 @@ function disable_button(){
 									<li style="line-height:25px;" id="Productdesc_2"></li>
 									<li style="line-height:25px;" id="Productdesc_3"></li>
 									<li style="line-height:25px;" id="Productdesc_4"></li>
-									<li style="line-height:25px; display:none;" id="Productdesc_5"></li>
 								</ul>
 							</div>
 						</td>

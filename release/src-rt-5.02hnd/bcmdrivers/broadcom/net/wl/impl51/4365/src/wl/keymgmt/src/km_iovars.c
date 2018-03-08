@@ -142,8 +142,6 @@ km_doiovar(void *ctx, const bcm_iovar_t *vi, uint32 actionid,
 		scb_t *scb;
 		wlc_key_id_t key_id;
 		struct ether_addr *ea;
-		uint8 seq[DOT11_IV_MAX_LEN];
-		size_t seq_len;
 
 		/* check arg */
 		if (len < sizeof(wl_key)) {
@@ -342,15 +340,17 @@ km_doiovar(void *ctx, const bcm_iovar_t *vi, uint32 actionid,
 		}
 
 		/* update rxiv */
-		if (wl_key.iv_initialized)
+		if (wl_key.iv_initialized) {
+			uint8 seq[DOT11_IV_MAX_LEN];
+			size_t seq_len;
+			
 			seq_len = wlc_key_pn_to_seq(seq, sizeof(seq),
 				wl_key.rxiv.lo, wl_key.rxiv.hi);
-		else
-			seq_len = wlc_key_pn_to_seq(seq, sizeof(seq), 0, 0);
-		err = wlc_key_set_seq(key, seq, seq_len,
-			WLC_KEY_SEQ_ID_ALL, FALSE /* !tx */);
-		if (err != BCME_OK)
-			break;
+			err = wlc_key_set_seq(key, seq, seq_len,
+				WLC_KEY_SEQ_ID_ALL, FALSE /* !tx */);
+			if (err != BCME_OK)
+				break;
+		}
 
 		if (WLC_KEY_IS_GROUP(&key_info) &&
 			((wl_key.flags & WL_PRIMARY_KEY) || BSSCFG_AP(bsscfg) || !bsscfg->BSS ||

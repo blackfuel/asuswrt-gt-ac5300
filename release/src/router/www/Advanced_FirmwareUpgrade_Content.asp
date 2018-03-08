@@ -12,6 +12,7 @@
 <link rel="stylesheet" type="text/css" href="index_style.css">
 <link rel="stylesheet" type="text/css" href="form_style.css">
 <link rel="stylesheet" type="text/css" href="css/confirm_block.css"></script>
+<link rel="stylesheet" type="text/css" href="/device-map/amesh.css" />
 <style>
 .FormTable{
  	margin-top:10px;	
@@ -42,19 +43,19 @@
 	text-shadow: 1px 1px 0px black;
 	text-align: center;
 	vertical-align: middle;
-  background: transparent url(/images/New_ui/contentbt_normal.png) no-repeat scroll center top;
-  _background: transparent url(/images/New_ui/contentbt_normal_ie6.png) no-repeat scroll center top;
-  border:0;
-  color: #FFFFFF;
+	background: transparent url(/images/New_ui/contentbt_normal.png) no-repeat scroll center top;
+	_background: transparent url(/images/New_ui/contentbt_normal_ie6.png) no-repeat scroll center top;
+	border:0;
+	color: #FFFFFF;
 	height:33px;
 	width:122px;
 	font-family:Verdana;
 	font-size:12px;
-  overflow:visible;
+	overflow:visible;
 	cursor:pointer;
 	outline: none; /* for Firefox */
- 	hlbr:expression(this.onFocus=this.blur()); /* for IE */
- 	white-space:normal;
+	hlbr:expression(this.onFocus=this.blur()); /* for IE */
+	white-space:normal;
 }
 .button_helplink:hover{
 	font-weight: bolder;
@@ -75,6 +76,7 @@
 <script language="JavaScript" type="text/javascript" src="/js/jquery.js"></script>
 <script language="JavaScript" type="text/javascript" src="/js/confirm_block.js"></script>
 <script language="JavaScript" type="text/javascript" src="/switcherplugin/jquery.iphone-switch.js"></script>
+<script language="JavaScript" type="text/javascript" src="/form.js"></script>
 <script>
 var webs_state_update = '<% nvram_get("webs_state_update"); %>';
 var webs_state_upgrade = '<% nvram_get("webs_state_upgrade"); %>';
@@ -96,9 +98,124 @@ if(cfg_sync_support){
 	var cfg_upgrade = '<% nvram_get("cfg_upgrade"); %>';
 }
 
+var amesh_offline_flag = false;
+var interval_update_AiMesh_fw_status;
+
+var firmver = '<% nvram_get("firmver"); %>';
+var buildno = '<% nvram_get("buildno"); %>';
+//var rcno = '<% nvram_get("rcno"); %>';
+var extendno = '<% nvram_get("extendno"); %>';
+var FWString = '';
+
+FWString = firmver+"."+buildno;
+//if(rcno.length > 0)
+//	FWString += "rc"+rcno;
+FWString += "_"+extendno;
+
 
 function initial(){
 	show_menu();
+
+	showtext(document.getElementById("FWString"), FWString);
+
+	if(amesh_support && (isSwMode("rt") || isSwMode("ap"))) {
+		$(".aimesh_manual_fw_update_hint").css("display", "block");
+		var get_cfg_clientlist_ori = [<% get_cfg_clientlist(); %>];
+		var have_node = false;
+		var get_cfg_clientlist = [];
+		get_cfg_clientlist = get_cfg_clientlist_ori[0];
+		$("#fw_version_tr").empty();
+		var html = "";
+		html += "<tr>";
+		html += "<th>Check Update</th>";/* untranslated */
+		html += "<td>";
+		html += '<div id="update_div" style="display:none;">';
+		html += '<input type="button" id="update" name="update" class="button_gen" onclick="show_offline_msg(true);" value="<#liveupdate#>" />';
+		html += '<span id="beta_firmware_path_span" style="display:none;">';
+		html += '<input type="checkbox" name="beta_firmware_path" id="beta_firmware_path" onclick="change_firmware_path(this.checked==true);"  <% nvram_match("firmware_path", "1", "checked"); %>><#get_beta#></input>';
+		html += '</span>';
+		html += '<div><input type="button" id="amas_update" class="button_gen" style="display:none;" onclick="cfgsync_firmware_upgrade();" value="<#CTL_upgrade#>"/><div>';
+		html += '</div>';
+		html += '<div id="linkpage_div" class="button_helplink" style="margin-left:200px;margin-top:-38px;display:none;">';
+		html += '<a id="linkpage" target="_blank"><div style="padding-top:5px;"><#liveupdate#></div></a>';
+		html += '</div>';
+		html += '<div id="check_states">';
+		html += '<span id="update_states"></span>';
+		html += '<img id="update_scan" style="display:none;" src="images/InternetScan.gif" />';
+		html += '</div>';
+		html += "</td>";
+		html += "</tr>";
+		$("#fw_version_tr").before(html);
+
+		var mac_id = '<% get_lan_hwaddr(); %>'.replace(/:/g, "");
+		html = "";
+		html += "<tr style='height:15px;'></tr>";
+		html += "<tr>";
+		html += "<td class='aimesh_node_category_bg' colspan='2'>AiMesh router</td>";/*untranslated*/
+		html += "</tr>";
+		html += "<tr>";
+		html += "<th>";
+		html += "<#Web_Title2#>";
+		html += "</th>";
+		html += "</th>";
+		html += "<td id='amas_" + mac_id + "'>";
+		html += "<div id='current_version'>Current Version : " + FWString + "</div>";/*untranslated*/
+		html += "<div>";
+		html += "Manual Firmware Update : ";/*untranslated*/
+		html += "<span class='aimesh_fw_update_offline' style='margin-left:0px;' onclick='open_AiMesh_router_fw_upgrade();'><#CTL_upload#></span>";
+		html += "</div>";
+		html += "<div id='checkNewFW' class='checkNewFW' style='display:none;'><#ADSL_FW_item3#> : <span class='checkFWReuslt'></span></div>";
+		html += "</td>";
+		html += "</tr>";
+		$("#fw_version_tr").before(html);
+
+		for (var idx in get_cfg_clientlist) {
+			if (get_cfg_clientlist.hasOwnProperty(idx)) {
+				if(idx == "0")
+					continue;//filter CAP
+				var model_name = get_cfg_clientlist[idx].model_name;
+				var fwver = get_cfg_clientlist[idx].fwver;
+				var online = get_cfg_clientlist[idx].online;
+				var mac = get_cfg_clientlist[idx].mac;
+				var mac_id = mac.replace(/:/g, "");
+				var ip = get_cfg_clientlist[idx].ip;
+				var alias = "My Home";
+				if("config" in get_cfg_clientlist[idx]) {
+					if("misc" in get_cfg_clientlist[idx].config) {
+						if("cfg_alias" in get_cfg_clientlist[idx].config.misc) {
+							if(get_cfg_clientlist[idx].config.misc.cfg_alias != "")
+								alias = get_cfg_clientlist[idx].config.misc.cfg_alias;
+						}
+					}
+				}
+				html = "";
+				if(!have_node) {
+					html += "<tr>";
+					html += "<td class='aimesh_node_category_bg' colspan='2'>AiMesh node</td>";/*untranslated*/
+					html += "</tr>";
+				}
+				html += "<tr>";
+				html += "<th>";
+				html += model_name + " ( " + mac + " )";
+				html += "<br>";
+				html += "Location : " + alias;/* untranslated */
+				html += "</th>";
+				html += "<td id='amas_" + mac_id + "'>";
+				html += "<div id='current_version'>Current Version : " + fwver + "</div>";/*untranslated*/
+				html += "<div id='manual_firmware_update'>";
+				html += gen_AiMesh_fw_status(check_AiMesh_fw_version(fwver), ip, online);
+				html += "</div>";
+				html += "<div id='checkNewFW' class='checkNewFW' style='display:none;'><#ADSL_FW_item3#> : <span class='checkFWReuslt'></span></div>";
+				html += "</td>";
+				html += "</tr>";
+				$("#fw_version_tr").before(html);
+				have_node = true;
+			}
+		}
+		$("#fw_version_tr").remove();
+		interval_update_AiMesh_fw_status = setInterval(update_AiMesh_fw, 5000);
+	}
+
 	if(bwdpi_support){
 		if(dpi_engine_status.DpiEngine == 1)
 			document.getElementById("sig_ver_field").style.display="";
@@ -117,7 +234,8 @@ function initial(){
 	}
 
 	if(cfg_sync_support){
-		if(cfg_upgrade != "" && cfg_upgrade != "10"){   //Show firmware is still downloading or fw upgrade loading bar if doing webs_upgrade.sh 
+		if( (cfg_check == "7" && (cfg_upgrade == "1" || cfg_upgrade == "6" || cfg_upgrade == "8")) ||
+			(cfg_check == "0" && cfg_upgrade == "10") ){
 			startDownloading();
 		}
 	}
@@ -149,7 +267,16 @@ function initial(){
 				do_show_confirm(webs_state_info_beta, confirm_show, current_firmware_path);	//Show beta path result
 			}
 			else if(confirm_show.length > 0 && confirm_show == 0){
-				do_show_confirm(webs_state_info, confirm_show, current_firmware_path);	//Show formal path result
+				if(amesh_support && (isSwMode("rt") || isSwMode("ap"))) {
+					var interval = setInterval(function() {
+						if(link_status != undefined) {
+							clearInterval(interval);
+							show_offline_msg(true);
+						}
+					}, 100);
+				}
+				else
+					do_show_confirm(webs_state_info, confirm_show, current_firmware_path);	//Show formal path result
 			}
 		}
 	}
@@ -188,6 +315,15 @@ function initial(){
 		inputCtrl(document.form.file, 1);
 		inputCtrl(document.form.upload, 1);
 	}
+
+	if(amesh_support && (isSwMode("rt") || isSwMode("ap"))) {
+		$("#beta_firmware_path_span").css("display", "none");
+		$("#manually_upgrade_tr").css("display", "none");
+		$("#productid_tr").css("display", "none");
+		document.form.file.onchange = function() {
+			submitForm();
+		}
+	}
 }
 
 var dead = 0;
@@ -209,11 +345,11 @@ function detect_firmware(flag){
 
 		success: function(){
 			if(cfg_sync_support){
-				if(cfg_check == "0" || cfg_check == "1" || cfg_check == "5"){
+				if(cfg_check == "" || cfg_check == "0" || cfg_check == "1" || cfg_check == "5"){
 					setTimeout("detect_firmware();", 1000);
 				}
 				else{	// got fw info
-					if(cfg_check == "2"){	//1:wget fail
+					if(cfg_check == "2" || cfg_check == "3"){
 						document.getElementById('update_scan').style.display="none";
 						if(document.start_update.firmware_path.value==1){	//Beta Firmware not available yet
 							document.getElementById('update_states').innerHTML="No beta firmware available now.";	/* untranslated */
@@ -223,13 +359,7 @@ function detect_firmware(flag){
 						}
 						document.getElementById('update').disabled = false;
 					}
-					else if(cfg_check == "4"){	//3: FW check/RSA check fail
-						document.getElementById('update_scan').style.display="none";
-						document.getElementById('update_states').innerHTML="<#FIRM_fail_desc#><br><#FW_desc1#>";
-						document.getElementById('update').disabled = false;
-
-					}
-					else{
+					else if(cfg_check == "7" || cfg_check == "9"){
 						document.getElementById('update_scan').style.display="none";
 						document.getElementById('update_states').innerHTML="";
 						document.getElementById('update').disabled = false;
@@ -241,8 +371,11 @@ function detect_firmware(flag){
 						else{
 							note_display=0;
 						}
-
-						do_show_confirm(check_webs_state_info, document.start_update.firmware_path.value, current_firmware_path);
+						
+						if(amesh_support && (isSwMode("rt") || isSwMode("ap")))
+							show_amas_fw_result();
+						else
+							do_show_confirm(check_webs_state_info, document.start_update.firmware_path.value, current_firmware_path);
 					}
 				}
 			}
@@ -466,20 +599,22 @@ function isDownloading(){
     		},
     		success: function(){
 				if(cfg_sync_support){
-					if(cfg_upgrade == "1"){
-						document.getElementById("drword").innerHTML = "&nbsp;&nbsp;&nbsp;<#fw_downloading#>...";
-						setTimeout("isDownloading();", 1000);
+					if(cfg_check == "7") {
+						if(cfg_upgrade == "1" || cfg_upgrade == "6" || cfg_upgrade == "8"){
+							document.getElementById("drword").innerHTML = "&nbsp;&nbsp;&nbsp;<#fw_downloading#>...";
+							setTimeout("isDownloading();", 1000);
+						}
 					}
-					else{
-						if(cfg_upgrade == "2"){
+					else if(cfg_check == "0") {
+						if(cfg_upgrade == "2" || cfg_upgrade == "3"){
 							document.getElementById("drword").innerHTML = "<#connect_failed#>";
 							return false;
 						}
-						else if(cfg_upgrade == "3"){
+						else if(cfg_upgrade == "4"){
 							document.getElementById("drword").innerHTML = "<#FIRM_fail_desc#><br><#FW_desc1#>";
 							return false;
 						}
-						else{		// start upgrading
+						else if(cfg_upgrade == "10"){		// start upgrading
 							document.getElementById("hiddenMask").style.visibility = "hidden";
 							showLoadingBar(270);
 							setTimeout("detect_httpd();", 272000);
@@ -541,8 +676,15 @@ function check_zip(obj){
 function submitForm(){
 	if(!check_zip(document.form.file))
 			return;
-	else
-		onSubmitCtrlOnly(document.form.upload, 'Upload1');	
+	else {
+		var status = onSubmitCtrlOnly(document.form.upload, 'Upload1');
+		if(amesh_support && status && (isSwMode("rt") || isSwMode("ap"))) {
+			if(interval_update_AiMesh_fw_status) {
+				clearInterval(interval_update_AiMesh_fw_status);
+				interval_update_AiMesh_fw_status = false;
+			}
+		}
+	}
 }
 
 function sig_version_check(){
@@ -752,6 +894,235 @@ function transferTimeFormat(time){
 	var date_format = "<#FW_updated#> : " + year + "/" + month + "/" + date + " " + hour + ":" + minute;
 	return date_format;
 }
+function show_offline_msg(_checkFlag) {
+	if(!amesh_offline_flag && _checkFlag) {
+		$("#amas_update").css("display", "none");
+		$(".checkNewFW").css("display", "none");
+		$(".checkFWReuslt").empty();
+		$(".checkFWReuslt").removeClass("aimesh_fw_release_note");
+		detect_update(document.start_update.firmware_path.value);
+		return;
+	}
+
+	var $offlineHtml = $('<div>');
+	$offlineHtml.attr({"id" : "amesh_offline_msg"});
+	$offlineHtml.addClass("amesh_popup_bg");
+	$offlineHtml.css("display", "none");
+	$offlineHtml.attr({"onselectstart" : "return false"});
+	$offlineHtml.appendTo($('body'));
+
+	var $amesh_hint_offline = $('<div>');
+	$amesh_hint_offline.addClass("amesh_hint_text");
+	$amesh_hint_offline.css("color", "#FC0");
+	$amesh_hint_offline.html("There are offline AiMesh node in your AiMesh system and offline AiMesh node will not able to be updated. (Online AiMesh node could still be updated.)");/*untranslated*/
+	$offlineHtml.append($amesh_hint_offline);
+
+	var $amesh_hint_text = $('<div>');
+	$amesh_hint_text.addClass("amesh_hint_text");
+	$amesh_hint_text.html("Offline tips :");/*untranslated*/
+	$offlineHtml.append($amesh_hint_text);
+
+	var $amesh_hint_content = $('<div>');
+	$amesh_hint_content.addClass("amesh_hint_text");
+	$amesh_hint_content.css("margin-left", "auto");
+	$offlineHtml.append($amesh_hint_content);
+
+	var $msg_item =  $('<ol>');
+	var msg_text = "<li>Make sure your AiMesh node is power on.</li>";/*untranslated*/
+	msg_text += "<li>Reboot this AiMesh node and try again.</li>";/*untranslated*/
+	msg_text += "<li>If you are using Wi-Fi connection, please try to find a place closer to other AiMesh node.</li>";/*untranslated*/
+	msg_text += "<li>If you are using wired connection, please make sure cable are installed properly.</li>";/*untranslated*/
+	msg_text += "<li>If still no help, please try to reset this AiMesh node by \"Reset button\" and try to add again.</li>";/*untranslated*/
+	$msg_item.html(msg_text);
+	$amesh_hint_content.append($msg_item);
+
+	var $amesh_action_bg = $('<div>');
+	$amesh_action_bg.addClass("amesh_action_bg");
+	$offlineHtml.append($amesh_action_bg);
+
+	var $amesh_ok = $('<input/>');
+	$amesh_ok.addClass("button_gen");
+	$amesh_ok.attr({"type" : "button", "value" : "<#CTL_ok#>"});
+	$amesh_action_bg.append($amesh_ok);
+	$amesh_ok.click(
+		function() {
+			if($('.amesh_popup_bg').length == 1) {
+				$('.amesh_popup_bg').remove();
+			}
+			if(_checkFlag) {
+				detect_update(document.start_update.firmware_path.value);
+			}
+		}
+	);
+
+	$("#amesh_offline_msg").fadeIn(300);
+	cal_panel_block("amesh_offline_msg", 0.25);
+	adjust_panel_block_top("amesh_offline_msg", 200);
+}
+function show_amas_fw_result() {
+	$.ajax({
+		url: '/ajax_onboarding.asp',
+		dataType: 'script',
+		error: function(xhr) {
+			amas_fw_detect();
+		},
+		success: function() {
+			document.getElementById('update_states').style.display = "none";
+			document.getElementById('update_states').innerHTML = "";
+			document.getElementById('update_scan').style.display = "none";
+			for (var idx in get_cfg_clientlist) {
+				if(get_cfg_clientlist.hasOwnProperty(idx)) {
+					var model_name = get_cfg_clientlist[idx].model_name;
+					var mac = get_cfg_clientlist[idx].mac;
+					var newfwver = get_cfg_clientlist[idx].newfwver;
+					var mac_id = mac.replace(/:/g, "");
+					var ck_fw_result = "<#is_latest#>";
+					var online = get_cfg_clientlist[idx].online;
+					$("#amas_" + mac_id + "").children().find(".checkFWReuslt").html(ck_fw_result);
+					if(newfwver != "") {
+						ck_fw_result = newfwver;
+						$("#amas_" + mac_id + "").children().find(".checkFWReuslt").addClass("aimesh_fw_release_note");
+						$("#amas_" + mac_id + "").children().find(".checkFWReuslt").html(ck_fw_result);
+						$("#amas_update").css("display", "");
+						$("#amas_" + mac_id + "").children().find(".checkFWReuslt").click({"model_name": model_name, "newfwver": newfwver}, show_fw_relese_note);
+					}
+					if(online == "1")
+						$("#amas_" + mac_id + "").children("#checkNewFW").css("display", "");
+				}
+			}
+		}
+	});
+}
+function show_fw_relese_note(event) {
+	if($(".confirm_block").length > 0)
+		$(".confirm_block").remove();
+
+	document.amas_release_note.model.value = event.data.model_name;
+	document.amas_release_note.version.value = event.data.newfwver;
+	document.amas_release_note.submit();
+	confirm_asus({
+		title: "New Firmware Available",
+		contentA: "<#exist_new#><br>",
+		contentC: "<br><#ADSL_FW_note#> <#Main_alert_proceeding_desc5#>",
+		left_button: "",
+		left_button_callback: {},
+		left_button_args: {},
+		right_button: "<#CTL_close#>",
+		right_button_callback: function(){confirm_cancel();},
+		right_button_args: {},
+		iframe: "get_release_note_amas.asp",
+		margin: "100px 0px 0px 25px",
+		note_display_flag: note_display
+	});
+
+	setTimeout(function(){check_fw_relese_note_status();}, 2000);
+}
+function check_fw_relese_note_status() {
+	if($(".confirm_block").length > 0) {
+		$.ajax({
+			url: '/ajax_onboarding.asp',
+			dataType: 'script',
+			success: function() {
+				switch(cfg_note) {
+					case "0" :
+						check_fw_relese_note_status();
+						break;
+					case "1" :
+						show_fw_relese_note_result(true);
+						break;
+					case "2" :
+					case "3" :
+						show_fw_relese_note_result(false);
+						break;
+				}
+			}
+		});
+	}
+}
+function show_fw_relese_note_result(_status) {
+	if($(".confirm_block").children().find("#status_iframe").contents().find("#amas_relese_note").length == 0)
+		show_fw_relese_note_result(_status);
+
+	if(_status) {
+		$(".confirm_block").children().find("#status_iframe").attr("src", "get_release_note_amas.asp");//reload
+		$(".confirm_block").children().find("#status_iframe").load(function() {
+			$(".confirm_block").children().find("#status_iframe").contents().find("#amas_relese_note").css("display", "");
+			$(".confirm_block").children().find("#status_iframe").contents().find("#amas_relese_note_hint").css("display", "none");
+		});
+	}
+	else
+		$(".confirm_block").children().find("#status_iframe").contents().find("#amas_relese_note_hint").val("Fail to grab release note");/* untranslated */
+}
+function open_AiMesh_node_fw_upgrade(_ip) {
+	var url = "http://" + _ip + "/AiMesh_Node_FirmwareUpgrade.asp";
+	var window_width = 550;
+	var window_height = 450;
+	var window_top = screen.availHeight / 2 - window_height / 2;
+	var window_left = screen.availWidth / 2 - window_width / 2;
+	window.open(url, '_new' ,'width=' + window_width + ',height=' + window_height + ', top=' + window_top + ',left=' + window_left + ',menubar=no,scrollbars=no,toolbar=no,resizable=no,status=no,location=no');
+}
+function open_AiMesh_router_fw_upgrade() {
+	document.form.file.click();
+}
+function update_AiMesh_fw() {
+	$.ajax({
+		url: '/ajax_onboarding.asp',
+		dataType: 'script',
+		success: function(){
+			for (var idx in get_cfg_clientlist) {
+				if(get_cfg_clientlist.hasOwnProperty(idx)) {
+					var mac = get_cfg_clientlist[idx].mac;
+					var fwver = get_cfg_clientlist[idx].fwver;
+					var ip = get_cfg_clientlist[idx].ip;
+					var online = get_cfg_clientlist[idx].online;
+					var mac_id = mac.replace(/:/g, "");
+					$("#amas_" + mac_id + "").children("#current_version").html("Current Version : " + fwver + "");/* untranslated */
+					$("#amas_" + mac_id + "").children("#manual_firmware_update").empty();
+					$("#amas_" + mac_id + "").children("#manual_firmware_update").html(gen_AiMesh_fw_status(check_AiMesh_fw_version(fwver), ip, online));
+				}
+			}
+		}
+	});
+}
+function gen_AiMesh_fw_status(_manual_status, _node_ip, _online) {
+	var html = "";
+	if(_manual_status) {
+		html += "Manual Firmware Update : ";/*untranslated*/
+		if(_online == "0") {
+			html += "<span class='aimesh_fw_update_offline' style='margin-left:0px;' onclick='show_offline_msg(false);'>Offline</span>";/*untranslated*/
+			amesh_offline_flag = true;
+		}
+		else {
+			html += "<span class='aimesh_fw_update_offline' style='margin-left:0px;' onclick='open_AiMesh_node_fw_upgrade(\"" + _node_ip + "\");'><#CTL_upload#></span>";
+		}
+	}
+	else {
+		html += "<span class='aimesh_fw_update_offline' style='margin-left:0px;text-decoration:none;cursor:none;'>This AiMesh node is not compatible with manual firmware update, please click \"Check\" to do firmware upgrade over the air.</span>";/*untranslated*/
+	}
+	return html;
+}
+function check_AiMesh_fw_version(_fw) {
+	var support_manual_fw_id = 382;
+	var support_manual_fw_num = 18000;
+	var manual_status = false;
+	var fw_array = _fw.split(".");
+	for(var i = 0; i < fw_array.length; i += 1) {
+		if( fw_array[i] != "" && (fw_array[i].indexOf("_") != -1) && (fw_array[i].indexOf("-") != -1) ) {
+			var fw_id_num = fw_array[i].substring(0, fw_array[i].indexOf('-')).split("_");
+			var fw_id = fw_id_num[0];
+			var fw_num = fw_id_num[1];
+			if(parseInt(fw_id) > support_manual_fw_id) {
+				manual_status = true;
+				break;
+			}
+			else if( (parseInt(fw_id) == support_manual_fw_id) && (parseInt(fw_num) >= support_manual_fw_num) ) {
+				manual_status = true;
+				break;
+			}
+		}
+	}
+	return manual_status
+}
 </script>
 </head>
 <body onload="initial();">
@@ -878,10 +1249,10 @@ function transferTimeFormat(time){
 					</div>
 				</td>
 			</tr>
-			<tr>
+			<tr id="fw_version_tr">
 				<th><#FW_item2#></th>
 				<td>
-					<div style="height:33px;margin-top:5px;"><% nvram_get("firmver"); %>.<% nvram_get("buildno"); %>_<% nvram_get("extendno"); %></div>
+					<div id="FWString" style="height:33px;margin-top:5px;"></div>
 					<div id="update_div" style="margin-left:200px;margin-top:-38px;display:none;">
 						<input type="button" id="update" name="update" class="button_gen" onclick="detect_update(document.start_update.firmware_path.value);" value="<#liveupdate#>" />
 						<span id="beta_firmware_path_span" style="display:none;">
@@ -905,6 +1276,9 @@ function transferTimeFormat(time){
 				</td>
 			</tr>			
 		</table>
+		<div class="aimesh_manual_fw_update_hint">
+			Note : Manual firmware update will update this AiMesh router / node only, if you are using AiMesh system, please make sure you are uploading proper firmware version.<!-- untranslated -->
+		</div>
 		
 </form>
 		
@@ -1005,6 +1379,14 @@ function transferTimeFormat(time){
 <input type="hidden" name="action_mode" value="apply">
 <input type="hidden" name="action_script" value="start_sig_check">
 <input type="hidden" name="action_wait" value="">
+</form>
+<form method="post" name="amas_release_note" action="/applyapp.cgi" target="hidden_frame">
+<input type="hidden" name="productid" value="<% nvram_get("productid"); %>">
+<input type="hidden" name="current_page" value="Advanced_FirmwareUpgrade_Content.asp">
+<input type="hidden" name="next_page" value="Advanced_FirmwareUpgrade_Content.asp">
+<input type="hidden" name="action_mode" value="release_note">
+<input type="hidden" name="model" value="">
+<input type="hidden" name="version" value="">
 </form>
 </body>
 </html>

@@ -15,6 +15,9 @@
 include $(SRCBASE)/router/.config
 
 CFLAGS	+= -I. -I$(TOP)/shared -I$(SRCBASE)/include ${WLAN_StdIncPathA} -I$(SRCBASE)/common/include -Wall
+ifeq ($(RTCONFIG_DPSTA),y)
+CFLAGS += -I$(TOP)/dpsta
+endif
 CFLAGS	+= $(WLAN_ComponentIncPath)
 #CFLAGS	+= -g -DDEBUG
 CFLAGS	+= -s
@@ -28,6 +31,10 @@ LDFLAGS += -lgcc_s
 
 ifeq ($(RTCONFIG_QTN),y)
 LDFLAGS += -L$(TOP)/libqcsapi_client -lqcsapi_client
+endif
+
+ifeq ($(RTCONFIG_AMAS),y)
+LDFLAGS += -L$(TOP)/json-c/.libs -ljson-c
 endif
 
 vpath %.c $(SRCBASE)/shared $(WLAN_ComponentSrcDirs)

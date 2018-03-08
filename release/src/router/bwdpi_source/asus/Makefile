@@ -28,6 +28,16 @@ LDFLAGS += -L $(TOP)/sqlCipher/.libs -lsqlcipher
 LDFLAGS += -L$(TOP)/PMS_DBapis -lpms_sql
 endif
 
+# BUILD_NAME
+ifneq ($(findstring 4G-,$(BUILD_NAME)),)
+TARGET_MODEL = RT$(subst -,,$(BUILD_NAME))
+else ifneq ($(findstring DSL,$(BUILD_NAME)),)
+TARGET_MODEL = $(subst -,_,$(BUILD_NAME))
+else
+TARGET_MODEL = $(subst -,,$(subst +,P,$(BUILD_NAME)))
+endif
+CFLAGS  += -D$(TARGET_MODEL)
+
 # for QCA toolchain compile issue, xxxx-ld has no pthead and dl in openwrt-toolchain
 ifeq ($(RTCONFIG_QCA),y)
 EXTRACC += -lpthread -ldl
@@ -45,7 +55,7 @@ OBJS += iqos.o wrs.o stat.o dpi.o wrs_app.o data_collect.o watchdog_check.o
 OBJS += dpi_support.o  # dpi_support feature to enhance security
 
 # TrendMicro
-OBJS += ioc_wrs.o conf_app.o ioc_common.o ioc_anomaly.o ioc_patrol_tq.o ioc_vp.o ioc_qos.o ioc_internal.o
+OBJS += conf_app.o ioc_anomaly.o ioc_common.o ioc_patrol_tq.o ioc_qos.o ioc_vp.o ioc_wbl.o ioc_wrs.o
 
 ifeq ($(RTCONFIG_BCMARM),y)
 vpath %.c $(SRCBASE)/shared
@@ -58,7 +68,7 @@ all:
 	-cp -f prebuild/libbwdpi.so libbwdpi.so
 	-cp -f prebuild/hwinfo hwinfo
 else
-all: hwinfo libbwdpi.so
+all: hwinfo libbwdpi.so dpi_support.prep
 endif
 
 libbwdpi.so: $(OBJS)
@@ -91,5 +101,9 @@ install: all
 	@echo " [bwdpi] CC $@"
 	@$(CC) $(CFLAGS) -c $<
 
+dpi_support.prep: dpi_support.c
+	@echo " [bwdpi] compile prep $@"
+	@$(CC) $(CFLAGS) -E $< > $@
+
 clean:
-	rm -f *.so *.o hwinfo bwdpi_cmd dbg_dpi_support
+	rm -f *.so *.o *.prep hwinfo bwdpi_cmd dbg_dpi_support

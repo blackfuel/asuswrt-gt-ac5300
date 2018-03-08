@@ -131,8 +131,12 @@ function initial(){
 	if(lyra_hide_support)
 		document.getElementById("gn_index_tr").style.display = "none";
 
-	if(ifttt_support){
-		$("#smart_home").show();
+	if(ifttt_support || alexa_support){
+		$("#smart_home_0").show();
+		if(band5g_support)
+			$("#smart_home_1").show();
+		if(wl_info.band5g_2_support)
+			$("#smart_home_2").show();
 	}
 
 	//When redirect page from Free WiFi or Captive Portal, auto go to anchor tag
@@ -391,8 +395,8 @@ function gen_gntable_tr(unit, gn_array, slicesb){
 				}
 			}
 
-			if(unit == 0 && i == (gn_array_length-1)){
-				htmlcode += '<tfoot><tr><td align="center"><div id="smart_home" style="font-size: 13px;font-weight:bolder;color:rgb(255, 204, 0);position:absolute;margin:33px 0px 0px -12px;display:none">Alexa/IFTTT Configured</div></td></tr></tfoot>';
+			if(i == (gn_array_length-1)){
+				htmlcode += '<tfoot><tr><td align="center"><div id="smart_home_'+unit+'" style="font-size: 12px;font-weight:bolder;color:rgb(255, 204, 0);position:absolute;margin:33px 0px 0px -20px;display:none">Default setting by Alexa/IFTTT</div></td></tr></tfoot>';
 			}
 			htmlcode += '</table></td>';		
 	}	
@@ -537,7 +541,7 @@ function applyRule(){
 		{
 			document.form.qos_enable.value = 1;
 			document.form.qos_type.value = 2;
-			if(ctf_disable_orig == '0'){	//brcm NAT Acceleration turned ON
+			if(ctf_disable_orig == '0' && !lantiq_support){	//brcm NAT Acceleration turned ON
 				document.form.action_script.value = "saveNvram;reboot";
 				document.form.action_wait.value = "<% get_default_reboot_time(); %>";
 			}
@@ -550,7 +554,7 @@ function applyRule(){
 				|| unit_bw_dl != document.form.wl_bw_dl.value
 				|| (wl_x_y_bss_enabled == 1 && (document.form.bw_enabled_x.value == "1" || document.form.bw_enabled_x[0].checked)))	
 		{	
-			if(ctf_disable_orig == '0' && document.form.wl_bw_enabled.value == 1){
+			if(ctf_disable_orig == '0' && document.form.wl_bw_enabled.value == 1 && !lantiq_support){
 				document.form.action_script.value = "saveNvram;reboot";
 				document.form.action_wait.value = "<% get_default_reboot_time(); %>";
 			}
@@ -708,8 +712,7 @@ function guest_divctrl(flag){
 		}
 
 		document.getElementById("gnset_table").style.display = "";
-		if(sw_mode == "3")
-			inputCtrl(document.form.wl_lanaccess, 0);
+
 		
 		document.getElementById("applyButton").style.display = "";
 	}
@@ -861,20 +864,22 @@ function change_guest_unit(_unit, _subunit){
 
 	updateMacModeOption();
 
+	if(captive_portal_used_wl_array["wl" + _unit + "." + _subunit] == "Free Wi-Fi" || captive_portal_used_wl_array["wl" + _unit + "." + _subunit] == "Captive Portal Wi-Fi") {
+		$(".captive_portal_control_class").css("display", "none");
+	}
+	else {
+		$(".captive_portal_control_class").css("display", "");
+			if(isSwMode("ap"))
+				inputCtrl(document.form.wl_lanaccess, 0);
+	}
+
 	if(lyra_hide_support){
 		document.form.wl_crypto.value = "aes";
 		document.getElementById("wl_auth_mode_tr").style.display = "none";
 		document.getElementById("wl_crypt_tr").style.display = "none";
 		document.getElementById("psk_title").innerHTML = "<#Network_key#>";
 		inputCtrl(document.form.wl_macmode, 0);
-	}
-
-	if(captive_portal_used_wl_array["wl" + _unit + "." + _subunit] == "Free Wi-Fi" || captive_portal_used_wl_array["wl" + _unit + "." + _subunit] == "Captive Portal Wi-Fi") {
-		$(".captive_portal_control_class").css("display", "none");
-
-	}
-	else {
-		$(".captive_portal_control_class").css("display", "");
+		inputCtrl(document.form.wl_lanaccess, 1);
 	}
 }
 
@@ -951,15 +956,17 @@ function updateMacModeOption(){
 
 function show_wl_maclist_x(){
 	var code = "";
+	var clientListEventData = [];
 	code +='<table width="80%" border="1" cellspacing="0" cellpadding="4" align="center" class="list_table"  id="wl_maclist_x_table">'; 
 	if(Object.keys(manually_maclist_list_array).length == 0)
-		code +='<tr><td style="color:#FFCC00;"><#IPConnection_VSList_Norule#></td>';
+		code +='<tr><td style="color:#FFCC00;"><#IPConnection_VSList_Norule#></td></tr>';
 	else{
 		//user icon
 		var userIconBase64 = "NoIcon";
 		var clientName, deviceType, deviceVender;
 		Object.keys(manually_maclist_list_array).forEach(function(key) {
 			var clientMac = key.toUpperCase();
+			var clientIconID = "clientIcon_" + clientMac.replace(/\:/g, "");
 			if(clientList[clientMac]) {
 				clientName = (clientList[clientMac].nickName == "") ? clientList[clientMac].name : clientList[clientMac].nickName;
 				deviceType = clientList[clientMac].type;
@@ -970,29 +977,29 @@ function show_wl_maclist_x(){
 				deviceType = 0;
 				deviceVender = "";
 			}
-			code +='<tr id="row_'+clientMac+'">';
-			code +='<td width="80%" align="center">';
+			code += '<tr id="row_'+clientMac+'">';
+			code += '<td width="80%" align="center">';
 			code += '<table style="width:100%;"><tr><td style="width:40%;height:56px;border:0px;float:right;">';
 			if(clientList[clientMac] == undefined) {
-				code += '<div class="clientIcon type0" onClick="popClientListEditTable(\'' + clientMac + '\', this, \'\', \'\', \'GuestNetwork\')"></div>';
+				code += '<div id="' + clientIconID + '" class="clientIcon type0"></div>';
 			}
 			else {
 				if(usericon_support) {
 					userIconBase64 = getUploadIcon(clientMac.replace(/\:/g, ""));
 				}
 				if(userIconBase64 != "NoIcon") {
-					code += '<div style="text-align:center;" onClick="popClientListEditTable(\'' + clientMac + '\', this, \'\', \'\', \'GuestNetwork\')"><img class="imgUserIcon_card" src="' + userIconBase64 + '"></div>';
+					code += '<div id="' + clientIconID + '" style="text-align:center;"><img class="imgUserIcon_card" src="' + userIconBase64 + '"></div>';
 				}
 				else if(deviceType != "0" || deviceVender == "") {
-					code += '<div class="clientIcon type' + deviceType + '" onClick="popClientListEditTable(\'' +clientMac + '\', this, \'\', \'\', \'GuestNetwork\')"></div>';
+					code += '<div id="' + clientIconID + '" class="clientIcon type' + deviceType + '"></div>';
 				}
 				else if(deviceVender != "" ) {
 					var venderIconClassName = getVenderIconClassName(deviceVender.toLowerCase());
 					if(venderIconClassName != "" && !downsize_4m_support) {
-						code += '<div class="venderIcon ' + venderIconClassName + '" onClick="popClientListEditTable(\'' + clientMac + '\', this, \'\', \'\', \'GuestNetwork\')"></div>';
+						code += '<div id="' + clientIconID + '" class="venderIcon ' + venderIconClassName + '"></div>';
 					}
 					else {
-						code += '<div class="clientIcon type' + deviceType + '" onClick="popClientListEditTable(\'' + clientMac + '\', this, \'\', \'\', \'GuestNetwork\')"></div>';
+						code += '<div id="' + clientIconID + '" class="clientIcon type' + deviceType + '"></div>';
 					}
 				}
 			}
@@ -1001,12 +1008,20 @@ function show_wl_maclist_x(){
 			code += '<div>' + clientMac + '</div>';
 			code += '</td></tr></table>';
 			code += '</td>';
-			code +='<td width="20%"><input type="button" class=\"remove_btn\" onclick=\"deleteRow(this, \'' + clientMac + '\');\" value=\"\"/></td></tr>';		
+			code += '<td width="20%"><input type="button" class=\"remove_btn\" onclick=\"deleteRow(this, \'' + clientMac + '\');\" value=\"\"/></td></tr>';
+			clientListEventData.push({"mac" : clientMac, "name" : "", "ip" : "", "callBack" : "GuestNetwork"});
 		});
 	}	
 	
-  	code +='</tr></table>';
+	code += '</table>';
 	document.getElementById("wl_maclist_x_Block").innerHTML = code;
+	for(var i = 0; i < clientListEventData.length; i += 1) {
+		var clientIconID = "clientIcon_" + clientListEventData[i].mac.replace(/\:/g, "");
+		var clientIconObj = $("#wl_maclist_x_Block").children("#wl_maclist_x_table").find("#" + clientIconID + "")[0];
+		var paramData = JSON.parse(JSON.stringify(clientListEventData[i]));
+		paramData["obj"] = clientIconObj;
+		$("#wl_maclist_x_Block").children("#wl_maclist_x_table").find("#" + clientIconID + "").click(paramData, popClientListEditTable);
+	}
 }
 
 function deleteRow(r, delMac){
@@ -1467,7 +1482,7 @@ function show_bandwidth(flag){
 							</tr>
 							
 							<tr class="captive_portal_control_class">
-								<th>Enable Bandwidth Limiter</th>	<!-- Untranslated -->
+								<th><#Bandwidth_Limiter#></th>
 								<td>
 										<input type="radio" value="1" name="bw_enabled_x" class="content_input_fd" onClick="show_bandwidth(1);"><#checkbox_Yes#>
 										<input type="radio" value="0" name="bw_enabled_x" class="content_input_fd" onClick="show_bandwidth(0);"><#checkbox_No#>
@@ -1475,11 +1490,11 @@ function show_bandwidth(flag){
 								</td>
 							</tr>
 							<tr>
-								<th><#Bandwidth_Limiter#></th>
+								<th><#Bandwidth_Setting#></th>
 								<td>
-										Download <input type="text" id="wl_bw_dl_x" name="wl_bw_dl_x" maxlength="12" onkeypress="return validator.bandwidth_code(this, event);" class="input_12_table" value=""><label style="margin-left:2px;">Mb/s</label>
-										&nbsp;&nbsp;&nbsp;
-										Upload <input type="text" id="wl_bw_ul_x" name="wl_bw_ul_x" maxlength="12" onkeypress="return validator.bandwidth_code(this, event);" class="input_12_table" value=""><label style="margin-left:2px;">Mb/s</label>
+										<#download_bandwidth#> <input type="text" id="wl_bw_dl_x" name="wl_bw_dl_x" maxlength="12" onkeypress="return validator.bandwidth_code(this, event);" class="input_12_table" value=""><label style="margin-left:2px;">Mb/s</label>
+										<br><br>
+										<#upload_bandwidth#> <input type="text" id="wl_bw_ul_x" name="wl_bw_ul_x" maxlength="12" onkeypress="return validator.bandwidth_code(this, event);" class="input_12_table" value=""><label style="margin-left:2px;">Mb/s</label>
 								</td>
 							</tr>
 							

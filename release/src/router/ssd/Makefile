@@ -11,7 +11,7 @@
 #
 # $Id: Makefile $
 #
-
+include ../common.mak
 CFLAGS	+= -I. -I$(TOP)/shared -I$(SRCBASE)/include -I$(SRCBASE)/common/include -Wall -Werror
 CFLAGS	+= $(if $(WLAN_ComponentIncPath),$(WLAN_ComponentIncPath),$(addprefix -I,$(wildcard $(SRCBASE)/shared/bcmwifi/include)))
 # CFLAGS	+= -DSSD_DEBUG

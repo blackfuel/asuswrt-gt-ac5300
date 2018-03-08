@@ -3,8 +3,25 @@ jQuery.fn.showTextHint = function(hintStr){
 
 	$("<div>")
 		.html(hintStr)
-		.attr("class", "hint")
+		.addClass("hint")
 		.appendTo(this.parent());
+}
+
+jQuery.fn.showSelectorHint = function(hintStr){
+	this.parent().children().remove(".hint");
+
+	$("<div>")
+		.html(hintStr)
+		.addClass("hint")
+		.addClass("selectorHint")
+		.appendTo(this.parent());
+}
+
+jQuery.fn.enableCheckBox = function(checked){
+	this
+		.checkboxradio()
+		.prop('checked', checked)
+		.checkboxradio('refresh')
 }
 
 var htmlEnDeCode = (function() {
@@ -89,7 +106,28 @@ function hadPlugged(deviceType){
 	return (usbDeviceList.join().search(deviceType) != -1)
 }
 
-function Get_Component_Loading(){
+var Get_Component_Header = function(){
+	var tableTr = $("<tr>");
+
+	tableTr
+		.append(
+			$("<td>")
+				.css({"width":"17px"})
+				.append('<div style="margin-right:20px;"><a href="#navigation"><div class="icon_menu"></div></a></div>')
+		)
+		.append(
+			$("<td>").append('<div><div class="icon_logo"></div></div>')
+		)
+		.append(
+			$("<td>").append('<div class="model_welcome"></div>')
+		)
+
+	return $("<table>")
+		.append(tableTr)
+		.css({"width": "100%"})
+}
+
+var Get_Component_Loading = function(){
 	if($(this).find( ".cssload-bell" ).length === 0){
 		var loadContainer = $("<div>").addClass("cssload-bell");
 	
@@ -104,11 +142,23 @@ function Get_Component_Loading(){
 	}
 }
 
+var Get_Component_btnLoading = function(){
+	return $("<img>").attr({
+		"width": "30px",
+		"src": "/images/InternetScan.gif"
+	})
+}
 var Get_Component_WirelessInput = function(wlArray){
 	var container = $("<div>");
 
-	wlArray.forEach(function(wl){
+	wlArray.forEach(function(wl, idx){
 		var wirelessAP = httpApi.nvramGet(["wl" + wl.ifname + "_ssid", "wl" + wl.ifname + "_wpa_psk"]);
+		// Do not use default value.
+		if(systemVariable.isDefault){
+			wirelessAP["wl" + wl.ifname + "_ssid"] = "";
+			wirelessAP["wl" + wl.ifname + "_wpa_psk"] = "";
+		}
+
 		var __container = $("<div>").addClass("wirelessBand");
 
 		$("<div>")
@@ -124,8 +174,17 @@ var Get_Component_WirelessInput = function(wlArray){
 					"type": "text",
 					"maxlength": "32",
 					"class": "textInput wlInput",
+					"autocomplete": "off",
+					"autocorrect": "off",
+					"autocapitalize": "off",
+					"spellcheck": "false",
 					"data-role": "none",
 					"data-clear-btn": "true"
+				})
+				.keyup(function(e){
+					if(e.keyCode == 13){
+						$(".wlInput")[idx*2+1].focus();
+					}
 				})
 				.val(wirelessAP["wl" + wl.ifname + "_ssid"])
 			)
@@ -145,8 +204,22 @@ var Get_Component_WirelessInput = function(wlArray){
 					"type": "password",
 					"maxlength": "64",
 					"class": "textInput wlInput",
+					"autocomplete": "off",
+					"autocorrect": "off",
+					"autocapitalize": "off",
+					"spellcheck": "false",
 					"data-role": "none",
 					"data-clear-btn": "true"
+				})
+				.keyup(function(e){
+					if(e.keyCode == 13){
+						try{
+							$(".wlInput")[idx*2+2].focus();
+						}
+						catch(e){
+							apply.wireless();
+						}
+					}
 				})
 				.val(wirelessAP["wl" + wl.ifname + "_wpa_psk"])
 			)
@@ -159,15 +232,92 @@ var Get_Component_WirelessInput = function(wlArray){
 }
 
 function handleSysDep(){
+	var isNoWAN = (httpApi.detwanGetRet().wanType == 'NOWAN');
+
 	$(".amasSupport").toggle(isSupport("AMAS"));
-	$(".tosSupport").toggle(isSupport("QISBWDPI"));
+	$(".noAmasSupport").toggle(!isSupport("AMAS"));
+	$(".tosSupport").toggle(systemVariable.isDefault && isSupport("QISBWDPI"));
 	$(".repeaterSupport").toggle(isSupport("repeater"));
 	$(".pstaSupport").toggle(isSupport("psta"));
+	$(".dualbandSupport").toggle(isSupport("DUALBAND") || isSupport("TRIBAND"));
+	$(".bandStreeringSupport").toggle(isSupport("SMARTCONNECT"));
+	$(".vpnClient").toggle(isSupport("VPNCLIENT"));
+	$(".iptv").toggle(isSupport("IPTV"));
+	$(".defaultSupport").toggle(systemVariable.isDefault);
+	$(".configuredSupport").toggle(!systemVariable.isDefault);
+	$(".forceUpgrade").toggle(isSupport("FORCEUPGRADE"));
 
-	if(isSupport("LYRA")){
-		$(".lyraSupport").show();
-		postDataModel.insert(lyraObj);
+	$("#syncSSID").toggle(!isSupport("SMARTCONNECT") && (isSupport("DUALBAND") || isSupport("TRIBAND")));
+	$("#wireless_sync_checkbox").enableCheckBox(!isSupport("SMARTCONNECT") && (isSupport("DUALBAND") || isSupport("TRIBAND")));
+
+	if(systemVariable.forceChangePw && isSupport("AMAS")){
+		systemVariable.forceChangePw = false;
+		systemVariable.forceChangePwInTheEnd = true;
 	}
+
+	if(!isNoWAN) $(".amasNoWAN").remove();
+	if(!isSupport("AMAS")) $(".amasSupport").remove();
+}
+
+function handleModelIcon() {
+	$('#ModelPid_img').attr('src',
+		function() {
+			var ttc = '<% nvram_get("territory_code"); %>';
+			var based_modelid = '<% nvram_get("productid"); %>';
+			var odmpid = '<% nvram_get("odmpid"); %>';
+			var color = '<% nvram_get("color"); %>';
+			color = color.toUpperCase();
+			var LinkCheck = function(url) {
+				var http = new XMLHttpRequest();
+				http.open('HEAD', url, false);
+				http.send();
+				return http.status!="404";
+			};
+
+			var update_color = function() {
+				if(based_modelid == "RT-AC87U") { //MODELDEP: RT-AC87U
+					/* MODELDEP by Territory Code */
+					if(ttc == "JP/02" || ttc == "AP/02" || ttc == "SG/02")
+						return "R";
+					else if(ttc == "JP/02")
+						return "W";
+					else
+						return color;
+				}
+				if(odmpid.length > 0 && odmpid != based_modelid){	//odmpid MODELDEP
+					if(odmpid == "RT-N66W" || odmpid == "RT-AC66W" || odmpid == "RT-AC68W" || odmpid == "RT-AC68RW")
+						return "W";
+					else
+						return color;
+				}
+				else {
+					return color;
+				}
+			};
+			var default_png_path = "/images/Model_product.png";
+			var MP_png_path = "";
+			if(update_color().length > 0) {
+				MP_png_path = "/images/Model_product_"+ update_color() +".png";
+				if(LinkCheck(MP_png_path))
+					return MP_png_path;
+				else
+					return default_png_path;
+			}
+			else if(odmpid.length > 0 && odmpid != based_modelid) {
+				if(odmpid == "RT-AC66U_B1" || odmpid == "RT-AC1750_B1" || odmpid == "RT-N66U_C1" || odmpid == "RT-AC1900U") {
+					MP_png_path = "/images/RT-AC66U_V2/Model_product.png";
+					if(LinkCheck(MP_png_path))
+						return MP_png_path;
+					else
+						return default_png_path;
+				}
+				else
+					return default_png_path;
+			}
+			else
+				return default_png_path;
+		}
+	);
 }
 
 function setUpTimeZone(){
@@ -180,11 +330,27 @@ function setUpTimeZone(){
 	});
 }
 
+function updateSubnet(ipAddr){
+	if(ipAddr == systemVariable.lanIpaddr && systemVariable.detwanResult.isIPConflict){
+		var ipAddrArray = ipAddr.split(".");
+		if(parseInt(ipAddrArray[2]) < 254){
+			ipAddrArray[2]++;		
+		}
+		else{
+			ipAddrArray[1]++;
+		}
+
+		return ipAddrArray.join(".")
+	}
+
+	return ipAddr;
+}
+
 var getRestartService = function(){
 	var actionScript = [];
 
 	if(isWANChanged()){
-		actionScript.push("restart_wan");
+		actionScript.push("restart_wan_if 0");
 	}
 
 	if(systemVariable.detwanResult.isIPConflict){
@@ -203,9 +369,17 @@ var getRestartService = function(){
 		actionScript.push("restart_wireless");
 	}
 
-	if(qisPostData.hasOwnProperty("bt_turn_off_service") || qisPostData.hasOwnProperty("wrs_protect_enable")){
+	if(systemVariable.isDefault && isSupport("lantiq")){
+		actionScript.push("stop_bluetooth_service");
+	}
+
+	if(qisPostData.hasOwnProperty("wrs_protect_enable")){
 		actionScript.push("restart_firewall");
 		actionScript.push("restart_wrs");
+	}
+
+	if(qisPostData.hasOwnProperty("cfg_master")){
+		actionScript.push("restart_cfgsync");
 	}
 
 	if( qisPostData.hasOwnProperty("switch_wantag") ||
@@ -244,8 +418,23 @@ var postDataModel = {
 	}
 }
 
+function updateOriginWan(){
+	systemVariable.originWanType = (qisPostData.hasOwnProperty("wan_proto")) ? qisPostData.wan_proto : systemVariable.originWanType;
+	systemVariable.wanDnsenable = (qisPostData.hasOwnProperty("wan_dnsenable_x")) ? qisPostData.wan_dnsenable_x : systemVariable.wanDnsenable;
+}
+
 var isWANChanged = function(){
-	return qisPostData.hasOwnProperty("wan_proto") && (qisPostData.wan_proto.toLowerCase() != systemVariable.originWanType.toLowerCase())
+	var isChanged = false;
+
+	if(qisPostData.hasOwnProperty("wan_proto")){
+		if(qisPostData.wan_proto != systemVariable.originWanType) isChanged = true;
+	}
+
+	if(qisPostData.hasOwnProperty("wan_dnsenable_x")){
+		if(qisPostData.wan_dnsenable_x != systemVariable.wanDnsenable) isChanged = true;
+	}
+
+	return isChanged;
 };
 
 var isPage = function(page){
@@ -255,20 +444,33 @@ var isPage = function(page){
 var isSupport = function(_ptn){
 	var matchingResult = false;
 	switch(_ptn){
-		case "LYRA":
-			matchingResult = (systemVariable.productid.search("MAP") !== -1) ? true : false;
+		case "ForceBWDPI":
+			matchingResult = false;
 			break;
 		case "AMAS":
 			matchingResult = (systemVariable.rcSupport.search("amas") !== -1) ? true : false;
 			break;
 		case "QISBWDPI":
-			matchingResult = (systemVariable.rcSupport.search("bwdpi") !== -1) ? true : false;
+			// matchingResult = (systemVariable.rcSupport.search("bwdpi") !== -1) ? true : false;
+			matchingResult = false;
 			break;
 		case "DUALBAND":
 			matchingResult = (systemVariable.wirelessBand == 2) ? true : false;
 			break;
 		case "TRIBAND":
 			matchingResult = (systemVariable.wirelessBand == 3) ? true : false;
+			break;
+		case "VPNCLIENT":
+			matchingResult = (isSku("US") || isSku("CA") || isSku("TW") || isSku("CN")) ? false : true;
+			break;
+		case "IPTV":
+			matchingResult = (isSku("EU") || isSku("SG") || isSku("AA") || isSku("TW")) ? true : false;
+			break;
+		case "FORCEUPGRADE":
+			matchingResult = (systemVariable.rcSupport.search("fupgrade") !== -1) ? true : false;
+			break;
+		case "SMARTCONNECT":
+			matchingResult = (systemVariable.rcSupport.search("smart_connect") !== -1 || systemVariable.rcSupport.search("bandstr") !== -1) ? true : false;
 			break;
 		default:
 			matchingResult = ((systemVariable.rcSupport.search(_ptn) !== -1) || (systemVariable.productid.search(_ptn) !== -1)) ? true : false;
@@ -388,3 +590,93 @@ var isWeakString = function(pwd, flag){
 	else		
 		return false;
 }
+
+function addNewScript(scriptName){
+	var script = document.createElement("script");
+	script.type = "text/javascript";
+	script.src = scriptName;
+	document.getElementsByTagName("head")[0].appendChild(script);
+}
+
+function startLiveUpdate(){
+	var linkLnternet = httpApi.isConnected();
+	if(!linkLnternet){
+		setTimeout(arguments.callee, 1000);
+	}
+	else{
+		httpApi.nvramSet({"action_mode":"apply", "rc_service":"start_webs_update"}, function(){
+			setTimeout(function(){
+				var fwInfo = httpApi.nvramGet(["webs_state_update", "webs_state_info"], true);
+
+				if(fwInfo.webs_state_update == "0" || fwInfo.webs_state_update == ""){
+					setTimeout(arguments.callee, 1000);
+				}
+				else if(fwInfo.webs_state_info !== ""){
+					systemVariable.isNewFw = isNewFw(fwInfo.webs_state_info);
+					systemVariable.newFwVersion = fwInfo.webs_state_info;
+				}
+			}, 1000);
+		});
+	}
+}
+
+validator.hostNameString = function(str){
+	var testResult = {
+		'isError': false,
+		'errReason': "<#JS_validhostname#>"
+	}
+
+	var re = new RegExp("^[a-zA-Z0-9][a-zA-Z0-9\-\_]+$","gi");
+	testResult.isError = re.test(str) ? false : true;
+
+	return testResult;
+};
+
+validator.invalidChar = function(str){
+	var testResult = {
+		'isError': false,
+		'errReason': ''
+	}
+
+	var invalid_char = [];
+	for(var i = 0; i < str.length; ++i){
+		if(str.charAt(i) < ' ' || str.charAt(i) > '~'){
+			invalid_char.push(str.charAt(i));
+		}
+	}
+
+	if(invalid_char.length != 0){
+		testResult.isError = true;
+		testResult.errReason = "<#JS_validstr2#> '" + invalid_char.join('') + "' !";
+	}
+
+	return testResult;
+};
+
+validator.KRSkuPwd = function(str){
+	var testResult = {
+		'isError': false,
+		'errReason': ''
+	}
+
+	if( !/[A-Za-z]/.test(str) || !/[0-9]/.test(str) || str.length < 8 
+		|| !/[\!\"\#\$\%\&\'\(\)\*\+\,\-\.\/\:\;\<\=\>\?\@\[\\\]\^\_\`\{\|\}\~]/.test(str)
+	){
+		testResult.isError = true;
+		testResult.errReason = "<#JS_validPWD#>";
+	}
+
+	var invalid_char = [];
+	for(var i = 0; i < str.length; ++i){
+		if(str.charAt(i) < ' ' || str.charAt(i) > '~'){
+			invalid_char.push(str.charAt(i));
+		}
+	}
+
+	if(invalid_char.length != 0){
+		testResult.isError = true;
+		testResult.errReason = "<#JS_validstr2#> '" + invalid_char.join('') + "' !";
+	}
+
+	return testResult;
+};

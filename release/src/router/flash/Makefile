@@ -5,6 +5,7 @@ ifneq ($(BUILD_NAME),RP-AC56)
 LDFLAGS += -L$(TOP)/nvram -lnvram
 endif
 LDFLAGS +=-L$(TOP)/shared$(RPEX) -lshared
+
 EXEC = flash
 OBJS = flash_mtd.o
 

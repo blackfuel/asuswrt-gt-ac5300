@@ -474,9 +474,15 @@ function onEvent(){
 	//if(get_manage_type(PROTOCOL) == 1 && accounts.length < 6){
 		if(1){
 		changeActionButton(document.getElementById("createAccountBtn"), 'User', 'Add', 0);
-		
+
+		var accounts_length = this.accounts.length;
 		document.getElementById("createAccountBtn").onclick = function(){
-				popupWindow('OverlayMask','/aidisk/popCreateAccount.asp');
+				if(accounts_length >= 6) {
+					alert("<#JS_itemlimit1#> 6 <#JS_itemlimit2#>");
+					return false;
+				}
+				else
+					popupWindow('OverlayMask','/aidisk/popCreateAccount.asp');
 			};
 		document.getElementById("createAccountBtn").onmouseover = function(){
 				changeActionButton(this, 'User', 'Add', 1);

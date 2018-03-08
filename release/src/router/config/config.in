@@ -74,6 +74,11 @@ config RTCONFIG_HNDMFG
 	depends on RTCONFIG_HND_ROUTER
 	default n
 
+config RTCONFIG_DFS_US
+	bool "DFS US support"
+	depends on RTCONFIG_HND_ROUTER
+	default n
+
 config RTCONFIG_BCM9
 	bool "Bcm sdk 9_10_162_x"
 	default n
@@ -145,6 +150,11 @@ config RTCONFIG_CIFS
 config RTCONFIG_BRCM_NAND_JFFS2
 	bool "JFFS Support on BRCM Nand Flash Partition"
 	default n
+
+config RTCONFIG_JFFS_NVRAM
+	bool "NVRAM on JFFS support"
+	depends on RTCONFIG_BRCM_NAND_JFFS2
+	default y
 
 config RTCONFIG_JFFS2
 	bool "JFFS Support"
@@ -242,8 +252,16 @@ config RTCONFIG_TOAD
 	bool "Traffic Ordering Agent Daemon"
 	default n
 
+config RTCONFIG_BCM_MEVENT
+	bool "Support user space to receive BRCM event"
+	default n
+
+config RTCONFIG_BCMEVENTD
+	bool "Brcm Eventd Selection (for 802.11K)"
+	default n
+
 config RTCONFIG_BCM_APPEVENTD
-	bool "bcm appeventd"
+	bool "Wireless Application Event Service"
 	default n
 
 config RTCONFIG_HSPOT
@@ -285,7 +303,12 @@ config RTCONFIG_PROXYSTA
 	default n
 
 config RTCONFIG_DISABLE_PROXYSTA_UI
-	bool "Hiden UI Media Bridge Mode"
+	bool "Hide Proxy Station Repeater Mode on UI"
+	depends on RTCONFIG_PROXYSTA
+	default n
+
+config RTCONFIG_PSR_GUEST
+	bool "Guest network support under PSR mode"
 	depends on RTCONFIG_PROXYSTA
 	default n
 
@@ -367,6 +390,14 @@ config RTCONFIG_NEW_USER_LOW_RSSI
 
 config RTCONFIG_PUSH_EMAIL
 	bool "Push Mail Service Support"
+	default n
+
+config RTCONFIG_DBLOG
+	bool "System Diagnostic Support"
+	default n
+
+config RTCONFIG_NO_USBPORT
+	bool "No USB port"
 	default n
 
 config RTCONFIG_USB
@@ -490,6 +521,11 @@ config RTCONFIG_TFAT
 	depends on RTCONFIG_USB
 	default n
 
+config RTCONFIG_OPENPLUS_TFAT
+	bool "Open + Tuxera FAT Support"
+	depends on RTCONFIG_TFAT
+	default n
+
 config RTCONFIG_NTFS
 	bool "NTFS Support"
 	depends on RTCONFIG_USB
@@ -510,6 +546,16 @@ config RTCONFIG_OPEN_NTFS3G
 	depends on RTCONFIG_NTFS
 	default n
 
+config RTCONFIG_OPENPLUSPARAGON_NTFS
+	bool "NTFS-3G + Paragon Support"
+	depends on RTCONFIG_OPEN_NTFS3G
+	default n
+
+config RTCONFIG_OPENPLUSTUXERA_NTFS
+	bool "NTFS-3G + Tuxera Support"
+	depends on RTCONFIG_OPEN_NTFS3G
+	default n
+
 config RTCONFIG_HFS
 	bool "HFS Support"
 	depends on RTCONFIG_USB
@@ -528,6 +574,16 @@ config RTCONFIG_TUXERA_HFS
 config RTCONFIG_KERNEL_HFSPLUS
 	bool "Kernel HFSPLUS support"
 	depends on RTCONFIG_HFS
+	default n
+
+config RTCONFIG_OPENPLUSPARAGON_HFS
+	bool "Kernel HFSPLUS + Paragon support"
+	depends on RTCONFIG_KERNEL_HFSPLUS
+	default n
+
+config RTCONFIG_OPENPLUSTUXERA_HFS
+	bool "Kernel HFSPLUS + Tuxera support"
+	depends on RTCONFIG_KERNEL_HFSPLUS
 	default n
 
 config RTCONFIG_UFSD_DEBUG
@@ -690,6 +746,16 @@ config RTCONFIG_NSS_IPSEC
 	depends on RTCONFIG_SOC_IPQ8064
 	default n
 
+config RTCONFIG_PCIE_QCA9880
+	bool "Qualcomm Atheros QCA9880 WiFi chip"
+	depends on RTCONFIG_QCA
+	default n
+
+config RTCONFIG_PCIE_QCA9882
+	bool "Qualcomm Atheros QCA9882 WiFi chip"
+	depends on RTCONFIG_QCA
+	default n
+
 config RTCONFIG_PCIE_QCA9984
 	bool "Qualcomm Atheros QCA9994 WiFi chip (Cascade)"
 	depends on RTCONFIG_QCA
@@ -779,6 +845,10 @@ config RTCONFIG_QCA8033
 	bool "Qualcomm Atheros QCA8033 Powerline Chip Support"
 	default n
 
+config RTCONFIG_ART2_BUILDIN
+	bool "Buildin Qualcomm Atheros ART2 package"
+	default n
+
 config RTCONFIG_DEFAULT_AP_MODE
 	bool "Default is AP mode"
 	default n
@@ -847,6 +917,11 @@ config CONFIG_LIBUPNP
 config RTCONFIG_WPS
 	bool "WPS Support"
 	default y
+
+config RTCONFIG_NFC
+	bool "WPS NFC Support"
+	depends on RTCONFIG_WPS
+	default n
 
 config RTCONFIG_WPS_ENROLLEE
 	bool "WPS Enrolle Support"
@@ -1073,6 +1148,10 @@ config RTCONFIG_KYIVSTAR
 	bool "KYIVSTAR specified"
 	default n
 
+config RTCONFIG_NO_WANPORT
+	bool "No WAN port"
+	default n
+
 config RTCONFIG_WANPORT2
 	bool "2-nd WAN port"
 	default n
@@ -1123,6 +1202,10 @@ config RTCONFIG_SATA_LED
 
 config RTCONFIG_BLINK_LED
 	bool "Blink LED(s)"
+	default n
+
+config RTCONFIG_LEDS_CLASS
+	bool "Need to enable this configuration if enable CONFIG_NEW_LEDS of kernel"
 	default n
 
 config RTCONFIG_EJUSB_BTN
@@ -1383,15 +1466,15 @@ config RTCONFIG_TUXERA_SMBD
 	default n
 
 config RTCONFIG_BCMASPMD
-	bool "bcm aspmd"
+	bool "ASPM (Active State Power Management) daemon"
 	default n
 
 config RTCONFIG_FBT
-	bool "bcm fbt"
+	bool "FAST BSS Transition (802.11r FBT) support"
 	default n
 
 config RTCONFIG_WLCLMLOAD
-	bool "bcm clm specefic-load"
+	bool "WL CLMLOAD"
 	default n
 
 config RTCONFIG_MUMIMO
@@ -1408,6 +1491,10 @@ config RTCONFIG_PROTECTION_SERVER
 
 config RTCONFIG_WLCEVENTD
 	bool "Get event from Wi-Fi driver"
+	default n
+
+config RTCONFIG_HAPDEVENT
+	bool "Handle event from Wi-Fi driver on bluecave"
 	default n
 
 config RTCONFIG_6RELAYD
@@ -1537,20 +1624,37 @@ config RTCONFIG_SSID_AMAPS
 	bool "Single SSID rule as ASUS_2X(MAC)_AMAPS"
 	default n
 
-config RTCONFIG_CSU2_2
-	bool "version csu2.2"
+config RTCONFIG_WIFI_SON
+	bool "WiFi SON for Lyra series"
+	depends on RTCONFIG_QCA
+	default n
+
+config RTCONFIG_ETHBACKHAUL
+	bool "eth backhaul"
 	default n
 
 config RTCONFIG_DUAL_BACKHAUL
 	bool "version csu2.2"
 	default n
+
+config RTCONFIG_AUTHSUPP
+	bool "new auth"
+	default n
+
 config RTCONFIG_FBWIFI
 	bool "enable FBWIFI for FaceBook"
 	default n
 
+config RTCONFIG_ADV_RAST
+	bool "enable advanced roaming assistant"
+	default n
+
+config RTCONFIG_CFGSYNC
+	bool "Sync config"
+
 config RTCONFIG_WLCSCAN_RSSI
-       bool "Sitesurvey for specific SSID rssi"
-       default n
+	bool "Sitesurvey for specific SSID rssi"
+	default n
 
 config RTCONFIG_VISUALIZATION
 	bool "Visualization Application"
@@ -1572,14 +1676,27 @@ config RTCONFIG_I2CTOOLS
 config RTCONFIG_MTK_8021X3000
 	bool "The version 3.0.0.0 of 802.1x daemon for MTK."
 	default n
-	
+
+config RTCONFIG_INTEL
+	bool "Intel Chip Support"
+	default n
+
+config RTCONFIG_DBG_BLUECAVE_OBD
+	bool "Debug bluecave onboarding"
+	default n
+
+config RTCONFIG_AMAS
+	bool "AMAS architecture."
+	default n
+
 config RTCONFIG_NO_SELECT_CHANNEL
 	bool "Auto Channel Selection (no select) for MTK."
 	default n
 	
 config RTCONFIG_USB_SWAP
 	bool "Enable SWAP, if enable USB function."
-	default n	
+	default n
+		
 config RTCONFIG_SW_DEVLED
 	bool "software led control."
 	default n
@@ -1596,17 +1713,13 @@ config RTCONFIG_WIFI_PROXY
 	bool "Enable WiFi Proxy."
 	default n
 
-config RTCONFIG_FBT
-	bool "FAST BSS Transition (802.11r FBT) support"
-	default n
-
 config RTCONFIG_HD_SPINDOWN
 	bool "Enable harddisk spindown"
 	default n
 
 config RTCONFIG_MASTER_DET
-        bool "Master detection"
-        default n
+	bool "Master detection"
+	default n
 
 config RTCONFIG_ADTBW
 	bool "ADTBW"
@@ -1617,5 +1730,9 @@ config RTCONFIG_TXBF_BAND3ONLY
 	default n
 
 config RTCONFIG_SW_HW_AUTH
-        bool "protectt ASUS own binary and tools"
-        default n
+	bool "protectt ASUS own binary and tools"
+	default n
+
+config RTCONFIG_LIBASUSLOG
+	bool "asuslog library for debug"
+	default n

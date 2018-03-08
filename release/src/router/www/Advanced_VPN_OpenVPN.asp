@@ -21,6 +21,7 @@
 <script type="text/javascript" src="/js/jquery.js"></script>
 <script type="text/javascript" src="/switcherplugin/jquery.iphone-switch.js"></script>
 <script language="JavaScript" type="text/javascript" src="/form.js"></script>
+<script type="text/javascript" src="/js/httpApi.js"></script>
 <style type="text/css">
 .contentM_qis{
 	width:740px;	
@@ -128,7 +129,7 @@ function initial(){
 	var current_server_igncrt = "<% nvram_get("vpn_server_igncrt"); %>";
 	var currentcipher = "<% nvram_get("vpn_server_cipher"); %>";
 
-	show_menu();		
+	show_menu();
 
 	formShowAndHide(vpn_server_enable, "openvpn");
 
@@ -155,6 +156,7 @@ function initial(){
 	enable_server_igncrt(current_server_igncrt);
 	//update_visibility();
 	update_cipher();
+	update_digest();
 
 	/*Advanced Setting end */
 	var vpn_server_array = { "PPTP" : ["PPTP", "Advanced_VPN_PPTP.asp"], "OpenVPN" : ["OpenVPN", "Advanced_VPN_OpenVPN.asp"], "IPSEC" : ["IPSec VPN", "Advanced_VPN_IPSec.asp"]};
@@ -173,10 +175,14 @@ function initial(){
 	setTimeout("show_warning_message();", 100);
 
 	//set FAQ URL
-	set_FAQ_link("faq_windows", "1004469", "OpenVPN");
-	set_FAQ_link("faq_macOS", "1004472", "OpenVPN");
-	set_FAQ_link("faq_iPhone", "1004471", "OpenVPN");
-	set_FAQ_link("faq_android", "1004466", "OpenVPN");
+	//	https://www.asus.com/support/FAQ/1033576
+	httpApi.faqURL("faq_windows", "1033576", "https://www.asus.com", "/support/FAQ/");
+	//	https://www.asus.com/support/FAQ/1033575
+	httpApi.faqURL("faq_macOS", "1033575", "https://www.asus.com", "/support/FAQ/");
+	//	https://www.asus.com/support/FAQ/1033574
+	httpApi.faqURL("faq_iPhone", "1033574", "https://www.asus.com", "/support/FAQ/");
+	//	https://www.asus.com/support/FAQ/1033572
+	httpApi.faqURL("faq_android", "1033572", "https://www.asus.com", "/support/FAQ/");	
 
 	updateVpnServerClientAccess();
 }
@@ -195,21 +201,24 @@ function show_warning_message(){
 			if(validator.isPrivateIP(wanlink_ipaddr())){
 				document.getElementById("privateIP_notes").innerHTML = "<#vpn_privateIP_hint#>";
 				document.getElementById("privateIP_notes").style.display = "";
-				set_FAQ_link("faq_port_forwarding", "1033906", "privateIP");//this id is include in string : #vpn_privateIP_hint#
+				//	http://www.asus.com/support/FAQ/1033906
+				httpApi.faqURL("faq_port_forwarding", "1033906", "https://www.asus.com", "/support/FAQ/");	//this id is include in string : #vpn_privateIP_hint#
 			}
 		}
 		else{
 			if(!external_ip){
 				document.getElementById("privateIP_notes").innerHTML = "<#vpn_privateIP_hint#>";
 				document.getElementById("privateIP_notes").style.display = "";
-				set_FAQ_link("faq_port_forwarding", "1033906", "privateIP");//this id is include in string : #vpn_privateIP_hint#
+				//	http://www.asus.com/support/FAQ/1033906
+				httpApi.faqURL("faq_port_forwarding", "1033906", "https://www.asus.com", "/support/FAQ/");	//this id is include in string : #vpn_privateIP_hint#
 			}
 		}
 	}
 	else if(validator.isPrivateIP(wanlink_ipaddr())){
 		document.getElementById("privateIP_notes").innerHTML = "<#vpn_privateIP_hint#>";
 		document.getElementById("privateIP_notes").style.display = "";
-		set_FAQ_link("faq_port_forwarding", "1033906", "privateIP");//this id is include in string : #vpn_privateIP_hint#
+		//	http://www.asus.com/support/FAQ/1033906
+		httpApi.faqURL("faq_port_forwarding", "1033906", "https://www.asus.com", "/support/FAQ/");	//this id is include in string : #vpn_privateIP_hint#
 	}
 }
 
@@ -1086,6 +1095,12 @@ function update_cipher() {
 	if(cipher == "default")
 		$("#cipher_hint").css("display", "");
 }
+function update_digest() {
+	$("#digest_hint").css("display", "none");
+	var digest = document.form.vpn_server_digest.value;
+	if(digest == "MD5" || digest == "RSA-MD4")
+		$("#digest_hint").css("display", "");
+}
 function vpnServerClientAccess() {
 	var vpn_server_client_access = getRadioValue(document.form.vpn_server_client_access);
 	switch(parseInt(vpn_server_client_access)) {
@@ -1335,7 +1350,7 @@ function updateVpnServerClientAccess() {
 											</td>											
 										</tr>
 										<tr id="trRSAEncryptionBasic">
-											<th>RSA Encryption<!--untranslated--></th>
+											<th><#RSA_Encryption#></th>
 											<td>
 												<input type="radio" name="vpn_server_tls_keysize_basic" id="vpn_server_tls_keysize_basic_0" class="input" value="0" <% nvram_match_x("", "vpn_server_tls_keysize", "0", "checked"); %> onchange="vpnServerTlsKeysize(this);">
 												<label for='vpn_server_tls_keysize_basic_0'>1024 bit<!--untranslated--></label>
@@ -1344,12 +1359,12 @@ function updateVpnServerClientAccess() {
 											</td>
 										</tr>
 										<tr id="trClientWillUseVPNToAccess">
-											<th>Client will use VPN to access<!--untranslated--></th>
+											<th><#vpn_access#></th>
 											<td>
 												<input type="radio" name="vpn_server_client_access" id="vpn_server_client_access_local" class="input" value="0" onchange="vpnServerClientAccess();">
-												<label for="vpn_server_client_access_local">Local network only<!--untranslated--></label>
+												<label for="vpn_server_client_access_local"><#vpn_access_LAN#></label>
 												<input type="radio" name="vpn_server_client_access" id="vpn_server_client_access_both" class="input" value="1" onchange="vpnServerClientAccess();">
-												<label for="vpn_server_client_access_both">Internet and local network<!--untranslated--></label>
+												<label for="vpn_server_client_access_both"><#vpn_access_WANLAN#></label>
 												<input type="radio" name="vpn_server_client_access" id="vpn_server_client_access_custom" class="input client_access_custom" value="2" onchange="vpnServerClientAccess();">
 												<label for="vpn_server_client_access_custom" class="client_access_custom"><#Custom#></label>
 											</td>
@@ -1383,10 +1398,10 @@ function updateVpnServerClientAccess() {
 										<div class="formfontdesc">
 											<#vpn_openvpn_desc1#>&nbsp;<#vpn_openvpn_desc3#>&nbsp;<#vpn_openvpn_desc4#>&nbsp;<#vpn_openvpn_desc2#><br>
 											<ol>
-												<li><a id="faq_windows" href="https://www.asus.com/support/FAQ/1004469/" target="_blank" style="text-decoration:underline;">Windows</a></li>
-												<li><a id="faq_macOS" href="https://www.asus.com/support/FAQ/1004472/" target="_blank" style="text-decoration:underline;">Mac OS</a></li>
-												<li><a id="faq_iPhone" href="https://www.asus.com/support/FAQ/1004471/" target="_blank" style="text-decoration:underline;">iPhone/iPad</a></li>
-												<li><a id="faq_android" href="https://www.asus.com/support/FAQ/1004466/" target="_blank" style="text-decoration:underline;">Android</a></li>
+												<li><a id="faq_windows" href="" target="_blank" style="text-decoration:underline;">Windows</a></li>
+												<li><a id="faq_macOS" href="" target="_blank" style="text-decoration:underline;">Mac OS</a></li>
+												<li><a id="faq_iPhone" href="" target="_blank" style="text-decoration:underline;">iPhone/iPad</a></li>
+												<li><a id="faq_android" href="" target="_blank" style="text-decoration:underline;">Android</a></li>
 											</ol>
 										</div>										
 										<table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" class="FormTable_table" style="margin-top:8px;">
@@ -1527,7 +1542,8 @@ function updateVpnServerClientAccess() {
 											<tr>
 												<th><a class="hintstyle" href="javascript:void(0);" onClick="openHint(32,26);">HMAC Authentication<!--untranslated--></a></th>
 												<td>
-													<select name="vpn_server_digest" class="input_option"></select>
+													<select name="vpn_server_digest" class="input_option" onChange="update_digest();"></select>
+													<span id="digest_hint" style="color:#FC0">(Not recommended)<!--untranslated--></span>
 												</td>
 											</tr>
 											<tr>

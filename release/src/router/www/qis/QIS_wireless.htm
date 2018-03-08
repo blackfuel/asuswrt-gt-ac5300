@@ -42,18 +42,16 @@ if( ( parent.document.QKform.sw_mode.value == 2 ) &&  ( wifi_Psk_orig != '' ) ) 
 }
 
 var smart_connect_qis_support = false;
-var contentM_height_orig = parent.document.getElementById("contentM").height;
 var smart_connect_desc_flag = '0';
 var wlc_state = '0';
 var wlc_sbstate = '0';
 var wlc_scan_state = '0';
 var isDefault = false;
  
-function QKWireless_load_body(){	
+function QKWireless_load_body(){
 	parent.document.title = "<#Web_Title#> - <#QKSet_wireless_webtitle#>";
 	parent.set_step("t3");
-	check_pppoe_state();
-		/*To Handle copy, paste for mobile device*/
+	/*To Handle copy, paste for mobile device*/
 	if (document.getElementById("wl0_ssid").addEventListener){
 		document.getElementById("wl0_ssid").addEventListener("paste", function(e){setTimeout(function(){Sync_2ghz(2);},100);});
 		document.getElementById("wl0_wpa_psk").addEventListener("paste", function(e){setTimeout(function(){Sync_2ghz(2);},100);});
@@ -180,7 +178,7 @@ function QKWireless_load_body(){
 			document.getElementById("field_general").style.display = "";
 	}
 
-	if((parent.document.QKform.sw_mode.value == 1) && (is_TW_sku || is_CN_sku) && parent.flag_manual != 1){
+	if((parent.document.QKform.sw_mode.value == 1) && parent.flag_manual != 1){
 		check_wan_state();
 	}	
 
@@ -207,8 +205,6 @@ function QKWireless_load_body(){
 }
 
 function check_wan_state(){
-	if(parent.document.QKform.sw_mode.value != "1") return false;
-
 	$.ajax({
 		url: '/result_of_get_changed_status_QIS.asp',
 		dataType: 'script',		
@@ -774,14 +770,8 @@ function submitForm(){
 		document.form.http_passwd.disabled = false;
 	}
 
-	if(smart_connect_support && (document.form.sw_mode.value == "1" || document.form.sw_mode.value == "3")){
-			if(document.form.smart_connect_t[0].checked == true){
-				document.form.smart_connect_x.value = 1;
-				document.form.wl1_wpa_psk.value = document.form.wl0_wpa_psk.value;
-				if(wl_info.band5g_2_support)
-					document.form.wl2_wpa_psk.value = document.form.wl0_wpa_psk.value; 		
-			}else if(document.form.smart_connect_t[1].checked == true)
-				document.form.smart_connect_x.value = 0;
+	if(smart_connect_support){
+		document.form.smart_connect_x.value = 0;
 	}
 
 	if(parent.based_modelid == "RT-AC87U")
@@ -792,7 +782,7 @@ function submitForm(){
 
 	// no need to restart wireless
 	if(document.form.action_script.value == "restart_wireless"){
-		document.form.action_script.value = "saveNvram";
+		document.form.action_script.value = "";
 		document.form.action_wait.value = "0";
 		
 		if(document.form.sw_mode.value == "1" && !document.form.wl0_ssid.disabled) 
@@ -810,11 +800,6 @@ function submitForm(){
 	}
 
 	document.form.submit();
-	if((document.form.sw_mode.value == "1" || document.form.sw_mode.value == "3") && !(!parent.flag_manual && parent.pppoe_failed_flag)){
-		setTimeout(function(){
-			location.href = "/qis/QIS_finish.htm";
-		}, 500)
-	}
 }
 
 function reset_wl_hwaddr(prefix){
@@ -1011,7 +996,6 @@ function smartcon_desc_show(){
 		document.getElementById("smartcon_desc_button").value = "<#CTL_next#>";	
 		document.getElementById("field_general").style.border = "1px";
 		smart_connect_desc_flag = '1';
-		parent.document.getElementById("contentM").height = contentM_height_orig;
 	}else{
 		document.getElementById("field_general").style.display = "";
 		document.getElementById("smart_connect_desc").style.display = "none";
@@ -1045,7 +1029,6 @@ function change_smart_con(v){
 		}
 		document.getElementById("wl0_desc_name").innerHTML = "Tri-band Smart Connect Security";
 		document.getElementById("wl0_desc_name").style = "padding-bottom:10px";
-		parent.document.getElementById("contentM").height = contentM_height_orig;
 	}else if (v == '0'){
 		document.getElementById("wl_unit_field_1").style.display = "";
 		document.getElementById("wl_unit_field_2").style.display = "";
@@ -1056,7 +1039,6 @@ function change_smart_con(v){
 			document.getElementById("wl_unit_field_6").style.display = "";
 		}
 		document.getElementById("wl0_desc_name").innerHTML = "2.4 GHz - <#Security#>";
-		parent.document.getElementById("contentM").height = document.body.scrollHeight + 20;
 	}
 
 }
@@ -1330,28 +1312,6 @@ function detect_LANStatus(_flag){
 				setTimeout("detect_LANStatus('"+_flag+"');", 2000);
 		}
 	});
-}
-
-function check_pppoe_state(){
-	if(parent.document.QKform.sw_mode.value != "1") return false;
-
-	$.ajax({
-		url: '/result_of_get_changed_status_QIS.asp',
-		dataType: 'script',		
-		error: function(xhr){
-			check_pppoe_state();		
-		},
-		success: function(response){
-			setTimeout("check_pppoe_state();", 1000);
-			if((wanstate  == 1 && wansbstate == 0 && wanauxstate == 0) || (wanstate  == 1 && wansbstate == 0 && wanauxstate == 1) || (wanstate  == 6 && wansbstate == 0 && wanauxstate == 0) || (wanstate  == 4 && wansbstate == 2 && wanauxstate == 0)){
-				if(!parent.flag_manual)
-					parent.pppoe_failed_flag = true;				
-			}
-			else if(wanstate  == 2 && wansbstate == 0 && wanauxstate == 0){
-				parent.pppoe_failed_flag = false;
-			}	
-		}
-	});	
 }
 </script>
 </head>

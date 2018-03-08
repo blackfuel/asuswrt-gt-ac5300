@@ -5,12 +5,12 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <bcmendian.h>
 #include <bcmnvram.h>
-
+#include <wlutils.h>
 #include "utils.h"
 #include "shutils.h"
 #include "shared.h"
-
 
 #ifdef LINUX26
 #define GPIO_IOCTL
@@ -21,6 +21,7 @@
 
 #include <sys/ioctl.h>
 #include <linux_gpio.h>
+#include <time.h>
 
 static int _gpio_ioctl(int f, int gpioreg, unsigned int mask, unsigned int val)
 {
@@ -157,4 +158,192 @@ uint32_t gpio_read(void)
 
 
 #endif
+
+#ifdef RTCONFIG_AMAS 
+static bool g_swap = FALSE;
+#define htod32(i) (g_swap?bcmswap32(i):(uint32)(i))
+#define dtoh32(i) (g_swap?bcmswap32(i):(uint32)(i))
+#define dtoh16(i) (g_swap?bcmswap16(i):(uint16)(i))
+char *get_pap_bssid(int unit)
+{
+	unsigned char bssid[6] = {0};
+	char tmp[128], prefix[] = "wlXXXXXXXXXX_";
+	char *name;
+	static char bssid_str[sizeof("00:00:00:00:00:00XXX")];
+
+	snprintf(prefix, sizeof(prefix), "wl%d_", unit);
+	name = nvram_safe_get(strcat_r(prefix, "ifname", tmp));
+
+	if (wl_ioctl(name, WLC_GET_BSSID, bssid, sizeof(bssid)) == 0) {
+		if ( !(!bssid[0] && !bssid[1] && !bssid[2] && !bssid[3] && !bssid[4] && !bssid[5]) ) {
+			snprintf(bssid_str, sizeof(bssid_str), "%02X:%02X:%02X:%02X:%02X:%02X", 
+				(unsigned char)bssid[0], (unsigned char)bssid[1],
+				(unsigned char)bssid[2], (unsigned char)bssid[3],
+				(unsigned char)bssid[4], (unsigned char)bssid[5]);
+		}
+	}
+
+	return bssid_str;
+}
+
+sta_info_t *wl_sta_info(char *ifname, struct ether_addr *ea)
+{
+	static char buf[sizeof(sta_info_t)];
+	sta_info_t *sta = NULL;
+
+	strcpy(buf, "sta_info");
+	memcpy(buf + strlen(buf) + 1, (void *)ea, ETHER_ADDR_LEN);
+
+	if (!wl_ioctl(ifname, WLC_GET_VAR, buf, sizeof(buf))) {
+		sta = (sta_info_t *)buf;
+		sta->ver = dtoh16(sta->ver);
+
+		/* Report unrecognized version */
+		if (sta->ver > WL_STA_VER) {
+			dbg(" ERROR: unknown driver station info version %d\n", sta->ver);
+			return NULL;
+		}
+
+		sta->len = dtoh16(sta->len);
+		sta->cap = dtoh16(sta->cap);
+#ifdef RTCONFIG_BCMARM
+		sta->aid = dtoh16(sta->aid);
+#endif
+		sta->flags = dtoh32(sta->flags);
+		sta->idle = dtoh32(sta->idle);
+		sta->rateset.count = dtoh32(sta->rateset.count);
+		sta->in = dtoh32(sta->in);
+		sta->listen_interval_inms = dtoh32(sta->listen_interval_inms);
+#ifdef RTCONFIG_BCMARM
+		sta->ht_capabilities = dtoh16(sta->ht_capabilities);
+		sta->vht_flags = dtoh16(sta->vht_flags);
+#endif
+	}
+
+	return sta;
+}
+
+#if defined(RTCONFIG_BCMWL6) && defined(RTCONFIG_PROXYSTA)
+#define	NVRAM_BUFSIZE	100
+
+int get_psta_status(int unit)
+{
+	char tmp[NVRAM_BUFSIZE], tmp2[NVRAM_BUFSIZE], prefix[] = "wlXXXXXXXXXX_";
+	char *name = NULL;
+	struct maclist *mac_list = NULL;
+	int mac_list_size;
+	struct ether_addr bssid;
+	unsigned char bssid_null[6] = { 0x0, 0x0, 0x0, 0x0, 0x0, 0x0 };
+#if 0
+	char macaddr[18];
+#endif
+	int ret = 0;
+	int debug = nvram_get_int("psta_status_debug");
+
+	if (unit == -1) return 0;
+
+	snprintf(prefix, sizeof(prefix), "wl%d_", unit);
+
+	if (!nvram_match(strcat_r(prefix, "mode", tmp), "psta") &&
+	    !nvram_match(strcat_r(prefix, "mode", tmp2), "psr"))
+		goto PSTA_ERR;
+
+	name = nvram_safe_get(strcat_r(prefix, "ifname", tmp));
+
+	if (wl_ioctl(name, WLC_GET_BSSID, &bssid, ETHER_ADDR_LEN) != 0)
+		goto PSTA_ERR;
+	else if (!memcmp(&bssid, bssid_null, 6))
+		goto PSTA_ERR;
+
+	//if (debug) dbg("[wlc] wl-associated\n");
+
+	/* buffers and length */
+	mac_list_size = sizeof(mac_list->count) + MAX_STA_COUNT * sizeof(struct ether_addr);
+	mac_list = malloc(mac_list_size);
+
+	if (!mac_list)
+		goto PSTA_ERR;
+
+	/* query wl for authorized sta list */
+
+	if (nvram_match(strcat_r(prefix, "akm", tmp), ""))
+		ret = 2;
+	else
+	{
+		ret = 1;
+
+		strcpy((char*)mac_list, "autho_sta_list");
+		if (wl_ioctl(name, WLC_GET_VAR, mac_list, mac_list_size)) {
+			free(mac_list);
+			goto PSTA_ERR;
+		}
+
+		if (mac_list->count)
+			ret = 2;
+	}
+
+PSTA_ERR:
+	if (mac_list) free(mac_list);
+
+	if (ret == 2) {
+#if 0
+		if (debug) dbg("[wlc] authorized\n");
+		ether_etoa((const unsigned char *) &bssid, macaddr);
+		if (debug) dbg("psta send keepalive nulldata to %s\n", macaddr);
+		eval("wl", "-i", name, "send_nulldata", macaddr);
+#endif
+	}
+	else if (ret == 1) {
+		if (debug) dbg("[wlc] not authorized\n");
+	} else {
+		if (debug) dbg("[wlc] not associated\n");
+	}
+
+	return ret;
+}
+#endif
+
+static int is_hex(char c)
+{
+	return (((c >= '0') && (c <= '9')) ||
+		((c >= 'A') && (c <= 'F')) ||
+		((c >= 'a') && (c <= 'f')));
+} /* End of is_hex */ 
+
+int string2hex(const char *a, unsigned char *e, int len)
+{
+	char tmpBuf[4];
+	int idx, ii=0;
+	for (idx=0; idx<len; idx+=2) {
+		tmpBuf[0] = a[idx];
+		tmpBuf[1] = a[idx+1];
+		tmpBuf[2] = 0;
+		if ( !is_hex(tmpBuf[0]) || !is_hex(tmpBuf[1]))
+			return 0;
+		e[ii++] = (unsigned char) strtol(tmpBuf, (char**)NULL, 16);
+	}
+	return 1;
+} /* End of string2hex */ 
+
+void add_beacon_vsie(char *hexdata)
+{
+	unsigned char value[256];
+	int pktflag = VNDR_IE_BEACON_FLAG | VNDR_IE_PRBRSP_FLAG;
+	int len = 0;
+
+	len = DOT11_OUI_LEN + strlen(hexdata)/2;
+
+	if (string2hex(hexdata, value, strlen(hexdata)))
+		wl_add_ie(0, pktflag, len, (uchar *) OUI_ASUS, value);
+}
+
+void del_beacon_vsie(char *hexdata)
+{
+	wl_del_ie_with_oui(0, (uchar *) OUI_ASUS);
+}
+#endif
+
+
+
+
 

@@ -109,6 +109,11 @@ CFLAGS += -I$(TOP)/libqcsapi_client -I$(TOP)/httpd -I./sysdeps/qtn
 LDFLAGS += -L$(TOP)/libqcsapi_client -lqcsapi_client
 endif
 
+ifeq ($(RTCONFIG_AMAS),y)
+LDFLAGS += -L$(TOP)/json-c/.libs -ljson-c
+endif
+
+
 ifeq ($(RTCONFIG_5301X),y)
 CFLAGS += -DBCM5301X
 endif
@@ -147,12 +152,7 @@ wifi/%.o: %.c
 	$(CC) -c $(CFLAGS) -DRWL_WIFI -o $@ $^
 endif
 
-ifeq ($(PREBUILT_BCMBIN),1)
-robocfg:
-	-cp -f $(SRCBASE)/wl/exe/prebuilt/robocfg robocfg
-else
 robocfg: robocfg.c etc53xx.h
-endif
 
 clean:
 	rm -f *.o *~ $(UTILS)

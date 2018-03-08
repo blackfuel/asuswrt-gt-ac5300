@@ -113,6 +113,10 @@ ifeq ($(RTCONFIG_QTN),y)
 LDFLAGS += -L$(TOP)/libqcsapi_client -lqcsapi_client
 endif
 
+ifeq ($(RTCONFIG_AMAS),y)
+LDFLAGS += -L$(TOP)/json-c/.libs -ljson-c
+endif
+
 WPSM_LIBS = -lnvram -lbcm -lshared -lbcmcrypto -lm
 # Set link libraries search path
 export LIBPATH  = -L$(TOP)/libbcmcrypto -L$(INSTALLDIR)/libbcmcrypto/usr/lib
@@ -134,6 +138,10 @@ WPSM_LIBS += -lnsa -lipcnsa -lpthread
 CFLAGS += -I$(SRCBASE)/wps/brcm_apps/nfc
 CFLAGS += -I$(BASEDIR)/components/apps/nfc/3rdparty/embedded/nsa_examples/linux/libnsa/include
 CFLAGS += -include $(BASEDIR)/components/apps/nfc/3rdparty/embedded/nsa_examples/linux/libnsa/include/buildcfg.h
+endif
+
+ifeq ($(RTCONFIG_AMAS),y)
+CFLAGS += -DAMAS
 endif
 
 WPS_OSL := $(WPS_ROUTERHALFILES)

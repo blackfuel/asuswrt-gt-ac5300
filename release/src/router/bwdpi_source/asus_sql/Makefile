@@ -16,6 +16,7 @@ CFLAGS += -I$(TOP)/libqcsapi_client
 LDFLAGS += -L$(TOP)/libqcsapi_client -lqcsapi_client
 endif
 
+
 ifeq ($(HND_ROUTER),y)
 CFLAGS += -idirafter$(LINUXDIR)/include
 CFLAGS += -I$(HND_SRC)/userspace/public/include -I$(HND_SRC)/userspace/public/include/linux -I$(HND_SRC)/userspace/private/include

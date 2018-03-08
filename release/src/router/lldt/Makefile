@@ -11,7 +11,7 @@ CFLAGS += -I$(SRCBASE)/include
 LDFLAGS += -L$(TOP)/shared -lshared
 LDFLAGS += -L$(TOP)/nvram -lnvram
 
-include $(SRCBASE)/.config
+include $(SRCBASE)/router/.config
 
 depend:
 	$(CC) $(CFLAGS) -M $(DCFILES) >.depend

@@ -82,6 +82,7 @@ unsigned int get_root_type(void)
 		case MODEL_RTN11P_B1:
 		case MODEL_RPAC53:
 		case MODEL_RPAC55:
+		case MODEL_MAPAC1750:
 			return 0x73717368;      /* squashfs */
 		case MODEL_GTAC5300:
 		case MODEL_RTAC86U:
@@ -311,14 +312,18 @@ void start_jffs2(void)
 		return;
 	}
 #endif
-
 	if (nvram_get_int("jffs2_clean_fs")) {
+		if((0 == nvram_get_int("x_Setting")) && (check_if_file_exist("/jffs/remove_hidden_flag")))
+		{
+			system("rm -rf /jffs/.*");
+			_dprintf("Clean /jffs/.*\n");
+		}
 		_dprintf("Clean /jffs/*\n");
 		system("rm -fr /jffs/*");
 		nvram_unset("jffs2_clean_fs");
 		nvram_commit_x();
 	}
-
+	
 	notice_set("jffs", format ? "Formatted" : "Loaded");
 	jffs2_fail = 0;
 
@@ -327,7 +332,19 @@ void start_jffs2(void)
 		system(p);
 		chdir("/");
 	}
+
+#ifdef HND_ROUTER
+#ifdef RTCONFIG_JFFS_NVRAM
+	system("rm -rf /jffs/nvram_war");
+	jffs_nvram_init();
+	system("touch /jffs/nvram_war");
+#endif
+#endif
+
 	run_userfile("/jffs", ".asusrouter", "/jffs", 3);
+#ifdef RTAC68U
+	check_jffs2();
+#endif
 }
 
 void stop_jffs2(int stop)

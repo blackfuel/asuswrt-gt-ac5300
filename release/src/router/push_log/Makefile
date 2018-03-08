@@ -26,6 +26,7 @@ ifeq ($(RTCONFIG_QTN),y)
 LDFLAGS += -L$(TOP)/libqcsapi_client -lqcsapi_client
 endif
 
+
 all: $(PROGS)
 
 libpush_log.so: push_log.o

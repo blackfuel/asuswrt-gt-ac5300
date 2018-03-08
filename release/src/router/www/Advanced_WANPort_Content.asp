@@ -247,7 +247,7 @@ function form_show(v){
 			}	
 		}
 
-		appendModeOption(document.form.wans_mode.value);
+		appendModeOption(document.form.wans_mode_option.value);
 		show_wans_rules();
 		document.getElementById("wans_mode_tr").style.display = "";
 		document.getElementById("fo_detection_count_hd").innerHTML = "<#dualwan_pingtime_detect2#>";
@@ -311,7 +311,7 @@ function applyRule(){
 					return false;
 
 			if(wans_mode_orig != "lb" && check_bwdpi_engine_status()) {
-				var confirm_flag = confirm("If you turn on the load balance option, AiProtection function will be disable. Are you sure to process?");/*untranslated*/
+				var confirm_flag = confirm("<#dualwan_lb_dpi_conflict#>");
 				if(confirm_flag) {
 					document.form.action_script.value = "dpi_disable;reboot;";
 				}
@@ -424,15 +424,6 @@ function applyRule(){
 				}
 			}
 		}
-	}
-	
-	if (document.form.wans_primary.value == "dsl") document.form.next_page.value = "Advanced_DSL_Content.asp";
-	if (document.form.wans_primary.value == "lan") document.form.next_page.value = "Advanced_WAN_Content.asp";
-	if (document.form.wans_primary.value == "usb"){
-		if(based_modelid == "4G-AC55U" || based_modelid == "4G-AC68U")
-			document.form.next_page.value = "Advanced_MobileBroadband_Content.asp";
-		else			
-			document.form.next_page.value = "Advanced_Modem_Content.asp";
 	} 
 
 	wans_dualwan_array = document.form.wans_dualwan.value.split(" "); //update wans_dualwan_array
@@ -501,7 +492,7 @@ function addWANOption(obj, wanscapItem){
 				wanscapName = "Ethernet WAN";
 			else if(wanscapName == "LAN")
 				wanscapName = "Ethernet LAN";
-			else if(wanscapName == "USB" && (based_modelid == "4G-AC55U" || based_modelid == "4G-AC68U"))
+			else if(wanscapName == "USB" && (based_modelid == "4G-AC53U" || based_modelid == "4G-AC55U" || based_modelid == "4G-AC68U"))
 				wanscapName = "<#Mobile_title#>";
 			obj.options[i] = new Option(wanscapName, wanscapItem[i]);
 		}	
@@ -928,27 +919,34 @@ function enable_lb_rules(flag){
 	}
 }
 
-var str0="";
+var str0 = "";
 function add_option_count(obj, obj_t, selected_flag){
-		
-		if(obj_t.name == "wandog_maxfail" || (obj_t.name == "wandog_fb_count" && document.getElementById("wandog_fb_count_tr").style.display == "") || obj_t.name == "detect_count"){
-				
-				free_options(obj_t);
-				for(var i=1; i<100; i++){
-						if(based_modelid == "4G-AC55U" || based_modelid == "4G-AC68U")
-							str0= i;
-						else
-							str0 = i*parseInt(obj.value);
+	var start = 1;
+	var end = 99;
 
-						if(selected_flag == i)
-								add_option(obj_t, str0, i, 1);
-						else
-								add_option(obj_t, str0, i, 0);
-				}
+	if(obj_t.name == "wandog_maxfail" || (obj_t.name == "wandog_fb_count" && document.getElementById("wandog_fb_count_tr").style.display == "") || obj_t.name == "detect_count"){
+		if(obj_t.name == "wandog_fb_count" || obj_t.name == "wandog_maxfail"){
+			start = 3;
+			if(obj_t.name == "wandog_fb_count")
+				end = parseInt(document.form.wandog_maxfail.value);
 		}
-		else{
-			return;
-		}		
+
+		free_options(obj_t);
+		for(var i = start; i <= end; i++){
+			if((based_modelid == "4G-AC53U" || based_modelid == "4G-AC55U" || based_modelid == "4G-AC68U") && obj_t.name != "wandog_fb_count")
+				str0= i;
+			else
+				str0 = i*parseInt(obj.value);
+
+			if(selected_flag == i)
+					add_option(obj_t, str0, i, 1);
+			else
+					add_option(obj_t, str0, i, 0);
+		}
+	}
+	else{
+		return;
+	}
 }
 
 function hotstandby_act(enable){
@@ -977,7 +975,7 @@ function update_consume_bytes(){
     var consume_bytes;
     var MBytes = 1024*1024;
 
-    if(based_modelid == "4G-AC55U" || based_modelid == "4G-AC68U"){
+    if(based_modelid == "4G-AC53U" || based_modelid == "4G-AC55U" || based_modelid == "4G-AC68U"){
     consume_bytes = 86400/interval_value*128*30;
 	consume_bytes = Math.ceil(consume_bytes/MBytes);
     consume_warning_str = "<#Detect_consume_warning1#> "+consume_bytes+" <#Detect_consume_warning2#>";

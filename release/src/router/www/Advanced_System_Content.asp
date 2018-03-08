@@ -21,6 +21,7 @@
 <script language="JavaScript" type="text/javascript" src="/client_function.js"></script>
 <script language="JavaScript" type="text/javascript" src="/validator.js"></script>
 <script language="JavaScript" type="text/javascript" src="/js/jquery.js"></script>
+<script type="text/javascript" src="/js/httpApi.js"></script>
 <style>
 .cancel{
 	border: 2px solid #898989;
@@ -110,6 +111,8 @@ function initial(){
 	restrict_rulelist_array = JSON.parse(JSON.stringify(orig_restrict_rulelist_array));
 
 	show_menu();
+	//	https://www.asus.com/us/support/FAQ/1034294
+	httpApi.faqURL("faq", "1034294", "https://www.asus.com", "/support/FAQ/");
 	show_http_clientlist();
 	display_spec_IP(document.form.http_client.value);
 
@@ -135,10 +138,6 @@ function initial(){
 	setInterval("corrected_timezone();", 5000);
 	load_timezones();
 	parse_dstoffset();
-	load_dst_m_Options();
-	load_dst_w_Options();
-	load_dst_d_Options();
-	load_dst_h_Options();
 	document.form.http_passwd2.value = "";
 	
 	if(svc_ready == "0")
@@ -385,7 +384,7 @@ function applyRule(){
 				}
 			}
 		}
-
+		
 		if(document.form.btn_ez_radiotoggle[1].disabled == false && document.form.btn_ez_radiotoggle[1].checked == true){
 				document.form.btn_ez_radiotoggle.value=1;
 				document.form.btn_ez_mode.value=0;
@@ -540,7 +539,13 @@ function validForm(){
 			&& document.form.dst_start_d.value == document.form.dst_end_d.value){
 		alert("<#FirewallConfig_URLActiveTime_itemhint4#>");	//At same day
 		return false;
-	}	
+	}
+
+	if(document.form.sshd_enable.value != "0" && document.form.sshd_pass[1].checked && document.form.sshd_authkeys.value == ""){		
+		alert("<#JS_fieldblank#>");
+		document.form.sshd_authkeys.focus();
+		return false;
+	}
 
 	/*if (!validator.range(document.form.http_lanport, 1, 65535))
 		return false;*/
@@ -606,7 +611,24 @@ function validForm(){
 
 	if(document.form.http_passwd2.value.length > 0)	//password setting changed
 		alert("<#File_Pop_content_alert_desc10#>");
-		
+	
+	//Not allowed no Web UI in restrict_rulelist_array
+	var WebUI_selected=0
+	if(document.form.http_client_radio[0].checked && restrict_rulelist_array.length >0){  //Allow only specified IP address
+		for(var x=0;x<restrict_rulelist_array.length;x++){
+			if(restrict_rulelist_array[x][0] == 1 &&        //enabled rule && Web UI included
+				(restrict_rulelist_array[x][2] == 1 || restrict_rulelist_array[x][2] == 3 || restrict_rulelist_array[x][2] == 5 || restrict_rulelist_array[x][2] == 7)){
+				WebUI_selected++;
+			}
+		}
+
+		if(WebUI_selected <= 0){
+			alert("Please select at least one Web UI of Access Type and enable it in [Allow only specified IP address]");   //Untranslated 2017/08
+			document.form.http_client_ip_x_0.focus();
+			return false;
+		}
+	}
+	
 	return true;
 }
 
@@ -653,15 +675,15 @@ var timezones = [
 	["EST5DST",	"(GMT-05:00) <#TZ14#>"],
 	["UTC5_1",	"(GMT-05:00) <#TZ15#>"],
 	["UTC5_2",	"(GMT-05:00) <#TZ16#>"],
-	["UTC4.30",	"(GMT-04:30) <#TZ18_1#>"],
 	["AST4DST",	"(GMT-04:00) <#TZ17#>"],
 	["UTC4_1",	"(GMT-04:00) <#TZ18#>"],
+	["UTC4_2",	"(GMT-04:00) <#TZ18_1#>"],
 	["UTC4DST_2",	"(GMT-04:00) <#TZ19#>"],
 	["NST3.30DST",	"(GMT-03:30) <#TZ20#>"],
 	["EBST3DST_1",	"(GMT-03:00) <#TZ21#>"],
 	["UTC3",	"(GMT-03:00) <#TZ22#>"],
 	["EBST3DST_2",	"(GMT-03:00) <#TZ23#>"],
-	["NORO2DST",	"(GMT-02:00) <#TZ24#>"],
+	["UTC2",	"(GMT-02:00) <#TZ24#>"],
 	["EUT1DST",	"(GMT-01:00) <#TZ25#>"],
 	["UTC1",	"(GMT-01:00) <#TZ26#>"],
 	["GMT0",	"(GMT) <#TZ27#>"],
@@ -670,7 +692,7 @@ var timezones = [
 	["GMT0_2",	"(GMT) <#TZ28_1#>"],
 	["UTC-1DST_1",	"(GMT+01:00) <#TZ29#>"],
 	["UTC-1DST_1_1","(GMT+01:00) <#TZ30#>"],
-	["UTC-1_2",	"(GMT+01:00) <#TZ31#>"],
+	["UTC-1DST_1_2",	"(GMT+01:00) <#TZ31#>"],
 	["UTC-1DST_2",	"(GMT+01:00) <#TZ32#>"],
 	["MET-1DST",	"(GMT+01:00) <#TZ33#>"],
 	["MET-1DST_1",	"(GMT+01:00) <#TZ34#>"],
@@ -679,7 +701,7 @@ var timezones = [
 	["UTC-1_3",	"(GMT+01:00) <#TZ37#>"],
 	["UTC-2DST",	"(GMT+02:00) <#TZ38#>"],
 	["UTC-2DST_3",	"(GMT+02:00) <#TZ33_1#>"],
-	["EST-2DST",	"(GMT+02:00) <#TZ39#>"],
+	["EST-2",	"(GMT+02:00) <#TZ39#>"],
 	["UTC-2DST_4",	"(GMT+02:00) <#TZ40#>"],
 	["UTC-2DST_2",	"(GMT+02:00) <#TZ41#>"],
 	["IST-2DST",	"(GMT+02:00) <#TZ42#>"],
@@ -697,7 +719,7 @@ var timezones = [
 	["UTC-4_1",	"(GMT+04:00) <#TZ50#>"],
 	["UTC-4_5",	"(GMT+04:00) <#TZ50_2#>"],
 	["UTC-4_4",	"(GMT+04:00) <#TZ50_1#>"],
-	["UTC-4DST_2",	"(GMT+04:00) <#TZ51#>"],
+	["UTC-4_6",	"(GMT+04:00) <#TZ51#>"],
 	["UTC-4.30",	"(GMT+04:30) <#TZ52#>"],
 	["UTC-5",	"(GMT+05:00) <#TZ54#>"],
 	["UTC-5_1",	"(GMT+05:00) <#TZ53#>"],
@@ -725,13 +747,13 @@ var timezones = [
 	["UTC-9.30DST",	"(GMT+09:30) <#TZ74#>"],
 	["UTC-10DST_1",	"(GMT+10:00) <#TZ75#>"],
 	["UTC-10_2",	"(GMT+10:00) <#TZ76#>"],
-	["UTC-10_4",	"(GMT+10:00) <#TZ78#>"],
-	["UTC-10_5",	"(GMT+10:00) <#TZ82_1#>"],
+	["UTC-10_4",	"(GMT+10:00) <#TZ78#>"],	
 	["TST-10TDT",	"(GMT+10:00) <#TZ77#>"],
 	["UTC-10_6",	"(GMT+10:00) <#TZ79#>"],
 	["UTC-11",	"(GMT+11:00) <#TZ80#>"],
 	["UTC-11_1",	"(GMT+11:00) <#TZ81#>"],
 	["UTC-11_3",	"(GMT+11:00) <#TZ86#>"],
+	["UTC-11_4",	"(GMT+11:00) <#TZ82_1#>"],
 	["UTC-12",      "(GMT+12:00) <#TZ82#>"],
 	["UTC-12_2",      "(GMT+12:00) <#TZ85#>"],
 	["NZST-12DST",	"(GMT+12:00) <#TZ83#>"],
@@ -756,26 +778,30 @@ var dstoff_start_m,dstoff_start_w,dstoff_start_d,dstoff_start_h;
 var dstoff_end_m,dstoff_end_w,dstoff_end_d,dstoff_end_h;
 
 function parse_dstoffset(){     //Mm.w.d/h,Mm.w.d/h
-		if(dstoffset){
-					var dstoffset_startend = dstoffset.split(",");
+	if(dstoffset){
+		var dstoffset_startend = dstoffset.split(",");
     			
-					var dstoffset_start = dstoffset_startend[0];
-					var dstoff_start = dstoffset_start.split(".");
-					dstoff_start_m = dstoff_start[0];
-					dstoff_start_w = dstoff_start[1];
-					dstoff_start_d = dstoff_start[2].split("/")[0];
-					dstoff_start_h = dstoff_start[2].split("/")[1];
-					
-					var dstoffset_end = dstoffset_startend[1];
-					var dstoff_end = dstoffset_end.split(".");
-					dstoff_end_m = dstoff_end[0];
-					dstoff_end_w = dstoff_end[1];
-					dstoff_end_d = dstoff_end[2].split("/")[0];
-					dstoff_end_h = dstoff_end[2].split("/")[1];
+		var dstoffset_start = trim(dstoffset_startend[0]);
+		var dstoff_start = dstoffset_start.split(".");
+		dstoff_start_m = dstoff_start[0];
+		dstoff_start_w = dstoff_start[1];
+		dstoff_start_d = dstoff_start[2].split("/")[0];
+		dstoff_start_h = dstoff_start[2].split("/")[1];
+				
+		var dstoffset_end = trim(dstoffset_startend[1]);
+		var dstoff_end = dstoffset_end.split(".");
+		dstoff_end_m = dstoff_end[0];
+		dstoff_end_w = dstoff_end[1];
+		dstoff_end_d = dstoff_end[2].split("/")[0];
+		dstoff_end_h = dstoff_end[2].split("/")[1];
     			
-					//alert(dstoff_start_m+"."+dstoff_start_w+"."+dstoff_start_d+"/"+dstoff_start_h);
-					//alert(dstoff_end_m+"."+dstoff_end_w+"."+dstoff_end_d+"/"+dstoff_end_h);
-		}
+		//console.log(dstoff_start_m+"."+dstoff_start_w+"."+dstoff_start_d+"/"+dstoff_start_h);
+		//console.log(dstoff_end_m+"."+dstoff_end_w+"."+dstoff_end_d+"/"+dstoff_end_h);
+		load_dst_m_Options();
+		load_dst_w_Options();
+		load_dst_d_Options();
+		load_dst_h_Options();
+	}
 }
 
 function load_dst_m_Options(){
@@ -1106,6 +1132,22 @@ function enable_wan_access(flag){
 			}
 		}
 		else{
+			var effectApps = [];
+			if(app_support) effectApps.push("<#RemoteAccessHint_RouterApp#>");
+			if(alexa_support) effectApps.push("<#RemoteAccessHint_AlexaIFTTT#>");
+
+			var original_misc_http_x = httpApi.nvramGet(["misc_http_x"]).misc_http_x;
+			var RemoteAccessHint = "<#RemoteAccessHint#>".replace("$Apps$", effectApps.join(", "));
+
+			if(original_misc_http_x == '1' && effectApps.length != 0){
+				if(!confirm(RemoteAccessHint)){
+					document.form.misc_http_x[0].checked = true;
+					hideport(1);
+					enable_wan_access(1);			
+					return false;
+				}
+			}
+
 			if(autoChange){
 				document.form.http_enable.selectedIndex = 0;
 				autoChange = false;
@@ -1386,7 +1428,7 @@ function change_hddSpinDown(obj_value) {
 				<tr>
 				  <th width="40%"><#Router_Login_Name#></th>
 					<td>
-						<div><input type="text" id="http_username" name="http_username" tabindex="1" autocomplete="off" style="height:25px;" class="input_18_table" maxlength="20" autocorrect="off" autocapitalize="off"><br/><span id="alert_msg1" style="color:#FC0;margin-left:8px;"></span></div>
+						<div><input type="text" id="http_username" name="http_username" tabindex="1" autocomplete="off" style="height:25px;" class="input_18_table" maxlength="20" autocorrect="off" autocapitalize="off"><br/><span id="alert_msg1" style="color:#FC0;margin-left:8px;display:inline-block;"></span></div>
 					</td>
 				</tr>
 
@@ -1406,7 +1448,7 @@ function change_hddSpinDown(obj_value) {
 					<td>
 						<input type="password" autocomplete="off" name="v_password2" tabindex="3" onKeyPress="return validator.isString(this, event);" onpaste="setTimeout('paste_password();', 10)" class="input_18_table" maxlength="16" autocorrect="off" autocapitalize="off"/>
 						<div style="margin:-25px 0px 5px 175px;"><input type="checkbox" name="show_pass_1" onclick="pass_checked(document.form.http_passwd2);pass_checked(document.form.v_password2);"><#QIS_show_pass#></div>
-						<span id="alert_msg2" style="color:#FC0;margin-left:8px;"></span>
+						<span id="alert_msg2" style="color:#FC0;margin-left:8px;display:inline-block;"></span>
 					
 					</td>
 				</tr>
@@ -1415,11 +1457,11 @@ function change_hddSpinDown(obj_value) {
 			<table id="hdd_spindown_table" width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3"  class="FormTable" style="margin-top:8px;display:none;">
 				<thead>
 					<tr>
-					  <td colspan="2">USB Setting</td>
+					  <td colspan="2"><#USB_Setting#></td>
 					</tr>
 				</thead>
 				<tr>
-					<th width="40%"><a class="hintstyle" href="javascript:void(0);" onClick="openHint(11,11)">Enable HDD Hibernation<!--untranslated--></a></th>
+					<th width="40%"><a class="hintstyle" href="javascript:void(0);" onClick="openHint(11,11)"><#usb_HDD_Hibernation#></a></th>
 					<td>
 						<select name="usb_idle_enable" class="input_option" onchange="change_hddSpinDown(this.value);" disabled>
 							<option value="0" <% nvram_match("usb_idle_enable", "0", "selected"); %>><#checkbox_No#></option>
@@ -1428,7 +1470,7 @@ function change_hddSpinDown(obj_value) {
 					</td>
 				</tr>
 				<tr id="usb_idle_timeout_tr">
-					<th width="40%">Time Period<!--untranslated--></th>
+					<th width="40%"><#TimePeriod#></th>
 					<td>
 						<input type="text" class="input_6_table" maxlength="4" name="usb_idle_timeout" onKeyPress="return validator.isNumber(this,event);" value='<% nvram_get("usb_idle_timeout"); %>' autocorrect="off" autocapitalize="off" disabled><#Second#>
 						<span>(<#Setting_factorydefault_value#> : 60) </span>
@@ -1625,7 +1667,7 @@ function change_hddSpinDown(obj_value) {
 			<table id ="http_auth_table" width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3"  class="FormTable" style="margin-top:8px;">
 				<thead>
 					<tr>
-					  <td colspan="2">Local Access Config</td><!--untranslated-->
+					  <td colspan="2"><#Local_access_config#></td>
 					</tr>
 				</thead>
 				<tr id="https_tr">
@@ -1651,7 +1693,7 @@ function change_hddSpinDown(obj_value) {
 			<table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3"  class="FormTable" style="margin-top:8px;">
 				<thead>
 					<tr>
-					  <td colspan="2">Remote Access Config</td><!--untranslated-->
+					  <td colspan="2"><#Remote_access_config#></td>
 					</tr>
 				</thead>
 				<tr id="misc_http_x_tr">
@@ -1659,7 +1701,9 @@ function change_hddSpinDown(obj_value) {
 					<td>
 						<input type="radio" value="1" name="misc_http_x" class="input" onClick="hideport(1);enable_wan_access(1);" <% nvram_match("misc_http_x", "1", "checked"); %>><#checkbox_Yes#>
 						<input type="radio" value="0" name="misc_http_x" class="input" onClick="hideport(0);enable_wan_access(0);" <% nvram_match("misc_http_x", "0", "checked"); %>><#checkbox_No#><br>
-						<span class="formfontdesc" id="WAN_access_hint" style="color:#FFCC00; display:none;">Only HTTPS is supported when accessing web from wan.</span><!--untranslated-->
+						<span class="formfontdesc" id="WAN_access_hint" style="color:#FFCC00; display:none;"><#FirewallConfig_x_WanWebEnable_HTTPS_only#> 
+							<a id="faq" href="" target="_blank" style="margin-left: 5px; color:#FFCC00; text-decoration: underline;">FAQ</a>
+						</span>
 						<div class="formfontdesc" id="NSlookup_help_for_WAN_access" style="color:#FFCC00; display:none;"><#NSlookup_help#></div>
 					</td>
 				</tr>
@@ -1690,7 +1734,7 @@ function change_hddSpinDown(obj_value) {
 				<tr>
 					<th width="10%"><div id="selAll" class="all_disable" style="margin: auto;width:40px;" onclick="control_all_rule_status(this);"><#All#></div></th>
 					<th width="40%"><a class="hintstyle" href="javascript:void(0);" onClick="openHint(11,9);"><#FirewallConfig_LanWanDstIP_itemname#></a></th>
-					<th width="40%">Access Type<!--untranslated--></th>
+					<th width="40%"><#Access_Type#></th>
 					<th width="10%"><#list_add_delete#></th>
 				</tr>
 

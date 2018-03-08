@@ -14,12 +14,7 @@ var Untranslated = {
 var clicked_help_string = "<#Help_init_word1#> <a class=\"hintstyle\" style=\"background-color:#7aa3bd\"><#Help_init_word2#></a> <#Help_init_word3#>";
 
 var rc_support = '<% nvram_get("rc_support"); %>';
-function isSupport(_ptn){
-	return (rc_support.search(_ptn) == -1) ? false : true;
-}
-
-
-var gobi_support = isSupport("gobi");
+var gobi_support = (rc_support.search("gobi") == -1) ? false : true;
 
 /* convert some special character for shown string */
 function handle_show_str(show_str)
@@ -276,7 +271,7 @@ function overHint(itemNum){
 		if(isNaN(signal) || signal <= 0){
 			statusmenu += "<div class='StatusHint'><#Mobile_no_signal#></div>";
 		}
-		else if(usb_state == 2 && usb_sbstate == 0 && usb_auxstate == 0){
+		else if(usb_state == 2 && usb_sbstate == 0 && usb_auxstate != 1){
 			statusmenu += "<div class='StatusHint'><#Connected#> <#HSDPAConfig_ISP_itemname#>: </div><span>" + modem_act_provider + "</span>";
 		}
 		else{
@@ -368,6 +363,64 @@ function overHint(itemNum){
 	}
 	// Viz add 2015.07 bwdpi : Adpative QoS mode end
 	
+	if(itemNum == 27){ //Feedback Diagnostic
+		if(diag_dblog_enable == "1") {
+			var lineDesc = "";
+			statusmenu = "<div class='StatusHint'>System Diagnostic :</div>"; /* untranslated */
+			lineDesc = "Diagnostic debug log capture in progress.<br>"; /* Untranslated */
+			statusmenu += "<span>" + lineDesc + "</span>";
+
+			statusmenu += "<div class='StatusHint'><#btn_Enabled#> :</div>";
+			lineDesc = ""; /* Untranslated */
+
+			var transform_dblog_service = function() {
+				var dblog_service = parseInt('<% nvram_get("dblog_service"); %>');
+				var dblog_service_mapping = ["", "Wi-Fi", "Download Master", "<#UPnPMediaServer#>", "AiMesh"];/* untranslated */
+				var dblog_service_text = "";
+				for(var i = 1; dblog_service != 0 && i <= 4; i++) {
+					if(dblog_service & 1) {
+						if(dblog_service_text != "")
+							dblog_service_text += ", " + dblog_service_mapping[i];
+						else
+							dblog_service_text += dblog_service_mapping[i];
+					}
+					dblog_service = dblog_service >> 1;
+				}
+				return dblog_service_text;
+			};
+			lineDesc += transform_dblog_service();
+			statusmenu += "<span>" + lineDesc + "</span>";
+
+			statusmenu += "<div class='StatusHint'><#mssid_time_remaining#> :</div>";
+			lineDesc = ""; /* Untranslated */
+
+			var transform_dblog_remaining = function() {
+				var dblog_remaining = parseInt(diag_dblog_remaining);
+				var days = Math.floor(dblog_remaining / 60 / 60 / 24);
+				var hours = Math.floor(dblog_remaining / 60 / 60 % 24);
+				var minutes = Math.floor(dblog_remaining / 60 % 60);
+				var seconds = Math.floor(dblog_remaining % 60);
+				var remaining_time_str = "";
+
+				if(dblog_remaining == 0) {
+					remaining_time_str += "0" + " <#Second#> ";
+					return remaining_time_str;
+				}
+				if(days)
+					remaining_time_str += days + " <#Day#> ";
+				if(hours)
+					remaining_time_str += hours + " <#Hour#> ";
+				if(minutes)
+					remaining_time_str += minutes + " <#Minute#> ";
+				if(seconds)
+					remaining_time_str += seconds + " <#Second#> ";
+				return remaining_time_str;
+			};
+			lineDesc += transform_dblog_remaining();
+			statusmenu += "<span>" + lineDesc + "</span>";
+		}
+	}
+
 	// Viz add 2013.04 for dsl sync status
 	if(itemNum == 9){
 		var lineDesc = "";
@@ -941,12 +994,20 @@ function cancel_diag(){
 		parent.document.canceldiagForm.submit();
 }
 
+function cancel_dblog(){
+	parent.document.canceldblogForm.submit();
+}
+
 function openHint(hint_array_id, hint_show_id, flag){
 	statusmenu = "";
 	if(hint_array_id == 24){
 		var _caption = "";
 
-		if(hint_show_id == 9){	//2015.07 Viz add for bwdpi : Adaptive QoS mode
+		if(hint_show_id == 10){ // Feedback System Diagnostic Capture
+			statusmenu = "<span class='StatusClickHint' onclick='cancel_dblog();' onmouseout='this.className=\"StatusClickHint\"' onmouseover='this.className=\"StatusClickHint_mouseover\"'>Cancel debug capture</span>";
+			_caption = "System Diagnostic capture";
+		}
+		else if(hint_show_id == 9){	//2015.07 Viz add for bwdpi : Adaptive QoS mode
 			statusmenu = "<span class='StatusClickHint' onclick='priority_change();' onmouseout='this.className=\"StatusClickHint\"' onmouseover='this.className=\"StatusClickHint_mouseover\"'>Change priority mode</span><br>";	/* untranslated */
 			statusmenu += "<span class='StatusClickHint' onclick='qos_disable();' onmouseout='this.className=\"StatusClickHint\"' onmouseover='this.className=\"StatusClickHint_mouseover\"'>Disable QoS</span>";	/* untranslated */
 			_caption = "<#Adaptive_QoS#>";

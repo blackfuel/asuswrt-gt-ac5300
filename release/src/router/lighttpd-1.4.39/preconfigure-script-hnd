@@ -29,6 +29,7 @@ export SSL_LIB="-L$router_dir/openssl -lcrypto -lssl"
 #export SSL_LIB="-L$router_dir/openssl -lcrypto -lssl -L$router_dir/shared -lshared -L$router_dir/nvram -lnvram"
 #export SSL_LIB="-L$router_dir/shared -lshared"
 #export SHARED_LIBS="-L$router_dir/shared -lshared"
+
 $CONFIGURE --prefix=/usr \
 --with-pcre PCRECONFIG="$cur_dir/../pcre-$PCRE_VER/pcre-config" \
 --with-smbdav-props \

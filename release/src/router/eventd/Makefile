@@ -12,6 +12,8 @@
 # $Id:  $
 #
 
+include $(TOP)/.config
+
 CFLAGS	+= -I. -I$(TOP)/shared -I$(SRCBASE)/include ${WLAN_StdIncPathA} -I$(SRCBASE)/common/include -Wall -Werror
 CFLAGS	+= $(if $(WLAN_ComponentIncPath),$(WLAN_ComponentIncPath),$(addprefix -I,$(wildcard $(SRCBASE)/shared/bcmwifi/include)))
 #CFLAGS	+= -g -DDEBUG
@@ -23,9 +25,9 @@ LDFLAGS += $(EXTRA_LDFLAGS)
 
 vpath %.c $(SRCBASE)/shared/
 
-ifeq ($(wildcard $(SRCBASE)/eventd/*.c),)
-all: 
-	-cp -f $(SRCBASE)/router/eventd/prebuilt/eventd eventd
+ifeq ($(wildcard $(SRCBASE)/router/eventd/*.c),)
+all:
+	-cp -f prebuilt/eventd eventd
 else
 all: eventd
 endif

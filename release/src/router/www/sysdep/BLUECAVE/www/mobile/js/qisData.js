@@ -95,6 +95,10 @@ var wirelessObj = {
 	}
 }
 
+var smartConnectObj = {
+	"smart_connect_x": "1"
+}
+
 var wlcObj = {
 	"wlc_band": "",
 	"wlc_ssid": "",
@@ -124,10 +128,6 @@ var bwdpiObj = {
 	"wrs_vp_t": "0",
 	"TM_EULA": "1"
 }
-
-var lyraObj = {
-	"bt_turn_off_service": "ble_qis_done"
-};
 
 var timeObj = {
 	"time_zone": "",
@@ -175,7 +175,8 @@ var modemObj = {
 
 var systemVariable = {
 	"originWanType": "", /* ToDo: Secondary WAN support */
-	"manualWANSetup": false,
+	"manualWanSetup": false,
+	"wanDnsenable": "",
 	"detwanResult": {
 		"wanType": "",
 		"isIPConflict": false,
@@ -192,5 +193,11 @@ var systemVariable = {
 	"uiLanguage": "",
 	"territoryCode": "",
 	"default_http_passwd": "admin",
-	"forceChangePW": ""
+	"forceChangePw": "",
+	"forceChangePwInTheEnd": "",
+	"rebootTime": ""
+}
+
+var aimeshObj = {
+	"cfg_master": "1"
 }

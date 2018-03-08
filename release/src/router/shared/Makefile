@@ -139,7 +139,7 @@ OBJS += flash_mtd.o api-ralink.o
 ifeq ($(RTCONFIG_RALINK_RT3052),y)
 OBJS += ra3052.o
 endif
-ifeq ($(RTN14U)$(RTAC52U)$(RTAC51U)$(RTN11P)$(RTN300)$(RTN54U)$(RTAC1200HP)$(RTN56UB1)$(RTN56UB2)$(RTAC54U)$(RTAC1200GA1)$(RTAC1200GU)$(RPAC87)$(RTAC85U),y)
+ifeq ($(RTN14U)$(RTAC52U)$(RTAC51U)$(RTN11P)$(RTN300)$(RTN54U)$(RTAC1200HP)$(RTN56UB1)$(RTN56UB2)$(RTAC54U)$(RTAC1200GA1)$(RTAC1200GU)$(RPAC87)$(RTAC85U)$(RTN800HP),y)
 CFLAGS += -DRA_ESW
 OBJS += mt7620.o
 else
@@ -177,7 +177,7 @@ CFLAGS += -I$(LINUXDIR)/drivers/char/rtl8370mb
 OBJS += rtl8370mb.o mdio.o
 endif
 else ifeq ($(RTCONFIG_LANTIQ),y)
-OBJS += flash_mtd.o api-lantiq.o
+OBJS += flash_mtd.o api-lantiq.o lantiq.o
 else
 # Broadcom
 OBJS += wl.o wl_linux.o
@@ -276,6 +276,10 @@ endif
 
 ifeq ($(RTCONFIG_LP5523),y)
 OBJS += lp5523led.o
+endif
+
+ifeq ($(RTCONFIG_AMAS),y)
+CFLAGS += -I$(TOP)/shared/sysdeps/amas
 endif
 
 vpath %.c sysdeps $(SRCBASE)/shared/ $(WLAN_ComponentSrcDirs)
@@ -382,7 +386,7 @@ prebuild/%.o:
 .%.depend: %.c
 	@$(CC) $(CFLAGS) -M $< > $@
 
-.defaults.depend .tcode.depend: .%.depend: %.c %.prep
+.defaults.depend .tcode.depend .hw_auth.depend: .%.depend: %.c %.prep
 	@$(CC) $(CFLAGS) -M $< > $@
 
 %.prep: %.c

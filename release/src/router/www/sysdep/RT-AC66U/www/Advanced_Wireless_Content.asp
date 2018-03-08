@@ -25,11 +25,16 @@
 <script type="text/javascript" src="/switcherplugin/jquery.iphone-switch.js"></script>
 <script>
 <% wl_get_parameter(); %>
+$(function () {
+	if(amesh_support && (isSwMode("rt") || isSwMode("ap"))) {
+		addNewScript('/require/modules/amesh.js');
+	}
+});
 
 wl_channel_list_2g = <% channel_list_2g(); %>;
 wl_channel_list_5g = <% channel_list_5g(); %>;
 var cur_control_channel = [<% wl_control_channel(); %>][0];
-
+var reboot_needed_time = eval("<% get_default_reboot_time(); %>");
 var wl_unit = <% nvram_get("wl_unit"); %>;
 var country = '';
 if(wl_unit == '1')
@@ -133,6 +138,12 @@ function initial(){
 				}
 		}
 	}
+	else if(country == "US" && dfs_US_support){
+		if(document.form.wl_channel.value  == '0' && wl_unit == '1'){
+			document.getElementById('dfs_checkbox').style.display = "";
+			check_DFS_support(document.form.acs_dfs_checkbox);
+		}
+	}
 	else if(country == "US" || country == "SG"){		//display checkbox of band1 channel under 5GHz
 		if(based_modelid == "RT-AC68U" || based_modelid == "RT-AC68A" || based_modelid == "4G-AC68U" || based_modelid == "DSL-AC68U"
 		|| based_modelid == "RT-AC56U" || based_modelid == "RT-AC56S"
@@ -144,12 +155,13 @@ function initial(){
 				document.getElementById('acs_band1_checkbox').style.display = "";					
 		}
 	}
-	else if(odmpid == "RT-AC66U_B1" && country == "AU"){
+	else if((odmpid == "RT-AC66U_B1" || odmpid == "RT-AC1750_B1" || odmpid == "RT-N66U_C1" || odmpid == "RT-AC1900U") && country == "AU"){
 		if(document.form.wl_channel.value  == '0' && wl_unit == '1'){
 			document.getElementById('dfs_checkbox').style.display = "";
 			check_DFS_support(document.form.acs_dfs_checkbox);
 		}
 	}
+
 	
 	if(country == "EU" || country == "JP" || country == "SG" || country == "CN" || country == "UA" || country == "KR"){
 		if(!Qcawifi_support && !Rawifi_support){
@@ -213,10 +225,20 @@ function initial(){
 }
 
 function change_wl_nmode(o){
-	if(o.value=='1') /* Jerry5: to be verified */
-		inputCtrl(document.form.wl_gmode_check, 0);
-	else
-		inputCtrl(document.form.wl_gmode_check, 1);
+	if(Bcmwifi_support) {
+		if(o.value == '2')
+			inputCtrl(document.form.wl_gmode_check, 1);
+		else {
+			inputCtrl(document.form.wl_gmode_check, 0);
+			document.form.wl_gmode_check.checked = true;
+		}
+	}
+	else {
+		if(o.value=='1') /* Jerry5: to be verified */
+			inputCtrl(document.form.wl_gmode_check, 0);
+		else
+			inputCtrl(document.form.wl_gmode_check, 1);
+	}
 
 	limit_auth_method();
 	if(o.value == "3"){
@@ -362,13 +384,45 @@ function applyRule(){
 		document.form.wl_wpa_psk.value = "";
 
 	if(validForm()){
-        if(document.form.wl_closed[0].checked && document.form.wps_enable.value == 1 && (isSwMode("rt") || isSwMode("ap"))){ 
-            if(!confirm("<#wireless_JS_Hide_SSID#>")){
-                return false;           
-            }
- 
-             document.form.wps_enable.value = "0";
-        }
+		if(amesh_support && (isSwMode("rt") || isSwMode("ap"))) {
+			if(!check_wl_auth_support(auth_mode, $("select[name=wl_auth_mode_x] option:selected")))
+				return false;
+			else {
+				var wl_parameter = {
+					"original" : {
+						"ssid" : decodeURIComponent('<% nvram_char_to_ascii("", "wl_ssid"); %>'),
+						"psk" :  decodeURIComponent('<% nvram_char_to_ascii("", "wl_wpa_psk"); %>')
+					},
+					"current": {
+						"ssid" : document.form.wl_ssid.value,
+						"psk" : document.form.wl_wpa_psk.value
+					}
+				};
+				if(!AiMesh_confirm_msg("Wireless_SSID_PSK", wl_parameter))
+					return false;
+			}
+
+			var radio_value = (document.form.wl_closed[0].checked) ? 1 : 0;
+			if(document.form.wps_enable.value == 1) {
+				if(radio_value) {
+					if(!AiMesh_confirm_msg("Wireless_Hide_WPS", radio_value))
+						return false;
+					document.form.wps_enable.value = "0";
+				}
+			}
+			else {
+				if(!AiMesh_confirm_msg("Wireless_Hide", radio_value))
+					return false;
+			}
+		}
+		else {
+			if(document.form.wl_closed[0].checked && document.form.wps_enable.value == 1 && (isSwMode("rt") || isSwMode("ap"))){
+				if(confirm("<#wireless_JS_Hide_SSID#>"))
+					document.form.wps_enable.value = "0";
+				else
+					return false;
+			}
+		}
 	
         if(document.form.wps_enable.value == 1){
             if(document.form.wps_dualband.value == "1" || document.form.wl_unit.value == document.form.wps_band.value){         //9: RT-AC87U dual band WPS
@@ -412,8 +466,14 @@ function applyRule(){
 		if(auth_mode == "wpa" || auth_mode == "wpa2" || auth_mode == "wpawpa2" || auth_mode == "radius")
 			document.form.next_page.value = "/Advanced_WSecurity_Content.asp";
 
-		if(document.form.wl_nmode_x.value == "1" && wl_unit == "0")
-			document.form.wl_gmode_protection.value = "off";			
+		if(Bcmwifi_support) {
+			if(document.form.wl_nmode_x.value != "2" && wl_unit == "0")
+				document.form.wl_gmode_protection.value = "auto";
+		}
+		else {
+			if(document.form.wl_nmode_x.value == "1" && wl_unit == "0")
+				document.form.wl_gmode_protection.value = "off";
+		}
 
 		if(sw_mode == 2 || sw_mode == 4)
 			document.form.action_wait.value = "5";
@@ -431,6 +491,30 @@ function applyRule(){
 					document.form.wl_chanspec.value = document.form.wl_channel.value + document.form.wl_nctrlsb.value;
 				}
 			}	
+		}
+
+		if(country == "US" && dfs_US_support && wl_unit == "1"){
+			if(document.form.wl_channel.value == "0"){
+				if(document.form.acs_dfs_checkbox.checked){
+					document.form.wl1_dfs.value = "1";
+					document.form.acs_dfs.value = "1";
+				}
+				else{
+					document.form.wl1_dfs.value = "0";
+					document.form.acs_dfs.value = "0";
+				}		
+			}
+			else{
+				if(dfs_channel.indexOf(document.form.wl_channel.value) != -1){
+					document.form.wl1_dfs.value = "1";
+					document.form.acs_dfs.value = "1";
+				}
+			}
+
+			if(wl1_dfs != document.form.wl1_dfs.value){
+				document.form.action_script.value = "reboot";
+				document.form.action_wait.value = reboot_needed_time;
+			}
 		}
 
 		if(country == "EU" && based_modelid == "RT-AC87U" && wl_unit == '1'){			//Interlocking setting to enable 'wl1_80211h' in EU RT-AC87U under 5GHz
@@ -790,7 +874,6 @@ function regen_auto_option(obj){
 <input type="hidden" name="action_mode" value="apply_new">
 <input type="hidden" name="action_script" value="restart_wireless">
 <input type="hidden" name="action_wait" value="10">
-<input type="hidden" name="preferred_lang" id="preferred_lang" value="<% nvram_get("preferred_lang"); %>">
 <input type="hidden" name="wl_country_code" value="<% nvram_get("wl0_country_code"); %>" disabled>
 <input type="hidden" name="firmver" value="<% nvram_get("firmver"); %>">
 <input type="hidden" name="wl_chanspec" value="">
@@ -831,6 +914,7 @@ function regen_auto_option(obj){
 <input type="hidden" name="wl_wep_x_orig" value='<% nvram_get("wl_wep_x"); %>'>
 <input type="hidden" name="wl_optimizexbox" value='<% nvram_get("wl_optimizexbox"); %>'>
 <input type="hidden" name="wl_subunit" value='-1'>
+<input type="hidden" name="wl1_dfs" value='<% nvram_get("wl1_dfs"); %>'>
 <input type="hidden" name="acs_dfs" value='<% nvram_get("acs_dfs"); %>'>
 <input type="hidden" name="acs_band1" value='<% nvram_get("acs_band1"); %>'>
 <input type="hidden" name="acs_band3" value='<% nvram_get("acs_band3"); %>'>

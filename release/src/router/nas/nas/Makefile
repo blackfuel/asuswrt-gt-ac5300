@@ -39,6 +39,7 @@ LDFLAGS += -L$(TOP)/shared -L$(INSTALLDIR)/shared/usr/lib -lshared
 LDFLAGS += -L$(TOP)/libbcmcrypto -L$(INSTALLDIR)/libbcmcrypto/usr/lib -lbcmcrypto
 LDFLAGS += $(EXTRA_LDFLAGS)
 
+
 vpath %.c $(SRCBASE)/router/nas $(SRCBASE)/shared $(SRCBASE)/router/shared
 
 # build target

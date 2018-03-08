@@ -8,7 +8,7 @@
 <meta HTTP-EQUIV="Expires" CONTENT="-1">
 <link rel="shortcut icon" href="images/favicon.png">
 <link rel="icon" href="images/favicon.png">
-<title><#Web_Title#> - Captive Portal<!--untranslated--></title>
+<title><#Web_Title#> - Free Wi-Fi<!--untranslated--></title>
 <link rel="stylesheet" type="text/css" href="index_style.css"> 
 <link rel="stylesheet" type="text/css" href="form_style.css">
 <link rel="stylesheet" type="text/css" href="other.css">
@@ -361,7 +361,7 @@ function previewSplashImage(_obj) {
 			if( (fileReader.total != undefined) && (!isNaN(fileReader.total)) )
 				source_image_size = fileReader.total;
 			if(Math.round(source_image_size / 1024) > 10240) {
-				alert('Warning: The upload file size exceeds the allowable 10MB limit. Please select another image.');/*untranslated*/
+				alert("<#FreeWiFi_Image_Size_Alert#>");
 				return false;
 			}
 
@@ -375,7 +375,7 @@ function previewSplashImage(_obj) {
 				ctx.drawImage(img, 0, 0, 1152, 864);
 				var dataURL = canvas.toDataURL(mimeType);
 				if(Math.round(dataURL.length / 1024) > 2048) {
-					alert('Warning: The upload file size exceeds the allowable 2MB limit. Please select another image.\nNote: Sometime the smaller PNG image will take fewer megabytes and exceed 2MB limit after resizing the image.');/*untranslated*/
+					alert("<#FreeWiFi_Image_Size_Compressed_Alert#>");
 					return false;
 				}
 				else {
@@ -444,13 +444,13 @@ function gen_splash_page() {
 		code += "<div class='splash_image_size_content'>";
 		code += "<select id='splash_image_size' name='splash_image_size' class='input_option' onchange='splash_image_size_change();'>";
 		code += "<option value='center'><#FreeWiFi_center#></option>";
-		code += "<option value='extend'>Extend</option>";/*untranslated*/
+		code += "<option value='extend'><#FreeWiFi_Extend#></option>";
 		code += "</select>";
 		code += "</div>";
 		code += "<div id='splash_image_conent' class='splash_image_conent'>";
 			if(isSupportFileReader() && isSupportCanvas()) {
-				code += "<div id='splash_image_default' class='splash_image_default' onclick='splash_upload_image();' title='Drag and Drop Image File or Choose File'>";/*untranslated*/
-				code += "<div class='splash_image_text'>Drag and Drop Image File or Choose File</div>";/*untranslated*/
+				code += "<div id='splash_image_default' class='splash_image_default' onclick='splash_upload_image();' title='<#FreeWiFi_Upload_Image#>'>";
+				code += "<div class='splash_image_text'><#FreeWiFi_Upload_Image#></div>";
 			}
 			else {
 				code += "<div id='splash_image_default' class='splash_image_default'>";
@@ -458,7 +458,7 @@ function gen_splash_page() {
 			}
 				code += "</div>";
 
-			code += "<div id='splash_image_canvas_content' class='splash_image_canvas_content' style='display:none;' onclick='preview_splash_page();' title='Drag and Drop Image File or Choose File'>";
+			code += "<div id='splash_image_canvas_content' class='splash_image_canvas_content' style='display:none;' onclick='preview_splash_page();' title='<#FreeWiFi_Upload_Image#>'>";
 				code += "<canvas id='splash_canvas' width='1152px;' height='864px;' style='display:none;'></canvas>";
 				code += "<div id='splash_template_content' class='splash_template_content'>";
 					code += "<div class='splash_template_icon'>";
@@ -512,9 +512,9 @@ function gen_splash_page() {
 		}
 
 		code += "<div class='splash_item_content'>";
-			code += "<div class='splash_item_title'>Passcode</div>";/*untranslated*/
+			code += "<div class='splash_item_title'><#FreeWiFi_Passcode#></div>";
 			code += "<input type='checkbox' name='cb_passcode' id='cb_passcode' onchange='update_passcode();'>";
-			code += "Option: Add your own Passcode";/*untranslated*/
+			code += "<#FreeWiFi_Option_Add_Passcode#>";
 			code += "<input name='passcode' class='input_25_table' value='' type='text' maxlength='64' autocorrect='off' autocapitalize='off'>";
 		code += "</div>";
 
@@ -575,7 +575,7 @@ function gen_splash_page() {
 					if( (file.size != undefined) && (!isNaN(file.size)) )
 						source_image_size = file.size;
 					if(Math.round(source_image_size / 1024) > 10240) {
-						alert('Warning: The upload file size exceeds the allowable 10MB limit. Please select another image.');/*untranslated*/
+						alert("<#FreeWiFi_Image_Size_Alert#>");
 						return false;
 					}
 					var reader = new FileReader();
@@ -590,7 +590,7 @@ function gen_splash_page() {
 							ctx.drawImage(img, 0, 0, 1152, 864);
 							var dataURL = canvas.toDataURL(mimeType);
 							if(Math.round(dataURL.length / 1024) > 2048) {
-								alert('Warning: The upload file size exceeds the allowable 2MB limit. Please select another image.\nNote: Sometime the smaller PNG image will take fewer megabytes and exceed 2MB limit after resizing the image.');/*untranslated*/
+								alert("<#FreeWiFi_Image_Size_Compressed_Alert#>");
 								return false;
 							}
 							else {
@@ -635,7 +635,7 @@ function apply() {
 
 		var validForm = function() {
 			if(splash_image_base64 == "") {
-				alert("splash page image file can not be null.");/*untranslated*/
+				alert("<#FreeWiFi_Image_Empty_Alert#>");
 				return false;
 			}
 			if(!validator.isEmpty($("input[name=brand_name]")[0]))
@@ -1076,9 +1076,9 @@ function save_splash_page_content() {
 		html_landing += "<meta http-equiv='Expires' content='-1'>\n";
 		html_landing += "<title>" + decodeURIComponent(brand_name) + "</title>\n";
 		html_landing += "<link rel='stylesheet' type='text/css' href='FreeUam.css'>\n";
-		html_landing += "<script type='text/javascript' src='jquery-1.7.1.min.js'><\/script>\n";
-		html_landing += "<script type='text/javascript' src='uam.js'><\/script>\n";
-		html_landing += "<script type='text/javascript'>\n";
+		html_landing += "<_INCLUDE_JQUERY_>\n";
+		html_landing += "<_INCLUDE_UAM_>\n";
+		html_landing += "<_TAG_START_>\n";
 		if(terms_service_status) {
 			html_landing += "var htmlEnDeCode = (function() {\n";
 			html_landing += "var charToEntityRegex,\n";
@@ -1327,7 +1327,7 @@ function save_splash_page_content() {
 		html_landing += "for (var i in mobile) if (userAgentString.indexOf(mobile[i]) > 0) return true;\n";
 		html_landing += "return false;\n";
 		html_landing += "}\n";
-		html_landing += "<\/script>\n";
+		html_landing += "<_TAG_END_>\n";
 		html_landing += "</head>\n";
 		html_landing += "<body onload='initial();' id='splash_body' class='splash_body'>\n";
 		if(terms_service_status) {

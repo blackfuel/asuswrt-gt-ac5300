@@ -96,8 +96,9 @@
 static int bc_wps_led = 0;
 #endif
 
-#ifdef AMAS
+#ifdef RTCONFIG_AMAS
 #define AMESH_TIMEOUT_COUNT	30 * 20		/* 30 secnods */
+#define ONBOARDING_TIMEOUT	120		/* 120 seconds */
 #endif
 
 #ifdef RTCONFIG_WPS_RST_BTN
@@ -179,12 +180,6 @@ static int LED_status_on = -1;
 static int LED_switch_count = 0;
 static int BTN_pressed_count = 0;
 #endif
-#endif
-
-#if defined(MAPAC1300) || defined(MAPAC2200) || defined(VRZAC1300)
-int avg=0;
-int avg_cnt=0;
-int ports=0;
 #endif
 
 #if defined(RTCONFIG_WPS_ALLLED_BTN)
@@ -300,6 +295,7 @@ alarmtimer02(unsigned long sec, unsigned long usec)
 #endif
 
 extern int no_need_to_start_wps();
+extern void uptime_wait(int);
 
 void led_control_normal(void)
 {
@@ -2388,7 +2384,7 @@ static inline void handle_eject_usb_button(void) { }
 
 void btn_check(void)
 {
-#if defined(MAPAC1300) || defined(MAPAC2200) || defined(VRZAC1300)
+#ifdef RTCONFIG_WIFI_SON
 	pid_t pid;
 	char *argv[]={"/sbin/delay_exec","4","rc rc_service restart_allnet",NULL};
 #endif
@@ -2401,12 +2397,12 @@ void btn_check(void)
 	{
 #endif
 #ifndef RTCONFIG_N56U_SR2
-	if (button_pressed(BTN_RESET))
+		if (button_pressed(BTN_RESET))
 #else
-	if (0)
+		if (0)
 #endif
-	{
-		TRACE_PT("button RESET pressed\n");
+		{
+			TRACE_PT("button RESET pressed\n");
 
 	/*--------------- Add BTN_RST MFG test ------------------------*/
 #ifndef RTCONFIG_WPS_RST_BTN
@@ -2434,10 +2430,15 @@ void btn_check(void)
 						nvram_set("bc_ledbh", "reset");
 						kill_pidfile_s("/var/run/sw_devled.pid", SIGUSR1);
 					}
+					run_app_script(NULL, "stop");
+					system("ejusb -1");
 #endif
 #if (defined(PLN12) || defined(PLAC56))
 					if (btn_pressed == 1)
 						set_wifiled(5);
+#elif defined(MAPAC1750)
+					if (btn_pressed == 1)
+						set_rgbled(RGBLED_YELLOW_SBLINK);
 #elif defined(RTCONFIG_REALTEK)
 					if (btn_pressed == 1)
 						set_led(LED_BLINK_SLOW, LED_BLINK_SLOW);
@@ -2454,10 +2455,10 @@ void btn_check(void)
 						/* Send resetdefault rc_service failed. */
 						alarmtimer(NORMAL_PERIOD, 0);
 					}
-#else
-#if defined(RTCONFIG_LP5523)
+#elif defined(RTCONFIG_LP5523)
 					if (btn_count == RESET_WAIT_COUNT+1)
 						lp55xx_leds_proc(LP55XX_ORANGE_LEDS, LP55XX_RESET_SUCCESS);
+#elif defined(MAPAC1750)
 #else
 				/* 0123456789 */
 				/* 0011100111 */
@@ -2479,14 +2480,13 @@ void btn_check(void)
 					else
 						led_control(LED_POWER, LED_ON);
 #endif	/* ! (RTN11P || RTN300) */
-#endif /* RTCONFIG_LP5523 */
 #endif
 				}
 			}
-	}
+		}
 #if defined(RTCONFIG_WIRELESS_SWITCH) && defined(RTCONFIG_DSL)
-	else if (button_pressed(BTN_WIFI_SW))
-	{
+		else if (button_pressed(BTN_WIFI_SW))
+		{
 		//TRACE_PT("button BTN_WIFI_SW pressed\n");
 			if (wlan_sw_init == 0)
 			{
@@ -2533,174 +2533,175 @@ void btn_check(void)
 					}
 				}
 			}
-	}
+		}
 #endif	/* RTCONFIG_WIRELESS_SWITCH && RTCONFIG_DSL */
-	else
-	{
-#ifdef RTCONFIG_WPS_RST_BTN
-		if (btn_pressed == 0)
-			;
-		else if (btn_count < WPS_RST_DO_RESTORE_COUNT)
-		{
-			if (btn_count < WPS_RST_DO_RESTORE_COUNT && btn_count >= WPS_RST_DO_WPS_COUNT && nvram_match("btn_ez_radiotoggle", "1"))
-			{
-				radio_switch(0);
-			}
-#ifdef RTCONFIG_WPS_ALLLED_BTN
-			else if (btn_count < WPS_RST_DO_RESTORE_COUNT && btn_count >= WPS_RST_DO_WPS_COUNT && nvram_match("btn_ez_mode", "1"))
-			{
-				LED_status_on = nvram_get_int("AllLED");
-
-
-				if (LED_status_on)
-					nvram_set_int("AllLED", 0);
-				else
-					nvram_set_int("AllLED", 1);
-				LED_status_on = !LED_status_on;
-
-				if (LED_status_on) {
-					TRACE_PT("LED turn to normal\n");
-					led_control(LED_POWER  , LED_ON);
-#if defined(RTN11P_B1)
-					system("reg s 0xB0000000; reg w 0x64 0x30015014");
-					system("reg s 0xB0000600; reg w 0x04 0x1C20; reg w 0x24 0x69CB");
-					led_control(LED_WAN  , LED_ON);
-					led_control(LED_LAN  , LED_ON);
-					led_control(LED_2G  , LED_ON);
-#endif
-				}
-				else {
-					TRACE_PT("LED turn off\n");
-					setAllLedOff();
-				}
-
-				/* check LED_WAN status */
-				kill_pidfile_s("/var/run/wanduck.pid", SIGUSR2);
-			}
-#endif
-			if (btn_count < WPS_RST_DO_RESTORE_COUNT && btn_count >= WPS_RST_DO_WPS_COUNT
-			   && !no_need_to_start_wps()
-			   && !wps_band_radio_off(get_radio_band(0))
-			   && !wps_band_ssid_broadcast_off(get_radio_band(0))
-			   && nvram_match("btn_ez_radiotoggle", "0")
-#ifdef RTCONFIG_WPS_ALLLED_BTN
-			   && nvram_match("btn_ez_mode", "0")
-#endif
-			   && !nvram_match("wps_ign_btn", "1")
-			)
-			{
-				btn_pressed_setup = BTNSETUP_DETECT;
-				btn_count_setup = WPS_WAIT_COUNT;	//to trigger WPS
-				alarmtimer(0, RUSHURGENT_PERIOD);
-			}
-			else
-			{
-				btn_pressed_setup = BTNSETUP_NONE;
-				btn_count_setup = 0;
-				alarmtimer(NORMAL_PERIOD, 0);
-			}
-
-#ifdef RTCONFIG_WPS_ALLLED_BTN
-			if (!(btn_count < WPS_RST_DO_RESTORE_COUNT && btn_count >= WPS_RST_DO_WPS_COUNT && nvram_match("btn_ez_mode", "1")))
-#endif
-			led_control(LED_POWER, LED_ON);
-
-			btn_count = 0;
-			btn_pressed = 0;
-		}
-		else if (btn_count >= WPS_RST_DO_RESTORE_COUNT)	// to do restore
-#else	/* ! RTCONFIG_WPS_RST_BTN */
-		if (btn_pressed == 1)
-		{
-			btn_count = 0;
-			btn_pressed = 0;
-#if defined(RTCONFIG_LP5523)
-			lp55xx_leds_proc(LP55XX_ALL_LEDS_OFF, LP55XX_PREVIOUS_STATE);
-#else
-			led_control(LED_POWER, LED_ON);
-#endif
-			alarmtimer(NORMAL_PERIOD, 0);
-		}
-		else if (btn_pressed == 2)
-#endif	/* ! RTCONFIG_WPS_RST_BTN */
-		{
-#if defined(RTN11P_B1)
-		stop_wanduck();
-		//Set WLED_N(GPIO44) to GPIO Mode, and turn on.
-		system("reg s 0xB0000000; reg w 0x64 0x30015015");
-		system("reg s 0xB0000600; reg w 0x04 0x1C20; reg w 0x24 0x69CB");
-		led_control(LED_POWER  , LED_OFF);
-		led_control(LED_WAN  , LED_OFF);
-		led_control(LED_LAN  , LED_OFF);
-		led_control(LED_2G  , LED_OFF);
-		sleep(1);
-		led_control(LED_WAN  , LED_ON);
-		led_control(LED_LAN  , LED_ON);
-		led_control(LED_2G  , LED_ON);
-		sleep(1);
-		led_control(LED_WAN  , LED_OFF);
-		led_control(LED_LAN  , LED_OFF);
-		led_control(LED_2G  , LED_OFF);
-		sleep(1);
-		led_control(LED_POWER, LED_ON);
-		sleep(1);
-#else
-#if defined(RTCONFIG_LP5523)
-			lp55xx_leds_proc(LP55XX_ORANGE_LEDS, LP55XX_ACT_BREATH_DOWN_011);
-#else
-			led_control(LED_POWER, LED_OFF);
-#endif /* RTCONFIG_LP5523 */
-#endif
-#if (defined(PLN12) || defined(PLAC56))
-			set_wifiled(2);
-#endif
-			alarmtimer(0, 0);
-			nvram_set("restore_defaults", "1");
-			if (notify_rc_after_wait("resetdefault")) {
-				/* Send resetdefault rc_service failed. */
-				alarmtimer(NORMAL_PERIOD, 0);
-			}
-		}
-#if defined(RTCONFIG_WIRELESS_SWITCH) && defined(RTCONFIG_DSL)
 		else
 		{
-			// no button is pressed or released
-			if (wlan_sw_init == 0)
+#ifdef RTCONFIG_WPS_RST_BTN
+			if (btn_pressed == 0)
+				;
+			else if (btn_count < WPS_RST_DO_RESTORE_COUNT)
 			{
-				wlan_sw_init = 1;
-				eval("iwpriv", "ra0", "set", "RadioOn=0");
-				eval("iwpriv", "rai0", "set", "RadioOn=0");
-				TRACE_PT("Radio Off\n");
-				nvram_set("wl0_radio", "0");
-				nvram_set("wl1_radio", "0");
+				if (btn_count < WPS_RST_DO_RESTORE_COUNT && btn_count >= WPS_RST_DO_WPS_COUNT && nvram_match("btn_ez_radiotoggle", "1"))
+				{
+					radio_switch(0);
+				}
+#ifdef RTCONFIG_WPS_ALLLED_BTN
+				else if (btn_count < WPS_RST_DO_RESTORE_COUNT && btn_count >= WPS_RST_DO_WPS_COUNT && nvram_match("btn_ez_mode", "1"))
+				{
+					LED_status_on = nvram_get_int("AllLED");
 
-				nvram_set("wl0_HW_switch", "1");
-				nvram_set("wl1_HW_switch", "1");
 
-				nvram_commit();
+					if (LED_status_on)
+						nvram_set_int("AllLED", 0);
+					else
+						nvram_set_int("AllLED", 1);
+					LED_status_on = !LED_status_on;
+
+					if (LED_status_on) {
+						TRACE_PT("LED turn to normal\n");
+						led_control(LED_POWER  , LED_ON);
+#if defined(RTN11P_B1)
+						system("reg s 0xB0000000; reg w 0x64 0x30015014");
+						system("reg s 0xB0000600; reg w 0x04 0x1C20; reg w 0x24 0x69CB");
+						led_control(LED_WAN  , LED_ON);
+						led_control(LED_LAN  , LED_ON);
+						led_control(LED_2G  , LED_ON);
+#endif
+					}
+					else {
+						TRACE_PT("LED turn off\n");
+						setAllLedOff();
+					}
+
+					/* check LED_WAN status */
+					kill_pidfile_s("/var/run/wanduck.pid", SIGUSR2);
+				}
+#endif
+				if (btn_count < WPS_RST_DO_RESTORE_COUNT && btn_count >= WPS_RST_DO_WPS_COUNT
+				   && !no_need_to_start_wps()
+				   && !wps_band_radio_off(get_radio_band(0))
+				   && !wps_band_ssid_broadcast_off(get_radio_band(0))
+				   && nvram_match("btn_ez_radiotoggle", "0")
+#ifdef RTCONFIG_WPS_ALLLED_BTN
+				   && nvram_match("btn_ez_mode", "0")
+#endif
+				   && !nvram_match("wps_ign_btn", "1")
+				)
+				{
+					btn_pressed_setup = BTNSETUP_DETECT;
+					btn_count_setup = WPS_WAIT_COUNT;	//to trigger WPS
+					alarmtimer(0, RUSHURGENT_PERIOD);
+				}
+				else
+				{
+					btn_pressed_setup = BTNSETUP_NONE;
+					btn_count_setup = 0;
+					alarmtimer(NORMAL_PERIOD, 0);
+				}
+
+#ifdef RTCONFIG_WPS_ALLLED_BTN
+				if (!(btn_count < WPS_RST_DO_RESTORE_COUNT && btn_count >= WPS_RST_DO_WPS_COUNT && nvram_match("btn_ez_mode", "1")))
+#endif
+				led_control(LED_POWER, LED_ON);
+
+				btn_count = 0;
+				btn_pressed = 0;
 			}
+			else if (btn_count >= WPS_RST_DO_RESTORE_COUNT)	// to do restore
+#else	/* ! RTCONFIG_WPS_RST_BTN */
+			if (btn_pressed == 1)
+			{
+				btn_count = 0;
+				btn_pressed = 0;
+#if defined(RTCONFIG_LP5523)
+				lp55xx_leds_proc(LP55XX_ALL_LEDS_OFF, LP55XX_PREVIOUS_STATE);
+#elif defined(MAPAC1750)
+#else
+				led_control(LED_POWER, LED_ON);
+#endif
+				alarmtimer(NORMAL_PERIOD, 0);
+			}
+			else if (btn_pressed == 2)
+#endif	/* ! RTCONFIG_WPS_RST_BTN */
+			{
+#if defined(RTN11P_B1)
+				stop_wanduck();
+				//Set WLED_N(GPIO44) to GPIO Mode, and turn on.
+				system("reg s 0xB0000000; reg w 0x64 0x30015015");
+				system("reg s 0xB0000600; reg w 0x04 0x1C20; reg w 0x24 0x69CB");
+				led_control(LED_POWER  , LED_OFF);
+				led_control(LED_WAN  , LED_OFF);
+				led_control(LED_LAN  , LED_OFF);
+				led_control(LED_2G  , LED_OFF);
+				sleep(1);
+				led_control(LED_WAN  , LED_ON);
+				led_control(LED_LAN  , LED_ON);
+				led_control(LED_2G  , LED_ON);
+				sleep(1);
+				led_control(LED_WAN  , LED_OFF);
+				led_control(LED_LAN  , LED_OFF);
+				led_control(LED_2G  , LED_OFF);
+				sleep(1);
+				led_control(LED_POWER, LED_ON);
+				sleep(1);
+#elif defined(RTCONFIG_LP5523)
+				lp55xx_leds_proc(LP55XX_ORANGE_LEDS, LP55XX_ACT_BREATH_DOWN_011);
+#elif defined(PLN12) || defined(PLAC56)
+				set_wifiled(2);
+#elif defined(MAPAC1750)
+				set_rgbled(RGBLED_YELLOW);
+#else
+				led_control(LED_POWER, LED_OFF);
+#endif
+				alarmtimer(0, 0);
+				nvram_set("restore_defaults", "1");
+				if(notify_rc_after_wait("resetdefault_erase"))
+				{
+					/* Send resetdefault rc_service failed. */
+					alarmtimer(NORMAL_PERIOD, 0);
+				}
+			}
+#if defined(RTCONFIG_WIRELESS_SWITCH) && defined(RTCONFIG_DSL)
 			else
 			{
-				if (nvram_match("wl0_radio", "1") || nvram_match("wl1_radio", "1")) {
+				// no button is pressed or released
+				if (wlan_sw_init == 0)
+				{
+					wlan_sw_init = 1;
 					eval("iwpriv", "ra0", "set", "RadioOn=0");
 					eval("iwpriv", "rai0", "set", "RadioOn=0");
 					TRACE_PT("Radio Off\n");
 					nvram_set("wl0_radio", "0");
 					nvram_set("wl1_radio", "0");
 
-					nvram_set("wl0_timesched", "0");
-					nvram_set("wl1_timesched", "0");
-				}
-
-				//indicate use switch HW slash manually.
-				if (nvram_match("wl0_HW_switch", "0") || nvram_match("wl1_HW_switch", "0")) {
 					nvram_set("wl0_HW_switch", "1");
 					nvram_set("wl1_HW_switch", "1");
+
+					nvram_commit();
+				}
+				else
+				{
+					if (nvram_match("wl0_radio", "1") || nvram_match("wl1_radio", "1")) {
+						eval("iwpriv", "ra0", "set", "RadioOn=0");
+						eval("iwpriv", "rai0", "set", "RadioOn=0");
+						TRACE_PT("Radio Off\n");
+						nvram_set("wl0_radio", "0");
+						nvram_set("wl1_radio", "0");
+
+						nvram_set("wl0_timesched", "0");
+						nvram_set("wl1_timesched", "0");
+					}
+
+					//indicate use switch HW slash manually.
+					if (nvram_match("wl0_HW_switch", "0") || nvram_match("wl1_HW_switch", "0")) {
+						nvram_set("wl0_HW_switch", "1");
+						nvram_set("wl1_HW_switch", "1");
+					}
 				}
 			}
-		}
 #endif	/* RTCONFIG_WIRELESS_SWITCH && RTCONFIG_DSL */
-	}
+		}
 
 #ifdef BTN_SETUP
 	}
@@ -2793,13 +2794,15 @@ void btn_check(void)
 			if (LED_status_on) {
 				TRACE_PT("LED turn to normal\n");
 				led_control(LED_POWER, LED_ON);
-#if defined(RTAC65U)  || defined(RTAC85U)
+#if defined(RTAC65U)  || defined(RTAC85U) || defined(RTN800HP)
 			if (nvram_match("wl0_radio", "1")) {
 				led_control(LED_2G, LED_ON);
 			}
+#ifdef RTCONFIG_HAS_5G
 			if (nvram_match("wl1_radio", "1")) {
 				led_control(LED_5G, LED_ON);
 			}
+#endif
 #endif
 #if defined(RTAC51UP) || defined(RTAC53)
 				eval("rtkswitch", "100", "0x20000"); //lan/wan ethernet/giga led
@@ -3079,7 +3082,6 @@ void btn_check(void)
 #ifdef BLUECAVE
 				bc_wps_led = 0;
 #endif
-
 				if (btn_pressed_setup == BTNSETUP_NONE)
 				{
 					btn_pressed_setup = BTNSETUP_DETECT;
@@ -3095,8 +3097,8 @@ void btn_check(void)
 						btn_count_setup_second = 0;
 						nvram_set("wps_ign_btn", "1");
 #ifdef RTCONFIG_WIFI_CLONE
-#if defined(MAPAC1300) || defined(MAPAC2200) || defined(VRZAC1300)
-						if(((sw_mode() == SW_MODE_AP) && nvram_get_int("x_Setting")) || 
+#ifdef RTCONFIG_WIFI_SON
+						if(((sw_mode() == SW_MODE_AP) && !nvram_match("cfg_master", "1") && nvram_get_int("x_Setting")) ||
 						   ((sw_mode() == SW_MODE_ROUTER ) && !nvram_get_int("x_Setting"))) {  //Range extender
 							doSystem("killall wifimon_check");
 							doSystem("killall wpa_supplicant");
@@ -3111,19 +3113,22 @@ void btn_check(void)
 
 #else
 						if (sw_mode() == SW_MODE_ROUTER
-									|| sw_mode() == SW_MODE_AP) {
+							|| sw_mode() == SW_MODE_AP) {
 #endif
 							nvram_set("wps_enrollee", "1");
 							nvram_set("wps_e_success", "0");
 						}
-#if defined(MAPAC1300) || defined(MAPAC2200) || defined(VRZAC1300)
+#ifdef RTCONFIG_WIFI_SON
 						else
 							nvram_set("wps_enrollee", "0");
 #endif
 #if (defined(PLN12) || defined(PLAC56))
 						set_wifiled(3);
+#elif defined(MAPAC1750)
+						set_rgbled(RGBLED_BLUE_3ON1OFF);
 #endif
-#endif
+#endif // RTCONFIG_WIFI_CLONE
+
 #if 0
 						start_wps_pbc(0);	// always 2.4G
 #else
@@ -3146,8 +3151,7 @@ void btn_check(void)
 #endif
 					}
 				}
-			}
-			else {
+			} else {
 				TRACE_PT("button WPS pressed, skip\n");
 			}
 		}
@@ -3211,6 +3215,14 @@ void btn_check(void)
 
 			if (is_wps_stopped() || --wsc_timeout == 0)
 			{
+#if defined(HND_ROUTER) && defined(RTCONFIG_PROXYSTA)
+				if (!nvram_get_int("wps_band_x") && (is_dpsr(nvram_get_int("wps_band_x"))
+#ifdef RTCONFIG_DPSTA
+					|| is_dpsta(nvram_get_int("wps_band_x"))
+#endif
+				))
+				eval("wl", "spatial_policy", "1");
+#endif
 				wsc_timeout = 0;
 
 				btn_pressed_setup = BTNSETUP_NONE;
@@ -3230,22 +3242,28 @@ void btn_check(void)
 #if defined(RTCONFIG_CONCURRENTREPEATER)
 				nvram_set_int("led_status", LED_WPS_FAIL);
 #endif
+
+#if defined(RTCONFIG_QCA)
+				if (nvram_match("wps_enrollee", "1"))
+					stop_wps_method();
+#endif
 #ifdef RTCONFIG_WIFI_CLONE
 				if (nvram_match("wps_e_success", "1")) {
 #if (defined(PLN12) || defined(PLAC56))
 					set_wifiled(2);
 #endif
 
-#if defined(MAPAC1300) || defined(MAPAC2200) || defined(VRZAC1300)
+#ifdef RTCONFIG_WIFI_SON
                               		if (sw_mode() == SW_MODE_ROUTER) //default
                                         {
-                                       		_dprintf("=> switch router to ap mode.\n");
+						_dprintf("=> switch router to RE mode.\n");
                                                 nvram_set("lan_proto", "dhcp");
              	                                nvram_set("lan_dnsenable_x", "1");
                                                 nvram_set("w_Setting", "1");
                                                 nvram_set("x_Setting", "1");
 						nvram_set_int("sw_mode", SW_MODE_AP);
 						nvram_set("qis_Setting", "1");
+						nvram_unset("cfg_master");
 						nvram_commit();
 						_eval(argv, NULL, 0, &pid);
 						if (pids("bluetoothd"))
@@ -3268,33 +3286,34 @@ void btn_check(void)
 #if (defined(PLN12) || defined(PLAC56))
 				else
 					set_wifiled(1);
-#endif
-#if defined(MAPAC1300) || defined(MAPAC2200) || defined(VRZAC1300)
+#elif defined(RTCONFIG_WIFI_SON)
 				else
 				{
 					if((sw_mode() == SW_MODE_AP) && nvram_get_int("x_Setting")) //Range extender
 					{
-							pid_t pid;
-							_dprintf("=>wifimon is back\n");
-							doSystem("killall wpa_supplicant");
-							char *wifimon[]={"wifimon_check",NULL};
-							if (!pids(wifimon[0]))
-							_eval(wifimon, NULL, 0, &pid);
+						pid_t pid;
+						_dprintf("=>wifimon is back\n");
+						char *wifimon[]={"wifimon_check",NULL};
+						if (!pids(wifimon[0]))
+						_eval(wifimon, NULL, 0, &pid);
 					}
 				}
-
 #endif
+#endif // RTCONFIG_WIFI_CLONE
 
-#endif
-
-#if defined(MAPAC1300) || defined(MAPAC2200) || defined(VRZAC1300)
+#ifdef RTCONFIG_WIFI_SON
 #ifdef RTCONFIG_WPS_ENROLLEE
 				if (nvram_match("wps_enrollee", "0"))  //CAP
 #endif
 					uptime_wait(30); //CAP estimate time
-				//_dprintf("==> %s:wps_syncing stop\n",sw_mode()==SW_MODE_ROUTER?"CAP":"RE");
-				nvram_set("wps_syncing","0");
+#if defined(RTCONFIG_LP5523)
 				lp55xx_leds_proc(LP55XX_ALL_LEDS_OFF, LP55XX_PREVIOUS_STATE);
+#elif defined(MAPAC1750)
+				if (pids("bluetoothd") && wsc_timeout == 0)
+					set_rgbled(RGBLED_WHITE);
+				else
+					nvram_set("prelink_pap_status", "-1");
+#endif
 #endif
 
 #ifdef RTCONFIG_CFGSYNC
@@ -3311,13 +3330,9 @@ void btn_check(void)
 		/* 1010101010 */
 #if defined(RTCONFIG_LP5523)
 		if (btn_count_setup == 1)
-		{
-			nvram_set("wps_syncing","1");
 			lp55xx_leds_proc(LP55XX_GREENERY_LEDS, LP55XX_WPS_PARAM_SYNC);
-	//		lp55xx_leds_proc(LP55XX_ALL_LEDS_OFF, LP55XX_WPS_TRIG);
-		}
-#else
-#ifdef BLUECAVE
+#elif defined(MAPAC1750)
+#elif defined(BLUECAVE)
 		if (!bc_wps_led) {
 			bc_wps_led = 1;
 			nvram_set("bc_ledbh", "wps");
@@ -3328,11 +3343,10 @@ void btn_check(void)
 			wps_led_control(LED_ON);
 		else
 			wps_led_control(LED_OFF);
-#endif // BLUECAVE
-#endif // RTCONFIG_LP5523
+#endif
 #if defined(RTCONFIG_CONCURRENTREPEATER) && defined(RTCONFIG_MTK_REP)
-			if(sw_mode() == SW_MODE_AP)
-				nvram_set_int("led_status", LED_AP_WPS_START);
+		if(sw_mode() == SW_MODE_AP)
+			nvram_set_int("led_status", LED_AP_WPS_START);
 #endif
 	}
 #endif	/* BTN_SETUP */
@@ -3571,11 +3585,7 @@ void timecheck(void)
 	}
 
 	// radio on/off
-	if (nvram_match("svc_ready", "1")
-#ifdef RTCONFIG_QCA
-		&& nvram_match("wlready", "1")
-#endif
-	)
+	if (nvram_match("svc_ready", "1") && nvram_match("wlready", "1"))
 	foreach (word, nvram_safe_get("wl_ifnames"), next) {
 		SKIP_ABSENT_BAND_AND_INC_UNIT(unit);
 		snprintf(prefix, sizeof(prefix), "wl%d_", unit);
@@ -3650,6 +3660,20 @@ void timecheck(void)
 #endif
 					ifconfig(word, 0, NULL, NULL);
 					eval("brctl", "delif", lan_ifname, word);
+#ifdef RTCONFIG_WIFI_SON
+					eval("brctl", "delif", BR_GUEST, word);
+					char *tmp_str = strdup(nvram_safe_get("lan_ifnames"));
+					if (tmp_str) {
+						if (remove_word(tmp_str, word)) {
+							trim_space(tmp_str);
+							nvram_set("lan_ifnames", tmp_str);
+						}
+						free(tmp_str);
+					}
+					doSystem("wlanconfig %s destroy", word);
+					/* restart hyd */
+					eval("hive_hyd");
+#endif
 				}
 				else
 				{
@@ -3687,7 +3711,7 @@ void timecheck(void)
 	}
 #endif
 
-#if defined(MAPAC1300) || defined(MAPAC2200) || defined(VRZAC1300)
+#if defined(MAPAC1300) || defined(MAPAC2200) || defined(VZWAC1300)
 #if defined(RTCONFIG_LP5523)
 	// lp55xx led schedule
 	int lp55xx_sch_enable = nvram_get_int("lp55xx_lp5523_sch_enable");
@@ -3737,7 +3761,7 @@ static void catch_sig(int sig)
 		btn_pressed_setup = BTNSETUP_START;
 		btn_count_setup = 0;
 		btn_count_setup_second = 0;
-#ifdef AMAS
+#ifdef RTCONFIG_AMAS
 		if (nvram_get_int("amesh_led"))
 		wsc_timeout = AMESH_TIMEOUT_COUNT;
 		else
@@ -4261,12 +4285,13 @@ enum {
 
 static int bh_case = CASE_NONE;
 static int indicator_rush_counts = -1;
-static int central_rush_counts = -1;
+static int central_rush_counts = 0;
 static int led_alarm_rush = 0;
 static int central_cycle = 0;
 static int brightness_level = 0;
 static int indicator_no_internet_red = -1;
 static int indicator_no_internet_red_old = -1;
+static int indicator_no_internet_cnt = 0;
 static int central_bh[10] = {0,1,2,3,3,3,3,3,2,1};
 
 void led_rush(int sig)
@@ -4296,7 +4321,11 @@ void led_stop(int sig)
 	indicator_rush_counts = -1;
 
 	led_control(LED_INDICATOR_SIG1, LED_OFF); //turn off RED led
-	led_control(LED_INDICATOR_SIG2, LED_OFF); //turn off BLUE led
+	if (!nvram_get_int("wave_ready"))
+		led_control(LED_INDICATOR_SIG2, LED_ON); //turn on BLUE led
+	else
+		led_control(LED_INDICATOR_SIG2, LED_OFF); //turn off BLUE led
+
 
 	if(!central_cycle) {
 		led_alarm_rush = 0;
@@ -4306,15 +4335,9 @@ void led_stop(int sig)
 
 void bluecave_ledbh_central()
 {
-	if (!nvram_get_int("wlready"))
-		return;
 
-	if(!central_cycle && 
-	   central_rush_counts == -1 && 
-	   brightness_level == 2 && 
-	   get_gpio(nvram_get_int("led_ctl_sig2_gpio"))) { // workaround for gpio was reset by mem xxx
+	if(!nvram_get_int("wave_ready") || (!central_cycle && central_rush_counts == -1))
 		return;
-	}
 
 	/* cycle central led util QIS is completed */
 	if(central_cycle) {
@@ -4323,8 +4346,7 @@ void bluecave_ledbh_central()
 			setCentralLedLv(central_bh[++brightness_level % 10]);
 	}
 	else {
-		brightness_level = 2;
-		setCentralLedLv(brightness_level);
+		notify_rc("reset_led");
 		central_rush_counts = -1;
 	}
 }
@@ -4332,6 +4354,10 @@ void bluecave_ledbh_central()
 void bluecave_ledbh_indicator()
 {
 	int WpsLedBlink, WpsLedOff;
+
+	if (!nvram_get_int("wave_ready") && bh_case != CASE_INDICATOR_RESET)
+		return;
+
 
 	/* indicator led control */
 	switch(bh_case) {
@@ -4401,13 +4427,21 @@ void bluecave_ledbh_indicator()
 
 		case CASE_NONE:
 		default:
+
 			// regular checking WAN status
-			if(!nvram_match("link_internet", "2"))	indicator_no_internet_red  = 1;
-			else					indicator_no_internet_red  = 0;
+			if(!nvram_match("link_internet", "2")) {
+				if(++indicator_no_internet_cnt >= 3)
+					indicator_no_internet_red  = 1;
+			}
+			else {
+				indicator_no_internet_red  = 0;
+				indicator_no_internet_cnt = 0;
+			}
 
 			// Solid RED led if no internet ability
 			if((indicator_no_internet_red != indicator_no_internet_red_old) ||
-		  	   (indicator_no_internet_red && !get_gpio(nvram_get_int("led_idr_sig1_gpio")))) // WAR for gpio was reset by mem xxx 
+		  	   (indicator_no_internet_red && !get_gpio(nvram_get_int("led_idr_sig1_gpio")) ||
+			   (!indicator_no_internet_red) && get_gpio(nvram_get_int("led_idr_sig2_gpio")))) // WAR for gpio was reset by mem xxx 
 			{
 				indicator_no_internet_red == 1 ? 
 					led_control(LED_INDICATOR_SIG1, LED_ON) : 
@@ -4958,6 +4992,10 @@ void ddns_check(void)
 
 void networkmap_check()
 {
+#ifdef RTCONFIG_WIFI_SON
+	if (sw_mode() == SW_MODE_AP && !nvram_match("cfg_master", "1"))
+		return;
+#endif
 	if (!pids("networkmap"))
 		start_networkmap(0);
 }
@@ -4999,7 +5037,7 @@ void wave_monitor_check()
 		killall_tk("wave_monitor");
 		start_wave_monitor();
 	}
-	if(drop_caches_check < 2){
+	if(drop_caches_check < 4){
 		f_write_string("/proc/sys/vm/drop_caches", "1", 0, 0);
 		drop_caches_check++;
 	}else{
@@ -5032,6 +5070,32 @@ void dnsmasq_check()
 #endif
 	}
 }
+
+#ifdef RTCONFIG_NEW_USER_LOW_RSSI
+void roamast_check()
+{
+	char prefix[]="wlXXXXXX_", tmp[64];
+	char word[256], *next;
+	int unit = 0, rast = 0;
+
+	foreach (word, nvram_safe_get("wl_ifnames"), next) {
+		snprintf(prefix, sizeof(prefix), "wl%d_", unit);
+
+		if (nvram_get_int(strcat_r(prefix, "user_rssi", tmp)) != 0) {
+			rast = 1;
+			break;
+		}
+		else {
+			unit++;
+			continue;
+		}
+	}
+
+	if (rast && !pids("roamast"))
+		start_roamast();
+}
+#endif
+
 #if ! (defined(RTCONFIG_QCA) || defined(RTCONFIG_RALINK))
 void watchdog_check()
 {
@@ -5547,58 +5611,69 @@ ERROR:
 	}
 }
 
-#ifdef RTCONFIG_BT_CONN
-#if defined(RTCONFIG_LP5523)
+#ifdef RTCONFIG_WIFI_SON
 static void link_pap_status()
 {
 	int sw_mode = nvram_get_int("sw_mode");
 	int count_point = 10;
 	int prelink_pap_status = nvram_get_int("prelink_pap_status");
 	int link_pap_status = 0;
+	int alive = nvram_get_int("cfg_alive");
 
 	if (!pids("bluetoothd")) {
-		if (sw_mode == SW_MODE_ROUTER) {
+		if (sw_mode == SW_MODE_ROUTER || (sw_mode == SW_MODE_AP && nvram_match("cfg_master", "1"))) {
 			if (nvram_match("link_internet", "2"))
 				link_pap_status = 1;
 		}
-		else if (sw_mode == SW_MODE_AP) {
-			if(nvram_get_int("re_syncing") || nvram_get_int("wps_syncing")) //do not check wifi-status when CAP sync with RE
+		else if (sw_mode == SW_MODE_AP && !nvram_match("cfg_master", "1")) {
+#ifdef RTCONFIG_ETHBACKHAUL
+			if (nvram_get_int("eth_backl"))
+				link_pap_status = 1;
+			else {
+#endif
+			if (nvram_get_int("re_syncing")) //do not check wifi-status when CAP sync with RE
 				return;
 
-			link_pap_status = (int)getPapState(1)==2?1:((int)getPapState(0)==2?2:0);
-			/* temporarily for SPF4.0CS LIGHT daisy-chain limitation */
-			if (link_pap_status == 2) { /* 2G link only*/
-				char *outpt;
-				int dist;
-				dist = nvram_get_int("lyra_re_dist");
-				if (dist==0) {
-					if (outpt=get_qca_iwpriv(WIF_2G, "get_whc_dist")) {
-						dist = atoi(outpt);
-						free(outpt);
-					}
-					if (dist > 0) /* save the result */
-						nvram_set_int("lyra_re_dist", dist);
-				}
-				if (dist > 1) /* daisy chain leaf RE */
-					link_pap_status = 0;
+			if (!alive && (prelink_pap_status==-1 || prelink_pap_status>count_point))
+				link_pap_status = 0;
+			else
+				link_pap_status = (int)getPapState(1)==2?1:((int)getPapState(0)==2?2:0);
+
+#ifdef RTCONFIG_ETHBACKHAUL
 			}
+#endif
 		}
 
 		if (link_pap_status != prelink_pap_status)
 		{
-			if (sw_mode == SW_MODE_AP)
+			if (sw_mode == SW_MODE_AP && !nvram_match("cfg_master", "1"))
 				nvram_unset("lyra_re_dist");
 
 			if (link_pap_status) {
-				if (link_pap_status)
+#ifdef RTCONFIG_ETHBACKHAUL
+				if (nvram_get_int("eth_backl"))
+#if defined(RTCONFIG_LP5523)
+					lp55xx_leds_proc(LP55XX_GREENERY_LEDS, LP55XX_ACT_NONE);
+#elif defined(MAPAC1750)
+					set_rgbled(RGBLED_GREEN);
+#endif
+				else
+#endif
+#if defined(RTCONFIG_LP5523)
 					lp55xx_leds_proc(LP55XX_LIGHT_CYAN_LEDS, LP55XX_ACT_NONE);
+#elif defined(MAPAC1750)
+					set_rgbled(RGBLED_NIAGARA_BLUE);
+#endif
 			}
 			else {
 				if (prelink_pap_status < count_point) {
 					if (sw_mode == SW_MODE_AP) {
-						if (prelink_pap_status == -1) {
+						if (!alive && prelink_pap_status==-1) {
 							link_pap_status = count_point + 180;
+#if defined(RTCONFIG_LP5523)
 							lp55xx_leds_proc(LP55XX_ALL_BREATH_LEDS, LP55XX_ACT_NONE);
+#elif defined(MAPAC1750)
+#endif
 						}
 						else {
 							if (nvram_match("wl1_country_code", "GB"))
@@ -5606,29 +5681,52 @@ static void link_pap_status()
 							else 
 								link_pap_status = count_point + 15;
 
+#if defined(RTCONFIG_LP5523)
 							lp55xx_leds_proc(LP55XX_GREENERY_LEDS, LP55XX_ACT_3ON1OFF);
+#elif defined(MAPAC1750)
+							set_rgbled(RGBLED_BLUE_3ON1OFF);
+#endif
 						}
 					}
 					else {
 						link_pap_status = count_point;
-						if (sw_mode == SW_MODE_ROUTER)
+						if (sw_mode == SW_MODE_ROUTER || (sw_mode == SW_MODE_AP && nvram_match("cfg_master", "1")))
+#if defined(RTCONFIG_LP5523)
 							lp55xx_leds_proc(LP55XX_ORANGE_LEDS, LP55XX_ACT_NONE);
+#elif defined(MAPAC1750)
+							set_rgbled(RGBLED_YELLOW);
+#endif
 						else
+#if defined(RTCONFIG_LP5523)
 							lp55xx_leds_proc(LP55XX_RED_LEDS, LP55XX_ACT_NONE);
+#elif defined(MAPAC1750)
+							set_rgbled(RGBLED_RED);
+#endif
 					}
 				}
 				else if (prelink_pap_status > count_point) {
 					link_pap_status=prelink_pap_status-1;
-					if (link_pap_status == count_point)
+
+					if (link_pap_status == count_point) {
+						if (!alive)
+							nvram_set_int("cfg_alive", 99);
+#if defined(RTCONFIG_LP5523)
 						lp55xx_leds_proc(LP55XX_RED_LEDS, LP55XX_ACT_NONE);
+#elif defined(MAPAC1750)
+						set_rgbled(RGBLED_RED);
+#endif
+					}
 				}
 			}
+
+			logmessage("WATCHDOG", "[%s] cfg alive:%d state:%d, pre state:%d", __func__, alive, link_pap_status, prelink_pap_status);
 			nvram_set_int("prelink_pap_status", link_pap_status);
 		}
 	}
 }
 #endif
 
+#ifdef RTCONFIG_BT_CONN
 static void bt_turn_off_service()
 {
 	char buf[256];
@@ -5668,13 +5766,56 @@ static void bt_turn_off_service()
 }
 #endif /* RTCONFIG_BT_CONN */
 
+#ifdef RTCONFIG_AMAS
+void amas_ctl_check()
+{	
+	if (nvram_get_int("re_mode") == 1) {	
+		if (!pids("amas_bhctrl"))
+			notify_rc("start_amas_bhctrl");
+		if (!pids("amas_wlcconnect"))
+			notify_rc("start_amas_wlcconnect");				
+		if (!pids("amas_lanctrl"))
+			notify_rc("start_amas_lanctrl");
+	}
+}
+
+void onboarding_check()
+{
+	static int onboarding_count = 0;
+
+	if (!nvram_match("start_service_ready", "1"))
+		return;
+
+	if (!nvram_match("re_mode", "1"))
+		return;
+
+	if (strlen(nvram_safe_get("cfg_group")))
+		return;
+
+	onboarding_count++;
+
+	if (onboarding_count > ONBOARDING_TIMEOUT) {
+		_dprintf("### onboarding timeout, restore to default ###\n");
+		notify_rc("resetdefault");
+	}
+}
+#endif
+
 #ifdef RTCONFIG_CFGSYNC
 void cfgsync_check()
 {
-	if (!pids("cfg_client") && !pids("cfg_server"))
+	if (nvram_match("x_Setting", "1") && !pids("cfg_client") && !pids("cfg_server"))
 		start_cfgsync();
 }
 #endif /* RTCONFIG_CFGSYNC */
+
+#ifdef RTCONFIG_TUNNEL
+void mastiff_check()
+{
+	if (!pids("mastiff"))
+		start_mastiff();
+}
+#endif /* RTCONFIG_TUNNEL */
 
 #ifdef RTCONFIG_USER_LOW_RSSI
 #define ETHER_ADDR_STR_LEN	18
@@ -6455,7 +6596,9 @@ void watchdog(int sig)
 #if defined(RTCONFIG_QCA)
 	qca_wps_state_check();
 #endif
+#if !defined(RTCONFIG_AMAS)
 	bridge_check();
+#endif	
 #else
 	service_check();
 #endif
@@ -6498,76 +6641,103 @@ void watchdog(int sig)
 	wanduck_check();
 #endif
 
-#if defined(RTCONFIG_BT_CONN) && defined(RTCONFIG_LP5523)
-#if defined(MAPAC1300) || defined(MAPAC2200) || defined(VRZAC1300)
+	/* if timer is set to less than 1 sec, then bypass the following */
+	if (itv.it_value.tv_sec == 0) return;
+
+#ifdef RTCONFIG_WIFI_SON
 	if (nvram_match("x_Setting", "1")) {
 		link_pap_status();
-		if ( f_exists("/tmp/hyd.conf") && !pids("hyd"))
+		if (f_exists("/tmp/hyd.conf"))
 		{
-			if(uptime()-nvram_get_int("watchdog_hyd")>20)
-			{
-				_dprintf("===> watchdog: wakup hyd\n");
-				eval("hyd","-C","/tmp/hyd.conf");
-			}
-		}
-
+			static int invalid_state=0;
+			pid_t *pidList;
+			pid_t *pl;
+			int count;
+			static int hyd_wake_cnt=0, hyd_reset_cnt=0;
+			static long hyd_last_wake_time=0;
+			long uptime_now;
 #ifdef RTCONFIG_ETHBACKHAUL
-		check_eth_time--;
-		if(nvram_get_int("wlready") && nvram_get_int("eth_detect_proc")==0)
-		{
-			if(check_eth_time==0)
-			{
-				check_eth_time=1;
-				if(get_lanports_status())
-				{
-					if(eth_backl==0)
-					{
-						if(lldpcli_det())
-						{
-							_dprintf("=> lan port=1 lldpcli detect wifi-son\n");
-							eval("hive_eth","1");
-							eth_backl=1;
-						}
-/*
-						else
-							_dprintf("=> lan port=1 but no wifi-son device\n");
-*/
-					}
-/*
-					else
-					{
-							_dprintf("=> lan port=1 and has eth-backhaul\n");
-
-					}
-*/
-				}
-				else
-				{
-					if(eth_backl)
-					{
-						_dprintf("=>lan port=0 and disable eth-backhaul\n");
-						eval("hive_eth","0");
-						eth_backl=0;
-					}
-/*
-					else
-						_dprintf("=>lan port=0 but no wifi-son device\n");
-*/
-
-				}
-			}
-			else if(check_eth_time==1) //last, clear hyd status
-			{
-//				_dprintf("=> clean hyd status \n");
-				doSystem("killall -9 hyd");
-				if(sw_mode()==SW_MODE_AP)
-					ifconfig("eth1", IFUP, NULL, NULL);
-			}
-
-
-		}
+			static int chaos_eth_state=0;
 #endif
+
+			uptime_now = uptime();
+			if(uptime_now- atol(nvram_get("hyd_cfg_time"))>40)
+			{
+				pidList = find_pid_by_name("hyd");
+				count=0;
+				for (pl = pidList; *pl; pl++)
+					count++;
+				if (count!=1)
+					invalid_state++;
+				else
+					invalid_state=0;
+				if (invalid_state >= 2) {
+					if (count==0) {
+						if ((uptime_now-hyd_last_wake_time)>10) { /* reset */
+							hyd_wake_cnt=0;
+							hyd_reset_cnt=0;
+						}
+						hyd_last_wake_time = uptime_now;
+						hyd_wake_cnt++;
+						if (hyd_wake_cnt > 5) { /* something wrong, regen hyd config */
+							hyd_wake_cnt=0;
+							hyd_reset_cnt++;
+							if (hyd_reset_cnt > 2) { /* serious situation... */
+								logmessage("HYD", "hyd cannot startup, reboot!");
+								eval("reboot");
+							} else {
+								char lbuf[40];
+								_dprintf("[[[WATCHDOG]]] : reset hyd process!\n");
+								/* log some information */
+								logmessage("HYD", "==================================");
+								system("ifconfig -a | logger -s");
+								logmessage("HYD", "==================================");
+								system("iwconfig | logger -s");
+								logmessage("HYD", "==================================");
+								system("cat /tmp/hyd.conf | logger -s");
+								logmessage("HYD", "==================================");
+								eval("hive_hyd");
+								sprintf(lbuf, "%lu", uptime_now-40);
+								nvram_set("hyd_cfg_time", lbuf);
+							}
+						} else {
+							_dprintf("[[[WATCHDOG]]] : wakup hyd\n");
+							eval("hyd","-C","/tmp/hyd.conf");
+						}
+					} else {
+						int tmp_count;
+						for (tmp_count=0; tmp_count<=(count-1); tmp_count++) {
+							if (pidList[tmp_count]>1) {
+								_dprintf("[[[WATCHDOG]]] : kill duplicated hyd[%d]\n", pidList[tmp_count]);
+								kill(pidList[tmp_count], SIGKILL);
+							}
+						}
+					}
+				}
+				free(pidList);
+			}
+#ifdef RTCONFIG_ETHBACKHAUL
+			if (nvram_get_int("chaos_eth_daemon")) {
+				if (chaos_eth_state++ > 10) {
+					pidList = find_pid_by_name("eth_bh_mon");
+					count=0;
+					for (pl = pidList; *pl; pl++)
+						count++;
+					free(pidList);
+					if (count==0) {
+						pid_t eth_pid;
+						char *ethmon[]={"eth_bh_mon", NULL};
+						_dprintf("[[[WATCHDOG]]] : wakup eth_bh_mon\n");
+						_eval(ethmon, NULL, 0, &eth_pid);
+					} else
+						nvram_unset("chaos_eth_daemon");
+				}
+			} else
+				chaos_eth_state=0;
+#endif
+		}
 	}
+#if defined(RTCONFIG_BT_CONN)
 	else if (nvram_match("x_Setting", "0")) {
 /*		if (!pids("bluetoothd"))
 			start_bluetooth_service();
@@ -6577,11 +6747,12 @@ void watchdog(int sig)
 #endif
 #endif
 
-	/* if timer is set to less than 1 sec, then bypass the following */
-	if (itv.it_value.tv_sec == 0) return;
-
 #if (defined(PLN12) || defined(PLAC56) || defined(PLAC66U))
 	client_check();
+#endif
+
+#ifdef RTCONFIG_AMAS
+	onboarding_check();
 #endif
 
 	if (!nvram_match("asus_mfg", "0")) return;
@@ -6658,6 +6829,9 @@ wdp:
 	networkmap_check();
 	httpd_check();
 	dnsmasq_check();
+#ifdef RTCONFIG_NEW_USER_LOW_RSSI
+	roamast_check();
+#endif
 #ifdef RTAC87U
 	qtn_module_check();
 #endif
@@ -6714,8 +6888,14 @@ wdp:
 		kill_pidfile_s("/var/run/wdg_monitor.pid", SIGUSR1);
 #endif
 
+#ifdef RTCONFIG_AMAS
+	amas_ctl_check();
+#endif
 #ifdef RTCONFIG_CFGSYNC
 	cfgsync_check();
+#endif
+#ifdef RTCONFIG_TUNNEL
+	mastiff_check();
 #endif
 
 	return;

@@ -235,6 +235,20 @@ function initial(){
 	else
 		show_middle_status(document.form.wl_auth_mode_x.value, parseInt(document.form.wl_wep_x.value));
 
+	if(amesh_support && (isSwMode("rt") || isSwMode("ap"))) {
+		var html = '<a id="clientStatusLink" href="device-map/amesh.asp" target="statusframe">';
+		html += '<div id="iconAMesh" class="iconAMesh_dis" style="margin-top:20px;" onclick="clickEvent(this);"></div>';
+		html += '</a>';
+		html += '<div class="clients" id="ameshNumber" style="cursor:pointer;">AiMesh Node: <span>0</span></div>';/* untranslated */
+		$("#ameshContainer").html(html);
+		require(['/require/modules/amesh.js'], function(){
+			updateAMeshCount();
+			setInterval(updateAMeshCount, 5000);
+		});
+	}
+	else
+		$("#ameshContainer").remove();
+
 	set_default_choice();
 
 	if(!parent.usb_support || usbPortMax == 0){
@@ -356,7 +370,7 @@ function initial(){
 
 	if(smart_connect_support){
 		if(localAP_support && (isSwMode("rt") || isSwMode("ap"))){
-			if((based_modelid == "RT-AC5300" || based_modelid == "GT-AC5300") && '<% nvram_get("smart_connect_x"); %>' !=0)
+			if((based_modelid == "RT-AC5300") && '<% nvram_get("smart_connect_x"); %>' !=0)
 			show_smart_connect_status();
 		}
 	}
@@ -411,6 +425,7 @@ function initial(){
 	}
 
 	orig_NM_container_height = parseInt($(".NM_radius_bottom_container").css("height"));
+	
 }
 
 function show_smart_connect_status(){
@@ -435,9 +450,9 @@ function show_ddns_status(){
 	if( ddns_enable == '0')
         document.getElementById("ddnsHostName").innerHTML = '<a style="color:#FFF;text-decoration:underline;" href="/Advanced_ASUSDDNS_Content.asp?af=ddns_enable_x"><#btn_go#></a>';
     else if(ddnsName == '')
-        document.getElementById("ddnsHostName").innerHTML = '<a style="color:#FFF;text-decoration:underline;" href="/Advanced_ASUSDDNS_Content.asp?af=DDNSName">Sign up</a>';
+        document.getElementById("ddnsHostName").innerHTML = '<a style="color:#FFF;text-decoration:underline;" href="/Advanced_ASUSDDNS_Content.asp?af=DDNSName"><#sign_up#></a>';
     else if(ddnsName == isMD5DDNSName())
-        document.getElementById("ddnsHostName").innerHTML = '<a style="color:#FFF;text-decoration:underline;" href="/Advanced_ASUSDDNS_Content.asp?af=DDNSName">Sign up</a>';
+        document.getElementById("ddnsHostName").innerHTML = '<a style="color:#FFF;text-decoration:underline;" href="/Advanced_ASUSDDNS_Content.asp?af=DDNSName"><#sign_up#></a>';
     else{
         document.getElementById("ddnsHostName").innerHTML = '<span>'+ ddnsName +'</span>';
         if(ddns_enable == '1'){
@@ -487,6 +502,10 @@ function set_default_choice(){
 		else if(flag == "USBdisk"){
 			document.getElementById("iconRouter").style.backgroundPosition = '0% 0%';
 			clickEvent(document.getElementById("iconUSBdisk"));
+		}
+		else if(flag == "AMesh"){
+			document.getElementById("iconRouter").style.backgroundPosition = '0% 0%';
+			clickEvent(document.getElementById("iconAMesh"));
 		}
 		else{
 			clickEvent(document.getElementById("iconRouter"));
@@ -693,6 +712,11 @@ function get_clicked_device_order(){
 }
 
 function clickEvent(obj){
+	if(amesh_support && (isSwMode("rt") || isSwMode("ap"))) {
+		require(['/require/modules/amesh.js'], function(){
+			initial_amesh_obj();
+		});	
+	}
 	var icon;
 	var stitle;
 	var seat;
@@ -789,6 +813,18 @@ function clickEvent(obj){
 	else if(obj.id.indexOf("No") > 0){
 		icon = "iconNo";
 	}
+	else if(obj.id.indexOf("AMesh") > 0){
+		icon = "iconAMesh";
+		stitle = "AiMesh";
+		setTimeout(function(){
+			var flag = '<% get_parameter("flag"); %>';
+			var id = '<% get_parameter("id"); %>';
+			if(flag != "" && id != "")
+				document.getElementById("statusframe").src = "/device-map/amesh.asp?id=" + id + "";
+			else
+				document.getElementById("statusframe").src = "/device-map/amesh.asp";
+		}, 1);
+	}
 	else
 		alert("mouse over on wrong place!");
 
@@ -797,6 +833,10 @@ function clickEvent(obj){
 			lastClicked.style.backgroundPosition = '1px -4px';
 		else if(lastClicked.id.indexOf("iconRouter") >= 0){
 			lastClicked.style.backgroundPosition = '65% -5%';
+		}
+		else if(lastClicked.id.indexOf("AMesh") > 0) {
+			lastClicked.classList.remove('iconAMesh');
+			lastClicked.classList.add('iconAMesh_dis');
 		}
 		else
 			lastClicked.style.backgroundPosition = '0% 0%';
@@ -823,6 +863,10 @@ function clickEvent(obj){
 	}
 	else if(obj.id.indexOf("iconRouter") >= 0){
 		obj.style.backgroundPosition = '65% 100%';
+	}
+	else if(obj.id.indexOf("AMesh") > 0) {
+		obj.classList.add('iconAMesh');
+		obj.classList.remove('iconAMesh_dis');
 	}
 	else{
 		obj.style.backgroundPosition = '0% 100%';
@@ -1313,7 +1357,7 @@ function show_custom_image() {
 	}
 	else {
 		$("#custom_image").slideUp("slow");
-		document.getElementById("changeIconTitle").innerHTML = "Change";/*untranslated*/
+		document.getElementById("changeIconTitle").innerHTML = "<#CTL_Change#>";
 	}
 }
 
@@ -1417,18 +1461,16 @@ function popupEditBlock(clientObj){
 		document.list_form.MULTIFILTER_MACFILTER_DAYTIME.value = MULTIFILTER_MACFILTER_DAYTIME_orig;
 		document.getElementById("divDropClientImage").ondrop = null;
 		document.getElementById("internetTimeScheduling").style.display = "none";
-		if(sw_mode == "1" && !clientObj.amas_isRe) {
+		if(sw_mode == "1" && !clientObj.amesh_isRe) {
 			document.getElementById('tr_adv_setting').style.display = "";
 		}
 		else {
 			document.getElementById('tr_adv_setting').style.display = "none";
 		}
 		document.getElementById("custom_image").style.display = "none";
-		document.getElementById("changeIconTitle").innerHTML = "Change";/*untranslated*/
+		document.getElementById("changeIconTitle").innerHTML = "<#CTL_Change#>";
 		
 		var convRSSI = function(val) {
-			if(val == "") return "wired";
-
 			val = parseInt(val);
 			if(val >= -50) return 4;
 			else if(val >= -80)	return Math.ceil((24 + ((val + 80) * 26)/10)/25);
@@ -1439,11 +1481,12 @@ function popupEditBlock(clientObj){
 		var rssi_t = 0;
 		var connectModeTip = "";
 		var clientIconHtml = "";
-		rssi_t = convRSSI(clientObj.rssi);
-		if(isNaN(rssi_t)) {
+		if(clientObj.isWL == "0") {
+			rssi_t = "wired";
 			connectModeTip = "<#tm_wired#>";
 		}
 		else {
+			rssi_t = convRSSI(clientObj.rssi);
 			switch (rssi_t) {
 				case 1:
 					connectModeTip = "<#Radio#>: <#PASS_score1#>\n";
@@ -1516,7 +1559,7 @@ function popupEditBlock(clientObj){
 
 		document.getElementById('ipaddr_field').disabled = true;
 		$("#ipaddr_field").addClass("client_input_text_disabled");
-		if(sw_mode == "1" && !clientObj.amas_isRe) {
+		if(sw_mode == "1" && !clientObj.amesh_isRe) {
 			$("#ipaddr_field").removeClass("client_input_text_disabled");
 			document.getElementById('ipaddr_field').disabled = false;
 			document.getElementById("ipaddr_field").onkeypress = function() {
@@ -1972,18 +2015,41 @@ function updateClientsCount() {
 			setTimeout("updateClientsCount();", 1000);
 		},
 		success: function(response){
+			var re_tune_client_count = function() {
+				var count = 0;
+				var fromNetworkmapd_array = [];
+				for(var i in fromNetworkmapd_maclist[0]){
+					if (fromNetworkmapd_maclist[0].hasOwnProperty(i)) {
+						fromNetworkmapd_array[fromNetworkmapd_maclist[0][i]] = 1;
+					}
+				}
+				count = fromNetworkmapd_maclist[0].length;
+				for(var i in get_cfg_clientlist[0]){
+					if (get_cfg_clientlist[0].hasOwnProperty(i)) {
+						if(fromNetworkmapd_array[get_cfg_clientlist[0][i].mac] != undefined)
+							count--;
+					}
+				}
+				return count;
+			};
 			//When not click iconClient and not click View Client List need update client count.
 			if(lastName != "iconClient") {
 				if(document.getElementById("clientlist_viewlist_content")) {
 					if(document.getElementById("clientlist_viewlist_content").style.display == "none") {
-						show_client_status(fromNetworkmapd.maclist.length);
+						if(amesh_support && (isSwMode("rt") || isSwMode("ap")))
+							show_client_status(re_tune_client_count());
+						else
+							show_client_status(fromNetworkmapd_maclist[0].length);
 					}
 				}
 				else {
-					show_client_status(fromNetworkmapd.maclist.length);
+					if(amesh_support && (isSwMode("rt") || isSwMode("ap")))
+						show_client_status(re_tune_client_count());
+					else
+						show_client_status(fromNetworkmapd_maclist[0].length);
 				}
 			}
-			setTimeout("updateClientsCount();", 3000);
+			setTimeout("updateClientsCount();", 5000);
 		}
 	});
 }
@@ -2122,8 +2188,8 @@ function check_wireless(){
 		</thead>
 		<tr>
 			<th width="45%"><#Client_Name#></th>
-			<th width="30%">MAC</th>
-			<th width="15%">Upload icon</th>
+			<th width="30%"><#MAC_Address#></th>
+			<th width="15%"><#Client_Icon#></th>
 			<th width="10%"><#CTL_del#></th>
 		</tr>
 	</table>
@@ -2160,13 +2226,13 @@ function check_wireless(){
 					<canvas id="canvasUserIcon" class="client_canvasUserIcon" width="85px" height="85px"></canvas>
 				</div>
 				<div id="changeClientIconControl" class="changeClientIcon">
-					<span title="Change to default client icon" class="IE8HACK" onclick="setDefaultIcon();">Default</span><!--untranslated-->
-					<span id="changeIconTitle" class="IE8HACK" title="Change client icon" style="margin-left:10px;" onclick="show_custom_image();">Change</span><!--untranslated-->
+					<span title="Change to default client icon" class="IE8HACK" onclick="setDefaultIcon();"><#CTL_Default#></span>
+					<span id="changeIconTitle" class="IE8HACK" title="Change client icon" style="margin-left:10px;" onclick="show_custom_image();"><#CTL_Change#></span>
 				</div>
 			</td>
 			<td style="vertical-align:top;text-align:center;">
 				<div class="clientTitle">
-					Name
+					<#Clientlist_name#>
 				</div>
 				<div  class="clientTitle" style="margin-top:10px;">
 					IP
@@ -2175,7 +2241,7 @@ function check_wireless(){
 					MAC
 				</div>
 				<div  class="clientTitle" style="margin-top:10px;">
-					Device
+					<#Clientlist_device#>
 				</div>
 			</td>
 			<td style="vertical-align:top;width:280px;">
@@ -2303,7 +2369,7 @@ function check_wireless(){
 				<div class="clientList_line"></div>
 				<div style="height:32px;width:100%;margin:5px 0;">
 					<div style="width:65%;float:left;line-height:32px;">
-						<span onmouseover="return overlib('Enable this button to block this device to access internet.');" onmouseout="return nd();">Block Internet Access<!--untranslated--></span>
+						<span onmouseover="return overlib('Enable this button to block this device to access internet.');" onmouseout="return nd();"><#Clientlist_block_internet#></span><!--untranslated-->
 					</div>
 					<div class="left" style="cursor:pointer;float:right;" id="radio_BlockInternet_enable"></div>
 				</div>
@@ -2318,7 +2384,7 @@ function check_wireless(){
 				<div class="clientList_line"></div>
 				<div style="height:32px;width:100%;margin:5px 0;">
 					<div style="width:65%;float:left;line-height:32px;">
-						<span onmouseover="return overlib('Enable this button to bind specific IP with MAC Address of this device.');" onmouseout="return nd();">MAC and IP address Binding<!--untranslated--></span>
+						<span onmouseover="return overlib('Enable this button to bind specific IP with MAC Address of this device.');" onmouseout="return nd();"><#Clientlist_IPMAC_Binding#></span><!--untranslated-->
 					</div>
 					<div align="center" class="left" style="cursor:pointer;float:right;" id="radio_IPBinding_enable" ></div>
 				</div>
@@ -2380,8 +2446,9 @@ function check_wireless(){
 		<div id="tabMenu"></div>
 		<div id="NM_shift" style="margin-top:-140px;"></div>
 		<div id="NM_table" class="NM_table" >
-		<div id="NM_table_div">
-			<table id="_NM_table" style="background:url('images/New_ui/networkmap/networkmap_bg.png') no-repeat rgba(0,0,0,.5);background-position-x: 15px; height:805px;" border="0" cellpadding="0" cellspacing="0" style="opacity:.95;" >
+		<div id="NM_table_div" style="background-color:rgba(0,0,0,.5);height:805px;">
+			<div style="width:51%;float:left;background:url('images/New_ui/networkmap/networkmap_bg.png') no-repeat rgba(0,0,0,.5);background-position-x: 14px; height:805px;">
+			<table id="_NM_table" border="0" cellpadding="0" cellspacing="0" style="opacity:.95;" >
 				<tr>
 					<td width="40px" rowspan="11" valign="center"></td>
 					<!--== Dual WAN ==-->
@@ -2409,7 +2476,7 @@ function check_wireless(){
 					<td id="single_wan_icon" align="right" class="NM_radius_left" style="display:none;height:180px" onclick="showstausframe('Internet');">
 						<a href="/device-map/internet.asp" target="statusframe"><div id="iconInternet" onclick="clickEvent(this);"></div></a>
 					</td>
-					<td id="single_wan_status" colspan="2" class="NM_radius_right" onclick="" style="padding:5px;cursor:auto;width:180px;height:130px">
+					<td id="single_wan_status" colspan="2" class="NM_radius_right" onclick="" style="padding:5px;cursor:auto;width:180px;height:170px">
 						<div>
 							<span id="NM_connect_title" style="font-size:12px;font-family: Verdana, Arial, Helvetica, sans-serif;"><#statusTitle_Internet#>:</span>
 							<br>
@@ -2437,32 +2504,7 @@ function check_wireless(){
 							<strong id="rssi_status" class="index_status" style="font-size:14px;"></strong>
 						</div>
 					</td>
-					<td width="40px" rowspan="11" valign="top">
-						<div class="statusTitle" id="statusTitle_NM">
-							<div id="helpname" style="padding-top:10px;font-size:16px;"></div>
-						</div>							
-						<div class="NM_radius_bottom_container">
-							<iframe id="statusframe" class="NM_radius_bottom" style="display:none;margin-left:0px;height:760px;width:320px;\9" name="statusframe" frameborder="0"></iframe>
-						</div>
-				
-						<script>
-							(function(){
-								setTimeout(function(){
-									document.getElementById("statusframe").src = "/device-map/router.asp";	
-								}, 1);
-								
-								var $iframe = $("#statusframe");
-								$iframe.on("load", function(){
-									$iframe.show();
-									document.getElementById("statusframe").contentWindow.onbeforeunload = function(){
-										$iframe.hide();
-									};
-								});
-							})()
-						</script>
-
-					</td>	
-				</tr>			
+				</tr>
 				<tr style="display:none">
 					<!--==line of dual wan==-->
 					<td id="primary_wan_line"  height="35px" style="display:none;">
@@ -2551,6 +2593,8 @@ function check_wireless(){
 								</script>			
 							</div>
 						</div>
+
+						<div id="ameshContainer" onclick="showstausframe('AMesh');"></div>
 					</td>
 
 					<td width="36" rowspan="6" id="clientspace_td"></td>
@@ -2559,6 +2603,37 @@ function check_wireless(){
 					</td>
 				</tr>
 			</table>
+			</div>
+			<div style="width:49%;float:left;">
+			<table id="_NM_table" border="0" cellpadding="0" cellspacing="0" style="opacity:.95;">
+				<tr>
+					<td valign="top">
+						<div class="statusTitle" id="statusTitle_NM">
+							<div id="helpname" style="padding-top:10px;font-size:16px;"></div>
+						</div>
+						<div class="NM_radius_bottom_container">
+							<iframe id="statusframe" class="NM_radius_bottom" style="display:none;margin-left:0px;height:760px;width:320px;\9" name="statusframe" frameborder="0"></iframe>
+						</div>
+						<script>
+							(function(){
+								setTimeout(function(){
+									document.getElementById("statusframe").src = "/device-map/router.asp";
+								}, 1);
+
+								var $iframe = $("#statusframe");
+								$iframe.on("load", function(){
+									$iframe.show();
+									document.getElementById("statusframe").contentWindow.onbeforeunload = function(){
+										$iframe.hide();
+									};
+								});
+							})()
+						</script>
+					</td>
+				</tr>
+			</table>
+			</div>
+			<div style="clear:both;"></div>
 		</div>
 	</div>
 <!--==============Ending of hint content=============-->

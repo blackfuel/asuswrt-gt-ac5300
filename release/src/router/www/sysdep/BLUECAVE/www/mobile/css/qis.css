@@ -1,4 +1,8 @@
-﻿.ui-page-theme-a .ui-panel-wrapper {
+﻿option{
+	background-color: #000;
+	color: #CCC;
+}
+.ui-page-theme-a .ui-panel-wrapper {
 	background-color: #FFF;
 }
 a.ui-btn{
@@ -23,6 +27,16 @@ a{
 }
 .ui-panel-dismiss-open.ui-panel-dismiss-position-left{
 	left:30em;
+}
+.headerBarIndex{
+	margin: 30px 0 0 30px;	
+}
+.headerBar{
+	margin: 30px 0 0 30px;
+}
+.tableContainer{
+	display: table;
+	width: 100%;
 }
 .desktop_left_field{
 	display:none;
@@ -61,32 +75,38 @@ a{
 }
 .desktop_applyBtn{
 	display: inline-block;
-	width: 300px;
-	border: 2px solid #007AFF;
-	border-radius: 35px;
+	max-width: 300px;
+	width: 40%;
 	height: 66px;
 	line-height: 66px;
 	margin: 0 20px;
 	font-size:1.5em;
 	cursor:pointer;
+	border-radius: 35px;
+	border: 2px solid #007AFF;
 	color: #FFF;
 	background: #007AFF;
 }
 .desktop_abortBtn{
 	display: inline-block;
-	width: 300px;
-	border-radius: 35px;
+	max-width: 300px;
+	width: 40%;
 	height: 66px;
 	line-height: 66px;
 	margin: 0 20px;
 	font-size:1.5em;
 	cursor:pointer;
+	border-radius: 35px;
 	color: #007AFF;
 	background: #FFF;
 }
+.labelContainer{
+	margin-left: 25px;
+	color: #CCC;
+}
 .labelInput{
 	border: 0px #FFF !important;
-	font-size: 1.875em !important;
+	font-size: 2em !important;
 }
 #iptv_checkbox{
 	left: .6em !important;
@@ -98,7 +118,7 @@ a{
 }
 .textInput{
 	width: 95%;
-	max-width: 900px;
+	max-width: 100%;
 	padding-left: 18px;
 	margin-bottom: 35px;
 	font-family: HelveticaNeueW10-45Ligh, Helvetica, Arial;
@@ -121,7 +141,7 @@ a{
 .optionInput{
 	width: 95%;
 	height: 45px;
-	max-width: 900px;
+	max-width: 100%;
 	font-family: HelveticaNeueW10-45Ligh, Helvetica, Arial;
 	background: rgba(48,48,48,0.2);
 	color: #CCC;
@@ -133,7 +153,7 @@ a{
 	background-color: transparent !important;
 }
 .inputContainer{
-	margin: 0px 55px 50px 30px;
+	margin: 0px 55px 30px 30px;
 }
 .ui-input-text input, .ui-input-search input{
 	background-color: #FFF;
@@ -148,7 +168,7 @@ a{
 	text-align:center;
 }
 .model_welcome{
-	color: #000;
+	color: #111;
 	font-family:Arial Bold;
 	font-size:1.875em;
 	background-color:rgba(79,79,79,62);
@@ -157,6 +177,7 @@ a{
 #welcome_button{
 	cursor:pointer;
 	width:600px;
+	max-width:600px;
 	height:88px;
 	border-radius:4px;
 	color: #FFF;
@@ -166,19 +187,37 @@ a{
 	margin:auto;
 	line-height:88px;
 }
-#lyraSignin{
-	font-size:2em;
+#aimesh_welcome_button{
+	cursor:pointer;
+	width:600px;
+	max-width:600px;
+	height:88px;
+	border-radius:4px;
+	color: #FFF;
+	background-color: #007AFF;
+	border:1px solid #007AFF;
+	font-size:2.25em;
+	margin:auto;
+	line-height:88px;
+}
+.advSetting{
+	font-size: 2em !important;
 	color: #007AFF;
 }
 .pageDesc{
 	font-family: Helvetica, Arial;
 	font-size: 2em;
-	color: #FFF;
+	color: #EEE;
 	margin: 20px 0 30px 25px;
 	text-align: left;
 	font-weight: bolder;
 	width: 90%;
 	max-width: 1000px;
+}
+.descSteps{
+	color: #007AFF;
+	font-size: 1.4em;
+	margin-bottom: 10px;
 }
 .tosDesc{
 	font-family: Helvetica, Arial;
@@ -208,11 +247,19 @@ a{
 	padding-right:110px;	
 }
 .qisBackgroundIndex{
+/*
 	background:url('../../mobile.customize/qis_background.png') #000 no-repeat;
 	background-size: cover;
+*/
+	background:url('../../mobile.customize/qis_background_downsize.png') #111;
+	background-repeat: repeat
 }
 .qisBackground{
+/*
 	background:url('../../mobile.customize/qis_background.png') #000 repeat-x;
+*/
+	background:url('../../mobile.customize/qis_background_downsize.png') #111;
+	background-repeat: repeat
 }
 .selectorTopContainer{
 	margin-left: 35px;
@@ -223,19 +270,34 @@ a{
 	width: 100%;
 	padding-left: 12px;
 	cursor: pointer;"
-	color: #000;
+	color: #111;
+}
+.selectBar > label{
+	font-family: HelveticaNeueW10-45Ligh,Helvetica,Arial;
+	font-size: 36px;
+	color: #DBDBDB	
 }
 .icon_logo{
 	width: 130px;
 	height: 38px;
 	margin-left: -25px;
 }
+.amasIconContainer{
+	text-align: center;
+	margin:auto;
+	margin-top: 100px;
+	margin-bottom: 100px;
+}
+.amasIconContainer > div > img{
+	width: 35%;
+	vertical-align: middle;
+}
 .productIconContainer{
 	text-align: center;
 	width:80%;
 	max-width: 600px;
 	margin:auto;
-	margin-top: 150px;
+	margin-top: 50px;
 }
 .productIconContainer > div{
 	background: #FFF;
@@ -243,10 +305,11 @@ a{
 	height: 400px;
 	margin: auto;
 	border-radius: 50%;
+	line-height: 400px;
 }
 .productIconContainer > div > img{
-	height: 400px;
-	margin-left: -20%;
+	width: 80%;
+	vertical-align: middle;
 }
 .model_image{
 	height:450px;
@@ -277,19 +340,48 @@ a{
 .itunesStore{
 	background:url('../../images/AppStore.png') no-repeat;
 	width: 200px;
-    height: 80px;
+	height: 80px;
 	background-size: contain;
 }
 .appTable{
 	margin-top: 150px;
 	width: 100%;
 }
+#resetModemContainer{
+	width: 100%;
+	height: 350px;	
+	margin: auto;
+	margin-top: 50px;
+}
+#resetModem{
+	width: 90%;
+	height: 350px;
+	margin: auto;
+	background-size: contain;
+}
+.plug{
+	background: url('../../images/modem_plug.png') no-repeat, url('../../images/modem_background.png') no-repeat;
+}
+.unplug{
+	background: url('../../images/modem_unplug.png') no-repeat, url('../../images/modem_background.png') no-repeat;
+}
 .hint{
 	color: #F00;
-	position: absolute;
 	margin-top: -25px;
 	font-size: 1.4em;
 	font-style: italic;
+}
+.selectorHint{
+	margin-top: 10px;
+	margin-left: 35px;
+}
+.selectorDesc{
+	color: #999;
+	margin-top: -25px;
+	font-size: 1.4em;
+	font-style: italic;
+	margin-top: 10px;
+	margin-left: 35px;
 }
 .tos{
     color: #FFF;
@@ -308,43 +400,21 @@ a{
 .footHeight{
 	height: 100px;
 }
-.noWanPic{
-	background:url('../../images/WANunplug.png') center no-repeat;
-	background-size: contain;
-	padding: 0%;
-	height: 1000px;
-	text-align: center;
-	margin-top: -100px;
+#wlInputField{
+	margin-bottom: -30px;
 }
-#noWanPlugHint{
-	background-size: contain;
-	padding: 0%;
-	height: 300px;
-	text-align: center;
+#noWanContainer{
+    padding: 17%;
 }
-.noWanEth{
-	background:url('../../images/WANunplug_eth.png') center no-repeat;
-	margin-top: -640px;
-	margin-left: -40px;
+#noWanEth{
+	position: absolute;
+	margin-top: -396px;
+	display: none;
 }
-.noWanUsb{
-	background:url('../../images/WANunplug_usb.png') center no-repeat;
-	margin-top: -640px;
-	margin-left: -130px;
-}
-.flashingColor{
-	width: 35%;
-	border-radius: 50%;
-	background-color: #FFF;
-	z-index: 1;
-	margin: auto;
-	margin-top: 250px;
-	overflow: hidden;
-}
-.flashingColor:after {
-	content: '';
-	display: block;
-	margin-top: 100%;
+#noWanUsb{
+	position: absolute;
+	margin-top: -396px;
+	display: none;
 }
 .green{
 	background-color: #0F0;
@@ -373,11 +443,14 @@ a{
 	margin-top: -200px;
 }
 .mobileAbort{
-	background: #000;
+	background: #111;
 }
 .mobileApply{
 	width: 50%;
 	background: #007AFF;
+}
+.footerPadding{
+	 height: 105px;
 }
 .apListContainer{
 	border-bottom: 1px solid #999;
@@ -427,7 +500,7 @@ a{
 	border-bottom: 1px solid #999;
 	padding: 29px 0;
 	display: table;
-	width: 100%;
+	width: 95%;
 }
 .selectorContainerDiv{
 	display: table-row;
@@ -441,20 +514,98 @@ a{
 	text-align: right;
 	padding-right: 28px;
 }
-.amasSupport{
-	display: none;
+.configuredSupport{
+	display: none;	
 }
-.lyraSupport{
+.defaultSupport{
+	display: none;	
+}
+.amasSupport{
 	display: none;
 }
 .tosSupport{
 	display: none;
 }
+.repeaterSupport{
+	display: none;
+}
+.pstaSupport{
+	display: none;
+}
+.dualbandSupport{
+	display: none;
+}
+.bandStreeringSupport{
+	display: none;
+}
 .titleMain{
 	font-size: 60px;
+	font-weight: bold;
 }
 .titleSub{
 	font-size: 32px;
+}
+.aimeshTopo{
+	background:url('../css/aimesh-topo.png') no-repeat;
+	width: 95%;
+	height: 200px;
+	margin: auto;
+	margin-top: 50px;
+	background-size: contain;
+}
+.roomPic{
+	background:url('../../images/New_ui/amesh/house_final_dea.png') no-repeat;
+	width: 95%;
+	height: 500px;
+	margin: auto;
+	margin-top: 50px;
+}
+.loginPic{
+	background:url('../../images/New_ui/amesh/login_router.png') no-repeat;
+	width: 95%;
+	height: 400px;
+	margin: auto;
+	margin-top: 50px;
+	background-size: contain;
+}
+.pairPic{
+	background:url('../../images/New_ui/amesh/onboardinglist_search.png') no-repeat;
+	width: 95%;
+	height: 400px;
+	margin: auto;
+	margin-top: 50px;
+	background-size: contain;
+}
+.pairListPic{
+	background:url('../../images/New_ui/amesh/onboardinglist.jpg') no-repeat;
+	width: 95%;
+	height: 400px;
+	margin: auto;
+	margin-top: 50px;
+	background-size: contain;
+}
+.resetPic{
+	background:url('../../images/New_ui/amesh/reset.png') no-repeat;
+	width: 95%;
+	height: 500px;
+	margin: auto;
+	margin-top: 50px;
+}
+.loadingBarContainer{
+	width: 90%;
+	margin:18px 0 60px 30px;
+	font-family: HelveticaNeueW10-45Ligh, Helvetica, Arial;
+	font-size:1.875em;
+	height: 65px;
+	border: 2px solid #007AFF!important;
+	border-radius: 5px;
+}
+.loadingBar{
+	color: #CCC!important;
+	background-color: #007AFF!important;
+	height: 65px;
+	text-align:center;
+	line-height: 65px;
 }
 
 /* CSS Loader */
@@ -575,10 +726,22 @@ a{
 }
 
 /*for Desktop*/
-@media screen and (min-width: 1000px){
+@media screen and (min-aspect-ratio: 11/13){
+	.pageDesc{
+		font-size: 1.8em;
+	}
+	#noWanContainer{
+    	padding: 50px;
+		margin-left: 80px;
+	}
+	.tableContainer{
+		width: 90%;
+		max-width: 1200px;
+	}
 	.desktop_left_field{
 		display:table-cell;
-		width:250px;
+		width:30%;
+		min-width: 250px;
 		color: #007AFF;
 		text-align:right;		
 	}
@@ -605,8 +768,9 @@ a{
 	.table_td{
 		padding-left:15px;
 		display:table-cell;
-		width:70% !important;
+		width: 70% !important;
 		max-width: 1000px;
+		min-width: 700px;
 	}
 	.tos{
 		margin: auto;
@@ -616,24 +780,14 @@ a{
 	.tosDesc{
 		width: 80%;
 	}
-	.pageDesc{
-		min-width: 800px;
+	.textInput{
+		max-width: 900px;
 	}
-	.noWanPic{
-		height: 600px;
-		margin-top: -50px;
+	.loadingBarContainer{
+		max-width: 900px;
 	}
-	.noWanEth{
-		margin-top: -445px;
-		margin-left: -105px;
-	}
-	.noWanUsb{
-		margin-top: -445px;
-		margin-left: -135px;
-	}
-	.wpsPic{
-		height: 600px;
-		margin-top: -450px;
+	.optionInput{
+		max-width: 900px;
 	}
 	.productIconContainer{
 		margin:auto;
@@ -657,9 +811,6 @@ a{
 	.appTable{
 		width: auto;
 	}
-	.flashingColor{
-		margin-top: 100px;
-	}
 	.summaryNetwork{
 		margin-top: 0px;
 	}
@@ -672,5 +823,280 @@ a{
 		height: 99px;
 		border-radius: 100%;
 		position: relative;
+	}
+	.footerPadding{
+		display: none;
+	}
+	@media screen and (max-height: 1000px){
+		.tableContainerIndex{ 
+			transform: scale(0.8, 0.8);
+			transform-origin: top;
+		}
+		.tableContainer{
+			margin-top: 30px;
+			transform: scale(0.8, 0.8);
+			transform-origin: top;
+		}
+	}
+	@media screen and (max-height: 700px){
+		.headerBar{
+			display: none;
+		}
+		.qisBackgroundIndex{
+			background:url('../../mobile.customize/qis_background_downsize.png') #111;
+		}
+		.qisBackground{
+			background:url('../../mobile.customize/qis_background_downsize.png') #111;
+		}
+		.tableContainerIndex{ 
+			transform: scale(0.7, 0.7);
+			transform-origin: top;
+		}
+		.tableContainer{
+			margin-top: 30px;
+			transform: scale(0.7, 0.7);
+			transform-origin: top;
+		}
+		.footerPadding{
+			margin-top: -450px;
+			display: block;
+		}
+		@media screen and (max-width: 800px){
+			.table_td{
+				min-width: 500px;
+			}
+		}
+	}
+}
+@media screen and (max-width: 1000px){
+	.tableContainer{
+		width: 100%;	
+	}
+	.desktop_left_field{
+		display: none;
+	}
+}
+
+.aimesh_illustration_bg {
+	width: 95%;
+	height: 130px;
+	margin: auto;
+	margin-top: 2%;
+}
+.aimesh_illustration_second_bg {
+	width: 95%;
+	height: 260px;
+	margin: auto;
+}
+.aimesh_illustration_bg.text {
+	height: 30px;
+	margin-top: 1%;
+}
+.aimesh_illustration_bg.computer {
+	margin-top: 0%;
+	height: 240px;
+}
+.aimesh_illustration_computer_bg {
+	height: 100%;
+	width: 55%;
+	float: right;
+}
+.aimesh_illustration_icon {
+	background-image: url(/images/New_ui/amesh/AiMesh_component.svg);
+	background-repeat: no-repeat;
+	height: 100%;
+	float: left;
+	width: 24%;
+	background-size: 350%;
+}
+.aimesh_illustration_icon.modem {
+	background-position: -3% 3%;
+}
+.aimesh_illustration_icon.ethernet {
+	width: 14%;
+	background-size: 850%;
+	background-position: 7% 30%;
+}
+.aimesh_illustration_icon.router {
+	background-position: 40% 3%;
+}
+.aimesh_illustration_icon.router_back {
+	background-position: 85% 3%;
+}
+.aimesh_illustration_icon.wifi {
+	width: 13%;
+	background-size: 700%;
+	background-position: 33% 30%;
+	animation: breath 2s infinite linear;
+}
+.aimesh_illustration_icon.empty {
+	width: 43%;
+	background-image: none;
+}
+.aimesh_illustration_icon.connect_left {
+	width: 14%;
+	background-size: 600%;
+	animation: connect_left_change 9s steps(1) infinite;
+}
+.aimesh_illustration_icon.connect_right {
+	width: 14%;
+	background-size: 600%;
+	animation: connect_right_change 9s steps(1) infinite;
+}
+.aimesh_illustration_icon.computer {
+	width: 25%;
+	background-size: 445%;
+	background-position: 1% 103%;
+	position: relative;
+}
+.aimesh_illustration_icon.computer_content {
+	width: 76%;
+	background-size: 635%;
+	height: 52%;
+	bottom: 23%;
+	position: absolute;
+	right: 4%;
+	animation: computer_content_change 9s steps(1) infinite;
+}
+@keyframes breath {
+	0% {
+		opacity: 0.2;
+	}
+	20% {
+		opacity: 0.6;
+	}
+	40% {
+		opacity: 1;
+	}
+	60% {
+		opacity: 1;
+	}
+	80% {
+		opacity: 0.6;
+	}
+	100% {
+		opacity: 0.2;
+	}
+}
+@keyframes connect_left_change {
+	0% {
+		background-position: 0% 70%;
+	}
+	60% {
+		background-position: 60% 70%;
+	}
+}
+@keyframes connect_right_change {
+	0% {
+		background-position: 93% 70%;
+	}
+	30% {
+		background-position: 38% 70%;
+	}
+}
+@keyframes computer_content_change {
+	0% {
+		background-position: 35.6% 94.3%;
+	}
+	30% {
+		background-position: 66.6% 94.3%;
+	}
+	60% {
+		background-position: 98% 94.3%;
+	}
+}
+.aimesh_illustration_text {
+	width: 24%;
+	float: left;
+	font-family: Helvetica, Arial;
+	font-size: 1.4em;
+	color: #EEE;
+	text-align: center;
+	font-weight: bolder;
+	height: 15%;
+}
+.aimesh_illustration_text.ethernet {
+	width: 14%;
+}
+.aimesh_illustration_text.wifi {
+	width: 13%;
+}
+@media screen and (orientation: landscape) {
+	@media screen and (max-width: 1280px) {
+		.aimesh_illustration_bg {
+			height: 120px;
+		}
+		.aimesh_illustration_second_bg {
+			height: 210px;
+		}
+	}
+	@media screen and (max-width: 1184px) {
+		.aimesh_illustration_bg {
+			height: 110px;
+		}
+		.aimesh_illustration_second_bg {
+			height: 190px;
+		}
+	}
+	@media screen and (max-width: 1024px) {
+		.aimesh_illustration_bg {
+			height: 130px;
+		}
+		.aimesh_illustration_second_bg {
+			height: 170px;
+		}
+	}
+	@media screen and (max-width: 960px) {
+		.aimesh_illustration_bg {
+			height: 120px;
+		}
+		.aimesh_illustration_second_bg {
+			height: 220px;
+		}
+	}
+	@media screen and (max-width: 720px) {
+		.aimesh_illustration_bg {
+			height: 90px;
+		}
+		.aimesh_illustration_second_bg {
+			height: 160px;
+		}
+	}
+	@media screen and (max-width: 640px) {
+		.aimesh_illustration_bg {
+			height: 80px;
+		}
+		.aimesh_illustration_second_bg {
+			height: 150px;
+		}
+	}
+}
+@media screen and (orientation: portrait) {
+	@media screen and (max-width: 960px) {
+		.aimesh_illustration_bg {
+			height: 120px;
+		}
+		.aimesh_illustration_second_bg {
+			height: 185px;
+		}
+	}
+	@media screen and (max-width: 720px) {
+		.aimesh_illustration_bg {
+			height: 90px;
+		}
+		.aimesh_illustration_text {
+			font-size: 1em;
+		}
+		.aimesh_illustration_second_bg {
+			height: 175px;
+		}
+	}
+	@media screen and (max-width: 640px) {
+		.aimesh_illustration_bg {
+			height: 80px;
+		}
+		.aimesh_illustration_second_bg {
+			height: 155px;
+		}
 	}
 }
