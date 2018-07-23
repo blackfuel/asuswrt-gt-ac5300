@@ -3800,6 +3800,7 @@ stop_misc(void)
 	if (pids("ntpclient"))
 		killall_tk("ntpclient");
 
+	stop_hotplug2();
 #ifdef RTCONFIG_BCMWL6
 #ifdef BCM_ASPMD
 	stop_aspmd();
@@ -3846,9 +3847,49 @@ stop_misc(void)
 	stop_lltdc();
 #endif
 	stop_networkmap();
-
 #ifdef RTCONFIG_NEW_USER_LOW_RSSI
 	stop_roamast();
+#endif
+#ifdef RTCONFIG_MDNS
+	stop_mdns();
+#endif
+#if !(defined(RTCONFIG_QCA) || defined(RTCONFIG_RALINK) || defined(RTCONFIG_REALTEK))
+	stop_erp_monitor();
+#endif
+#ifdef RTCONFIG_CROND
+	stop_cron();
+#endif
+#ifdef RTCONFIG_NOTIFICATION_CENTER
+	stop_notification_center();
+#endif
+#ifdef RTCONFIG_PROTECTION_SERVER
+	stop_ptcsrv();
+#endif
+#ifdef RTCONFIG_SYSSTATE
+	stop_sysstate();
+#endif
+	stop_logger();
+	stop_ots();
+#ifdef RTCONFIG_DISK_MONITOR
+        stop_diskmon();
+#endif
+#ifdef RTCONFIG_TUNNEL
+	stop_mastiff();
+#endif
+#ifdef RTCONFIG_BWDPI
+	stop_bwdpi_check();
+#endif
+#ifdef RTCONFIG_CFGSYNC
+	stop_cfgsync();
+#endif
+#ifdef RTCONFIG_AMAS
+	stop_amas_bhctrl();
+	stop_amas_lanctrl();
+	stop_amas_wlcconnect();
+	stop_amas_lldpd();
+#ifdef RTCONFIG_BCMWL6
+	stop_obd();
+#endif
 #endif
 }
 
@@ -3963,16 +4004,16 @@ void
 start_httpd(void)
 {
 	char *httpd_argv[] = { "httpd",
-	/*	"-p", nvram_safe_get("http_lanport"),*/
 		NULL, NULL,	/* -i ifname */
+		NULL, NULL,	/* -p port */
 		NULL };
 	int httpd_index = 1;
 #ifdef RTCONFIG_HTTPS
 	char *https_argv[] = { "httpds", "-s",
-		"-p", nvram_safe_get("https_lanport"),
 		NULL, NULL,	/* -i ifname */
+		NULL, NULL,	/* -p port */
 		NULL };
-	int https_index = 4;
+	int https_index = 2;
 	int enable;
 #endif
 	char *cur_dir;
@@ -4021,7 +4062,12 @@ start_httpd(void)
 
 	enable = nvram_get_int("http_enable");
 	if (enable != 0) {
-		logmessage(LOGNAME, "start httpd - SSL");
+		pid = nvram_get_int("https_lanport") ? : 443;
+		if (pid != 443) {
+			https_argv[https_index++] = "-p";
+			https_argv[https_index++] = nvram_safe_get("https_lanport");
+		}
+		logmessage(LOGNAME, "start https:%d", pid);
 		_eval(https_argv, NULL, 0, &pid);
 #if defined(RTCONFIG_ALPINE) || defined(RTCONFIG_LANTIQ)
 		sleep(1);
@@ -4032,7 +4078,12 @@ start_httpd(void)
 #endif
 #endif
 	{
-		logmessage(LOGNAME, "start httpd");
+		pid = nvram_get_int("http_lanport") ? : 80;
+		if (pid != 80) {
+			httpd_argv[httpd_index++] = "-p";
+			httpd_argv[httpd_index++] = nvram_safe_get("http_lanport");
+		}
+		logmessage(LOGNAME, "start httpd:%d", pid);
 		_eval(httpd_argv, NULL, 0, &pid);
 #if defined(RTCONFIG_ALPINE) || defined(RTCONFIG_LANTIQ)
 		sleep(1);
@@ -4226,7 +4277,7 @@ void start_upnp(void)
 				} else
 #endif
 				{
-					fprintf(f, "%s://%s:%d/\n", "http", lanip, /*nvram_get_int("http_lanport") ? :*/ 80);
+					fprintf(f, "%s://%s:%d/\n", "http", lanip, nvram_get_int("http_lanport") ? : 80);
 				}
 
 				char uuid[45];
@@ -4290,7 +4341,7 @@ void start_upnp(void)
 				}
 #endif
 #ifdef RTCONFIG_TUNNEL
-				if(nvram_get_int("aae_enable")) {
+				if((nvram_get_int("aae_enable") & 1) == 1) {
 					fprintf(f, "deny 61689 0.0.0.0/0 0-65535\n");	// MASTIFF_DEF_PORT
 				}
 #endif
@@ -4682,6 +4733,11 @@ int start_mdns(void)
 	char adisk_service_config[80];
 	char itune_service_config[80];
 
+#ifdef RTAC68U
+	if (!hw_usb_cap())
+		return 0;
+#endif
+
 	sprintf(afpd_service_config, "%s/%s", AVAHI_SERVICES_PATH, AVAHI_AFPD_SERVICE_FN);
 	sprintf(adisk_service_config, "%s/%s", AVAHI_SERVICES_PATH, AVAHI_ADISK_SERVICE_FN);
 	sprintf(itune_service_config, "%s/%s", AVAHI_SERVICES_PATH, AVAHI_ITUNE_SERVICE_FN);
@@ -4736,6 +4792,9 @@ void restart_mdns(void)
 	char itune_service_config[80];
 	sprintf(afpd_service_config, "%s/%s", AVAHI_SERVICES_PATH, AVAHI_AFPD_SERVICE_FN);
 	sprintf(itune_service_config, "%s/%s", AVAHI_SERVICES_PATH, AVAHI_ITUNE_SERVICE_FN);
+
+	if (g_reboot || g_upgrade)
+		return;
 
 	if (nvram_match("timemachine_enable", "1") == f_exists(afpd_service_config)){
 		if(nvram_match("daapd_enable", "1") == f_exists(itune_service_config)){
@@ -7337,7 +7396,6 @@ start_services(void)
 	start_amas_wlcconnect();
 	start_amas_bhctrl();	
 	start_amas_lanctrl();
-	start_amas_lldpd();
 #endif
 #if defined(RTCONFIG_BCMWL6) && defined(RTCONFIG_PROXYSTA)	
 	start_psta_monitor();
@@ -7496,6 +7554,9 @@ start_services(void)
 
 #ifdef RTCONFIG_ADTBW
 	start_adtbw();
+#endif
+#ifdef RTCONFIG_AMAS
+	start_amas_lldpd();
 #endif
 
 #ifdef RTCONFIG_PUSH_EMAIL
@@ -7692,9 +7753,6 @@ stop_services(void)
 #ifdef RTCONFIG_CLOUDCHECK
 	stop_cloudcheck();
 #endif
-#ifdef RTCONFIG_TUNNEL
-	stop_mastiff();
-#endif
 #ifdef RTCONFIG_KEY_GUARD
 	stop_keyguard();
 #endif
@@ -7716,6 +7774,9 @@ stop_services(void)
 #endif
 #ifdef RTCONFIG_CFGSYNC
 	stop_cfgsync();
+#endif
+#ifdef RTCONFIG_NEW_USER_LOW_RSSI
+	stop_roamast();
 #endif
 }
 
@@ -7897,6 +7958,12 @@ stop_services_mfg(void)
 #endif
 #ifdef RTCONFIG_NOTIFICATION_CENTER
 	stop_notification_center();
+#endif
+#ifdef RTCONFIG_TUNNEL
+	stop_mastiff();
+#endif
+#ifdef RTCONFIG_NEW_USER_LOW_RSSI
+	stop_roamast();
 #endif
 }
 
@@ -8258,6 +8325,9 @@ static int no_need_obd(void)
 	if (g_reboot || g_upgrade)
 		return -1;
 
+	if (ATE_BRCM_FACTORY_MODE())
+		return -1;
+
 	if (!is_router_mode() || (nvram_get_int("obd_Setting") == 1) || (nvram_get_int("x_Setting") == 1))
 		return -1;
 
@@ -8318,6 +8388,11 @@ start_usbled(void)
 
 #if defined(HND_ROUTER) && defined(RTCONFIG_HNDMFG)
 	return 0;
+#endif
+
+#ifdef RTAC68U
+	if (!hw_usb_cap())
+		return 0;
 #endif
 
 	stop_usbled();
@@ -9083,11 +9158,6 @@ again:
 			stop_dpi_engine_service(1);
 #endif
 			stop_misc();
-			stop_logger();
-			stop_upnp();
-#if defined(RTCONFIG_MDNS)
-			stop_mdns();
-#endif
 			stop_all_webdav();
 #ifdef RTCONFIG_CAPTIVE_PORTAL
 			stop_uam_srv();
@@ -9116,7 +9186,6 @@ again:
 			remove_storage_main(1);
 			remove_usb_module();
 #endif
-
 #endif
 			remove_conntrack();
 			stop_udhcpc(-1);
@@ -9126,27 +9195,12 @@ again:
 #endif
 			stop_dhcp6c();
 #endif
-
 #ifdef RTCONFIG_TR069
 			stop_tr();
 #endif
 			stop_jffs2(1);
-#ifdef RTCONFIG_JFFS2USERICON
-			stop_lltdc();
-#endif
-			stop_networkmap();
-
 #ifdef RTCONFIG_QCA_PLC_UTILS
 			reset_plc();
-#endif
-#ifdef RTCONFIG_CFGSYNC
-			stop_cfgsync();
-#endif
-#ifdef RTCONFIG_AMAS
-			stop_amas_lldpd();
-#if defined(RTCONFIG_BCMWL6)		
-			stop_obd();			
-#endif
 #endif
 			// TODO free necessary memory here
 		}
@@ -11909,6 +11963,11 @@ _dprintf("test 2. turn off the USB power during %d seconds.\n", reset_seconds[re
 		int ohcienable = nvram_get_int("usb_ohci");
 		int i;
 
+#ifdef RTAC68U
+		if (!hw_usb_cap())
+			return;
+#endif
+
 		_dprintf("xhcimode: stop_usb_program...\n");
 		stop_usb_program(1);
 
@@ -12519,6 +12578,9 @@ void gen_lldpd_if(char *bind_ifnames)
 {
 	char word[64], *next;
 	int i = 0;
+#ifdef HND_ROUTER
+	char *lacp_ifs = nvram_get_int("lacp_enabled")?nvram_safe_get("lacp_ifnames"):NULL;
+#endif
 
 	/* prepare binding interface list */
 #if defined(RTCONFIG_BCMARM) && defined(RTCONFIG_PROXYSTA)
@@ -12530,6 +12592,11 @@ void gen_lldpd_if(char *bind_ifnames)
 	{		
 		/* for lan_ifnames */
 		foreach (word, nvram_safe_get("lan_ifnames"), next) {
+
+#ifdef HND_ROUTER
+			if(lacp_ifs && strstr(lacp_ifs, word))
+				continue;
+#endif
 
 			if (i == 0)
 				i = 1;
@@ -12554,11 +12621,15 @@ void gen_lldpd_if(char *bind_ifnames)
 	{
 		/* for lan_ifnames */
 		foreach (word, nvram_safe_get("lan_ifnames"), next) {
-		if (i == 0)
-		i = 1;
-		else
-		bind_ifnames += sprintf(bind_ifnames, ",");
-		bind_ifnames += sprintf(bind_ifnames, "%s", word);
+#ifdef HND_ROUTER
+			if(lacp_ifs && strstr(lacp_ifs, word))
+				continue;
+#endif
+			if (i == 0)
+				i = 1;
+			else
+				bind_ifnames += sprintf(bind_ifnames, ",");
+			bind_ifnames += sprintf(bind_ifnames, "%s", word);
 		}
 	}
 
@@ -13067,6 +13138,10 @@ firmware_check_main(int argc, char *argv[])
 	int isTcFwExist = 0;
 	isTcFwExist = separate_tc_fw_from_trx(argv[1]);
 #endif
+#endif
+
+#ifdef CONFIG_BCMWL5
+	fw_check_pre();
 #endif
 
 	if(!check_imagefile(argv[1])) {
@@ -14896,7 +14971,7 @@ int start_cfgsync(void)
 	int ret = 0;
 
 #ifdef RTCONFIG_MASTER_DET
-	if (nvram_match("cfg_master", "1") && (!repeater_mode() && !mediabridge_mode()))
+	if (nvram_match("cfg_master", "1") && (is_router_mode() || access_point_mode()))
 #else
 	if (is_router_mode())
 #endif	/* RTCONFIG_MASTER_DET */
@@ -14916,15 +14991,15 @@ int start_cfgsync(void)
 	}
 #endif
 	else if (
-#ifdef RTCONFIG_MASTER_DET
-		is_router_mode() ||
+#ifdef RTCONFIG_AMAS
+		(nvram_get_int("re_mode") == 1) &&
 #endif
-		((dpsr_mode()
+		(((dpsr_mode()
 #ifdef RTCONFIG_DPSTA
 		|| dpsta_mode()
 #endif
 		) && nvram_get_int("lan_state_t") == LAN_STATE_CONNECTED) ||
-		((repeater_mode() || mediabridge_mode()) && nvram_get_int("wlc_state") == WLC_STATE_CONNECTED))
+		((repeater_mode() || mediabridge_mode()) && nvram_get_int("wlc_state") == WLC_STATE_CONNECTED)))
 	{
 		stop_cfgsync();
 		ret = _eval(cfg_client_argv, NULL, 0, &pid);

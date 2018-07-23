@@ -330,7 +330,8 @@ function applyRule(){
 				document.form.misc_httpport_x.disabled = true;
 		}
 
-		if(document.form.https_lanport.value != '<% nvram_get("https_lanport"); %>' 
+		if(document.form.http_lanport.value != '<% nvram_get("http_lanport"); %>'
+				|| document.form.https_lanport.value != '<% nvram_get("https_lanport"); %>'
 				|| document.form.http_enable.value != '<% nvram_get("http_enable"); %>'
 				|| document.form.misc_httpport_x.value != '<% nvram_get("misc_httpport_x"); %>'
 				|| document.form.misc_httpsport_x.value != '<% nvram_get("misc_httpsport_x"); %>'
@@ -339,6 +340,8 @@ function applyRule(){
 			if(document.form.http_enable.value == "0"){	//HTTP
 				if(isFromWAN)
 					document.form.flag.value = "http://" + location.hostname + ":" + document.form.misc_httpport_x.value;
+				else if (document.form.http_lanport.value)
+					document.form.flag.value = "http://" + location.hostname + ":" + document.form.http_lanport.value;
 				else
 					document.form.flag.value = "http://" + location.hostname;
 			}
@@ -357,6 +360,8 @@ function applyRule(){
 				}else{
 					if(isFromWAN)
 						document.form.flag.value = "http://" + location.hostname + ":" + document.form.misc_httpport_x.value;
+					else if (document.form.http_lanport.value)
+						document.form.flag.value = "http://" + location.hostname + ":" + document.form.http_lanport.value;
 					else
 						document.form.flag.value = "http://" + location.hostname;
 				}
@@ -523,11 +528,12 @@ function validForm(){
 			&& document.form.dst_start_w.value == document.form.dst_end_w.value
 			&& document.form.dst_start_d.value == document.form.dst_end_d.value){
 		alert("<#FirewallConfig_URLActiveTime_itemhint4#>");	//At same day
+		document.form.dst_start_m.focus();
 		return false;
 	}	
 
-	/*if (!validator.range(document.form.http_lanport, 1, 65535))
-		return false;*/
+	if (!validator.range(document.form.http_lanport, 1, 65535))
+		/*return false;*/ document.form.http_lanport = 80;
 	if (HTTPS_support && !validator.range(document.form.https_lanport, 1, 65535) && !tmo_support)
 		return false;
 
@@ -550,12 +556,14 @@ function validForm(){
 		document.form.sshd_port.disabled = true;
 	}
 	
-	if(isPortConflict(document.form.misc_httpport_x.value)){
+	if(!document.form.misc_httpport_x.disabled &&
+			isPortConflict(document.form.misc_httpport_x.value)){
 		alert(isPortConflict(document.form.misc_httpport_x.value));
 		document.form.misc_httpport_x.focus();
 		return false;
 	}
-	else if(isPortConflict(document.form.misc_httpsport_x.value) && HTTPS_support){
+	else if(!document.form.misc_httpsport_x.disabled &&
+			isPortConflict(document.form.misc_httpsport_x.value) && HTTPS_support){
 		alert(isPortConflict(document.form.misc_httpsport_x.value));
 		document.form.misc_httpsport_x.focus();
 		return false;
@@ -738,28 +746,32 @@ var dstoff_end_m,dstoff_end_w,dstoff_end_d,dstoff_end_h;
 function parse_dstoffset(){     //Mm.w.d/h,Mm.w.d/h
 	if(dstoffset){
 		var dstoffset_startend = dstoffset.split(",");
-
-		var dstoffset_start = trim(dstoffset_startend[0]);		
-		var dstoff_start = dstoffset_start.split(".");
-		dstoff_start_m = dstoff_start[0];
-		dstoff_start_w = dstoff_start[1];
-		dstoff_start_d = dstoff_start[2].split("/")[0];
-		dstoff_start_h = dstoff_start[2].split("/")[1];
-			
-		var dstoffset_end = trim(dstoffset_startend[1]);
-		var dstoff_end = dstoffset_end.split(".");
-		dstoff_end_m = dstoff_end[0];
-		dstoff_end_w = dstoff_end[1];
-		dstoff_end_d = dstoff_end[2].split("/")[0];
-		dstoff_end_h = dstoff_end[2].split("/")[1];
-    		
+                        
+		if(dstoffset_startend[0] != "" && dstoffset_startend[0] != undefined){          
+			var dstoffset_start = trim(dstoffset_startend[0]);              
+			var dstoff_start = dstoffset_start.split(".");
+			dstoff_start_m = dstoff_start[0]!=""?dstoff_start[0]:"M3";
+			dstoff_start_w = validator.isNumber(dstoff_start[1], this)?dstoff_start[1]:"2";
+			dstoff_start_d = validator.isNumber(dstoff_start[2], this)?dstoff_start[2].split("/")[0]:"0";
+			dstoff_start_h = validator.isNumber(dstoff_start[2], this)?dstoff_start[2].split("/")[1]:"2";
+		}
+                
+		if(dstoffset_startend[1] != "" && dstoffset_startend[1] != undefined){
+			var dstoffset_end = trim(dstoffset_startend[1]);
+			var dstoff_end = dstoffset_end.split(".");
+			dstoff_end_m = dstoff_end[0]!=""?dstoff_end[0]:"M10";
+			dstoff_end_w = validator.isNumber(dstoff_end[1], this)?dstoff_end[1]:"2";
+			dstoff_end_d = validator.isNumber(dstoff_end[2], this)?dstoff_end[2].split("/")[0]:"0";
+			dstoff_end_h = validator.isNumber(dstoff_end[2], this)?dstoff_end[2].split("/")[1]:"2";
+		}	
 		//console.log(dstoff_start_m+"."+dstoff_start_w+"."+dstoff_start_d+"/"+dstoff_start_h);
 		//console.log(dstoff_end_m+"."+dstoff_end_w+"."+dstoff_end_d+"/"+dstoff_end_h);
-		load_dst_m_Options();
-		load_dst_w_Options();
-		load_dst_d_Options();
-		load_dst_h_Options();
 	}
+
+	load_dst_m_Options();
+	load_dst_w_Options();
+	load_dst_d_Options();
+	load_dst_h_Options();
 }
 
 function load_dst_m_Options(){
@@ -907,7 +919,7 @@ function show_http_clientlist(){
 	}
 	else {
 		var transformNumToText = function(restrict_type) {
-			var bit_text_array = ["", "Web UI", "SSH", "Telnet"];
+			var bit_text_array = ["", "<#System_WebUI#>", "<#System_SSH#>", "<#System_Telnet#>"];
 			var type_text = "";
 			for(var i = 1; restrict_type != 0 && i <= 4; i += 1) {
 				if(restrict_type & 1) {
@@ -1289,6 +1301,7 @@ function control_all_rule_status(obj) {
 <input type="hidden" name="reboot_schedule_enable" value="<% nvram_get_x("","reboot_schedule_enable"); %>">
 <input type="hidden" name="sw_mode" value="<% nvram_get("sw_mode"); %>">
 <input type="hidden" name="ncb_enable" value="<% nvram_get("ncb_enable"); %>">
+<input type="hidden" name="http_lanport" value="<% nvram_get("http_lanport"); %>">
 
 <table class="content" align="center" cellpadding="0" cellspacing="0">
   <tr>
@@ -1522,7 +1535,7 @@ function control_all_rule_status(obj) {
 				</tr>
 
 				<tr id="https_lanport">
-					<th>HTTPS LAN port</th>
+					<th><#System_HTTPS_LAN_Port#></th>
 					<td>
 						<input type="text" maxlength="5" class="input_6_table" name="https_lanport" value="<% nvram_get("https_lanport"); %>" onKeyPress="return validator.isNumber(this,event);" onBlur="change_url(this.value, 'https_lan');" autocorrect="off" autocapitalize="off">
 						<span id="https_access_page"></span>
@@ -1613,9 +1626,9 @@ function control_all_rule_status(obj) {
 						<div id="ClientList_Block_PC" class="clientlist_dropdown" style="margin-left:27px;width:235px;"></div>	
 					</td>
 					<td width="40%">
-						<input type="checkbox" name="access_webui" class="input access_type" value="1">Web UI<!--untranslated-->
-						<input type="checkbox" name="access_ssh" class="input access_type" value="2">SSH<!--untranslated-->
-						<input type="checkbox" name="access_telnet" class="input access_type" value="4">Telnet (Lan only)<!--untranslated-->
+						<input type="checkbox" name="access_webui" class="input access_type" value="1"><#System_WebUI#>
+						<input type="checkbox" name="access_ssh" class="input access_type" value="2"><#System_SSH#>
+						<input type="checkbox" name="access_telnet" class="input access_type" value="4"><#System_Telnet#>
 					</td>
 					<td width="10%">
 						<div id="add_delete" class="add_enable" style="margin:0 auto" onclick="addRow(document.form.http_client_ip_x_0, 4);"></div>

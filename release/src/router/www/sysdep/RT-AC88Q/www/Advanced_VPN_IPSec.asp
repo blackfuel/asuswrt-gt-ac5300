@@ -1079,7 +1079,7 @@ function validForm() {
 	if(getRadioItemCheck(document.form.ipsec_auth_method) == "1") {
 		if(!validator.isEmpty(document.form.ipsec_preshared_key))
 			return false;
-		if(!Block_chars(document.form.ipsec_preshared_key, [">", "<", "#", "null"]))
+		if(!Block_chars(document.form.ipsec_preshared_key, [">", "<", "&", "\"", "null"]))
 			return false;
 		if(is_KR_sku){
 			if(!validator.psk_KR(document.form.ipsec_preshared_key))
@@ -1921,7 +1921,7 @@ function addRow_Group(upper) {
 			valid_password.focus();
 			return false;
 		}
-		else if(!Block_chars(valid_password, ["<", ">", "&"])) {
+		else if(!Block_chars(valid_password, ["<", ">", "&", "\""])) {
 			return false;
 		}
 		else if(valid_password.value.length > 0 && valid_password.value.length < 5) {
@@ -2255,27 +2255,23 @@ function changeHardwareCrypto() {
 											</td>
 										</tr>
 										<tr id="tr_general_hw_crypto">
-											<th>Hardware Crypto Offloading<!--untranslated--></th>
+											<th><#vpn_ipsec_hw_crypto_offloading#></th>
 											<td>
 												<label><input type="radio" name="ipsec_hw_crypto_enable" class="input" value="1" <% nvram_match("ipsec_hw_crypto_enable", "1", "checked"); %> onchange="changeHardwareCrypto();"><#btn_Enabled#></label>
 												<label><input type="radio" name="ipsec_hw_crypto_enable" class="input" value="0" <% nvram_match("ipsec_hw_crypto_enable", "0", "checked"); %> onchange="changeHardwareCrypto();"><#btn_Disabled#></label>
 												<div>
-													<span>
-														1. Using Hardware Crypto Engine can much improve the throughput performance over the VPN tunnel. However, the maximum VPN Tunnel client connections will be shrunk to 8.
-													</span>
+													<span>1. <#vpn_ipsec_hw_crypto_des1#></span>
 													<br>
-													<span>
-														2. Disable Hardware Crypto Engine can much improve VPN Tunnel connection number up to 16. However, the transmission performance over the VPN tunnel will be vary and depended on CPU resource.
-													</span>
+													<span>2. <#vpn_ipsec_hw_crypto_des2#></span>
 												</div>
 											</td>
 										</tr>
 										<tr id="tr_general_ike_isakmp">
-											<th>IKE / ISAKMP Port<!--untranslated--></th>
+											<th><#vpn_ipsec_IKE_ISAKMP_Port#></th>
 											<td>500</td>
 										</tr>
 										<tr id="tr_general_ike_isakmp_nat">
-											<th>IKE / ISAKMP NAT-T Port<!--untranslated--></th>
+											<th><#vpn_ipsec_IKE_ISAKMP_NAT_Port#></th>
 											<td>4500</td>
 										</tr>										
 										<tr id="tr_general_log">
@@ -2570,7 +2566,7 @@ function changeHardwareCrypto() {
 				</td>
 			</tr>
 			<tr id="tr_adv_dh_group">
-				<th>Diffile-Hellman Groups<!--untranslated--></th>
+				<th><#vpn_ipsec_dh_group#></th>
 				<td>
 					<label><input type="checkbox" name="ipsec_dh_group_p1" value="1">1</label>
 					<label><input type="checkbox" name="ipsec_dh_group_p1" value="2">2</label>
@@ -2636,13 +2632,13 @@ function changeHardwareCrypto() {
 				</td>
 			</tr>
 			<tr id="tr_adv_ike_isakmp" style="display:none;">
-				<th>IKE / ISAKMP Port<!--untranslated--></th>
+				<th><#vpn_ipsec_IKE_ISAKMP_Port#></th>
 				<td>
 					<input type="text" class="input_6_table" name="ipsec_ike_isakmp" maxlength="3" value="500">
 				</td>
 			</tr>
 			<tr id="tr_adv_ike_isakmp_nat" style="display:none;">
-				<th>IKE / ISAKMP NAT-T Port<!--untranslated--></th>
+				<th><#vpn_ipsec_IKE_ISAKMP_NAT_Port#></th>
 				<td>
 					<input type="text" class="input_6_table" name="ipsec_ike_isakmp_nat" maxlength="4" value="4500">
 				</td>
@@ -2784,7 +2780,7 @@ function changeHardwareCrypto() {
 <input type="hidden" name="action_wait" value="">
 <input type="hidden" name="first_time" value="">
 <input type="hidden" name="action_script" value="">
-<input type="hidden" name="preferred_lang" id="preferred_lang" value="<% nvram_get("preferred_lang"); %>">
+<input type="hidden" name="preferred_lang" value="<% nvram_get("preferred_lang"); %>">
 <input type="hidden" name="firmver" value="<% nvram_get("firmver"); %>">
 <input type="hidden" name="clear_file_name" value="ipsec">
 </form>
