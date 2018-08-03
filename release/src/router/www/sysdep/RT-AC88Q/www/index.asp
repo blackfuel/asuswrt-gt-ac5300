@@ -148,8 +148,10 @@
 <script type="text/javascript" src="/validator.js"></script>
 <script language="JavaScript" type="text/javascript" src="/client_function.js"></script>
 <script language="JavaScript" type="text/javascript" src="/js/jquery.js"></script>
+<script language="JavaScript" type="text/javascript" src="/js/httpApi.js"></script>
 <script type="text/javascript" src="/switcherplugin/jquery.iphone-switch.js"></script>
 <script language="JavaScript" type="text/javascript" src="/form.js"></script>
+<script language="JavaScript" type="text/javascript" src="/js/asus_eula.js"></script>
 <script>
 if(usb_support) addNewScript("/disk_functions.js");
 
@@ -320,7 +322,7 @@ function initial(){
 			updateAMeshCount();
 			setInterval(updateAMeshCount, 5000);
 		});
-		AiMesh_promoteHint();
+		setTimeout(AiMesh_promoteHint, 1000);
 	}
 	else
 		$("#ameshContainer").remove();
@@ -502,7 +504,19 @@ function initial(){
 	}
 
 	orig_NM_container_height = parseInt($(".NM_radius_bottom_container").css("height"));
-	
+	setTimeout(check_eula, 100);
+}
+
+function check_eula(){
+	var asus_status = httpApi.nvramGet(["ASUS_EULA", "ASUS_EULA_time", "ddns_enable_x", "ddns_server_x"], true);
+	var tm_status = httpApi.nvramGet(["TM_EULA", "TM_EULA_time"], true);
+
+	if( (asus_status.ASUS_EULA == "1" && asus_status.ASUS_EULA_time == "") ||
+		(asus_status.ASUS_EULA == "0" && asus_status.ddns_enable_x == "1" && asus_status.ddns_server_x == "WWW.ASUS.COM") )
+		ASUS_EULA.check("asus");
+
+	if(tm_status.TM_EULA == "1" &&  tm_status.TM_EULA_time == "")
+		ASUS_EULA.check("tm");
 }
 
 /*
@@ -2152,8 +2166,10 @@ function updateClientsCount() {
 				count = fromNetworkmapd_maclist[0].length;
 				for(var i in fromNetworkmapd_maclist[0]){
 					if (fromNetworkmapd_maclist[0].hasOwnProperty(i)) {
-						if(clientList[fromNetworkmapd_maclist[0][i]].amesh_isRe)
-							count--;
+						if(clientList[fromNetworkmapd_maclist[0][i]] != undefined) {
+							if(clientList[fromNetworkmapd_maclist[0][i]].amesh_isRe)
+								count--;
+						}
 					}
 				}
 				return count;
@@ -2187,11 +2203,11 @@ function closeClientDetailView() {
 	edit_cancel();
 }
 function AiMesh_promoteHint() {
-	var AiMesh_promoteHint_flag = (cookie.get("AiMesh_promoteHint") == "1") ? true : false;
+	var AiMesh_promoteHint_flag = (httpApi.uiFlag.get("AiMeshHint") == "1") ? true : false;
 	var get_cfg_clientlist = [<% get_cfg_clientlist(); %>][0];
 	var AiMesh_node_count_flag = (get_cfg_clientlist.length < 2) ? true : false;
 	if(!AiMesh_promoteHint_flag && AiMesh_node_count_flag) {
-		cookie.set("AiMesh_promoteHint", "1", 365);
+		httpApi.uiFlag.set("AiMeshHint", "1")
 		var $AiMesh_promoteHint = $('<div>');
 		$AiMesh_promoteHint.attr({"id" : "AiMesh_promoteHint"});
 		$AiMesh_promoteHint.addClass("AiMesh_promoteHint_bg");
@@ -2209,12 +2225,12 @@ function AiMesh_promoteHint() {
 
 		var $AiMesh_promoteHint_title = $('<div>');
 		$AiMesh_promoteHint_title.addClass("AiMesh_promoteHint_title");
-		var title = "New feature available";/* untranslated */
+		var title = "<#NewFeatureAvailable#>";
 		$AiMesh_promoteHint_title.html(title);
 		$AiMesh_promoteHint_content_left_bg.append($AiMesh_promoteHint_title);
 
 		var $AiMesh_promoteHint_description = $('<div>');
-		var description = "Advanced ASUS AiMesh is an innovative new router feature that connects multiple ASUS routers together, creating a whole-home Wi-Fi network.";/* untranslated */
+		var description = "<#AiMesh_Feature_Desc#>";
 		$AiMesh_promoteHint_description.html(description);
 		$AiMesh_promoteHint_content_left_bg.append($AiMesh_promoteHint_description);
 
@@ -2241,7 +2257,7 @@ function AiMesh_promoteHint() {
 
 		var $AiMesh_promoteHint_link = $('<div>');
 		$AiMesh_promoteHint_link.addClass("AiMesh_promoteHint_redirect_text");
-		var redirect_text = "<a id='AiMesh_promoteHint_faq' href='https://www.asus.com/AiMesh/' target='_blank'>Know more about ASUS AiMesh</a>";/* untranslated */
+		var redirect_text = "<a id='AiMesh_promoteHint_faq' href='https://www.asus.com/AiMesh/' target='_blank'><#AiMesh_FAQ#></a>";
 		$AiMesh_promoteHint_link.html(redirect_text);
 		$AiMesh_promoteHint_content_link_bg.append($AiMesh_promoteHint_link);
 

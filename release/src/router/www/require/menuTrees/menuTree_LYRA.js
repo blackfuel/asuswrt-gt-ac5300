@@ -239,6 +239,7 @@ define(function(){
 					{url: "Advanced_SNMP_Content.asp", tabName: "SNMP"},
 					{url: "Advanced_TR069_Content.asp", tabName: "TR-069"},
 					{url: "Advanced_Notification_Content.asp", tabName: "Notification"},
+					{url: "Advanced_Privacy.asp", tabName: "Privacy"},
 					{url: "NULL", tabName: "__INHERIT__"}
 				]
 			},
@@ -347,6 +348,10 @@ define(function(){
 					if(wlc_express != 0){
 						retArray.push("menu_Wireless");
 					}
+
+					if(ifttt_support || alexa_support){
+						retArray.push("menu_Alexa_IFTTT");
+					}
 				}
 				else if(isSwMode("ap")){
 					retArray.push("menu_AccessControl");
@@ -361,6 +366,10 @@ define(function(){
 					retArray.push("menu_Firewall");
 					retArray.push("menu_ParentalControl");
 					retArray.push("menu_QoS");
+
+					if(ifttt_support || alexa_support){
+						retArray.push("menu_Alexa_IFTTT");
+					}
 				}
 				else if(isSwMode("mb")){
 					retArray.push("menu_GuestNetwork");
@@ -377,6 +386,10 @@ define(function(){
 					retArray.push("menu_Firewall");
 					retArray.push("menu_ParentalControl");
 					retArray.push("menu_QoS");
+
+					if(ifttt_support || alexa_support){
+						retArray.push("menu_Alexa_IFTTT");
+					}
 				}
 
 				if(lyra_hide_support){

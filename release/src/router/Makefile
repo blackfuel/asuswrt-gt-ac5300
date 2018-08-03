@@ -729,7 +729,6 @@ ifneq ($(HND_ROUTER),y)
 obj-y += etc
 endif
 # obj-y += vlan # use Busybox vconfig
-#obj-y += utils
 obj-y += ntpclient
 
 ifeq ($(RTCONFIG_REALTEK),y)
@@ -775,7 +774,7 @@ obj-y += fapi_wlan_common-1.0.0.1
 obj-y += libfapi-0.1
 obj-y += taskset
 else
-obj-y += utils$(BCMEX)$(EX7)
+obj-y += utils$(BCMEX)$(EX7) utils
 obj-$(RTCONFIG_EMF) += emf$(BCMEX)$(EX7)
 obj-$(RTCONFIG_EMF) += igs$(BCMEX)$(EX7)
 obj-y += wlconf$(BCMEX)$(EX7)
@@ -1684,6 +1683,7 @@ endif
 	cd $(TARGETDIR)/lib/modules/*/kernel/fs && mv ntfs/* . && rm -rf ntfs || true
 	cd $(TARGETDIR)/lib/modules/*/kernel/fs && mv smbfs/* . && rm -rf smbfs || true
 	cd $(TARGETDIR)/lib/modules/*/kernel/fs && mv reiserfs/* . && rm -rf reiserfs || true
+	cd $(TARGETDIR)/lib/modules/*/kernel/fs && mv hfs/* . && rm -rf hfs || true
 	cd $(TARGETDIR)/lib/modules/*/kernel/fs && mv hfsplus/* . && rm -rf hfsplus || true
 	cd $(TARGETDIR)/lib/modules/*/kernel/fs && mv lockd/* . && rm -rf lockd || true
 	cd $(TARGETDIR)/lib/modules/*/kernel/fs && mv nfsd/* . && rm -rf nfsd || true
@@ -1834,7 +1834,6 @@ endif
 	@mv $(TARGETDIR)/lib/modules/*/kernel/fs/ntfs.*o $(PLATFORMDIR)/extras/ || true
 	@mv $(TARGETDIR)/lib/modules/*/kernel/fs/smbfs.*o $(PLATFORMDIR)/extras/ || true
 	@mv $(TARGETDIR)/lib/modules/*/kernel/fs/reiserfs.*o $(PLATFORMDIR)/extras/ || true
-	@mv $(TARGETDIR)/lib/modules/*/kernel/fs/hfsplus.*o $(PLATFORMDIR)/extras/ || true
 	@mv $(TARGETDIR)/lib/modules/*/kernel/fs/nfs.*o $(PLATFORMDIR)/extras/ || true
 	@mv $(TARGETDIR)/lib/modules/*/kernel/fs/nfsd.*o $(PLATFORMDIR)/extras/ || true
 	@mv $(TARGETDIR)/lib/modules/*/kernel/fs/lockd.*o $(PLATFORMDIR)/extras/ || true
@@ -1907,6 +1906,8 @@ endif
 	$(if $(RTCONFIG_USB),@cp -f,@mv) $(TARGETDIR)/lib/modules/*/kernel/fs/vfat.*o $(PLATFORMDIR)/extras/ || true
 	$(if $(RTCONFIG_USB),@cp -f,@mv) $(TARGETDIR)/lib/modules/*/kernel/fs/msdos.*o $(PLATFORMDIR)/extras/ || true
 	$(if $(RTCONFIG_USB),@cp -f,@mv) $(TARGETDIR)/lib/modules/*/kernel/fs/fuse.*o $(PLATFORMDIR)/extras/ || true
+	$(if $(RTCONFIG_USB),@cp -f,@mv) $(TARGETDIR)/lib/modules/*/kernel/fs/hfs.*o $(PLATFORMDIR)/extras/ || true
+	$(if $(RTCONFIG_USB),@cp -f,@mv) $(TARGETDIR)/lib/modules/*/kernel/fs/hfsplus.*o $(PLATFORMDIR)/extras/ || true
 ifneq ($(RTCONFIG_USB),y)
 	@rm -rf $(TARGETDIR)/lib/modules/*/kernel/drivers/usb || true
 	@rm -rf $(TARGETDIR)/lib/modules/*/kernel/drivers/scsi || true
@@ -2866,7 +2867,7 @@ miniupnpd: $(IPTABLES) miniupnpd/config.h
 		IPTABLESPATH=$(TOP)/$(IPTABLES) \
 		EXTRACFLAGS="-Os $(EXTRACFLAGS) -idirafter$(KERNEL_HEADER_DIR) -ffunction-sections -fdata-sections" \
 		LDFLAGS="$(EXTRALDFLAGS) -ffunction-sections -fdata-sections -Wl,--gc-sections -L$(IPTC_LIBDIR)" \
-		LDLIBS="-Wl,--as-needed $(IPTC_LIBS)"
+		LDLIBS="-Wl,--as-needed -lrt $(IPTC_LIBS)"
 
 miniupnpd-clean:
 	-@$(MAKE) -C miniupnpd -f Makefile.asus clean
@@ -2879,7 +2880,7 @@ miniupnpd_1.4: $(IPTABLES) shared/version.h
 		IPTABLESPATH=$(TOP)/$(IPTABLES) \
 		EXTRACFLAGS="-Os $(EXTRACFLAGS) -ffunction-sections -fdata-sections" \
 		LDFLAGS="$(EXTRALDFLAGS) -ffunction-sections -fdata-sections -Wl,--gc-sections -L$(IPTC_LIBDIR)" \
-		LDLIBS="-Wl,--as-needed $(IPTC_LIBS)"
+		LDLIBS="-Wl,--as-needed -lrt $(IPTC_LIBS)"
 
 miniupnpd_1.4-clean:
 	-@$(MAKE) -C miniupnpd_1.4 -f Makefile.asus clean
@@ -3023,10 +3024,10 @@ libusb10-clean:
 	@rm -f libusb10/stamp-h1
 
 libusb/stamp-h1:
-	cd libusb && CFLAGS="-Wall -Os $(EXTRACFLAGS)" LDFLAGS="$(EXTRALDFLAGS)" \
+	cd libusb && CFLAGS="-Wall -Os $(EXTRACFLAGS)" LIBS="-lpthread -ldl -lc $(EXTRALDFLAGS)" \
 	$(CONFIGURE) --prefix=/usr \
 		LIBUSB_1_0_CFLAGS="-I$(TOP)/libusb10/libusb" \
-		LIBUSB_1_0_LIBS="-L$(TOP)/libusb10/libusb/.libs -lusb-1.0 -lpthread -ldl $(EXTRALDFLAGS)\
+		LIBUSB_1_0_LIBS="-L$(TOP)/libusb10/libusb/.libs -lusb-1.0 \
 		-Wl,-R/lib:/usr/lib:/opt/usr/lib:/usr/local/share"
 	-@$(MAKE) -C libusb clean
 	touch $@
@@ -3045,10 +3046,10 @@ libusb-clean:
 	-@$(MAKE) -C libusb clean
 	@rm -f libusb/stamp-h1
 
-usb-modeswitch-1.2.3: libusb-0.1.12
-	$(MAKE) -C $@ CC=$(CC) CFLAGS="-Os $(EXTRACFLAGS) -I$(TOP)/libusb-0.1.12" LIBS="\
-		-Wl,-R/lib:/usr/lib:/opt/usr/lib:/usr/local/share -lpthread -ldl\
-		-L$(TOP)/libusb-0.1.12/.libs -lusb"
+usb-modeswitch-1.2.3: libusb
+	$(MAKE) -C $@ CC=$(CC) CFLAGS="-Os $(EXTRACFLAGS) -I$(TOP)/libusb/libusb" LIBS="\
+		-Wl,-R/lib:/usr/lib:/opt/usr/lib:/usr/local/share -lpthread -ldl \
+		-L$(TOP)/libusb/libusb/.libs -lusb -L$(TOP)/libusb10/libusb/.libs -lusb-1.0"
 
 usb-modeswitch-1.2.3-install: usb-modeswitch-1.2.3
 	install -D usb-modeswitch-1.2.3/usb_modeswitch $(INSTALLDIR)/usb-modeswitch-1.2.3/usr/sbin/usb_modeswitch
@@ -3159,6 +3160,11 @@ lsof-install:
 lsof-clean:
 	( cd lsof ; ./Configure -clean )
 	@rm -f lsof/Makefile
+
+ifneq ($(BCMEX),)	
+utils utils-install:
+	@$(SEP)
+endif
 
 mtd-utils: e2fsprogs lzo zlib
 ifeq ($(ALPINE)$(LANTIQ),y)
@@ -3835,17 +3841,17 @@ iperf-clean:
 	[ ! -f iperf/Makefile ] || $(MAKE) -C iperf distclean
 	@rm -f iperf/Makefile
 
-lldpd-0.9.8: lldpd-0.9.8/Makefile
+lldpd-0.9.8: $(if $(RTCONFIG_AMAS),json-c,) jansson-2.7 lldpd-0.9.8/Makefile
 	$(MAKE) -C $@
 
 lldpd-0.9.8/Makefile:
-ifeq ($(HND_ROUTER),y)
-	(cd lldpd-0.9.8 ; autoreconf -i -f ; LDFLAGS="-L$(TOP)/lldpd-0.9.8/lib -lm -L$(STAGEDIR)/usr/lib -ljansson $(if $(RTCONFIG_AMAS),-L$(TOP)/json-c/.libs,)" \
-	$(CONFIGURE) $(if $(RTCONFIG_AMAS),JSONC_CFLAGS='-I$(TOP)/json-c' JSONC_LIBS='-L$(TOP)/josn-c/.libs -ljson-c',) --prefix= --bindir=/usr/sbin --libdir=/usr/lib --with-privsep-user=nobody --with-privsep-group=root --with-privsep-path=/var/run/lldpd $(if $(RTCONFIG_AMAS),--with-json=yes,))
-else	
-	(cd lldpd-0.9.8 ; autoreconf -i -f ; LDFLAGS="-L$(TOP)/lldpd-0.9.8/lib -lm -L$(STAGEDIR)/usr/lib -ljansson $(if $(RTCONFIG_AMAS),-L$(TOP)/json-c/.libs,)" \
-	$(CONFIGURE) $(if $(RTCONFIG_AMAS),JSONC_CFLAGS='-I$(TOP)/json-c' JSONC_LIBS='-L$(TOP)/josn-c/.libs -ljson-c',) --prefix= --enable-oldies --bindir=/usr/sbin --libdir=/usr/lib --with-privsep-user=nobody --with-privsep-group=root --with-privsep-path=/var/run/lldpd $(if $(RTCONFIG_AMAS),--with-json=yes,))
-endif
+	cd lldpd-0.9.8 && autoreconf -i -f && \
+	$(CONFIGURE) --prefix= --bindir=/usr/sbin --libdir=/usr/lib \
+	CFLAGS="-g -O2 -I$(STAGEDIR)/usr/include" \
+	LDFLAGS="-L$(TOP)/lldpd-0.9.8/lib -lm -L$(STAGEDIR)/usr/lib -ljansson $(if $(RTCONFIG_AMAS),-L$(TOP)/json-c/.libs,)" \
+	--with-privsep-user=nobody --with-privsep-group=root --with-privsep-path=/var/run/lldpd \
+	$(if $(HND_ROUTER),,--enable-oldies) \
+	$(if $(RTCONFIG_AMAS),--with-json=yes,)
 
 lldpd-0.9.8-install: lldpd-0.9.8
 	install -D lldpd-0.9.8/src/client/.libs/lldpcli $(INSTALLDIR)/lldpd-0.9.8/usr/sbin/lldpcli
@@ -3856,7 +3862,8 @@ lldpd-0.9.8-install: lldpd-0.9.8
 lldpd-0.9.8-clean:
 	[ ! -f lldpd-0.9.8/Makefile ] || $(MAKE) -C lldpd-0.9.8 clean
 	@rm -f lldpd-0.9.8/Makefile
-	@cd lldpd-0.9.8/libevent && make clean
+	[ ! -f lldpd-0.9.8/libevent/Makefile ] || $(MAKE) -C lldpd-0.9.8/libevent clean
+	@rm -f lldpd-0.9.8/libevent/Makefile
 
 libevent-2.0.21: libevent-2.0.21/Makefile
 	$(MAKE) -j 8 -C $@ && $(MAKE) $@-stage && sed 's|/usr/lib|$(STAGEDIR)/usr/lib|g' -i $(STAGEDIR)/usr/lib/libevent.la
@@ -4425,7 +4432,7 @@ endif
 
 wps$(BCMEX)$(EX7)-clean:
 ifeq ($(RTCONFIG_WPS),y)
-	[ ! -f wps$(BCMEX)$(EX7)/Makefile ] || $(MAKE) -C wps$(BCMEX)$(EX7) clean
+	[ ! -f wps$(BCMEX)$(EX7)/Makefile ] || $(MAKE) -C wps$(BCMEX)$(EX7) clean || true
 else
 	# Prevent to use generic rules"
 	@true
@@ -4761,7 +4768,7 @@ ifeq ($(HND_ROUTER),y)
 		export OPENSSL_CRYPTO_LIBS="-L$(TOP)/openssl -lcrypto"; \
 		export OPENSSL_SSL_CFLAGS="-I$(TOP)/openssl -I$(LINUX_INC_DIR)/include"; \
 		export OPENSSL_SSL_LIBS="-L$(TOP)/openssl -lssl"; \
-		CFLAGS="-Os -Wall $(EXTRACFLAGS) -ffunction-sections -fdata-sections $(if $(RTCONFIG_HTTPS),-I$(TOP)/openssl/include/openssl) -I$(LINUX_INC_DIR)/include" \
+		CFLAGS="-Os -Wall $(EXTRACFLAGS) -ffunction-sections -fdata-sections $(if $(RTCONFIG_HTTPS),-I$(TOP)/openssl/include/openssl) $(if $(RTCONFIG_BCMARM),-I$(SRCBASE)/shared/bcmwifi/include) -I$(LINUX_INC_DIR)/include" \
 		LDFLAGS="$(EXTRALDFLAGS) -L$(TOP)/nvram$(BCMEX)$(EX7) -lnvram $(shell if [[ "$(HND_ROUTER)" = "y" ]] ; then echo "-L$(TOP)/wlcsm -lwlcsm"; else echo ""; fi) -L$(TOP)/shared -lshared $(if $(RTCONFIG_QTN),-L$(TOP)/libqcsapi_client -lqcsapi_client) $(if $(RTCONFIG_HTTPS),-L$(TOP)/openssl -lcrypto -lssl) -L$(TOP)/zlib -lz -lpthread -ldl -L$(TOP)/lzo/src/.libs -L$(TOP)/openpam/lib/libpam/.libs -ffunction-sections -fdata-sections -Wl,--gc-sections" \
 		CPPFLAGS="-I$(TOP)/lzo/include -I$(TOP)/openssl/include -I$(TOP)/openpam/include -I$(TOP)/shared -I$(SRCBASE)/include -I$(LINUX_INC_DIR)/include" \
 		IPROUTE="/usr/sbin/ip" IFCONFIG="/sbin/ifconfig" ROUTE="/sbin/route" \
@@ -4778,7 +4785,7 @@ else
 		export OPENSSL_CRYPTO_LIBS="-L$(TOP)/openssl -lcrypto"; \
 		export OPENSSL_SSL_CFLAGS="-I$(TOP)/openssl"; \
 		export OPENSSL_SSL_LIBS="-L$(TOP)/openssl -lssl"; \
-		CFLAGS="-Os -Wall $(EXTRACFLAGS) -ffunction-sections -fdata-sections $(if $(RTCONFIG_HTTPS),-I$(TOP)/openssl/include/openssl)" \
+		CFLAGS="-Os -Wall $(EXTRACFLAGS) -ffunction-sections -fdata-sections $(if $(RTCONFIG_HTTPS),-I$(TOP)/openssl/include/openssl) $(if $(RTCONFIG_BCMARM),-I$(SRCBASE)/shared/bcmwifi/include)" \
 		LDFLAGS="$(EXTRALDFLAGS) -L$(TOP)/nvram$(BCMEX)${EX7} ${EXTRA_NV_LDFLAGS} -lnvram -L$(TOP)/shared -lshared $(if $(RTCONFIG_QTN),-L$(TOP)/libqcsapi_client -lqcsapi_client) $(if $(RTCONFIG_HTTPS),-L$(TOP)/openssl -lcrypto -lssl) -L$(TOP)/zlib -lz -lpthread -ldl -L$(TOP)/lzo/src/.libs -L$(TOP)/openpam/lib/libpam/.libs -ffunction-sections -fdata-sections -Wl,--gc-sections" \
 		CPPFLAGS="-I$(TOP)/lzo/include -I$(TOP)/openssl/include -I$(TOP)/openpam/include -I$(TOP)/shared -I$(SRCBASE)/include" \
 		IPROUTE="/usr/sbin/ip" IFCONFIG="/sbin/ifconfig" ROUTE="/sbin/route" \
@@ -5550,7 +5557,7 @@ avahi-0.6.31: shared nvram$(BCMEX)$(EX7) expat-2.0.1 libdaemon avahi-0.6.31/Make
 
 avahi-0.6.31/Makefile:
 	( cd avahi-0.6.31 ; $(CONFIGURE) LDFLAGS="$(LDFLAGS) -L$(STAGEDIR)/usr/lib -ldl -lpthread $(EXTRA_LDFLAGS)" \
-		CFLAGS="$(CFLAGS) -I$(STAGEDIR)/usr/include -I$(TOP)/shared -I$(SRCBASE)/include" \
+		CFLAGS="$(CFLAGS) -I$(STAGEDIR)/usr/include -I$(TOP)/shared -I$(SRCBASE)/include $(if $(RTCONFIG_BCMARM),-I$(SRCBASE)/shared/bcmwifi/include)" \
 		--prefix=/usr --with-distro=archlinux \
 		--disable-glib --disable-gobject --disable-qt3 --disable-qt4 --disable-gtk \
 		--disable-dbus --disable-gdbm --disable-python \
@@ -6906,14 +6913,14 @@ endif
 json-c/stamp-h1:
 ifeq ($(RTCONFIG_LANTIQ),y)
 	cd $(TOP)/json-c && \
-	$(CONFIGURE) --enable-shared --disable-static \
+	$(CONFIGURE) --prefix=/usr --enable-shared --disable-static \
 	ac_cv_func_realloc_0_nonnull=yes ac_cv_func_malloc_0_nonnull=yes ac_cv_have_decl__isnan=no \
 	CFLAGS="-Os -Wno-error $(EXTRACFLAGS)" \
 	LDFLAGS="$(EXTRALDFLAGS) -Wl,--as-needed -lm"
 	touch $@
 else
 	cd $(TOP)/json-c && \
-	$(CONFIGURE) --enable-shared --disable-static \
+	$(CONFIGURE) --prefix=/usr --enable-shared --disable-static \
 	ac_cv_func_realloc_0_nonnull=yes ac_cv_func_malloc_0_nonnull=yes \
 	CFLAGS="-Os -Wno-error $(EXTRACFLAGS)" \
 	LDFLAGS="$(EXTRALDFLAGS) -Wl,--as-needed -lm"
@@ -6921,7 +6928,7 @@ else
 endif
 
 json-c: json-c/stamp-h1
-	$(MAKE) -C $@
+	$(MAKE) -C $@ && $(MAKE) $@-stage
 
 json-c-install: json-c
 	install -D json-c/.libs/libjson-c.so.2.0.2 $(INSTALLDIR)/json-c/usr/lib/libjson-c.so.2.0.2
@@ -7299,6 +7306,10 @@ mmc-utils:
 	$(MAKE) -C mmc-utils
 
 .PHONY : mmc-utils
+
+objy:
+	@echo EX7= $(EX7)
+	@echo objy=$(obj-y)
 
 mtd:
 	$(MAKE) -C mtd

@@ -361,6 +361,7 @@ void get_related_nvram(){
 	memset(wandog_target, 0, sizeof(wandog_target));
 	if(sw_mode == SW_MODE_ROUTER){
 		wandog_enable = nvram_get_int("wandog_enable");
+		dnsprobe_enable = nvram_get_int("dns_probe");
 		scan_interval = nvram_get_int("wandog_interval");
 		for(unit = WAN_UNIT_FIRST; unit < WAN_UNIT_MAX; ++unit)
 			max_disconn_count[unit] = nvram_get_int("wandog_maxfail");
@@ -379,6 +380,7 @@ void get_related_nvram(){
 	}
 	else{
 		wandog_enable = 0;
+		dnsprobe_enable = 0;
 		scan_interval = DEFAULT_SCAN_INTERVAL;
 		for(unit = WAN_UNIT_FIRST; unit < WAN_UNIT_MAX; ++unit)
 			max_disconn_count[unit] = DEFAULT_MAX_DISCONN_COUNT;
@@ -386,6 +388,7 @@ void get_related_nvram(){
 	}
 #else
 	wandog_enable = 0;
+	dnsprobe_enable = 0;
 	scan_interval = DEFAULT_SCAN_INTERVAL;
 	for(unit = WAN_UNIT_FIRST; unit < WAN_UNIT_MAX; ++unit)
 		max_disconn_count[unit] = DEFAULT_MAX_DISCONN_COUNT;
@@ -543,7 +546,7 @@ static void wan_led_control(int sig) {
 	}
 #endif
 #endif
-#if defined(RTAC68U) ||  defined(RTAC87U) || defined(RTAC3200) || defined(RTCONFIG_BCM_7114) || defined(HND_ROUTER)
+#if defined(RTAC68U) ||  defined(RTAC87U) || defined(RTAC3200) || defined(RTCONFIG_BCM_7114) || defined(HND_ROUTER) || defined(DSL_AC68U)
 	if(nvram_match("AllLED", "1")
 #ifdef RTAC68U
 		&& is_ac66u_v2_series()
@@ -915,7 +918,7 @@ int detect_internet(int wan_unit)
 	unsigned long rx_packets, tx_packets;
 #endif
 	int link_internet;
-	int wan_ppp, dns_ret;
+	int wan_ppp, is_ppp_demand, dns_ret, ping_ret;
 	char tmp[100], prefix[16];
 	char wan_proto[16];
 
@@ -931,9 +934,17 @@ int detect_internet(int wan_unit)
 			 strcmp(wan_proto, "pptp") == 0 ||
 			 strcmp(wan_proto, "l2tp") == 0);
 
-	/* Don't trigger demand PPP connections with DNS probes */
-	dns_ret = (wan_ppp && nvram_get_int(strcat_r(prefix, "pppoe_demand", tmp))) ? -1 :
-			delay_dns_response(wan_unit);
+	/* Don't trigger demand PPP connections with DNS probes & ping */
+	is_ppp_demand = (wan_ppp && nvram_get_int(strcat_r(prefix, "pppoe_demand", tmp)));
+
+	dns_ret = is_ppp_demand ? -1 : delay_dns_response(wan_unit);
+
+#if defined(RTCONFIG_DUALWAN)
+	if(wandog_enable)
+		ping_ret = is_ppp_demand ? -1 : wanduck_ping_detect(wan_unit);
+	else
+#endif
+		ping_ret = -1;
 
 	if(
 #ifdef RTCONFIG_DUALWAN
@@ -953,6 +964,7 @@ int detect_internet(int wan_unit)
 		link_internet = DISCONN;
 #endif
 #ifdef RTCONFIG_DUALWAN
+#if 0
 	else if((!strcmp(dualwan_mode, "fo") || !strcmp(dualwan_mode, "fb"))
 			&& wandog_enable == 1 && !isFirstUse && !wanduck_ping_detect(wan_unit)){
 		link_internet = DISCONN;
@@ -961,6 +973,18 @@ int detect_internet(int wan_unit)
 		if(nvram_get_int("nat_state") == NAT_STATE_NORMAL)
 			nat_state = stop_nat_rules();
 	}
+#else
+	else if((wandog_enable && !ping_ret && !dnsprobe_enable)
+			|| (dnsprobe_enable && !dns_ret && !wandog_enable)
+			|| (wandog_enable && !ping_ret && dnsprobe_enable && !dns_ret)
+			){
+		link_internet = DISCONN;
+
+		// avoid the nat rules had be applied by wan_up before wanduck.
+		if(nvram_get_int("nat_state") == NAT_STATE_NORMAL)
+			nat_state = stop_nat_rules();
+	}
+#endif
 #endif
 	else if(!dns_ret && /* PPP connections with DNS detection */
 			wan_ppp && nvram_get_int(strcat_r(prefix, "ppp_echo", tmp)) == 2)
@@ -2091,6 +2115,22 @@ int build_socket(char *http_port, char *dns_port, int *hd, int *dd){
 	return 0;
 }
 
+const char *wl_device_handler[] = {
+		"www.apple.com/library/test/success.html",	//macOS 10.9 and iOS 7 and older
+		"captive.apple.com/hotspot-detect.html", //macOS 10.10 and iOS 8 and newer
+		"connectivitycheck.gstatic.com/generate_204",	//Android 5 and newer, Google Chrome browser
+		"play.googleapis.com/generate_204",	//Android 7 and newer
+		"clients3.google.com/generate_204",	//Android 4 and older
+		"www.google.com/gen_204",	//Android
+		//"fedoraproject.org/static/hotspot.txt",	//Fedora Linux
+		//"network-test.debian.org/nm",	//Debian Linux
+		//"www.archlinux.org/check_network_status.txt",	//Arch Linux
+		//"nmcheck.gnome.org/check_network_status.txt",	//GNOME Desktop
+		//"detectportal.firefox.com/success.txt",	//Firefox browser
+		//"spectrum.s3.amazonaws.com/kindle-wifi/wifistub.html",	//Kindle
+		NULL
+	};
+
 void send_page(int wan_unit, int sfd, char *file_dest, char *url){
 	char buf[2*MAXLINE];
 	time_t now;
@@ -2099,20 +2139,32 @@ void send_page(int wan_unit, int sfd, char *file_dest, char *url){
 	char dut_proto[16];
 	char dut_port[5];
 	char redirection[100];
+	int i=0, wl_url_hit=0;
 
+	memset(buf, 0, sizeof(buf));
 	now = time(NULL);
 	strftime(timebuf, sizeof(timebuf), RFC1123FMT, gmtime(&now));
 
 #ifdef NO_IOS_DETECT_INTERNET
-	// disable iOS popup window. Jerry5 2012.11.27
-	if (!strcmp(url,"www.apple.com/library/test/success.html") && nvram_get_int("disiosdet") == 1){
-		snprintf(buf, sizeof(buf), "%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s", "HTTP/1.0 200 OK\r\n", "Server: Apache/2.2.3 (Oracle)\r\n", "Content-Type: text/html; charset=UTF-8\r\n", "Cache-Control: max-age=557\r\n", "Expires: ", timebuf, "\r\n", "Date: ", timebuf, "\r\n", "Content-Length: 127\r\n", "Connection: close\r\n\r\n", "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 3.2//EN\">\n", "<HTML>\n", "<HEAD>\n\t", "<TITLE>Success</TITLE>\n", "</HEAD>\n", "<BODY>\n", "Success\n", "</BODY>\n", "</HTML>\n");
+	if(nvram_match("disiosdet", "1")){
+		if (!strcmp(url, "www.msftncsi.com/ncsi.txt")){	//Windows 8.1 and older
+			snprintf(buf, sizeof(buf), "%s%s%s", "HTTP/1.1 200 OK\r\nContent-Length: 14\r\nDate: ", timebuf, "\r\nConnection: keep-alive\r\nContent-Type: text/plain\r\nCache-Control: max-age=30, must-revalidate\r\n\r\nMicrosoft NCSI");
+			wl_url_hit = 1;
+		}else if (!strcmp(url, "www.msftconnecttest.com/connecttest.txt")){	//Windows 10 and Xbox
+			snprintf(buf, sizeof(buf), "%s%s%s", "HTTP/1.1 200 OK\r\nContent-Length: 22\r\nContent-Type: text/plain\r\nContent-MD5: BMP8SohYjuR9M9BmkgrEEA==\r\nLast-Modified: Fri, 04 Mar 2016 06:55:03 GMT\r\nETag: \"0x8D343F9E96C9DAC\"\r\nServer: Microsoft-IIS/7.5\r\nx-ms-request-id: 18b95cc2-001e-0049-0f92-b2bac4000000\r\nx-ms-version: 2009-09-19\r\nx-ms-meta-CbModifiedTime: Tue, 01 Mar 2016 21:41:22 GMT\r\nx-ms-lease-status: unlocked\r\nx-ms-blob-type: BlockBlob\r\nX-ECN-P: RD0003FF835356\r\nAccess-Control-Expose-Headers: X-MSEdge-Ref\r\nX-CID: 7\r\nDate: ", timebuf, "\r\n\r\nMicrosoft Connect Test");
+			wl_url_hit = 1;
+		}else{
+			for(i=0; wl_device_handler[i]; i++){
+				if (!strcmp(wl_device_handler[i], url)){
+					wl_url_hit = 1;
+					break;
+				}
+			}
+		}
 	}
-	else
 #endif
-	{
+	if(!wl_url_hit){
 	snprintf(buf, sizeof(buf), "%s%s%s%s%s", "HTTP/1.0 302 Moved Temporarily\r\n", "Server: wanduck\r\n", "Date: ", timebuf, "\r\n");
-
 #ifdef RTCONFIG_WIRELESSREPEATER
 	if(sw_mode == SW_MODE_REPEATER || sw_mode == SW_MODE_HOTSPOT)
 		snprintf(dut_addr, sizeof(dut_addr), "%s", DUT_DOMAIN_NAME);
@@ -2185,12 +2237,11 @@ void send_page(int wan_unit, int sfd, char *file_dest, char *url){
 void parse_dst_url(char *page_src){
 	int i, j;
 	char dest[PATHLEN], host[64];
-	char host_strtitle[7], *hp;
+	char *hp;
 
 	j = 0;
 	memset(dest, 0, sizeof(dest));
 	memset(host, 0, sizeof(host));
-	memset(host_strtitle, 0, sizeof(host_strtitle));
 
 	for(i = 0; i < strlen(page_src); ++i){
 		if(i >= PATHLEN)
@@ -2204,16 +2255,8 @@ void parse_dst_url(char *page_src){
 		dest[j++] = page_src[i];
 	}
 
-	host_strtitle[0] = '\n';
-	host_strtitle[1] = 'H';
-	host_strtitle[2] = 'o';
-	host_strtitle[3] = 's';
-	host_strtitle[4] = 't';
-	host_strtitle[5] = ':';
-	host_strtitle[6] = ' ';
-
-	if((hp = strstr(page_src, host_strtitle)) != NULL){
-		hp += 7;
+	if((hp = strstr(page_src, "Host:")) != NULL){
+		hp += 6;
 		j = 0;
 		for(i = 0; i < strlen(hp); ++i){
 			if(i >= 64)
@@ -2772,7 +2815,7 @@ int wanduck_main(int argc, char *argv[]){
 #ifdef RTCONFIG_QTN
 	time_t qtn_now;
 	struct tm *qtn_tm;
-	char *time_string[14] = {0};
+	char time_string[sizeof("MMDDhhmmYYYY")];
 #endif
 #ifdef RTCONFIG_USB_MODEM
 	int modem_unit;

@@ -82,6 +82,34 @@ function initial(){
 	else {
 		$(".dblog_support_class").remove();
 	}
+
+	httpApi.nvramGetAsync({
+		data: ["preferred_lang"],
+		success: function(resp){
+			var preferredLang = resp.preferred_lang;
+			lang_str = (preferredLang == "EN" || preferredLang == "SL") ? "" : (preferredLang.toLowerCase() + '/');
+
+			if(preferredLang == "CN")
+				url = "https://www.asus.com.cn/Terms_of_Use_Notice_Privacy_Policy/Privacy_Policy";
+			else{
+				if(preferredLang == "SV")
+					lang_str = "se/";
+				else if(preferredLang == "UK")
+					lang_str = "ua-ua/";
+				else if(preferredLang == "MS")
+					lang_str = "my/";
+				else if(preferredLang == "DA")
+					lang_str = "dk/";
+
+				url = "https://www.asus.com/" + lang_str +"Terms_of_Use_Notice_Privacy_Policy/Privacy_Policy";
+			}
+
+			$("#eula_content").find($("a")).attr({
+				"href": url
+			})
+		}
+	})
+
 }
 
 function check_wan_state(){
@@ -211,7 +239,7 @@ function Reload_pdesc(obj, url){
 		desclist.push(["<#menu5_4_4#>","USB dongle"]);	//15
 		url_group.push(["Modem"]);
 
-		desclist.push(["Download Master","DM"]);
+		desclist.push(["<#DM_title#>","DM"]);
 		url_group.push(["DownloadMaster"]);//false value
 
 		desclist.push(["<#menu5_3_6#>","DDNS"]);
@@ -313,6 +341,11 @@ function redirect(){
 }
 
 function applyRule(){
+	if(!document.form.eula_checkbox.checked){
+		alert('<#feedback_eula_notice#>');
+		return false;
+	}
+
 	//WAN connected check
 	if(sw_mode != 3 && document.getElementById("connect_status").className == "connectstatusoff"){
                 alert("<#USB_Application_No_Internet#>");
@@ -494,7 +527,7 @@ function init_diag_feature() {
 		}, 1000);
 
 		var dblog_service = parseInt('<% nvram_get("dblog_service"); %>');
-		var dblog_service_mapping = ["", "Wi-Fi", "Download Master", "<#UPnPMediaServer#>", "AiMesh"];/* untranslated */
+		var dblog_service_mapping = ["", "Wi-Fi", "<#DM_title#>", "<#UPnPMediaServer#>", "AiMesh"];/* untranslated */
 		var dblog_service_text = "";
 		for(var i = 1; dblog_service != 0 && i <= 4; i++) {
 			if(dblog_service & 1) {
@@ -659,7 +692,7 @@ function diag_tune_service_option() {
 			if(media_support)
 				$(".dblog_service_item.all").after(gen_service_option(4, "<#UPnPMediaServer#>", "noUSB"));
 			if(!nodm_support)
-				$(".dblog_service_item.all").after(gen_service_option(2, "Download Master", "noUSB"));/*untranslated*/
+				$(".dblog_service_item.all").after(gen_service_option(2, "<#DM_title#>", "noUSB"));/*untranslated*/
 		}
 	}
 
@@ -883,8 +916,11 @@ function dblog_stop() {
 
 <tr>
 	<td colspan="2">
-		<div><#feedback_optional#></div>
-		<input class="button_gen" style="margin-left: 305px;" name="btn_send" onclick="applyRule()" type="button" value="<#btn_send#>"/>
+		<div>
+			<div style="float: left;"><input type="checkbox" name="eula_checkbox"/></div>
+			<div id="eula_content" style="margin-left: 20px;"><#feedback_eula#></div>
+		</div>
+		<input class="button_gen" style="margin-left: 305px; margin-top:5px;" name="btn_send" onclick="applyRule()" type="button" value="<#btn_send#>"/>
 	</td>
 </tr>
 
@@ -892,9 +928,6 @@ function dblog_stop() {
 	<td colspan="2">
 		<strong><#FW_note#></strong>
 		<ul>
-			<li><#feedback_note1#></li>
-			<li><#feedback_note2#></li>
-			<li><#feedback_note3#></li>
 			<li><#feedback_note4#></li>
 		</ul>
 	</td>

@@ -1,12 +1,20 @@
 ﻿BOM=BOM
-AiMesh_Desc=AiMesh combines more than one ASUS routers to form a AiMesh system, provides whole-home coverage and centralized management.
-AiMesh_Desc2=You can click \"Search\" button on network map to find AiMesh node.<br>If there are AiMesh node nearby and available to be add to your AiMesh system, you will see the available AiMesh node list.
-AiMesh_Desc3=If you cannot find available AiMesh node nearby:
-AiMesh_Desc31=1. Please reset the AiMesh node and try again.
-AiMesh_Desc32=2. Make sure your AiMesh node is up to date. (Firmware version need to support AiMesh)
+AiMesh_Desc=AiMesh combines more than one ASUS router to form an AiMesh system, providing whole-home coverage and centralized management.
+AiMesh_Desc2=You can click the \"Search\" button on the network map to find your AiMesh node. <br>If there are any available AiMesh nodes nearby that can be added to your AiMesh system, they will appear in your available AiMesh node list.
+AiMesh_Desc3=If you cannot find any available AiMesh nodes nearby:
+AiMesh_Desc31=1. Please reset your AiMesh node and try again.
+AiMesh_Desc32=2. Make sure your AiMesh node is up to date. (Frmware version needs to support AiMesh)
 AiMesh_Desc3_note=Find supported firmware
+AiMesh_Intro_Desc=The AiMesh system is composed of ASUS routers. You will set up one router becomes AiMesh router and you can add another AiMesh node to expand your network.
+AiMesh_Router_Desc=Connect your modem to the WAN port on your router using the Ethernet cable.
 AiMesh_setup_node=I want to set this device as AiMesh node
+AiMesh_setup_node_desc1=Press [Next] button to reset this AiMesh node, and then place the AiMesh node stand by near your AiMesh router.
+AiMesh_setup_node_desc2=Re-connect your AiMesh router to your mobile/NB/PC.
 AiMesh_setup_router=I want to set this device as AiMesh router
+AiMesh_connCap_desc=Please re-direct your mobile/NB/PC to your AiMesh router.
+AiMesh_errConn_desc=If you cannot find your AiMesh router near by. Please make sure your current mobile/NB/PC is already connected to your AiMesh router by Ethernet cable or Wi-Fi.
+AiMesh_connCap_wired=If via wired, use Ethernet cable to connect the LAN port of your AiMesh router and current NB/PC/.
+AiMesh_connCap_wifi=If via Wi-Fi, on current mobile/NB/PC, search the network name(SSID) of your AiMesh router, and connect it.
 ADSL_FW_item1=Current Version
 ADSL_FW_item3=Latest Version
 APSurvey_action_ConnectingStatus0=The Parent-AP might be turned off. Please check again.
@@ -24,6 +32,44 @@ APSurvey_msg_connected=You have already connected to this AP.
 APSurvey_msg_non_support_Auth=Authentication method is not supported.
 APSurvey_msg_waiting_to_connect=Please wait, the ZVMODELVZ is connecting to
 ASUS_Registration=Become an ASUS Member and receive the latest product information. <a style='color:#FC0' target='_blank' href='https://account.asus.com'>Sign Up Now!</a>
+ASUS_Notice=ASUS NOTICE
+ASUS_privacy_desc=Please note that users are required to agree to share information before using DDNS, Remote Connection (ASUS Router APP、Lyra APP、AiCloud、AiDisk), AiProtection, Traffic analyzer, Apps analyzer, Adaptive QoS, Game Boost/Game IPS and Web history. At any time, users can search for the contents of the terms at this page or stop sharing the information with other parties by choosing <a style="font-weight: bolder;">Withdraw</a>.
+ASUS_eula_desc0=Welcome to use DDNS/ Remote connection(ASUS Router APP/Lyra APP/AiCloud/AiDisk). Please read the following information carefully:
+ASUS_eula_desc1=In order to assess and improve ASUS product services and stability, based on your usage, ASUS may collect your information through the above functions:
+ASUS_eula_desc1_1=When you start to use the above functions, ASUS may collect your anonymous information which cannot characterize nor identify you:
+ASUS_eula_desc1_1_1=Log information: log information associated with your product, including model name, firmware version, Internet status, and auto-generated activation code (only applied to Alexa™/IFTTT™ functions).
+ASUS_eula_desc1_1_12=Log information: log information associated with your product, including model name, firmware version, Internet status, and auto-generated activation code (only applied to Alexa™ functions).
+ASUS_eula_desc1_1_13=Log information: log information associated with your product, including model name, firmware version, and Internet status.
+ASUS_eula_desc1_2_s1=By clicking [Agree] below, it will be deemed that you consent to sharing the following information with ASUS.
+ASUS_eula_desc1_2_s2=To protect children's privacy, we will not collect the following information of children.
+ASUS_eula_desc1_2_1=Product information: information associated with your product, including product serial number, IP Address, MAC Address, and DDNS name.
+ASUS_eula_desc1_3=Besides, in order to enable your remote control function of Alexa™ via your product, ASUS may share auto-generated activation code to Amazon for the above purposes.
+ASUS_eula_desc1_4=Besides, in order to enable your remote control function of IFTTT™ via your product, ASUS may share auto-generated activation code to IFTTT™ for the above purposes.
+ASUS_eula_desc2=ASUS is committed to protecting and respecting your privacy;You may visit Advanced Settings > Administration > Privacy to enable/disable sharing your product information with ASUS at all times. To know more about how ASUS protects your privacy, please visit <a id="eula_url" style="font-weight: bolder;text-decoration:underline;cursor:pointer;" target="_blank">ASUS Privacy Policy</a>.
+ASUS_eula_age=I am above the age of 16 years.
+ASUS_eula_age_confirm=Please confirm your age is above 16.
+ASUS_eula_withdraw0_AlexaIFTTT=For DDNS, Alexa™, IFTTT™, and Remote connection(ASUS Router APP/ Lyra APP/ AiCloud/AiDisk):
+ASUS_eula_withdraw0_Alexa=For DDNS, Alexa™, and Remote connection(ASUS Router APP/ Lyra APP/AiCloud/AiDisk):
+ASUS_eula_withdraw0=For DDNS, and Remote connection(ASUS Router APP/Lyra APP/AiCloud/AiDisk):
+ASUS_eula_withdraw_desc1=Please note that your information, including your product model name, firmware version, Internet status, IP Address, MAC Address and DDNS name, will be collected by ASUS through the above functions.
+ASUS_eula_withdraw_desc1_2=If you would like to disable sharing your information with ASUS through the above functions, please click <span style="font-weight: bold;">[Withdraw]</span> below. However, please note that such features/functions may not work if you stop sharing your information with ASUS.
+ASUS_eula_withdraw_desc2=After you click <span style="font-weight: bold;">[Withdraw]</span>, there will be some changes as listed below:
+ASUS_eula_withdraw_desc2_1=The DDNS name you are currently using will not be kept in your router.
+ASUS_eula_withdraw_desc2_2=You are able to use ASUS Router APP, Lyra APP, AiCloud, AiDisk under LAN connection, but not under the remote connection mode.
+ASUS_eula_withdraw_desc2_Alexa=In the future, if you intend to enable the functions of Alexa™, you need to provide new activation code to the web page of Alexa™.
+ASUS_eula_withdraw_desc2_AlexaIFTTT=In the future, if you intend to enable the functions of Alexa™ and IFTTT™, you need to provide new activation code to the web page of Alexa™ and IFTTT™.
+ASUS_eula_withdraw_note=You are not able to complete the withdrawal procedure without Internet connection. Please withdraw when connected to the Internet.
+ASUS_eula_withdraw_unstable=You are not able to complete the withdrawal procedure because the Internet status is unstable. Please withdraw again later.
+TM_eula_desc1=By using AiProtection, Traffic analyzer, Apps analyzer, Adaptive QoS/Game boost/Game IPS, Web history, you agree to the <a id="eula_url" style="text-decoration:underline;" target="_blank">Trend Micro End User License Agreement.</a>
+TM_eula_desc2=Please note that your information will be collected by Trend Micro through AiProtection, Traffic analyzer, Apps analyzer, Adaptive QoS and web history. You also acknowledge and agree that ASUS is not responsible for neither the agreement between you and Trend Micro nor any content of the service provided by Trend Micro. If you may have any inquires about how Trend Micro collects, processes and uses your above information, please refer to the privacy- related statement issued by Trend Micro or contact Trend Micro for more details.
+TM_eula_desc3=If you would like to disable sharing your information with Trend Micro through the above functions, please go to:  Router web GUI > Advanced settings > Administration > Privacy.
+TM_privacy_policy=<a id="tm_eula_url" style="text-decoration:underline;" target="_blank">TrendMicro Privacy Policy</a>
+TM_data_collection=<a id="tm_disclosure_url" style="text-decoration:underline;" target="_blank">Privacy and Personal Data Collection Disclosure</a>
+TM_eula_withdraw0=For AiProtection, Traffic Analyzer, Apps analyzer, Adaptive QoS/Game boost/Game IPS, Web history:
+TM_eula_withdraw_desc1=Please note that your information will be collected by Trend Micro through the above functions.
+TM_eula_withdraw_desc2=If you would like to disable sharing your information with Trend Micro through the following functions, please click <span style="font-weight: bold;">[Withdraw]</span> below. However, please note that such features/functions may not work if you stop sharing your information with Trend Micro.
+withdraw_confirm=Are you sure you want to withdraw?
+withdraw_str=Withdraw
 asusddns_inputhint=Key in the name
 Auto=Auto
 Auto_Setting_btn=Automatic Setting
@@ -234,6 +280,7 @@ Offline_desc3=To access the settings of ZVMODELVZ, reconnect to the wireless net
 OP_AP_desc=In Access Point (AP) mode, ZVMODELVZ connects to a wireless router through an Ethernet cable to extend the wireless signal coverage to other network clients. In this mode, the firewall, IP sharing, and NAT functions are disabled by default.
 OP_AP_hint=You can also go to <a href=\"http://findasus.local\" style=\"font-family:Lucida Console;text-decoration:underline;color:#FC0;\">http://findasus.local</a> to search and enter device configuration page.
 OP_AP_item=Access Point(AP) mode
+OP_Choose=Choose operation mode
 OP_desc1=ZVMODELVZ supports several operation modes to meet different requirements. Please select the mode that match your situation.
 OP_GW_desc=In wireless router/ IP sharing mode, ZVMODELVZ connects to the Internet via PPPoE, DHCP, PPTP, L2TP, or Static IP and shares the wireless network to LAN clients or devices. In this mode, NAT, firewall, and DHCP server are enabled by default. UPnP and Dynamic DNS are supported for SOHO and home users. Select this mode if you are a first-time user or you are not currently using any wired/wireless routers.
 [###MODEL_DEP###][4G-AC68U][4G-AC55U][4G-AC53U]OP_GW_desc=In wireless router/ IP sharing mode, ZVMODELVZ connects to the Internet via wired WAN or wireless Mobile Broadband, and shares the wireless network to LAN clients or devices. In this mode, NAT, firewall, and DHCP server are enabled by default. UPnP and Dynamic DNS are supported for SOHO and home users. Select this mode if you are a first-time user or you are not currently using any wired/wireless routers.
@@ -322,6 +369,7 @@ QIS_dualconnect_title=Ethernet WAN and mobile broadband Connection Status
 QIS_exist_wan_item1=Edit the existing WAN settings, please click <a href="" onclick="gotoWANSetting();">here</a>.
 QIS_exist_wan_item2=Add the new WAN setting, please click <a href="QIS_manual_setting.htm">here</a>.
 QIS_exist_wan_title=You have already configured the WAN settings.
+QIS_extend_AP=Select the Wi-Fi network you would like to extend.
 QIS_factory_WLKep=Do you want to use the default wireless security settings?
 QIS_Fail_desc=ZVMODELVZ cannot find the connection type. Your ADSL type may be one of the following modes: MER Static IP, IPoA or Bridge. Please click Manual Setting to configure the WAN settings manually.
 qis_fail_desc1=Authentication failed.
@@ -625,7 +673,7 @@ TBVLAN_UPort=Untagged Port
 TBVLAN_TPort=Tagged Port
 TBVLAN_WirelessInf=Wireless Interface
 TBVLAN_EditSubnetProfile=Edit Subnet Profile
-TBVLAN_Subnet_desc=Select the subnet you created or select 'New Subnet' to create a new subnet for the VLAN. If you need further DHCP configurations, please configure on<a style='color:#FFF; text-decoration:underline;' href='/Advanced_MultiSubnet_Content.asp'> LAN >> DHCP server</a>.
+TBVLAN_Subnet_desc=Select the subnet you created or select &quot;New Subnet&quot; to create a new subnet for the VLAN. If you need further DHCP configurations, please configure on<a style='color:#FFF; text-decoration:underline;' href='/Advanced_MultiSubnet_Content.asp'> LAN >> DHCP server</a>.
 TBVLAN_BindingInf=Binding Interface
 TBVLAN_NoBindingInf=No binding interface is available.
 TBVLAN_BindingInf_Hint=Please add a binding interface.
@@ -832,30 +880,39 @@ AiDiskWelcome_desp1=Share files in the USB disk through the Internet.
 AiDiskWelcome_desp2=Create your own domain name for the FTP server.
 AiDiskWelcome_title=Welcome to AiDisk wizard
 AiDiskWizard=AiDisk Wizard
+AiMesh_Feature_Desc=Advanced ASUS AiMesh is an innovative new router feature that connects multiple ASUS routers together, creating a whole-home Wi-Fi network.
+AiMesh_FAQ=Find out more about ASUS AiMesh
 AiMesh_FindNode=Find AiMesh node
-AiMesh_FindNode_confirm=Cannot find my AiMesh node?
-AiMesh_FindNode_Desc=Search for available AiMesh node nearby to join your AiMesh system.
-AiMesh_FindNode_Not=Cannot find any AiMesh node nearby.
-AiMesh_FindNode_Not_advA=If this device is assigned as a <span style='color:#569AC7;'>AiMesh router</span>, please check and try again.
+AiMesh_FindNode_confirm=I cannot find my AiMesh node?
+AiMesh_FindNode_confirm_WPS=WPS will be enabled when searching for an AiMesh node.
+AiMesh_FindNode_Desc=Search for available AiMesh nodes nearby to join your AiMesh system.
+AiMesh_FindNode_Not=Unable to find any AiMesh node nearby.
+AiMesh_FindNode_Not_advA=If this device is assigned as a <span style='color:#569AC7;'>AiMesh router</span>, please check the following and try again.
 AiMesh_FindNode_Not_advA1=Your AiMesh node is powered on
-AiMesh_FindNode_Not_advA2=Your AiMesh node with latest firmware
-AiMesh_FindNode_Not_advA3=Your AiMesh node is reset to default
-AiMesh_FindNode_Not_advA4=Move your AiMesh node closed to AiMesh router
-AiMesh_FindNode_Not_advB=If this device is assigned as a <span style='color:#569AC7;'>AiMesh node</span>,
-AiMesh_FindNode_Not_advB1=Push reset button on this device and then stand by.
-AiMesh_FindNode_Not_advB2=Login your AiMesh router GUI and click on AiMesh icon.
-AiMesh_FindNode_Not_advB3=Upgrade your AiMesh router’s firmware if you cannot find AiMesh icon on AiMesh router.
+AiMesh_FindNode_Not_advA2=Your AiMesh node has the latest firmware
+AiMesh_FindNode_Not_advA3=Your AiMesh node has been reset to default
+AiMesh_FindNode_Not_advA4=Move your AiMesh node close to the AiMesh router
+AiMesh_FindNode_Not_advB=If this device is assigned as a <span style='color:#569AC7;'>AiMesh node</span>, please check the following and try again.
+AiMesh_FindNode_Not_advB1=Push the reset button on this device and then wait.
+AiMesh_FindNode_Not_advB2=Login to your AiMesh router GUI and click on the AiMesh icon.
+AiMesh_FindNode_Not_advB3=Upgrade your AiMesh router's firmware if you cannot find the AiMesh icon on the router GUI.
+AiMesh_info_waiting=Please wait for this node ("+ _newReMac +") to be ready.
+AiMesh_info_weak=Your Wi-Fi signal is weak. <br>Moving your AiMesh node into an open and spacious location will make communication with your router easier.
+AiMesh_info_unabled=Unable to add your AiMesh node <span style='color:#569AC7;'>" + _model_name + " (" + _newReMac + ")</span> to your AiMesh system due to the following situations. Please check and try again.
+AiMesh_info_unabled1=Someone else is trying to set up an AiMesh system. Please wait 1 minute and try again.
+AiMesh_info_unabled2=your AiMesh router and node should be within 3 meters of each other during the setup process.
+AiMesh_info_unabled4=Your AiMesh node has been upgraded to AiMesh-supported firmware.
 AiMesh_Node=AiMesh Node
-AiMesh_Node_AddConfirm=Do you want to add this AiMesh node into your AiMesh system?
-AiMesh_Node_AddDescA=Successfully added <span style='color:#569AC7;'>" + _model_name + " (" + _newReMac + ")</span> to your AiMesh system, it will take awhile to show up as connected in the AiMesh router list.
-AiMesh_Node_AddDescB=Place your AiMesh node
+AiMesh_Node_AddConfirm=Do you want to add this AiMesh node to your AiMesh system?
+AiMesh_Node_AddDescA=Successfully added <span style='color:#569AC7;'>" + _model_name + " (" + _newReMac + ")</span> to your AiMesh system, it will take a while to show up as connected in the AiMesh router list.
+AiMesh_Node_AddDescB=Place your AiMesh node:
 AiMesh_Node_AddDesc1=Between your AiMesh router and your existing dead zone
-AiMesh_Node_AddDesc2=Aim high and in open space
-AiMesh_Node_AddDiagram=If you want to hardwire your AiMesh router and AiMesh node together, please connect the RJ-45 cable to the LAN port of AiMesh router and the WAN port of AiMesh node. The AiMesh system will automatically switch to Ethernet backhaul.
+AiMesh_Node_AddDesc2=Try and place your node in a high and open space
+AiMesh_Node_AddDiagram=If you want to hardwire your AiMesh router and AiMesh node together, please connect your RJ-45 cable to the LAN port of the AiMesh router and the WAN port of your AiMesh node. The AiMesh system will automatically switch to an Ethernet backhaul.
 AiMesh_Node_ConnPrio=Connection Priority
 AiMesh_Node_RemoveConfirm=Do you want to remove this AiMesh node from your AiMesh system?
-AiMesh_Node_RemoveDesc=By clicking \'Apply\' the AiMesh node will be removed from AiMesh system and factory reset.
-AiMesh_NodeList=AiMesh node list in AiMesh system
+AiMesh_Node_RemoveDesc=By clicking \'Apply\' your AiMesh node will be removed from the AiMesh system and will perform a factory reset.
+AiMesh_NodeList=List of AiMesh nodes in your AiMesh system
 AiMesh_NodeLocation=Location
 AiMesh_NodeLocation01=Living Room
 AiMesh_NodeLocation02=Dining Room
@@ -870,11 +927,12 @@ AiMesh_NodeLocation10=Basement
 AiMesh_NodeLocation11=Yard
 AiMesh_NodeLocation12=Garage
 AiMesh_OfflineTips=Offline tips
-AiMesh_OfflineTips1=Make sure your AiMesh node is power on.
-AiMesh_OfflineTips2=Reboot this AiMesh node and try again.
-AiMesh_OfflineTips3=If you are using Wi-Fi connection, please try to find a place closer to other AiMesh node.
-AiMesh_OfflineTips4=If you are using wired connection, please make sure cable are installed properly.
-AiMesh_OfflineTips5=If still no help, please try to reset this AiMesh node by \"Reset button\" and try to add again.
+AiMesh_OfflineTips1=Make sure your AiMesh node is powered on.
+AiMesh_OfflineTips2=Reboot your AiMesh node and try again.
+AiMesh_OfflineTips3=If you are using a Wi-Fi connection, please try to find a place closer to another AiMesh node.
+AiMesh_OfflineTips4=If you are using a wired connection, please ensure the cable is properly installed.
+AiMesh_OfflineTips5=If you are still having issues, please reset your AiMesh node by pressing the \"Reset button\" and retry to add this node.
+AiMesh_Pairing=Please wait for other AiMesh nodes to finish pairing.
 AiMesh_Router=AiMesh router
 AiProtection_activity=Threat Activities
 AiProtection_alert=Security Alert
@@ -894,7 +952,7 @@ AiProtection_event=Security Event
 AiProtection_event_Destination=Destination
 AiProtection_event_Source=Source
 AiProtection_event_Threat=Threat
-AiProtection_eventdetails=The Details of Successfully Protected Event
+AiProtection_eventdetails=Details of a Successfully Protected Event
 AiProtection_eventnodetected=No Event Detected
 AiProtection_filter=Web & Apps Filters
 AiProtection_filter_Adult=Adult
@@ -1361,6 +1419,7 @@ DM_Install_success=Download Master installation successful!
 DM_launch=Launch Download Master now
 DM_reason1=ZVMODELVZ does not support this format for the first partition. It supports FAT32, MS-DOS, and ext2/3.
 DM_reason2=Disk quota for the first partition is < 1GB.
+DM_title=Download Master
 dns_server_no_set=Please set up the DNS server on the client device.
 download_aicloud=Download ASUS AiCloud 2.0 app to phone or pad from :
 download_bandwidth=Download Bandwidth
@@ -1527,6 +1586,8 @@ feedback_thanks=Thanks for taking the time to submit your feedback.
 feedback_translation=Your Suggested Translation
 feedback_translation_ts=Translated Suggestion
 feedback_usaul_unavailable=Usually to always unavailable
+feedback_eula=I agree to provide the above information, the model name, firmware version of my ASUS router, browser version, MAC address, IP address, Internet status, router system information, the time I submit this Feedback form to ASUS to diagnose and improve problems of my ASUS router, and to analyze user experience for the purpose of development and evaluation of new products and services of ASUS, and also agree to the <a style="font-weight: bolder;text-decoration:underline;cursor:pointer;" href="https://www.asus.com/us/Terms_of_Use_Notice_Privacy_Policy/Privacy_Policy" target="_blank">ASUS Privacy Policy</a>
+feedback_eula_notice=Before you clicking "Send", please agree to the following information.
 File_content_alert_desc10=Creating a share with more than 12 characters may make it invisible in some WindowsR version.\nDo you want to continue?
 File_content_alert_desc6=Share name cannot be blank.
 File_content_alert_desc7=Share name can only contain alphanumeric/dash/underscore/space characters.
@@ -1627,9 +1688,13 @@ fw_downloading=Firmware Downloading
 FW_item1=Product ID
 FW_item2=Firmware Version
 FW_item5=New Firmware File
+FW_manual_update=Manual firmware update
 FW_n0=The latest firmware version include updates on the previous version.
 FW_n2=In case the upgrade process fails, ZVMODELVZ enters the emergency mode automatically. The LED signals at the front of ZVMODELVZ will indicate such a situation. Use the Firmware Restoration utility on the CD to do system recovery.
 FW_note=Note:
+FW_note_AiMesh=A manual firmware update will only update selected AiMesh routers / nodes, when using the AiMesh system. Please make sure you are uploading the correct AiMesh firmware version to each applicable router / node.
+FW_note_AiMesh_auto=This AiMesh node is not able to manually update its firmware, please click \"Check\" to do your firmware upgrade over online.
+FW_note_AiMesh_offline=There are offline AiMesh nodes in your AiMesh system. Offline AiMesh nodes will not be able to be updated. (Online AiMesh nodes still can be updated.)
 FW_note_unzip=Please decompress the file first.
 FW_updated=Updated
 Game_Boost=Game Boost
@@ -1679,6 +1744,7 @@ get_beta=Get Beta Firmware
 go_GuestNetwork=Go to the Guest Network
 GO_HSDPA_SETTING=Go to USB Modem setting.
 Guest_Network_AlexaIFTTT_conf=Alexa/IFTTT Configured
+Guest_Network_AlexaIFTTT_setting=Default setting by Alexa/IFTTT
 Guest_Network_enable=Enable Guest Network
 Guest_Network_enable_ACL=You must go to enable Wireless MAC Filter
 Guest_network_index=Guest Network index
@@ -2110,6 +2176,7 @@ NetworkTools_target=Target
 NetworkTools_tr=Trace route to host
 NetworkTools_WOL=Wake on LAN
 NetworkTools_WOL_btn=Wake up
+NewFeatureAvailable=New feature available
 NewFolderName=New Folder Name
 next_page=Next page
 No_Encryp=No Encryption
@@ -2128,8 +2195,10 @@ NSlookup_help=If you cannot use ASUS DDNS services, please go to <a href="http:/
 Offline_client_hide=Hide Offline Client List
 Offline_client_show=Show Offline Client List
 op_already_configured=is already configured to this mode.
+option_accepted=Accepted
 option_both_direction=Both
 option_download=Download
+option_dropped=Dropped
 option_greater=Greater
 option_less=Less
 option_upload=Upload

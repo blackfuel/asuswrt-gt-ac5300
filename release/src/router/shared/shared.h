@@ -14,6 +14,10 @@
 #include <rtstate.h>
 #include <stdarg.h>
 
+#ifdef RTCONFIG_BCMWL6
+#include "bcmwifi_channels.h"
+#endif
+
 #ifdef RTCONFIG_REALTEK
 #include "realtek_common.h"
 #include <time.h>
@@ -261,6 +265,7 @@ enum {
 #define RTF_REINSTATE   0x0008  /* reinstate route after tmout	*/
 #define RTF_DYNAMIC     0x0010  /* created dyn. (by redirect)	*/
 #define RTF_MODIFIED    0x0020  /* modified dyn. (by redirect)	*/
+#define RTF_REJECT      0x0200  /* Reject route			*/
 #endif
 #ifndef RTF_DEFAULT
 #define	RTF_DEFAULT	0x00010000	/* default - learned via ND	*/
@@ -294,7 +299,7 @@ enum {
 #define GIF_PREFIXLEN  0x0002  /* return prefix length */
 #define GIF_PREFIX     0x0004  /* return prefix, not addr */
 
-#define EXTEND_AIHOME_API_LEVEL		15
+#define EXTEND_AIHOME_API_LEVEL		16
 #define EXTEND_HTTPD_AIHOME_VER		0
 
 #define EXTEND_ASSIA_API_LEVEL		1
@@ -1121,7 +1126,7 @@ static inline int __mediabridge_mode(int __attribute__((__unused__)) sw_mode) { 
 static inline int mediabridge_mode(void) { return 0; }
 #endif
 #else
-/* Should be Broadcom platform. */
+/* Broadcom platform and others */
 static inline int __access_point_mode(int sw_mode)
 {
 	return (sw_mode == SW_MODE_AP
@@ -1150,7 +1155,7 @@ static inline int __repeater_mode(int sw_mode) { return 0; }
 static inline int repeater_mode(void) { return 0; }
 #endif
 
-#if defined(RTCONFIG_WIRELESSREPEATER) && defined(RTCONFIG_PROXYSTA)
+#ifdef RTCONFIG_PROXYSTA
 static inline int __mediabridge_mode(int sw_mode)
 {
 	return (sw_mode == SW_MODE_AP && nvram_get_int("wlc_psta") == 1);
@@ -1180,14 +1185,16 @@ static inline int client_mode()
 #ifdef RTCONFIG_DPSTA
 static inline int dpsta_mode()
 {
-	return ((sw_mode() == SW_MODE_AP) && (nvram_get_int("wlc_dpsta") == 1));
+	return ((sw_mode() == SW_MODE_AP) && (nvram_get_int("wlc_psta") == 2) && (nvram_get_int("wlc_dpsta") == 1));
 }
 #endif
 
-static inline int dpsr_mode()
+#if defined(RTCONFIG_BCMWL6) && defined(RTCONFIG_PROXYSTA)
+static inline int psr_mode()
 {
-	return ((sw_mode() == SW_MODE_AP) && (nvram_get_int("wlc_dpsta") == 2));
+        return (sw_mode() == SW_MODE_AP && nvram_get_int("wlc_psta") == 2 && !nvram_get_int("wlc_dpsta"));
 }
+#endif
 
 static inline int get_wps_multiband(void)
 {
@@ -1301,7 +1308,6 @@ static inline int guest_wlif(char *ifname)
 {
 	return strncmp(ifname, "wl", 2) == 0 && !strchr(ifname, '0');
 }
-/* Broadcom platform. */
 #elif defined RTCONFIG_LANTIQ
 static inline int guest_wlif(char *ifname)
 {
@@ -1546,6 +1552,11 @@ extern int hnd_ethswctl(ecmd_t act, unsigned int val, int len, int wr, unsigned 
 extern uint32_t set_ex53134_ctrl(uint32_t portmask, int ctrl);
 #endif
 extern int fw_check(void);
+extern int with_non_dfs_chspec(char *wif);
+extern chanspec_t select_band1_chspec_with_same_bw(char *wif, chanspec_t chanspec);
+extern chanspec_t select_band4_chspec_with_same_bw(char *wif, chanspec_t chanspec);
+extern chanspec_t select_chspec_with_band_bw(char *wif, int band, int bw, chanspec_t chanspec);
+extern void wl_reset_ssid(char *wif);
 #endif
 #ifdef RTCONFIG_AMAS
 //extern char *get_pap_bssid(int unit);
@@ -1641,7 +1652,7 @@ extern int illegal_ipv4_address(char *addr);
 extern int illegal_ipv4_netmask(char *netmask);
 extern int test_and_get_free_uint_network(int t_class, uint32_t *exp_ip, uint32_t exp_cidr, uint32_t excl);
 extern int test_and_get_free_char_network(int t_class, char *ip_cidr_str, uint32_t excl);
-extern enum wan_unit_e get_first_configured_connected_wan_unit(void);
+extern enum wan_unit_e get_first_connected_public_wan_unit(void);
 #ifdef RTCONFIG_IPV6
 extern const char *get_wan6face(void);
 extern const char *ipv6_address(const char *ipaddr6);
@@ -1666,7 +1677,6 @@ extern int get_wifi_unit(char *wif);
 #ifdef RTCONFIG_DPSTA
 extern int is_dpsta(int unit);
 #endif
-extern int is_dpsr(int unit);
 extern int is_psta(int unit);
 extern int is_psr(int unit);
 extern int psta_exist(void);
@@ -2154,6 +2164,7 @@ extern int is_ac66u_v2_series();
 extern int is_n66u_v2();
 extern int hw_usb_cap();
 extern int is_ssid_rev3_series();
+extern int is_dpsta_repeater();
 extern void ac68u_cofs();
 #endif
 
@@ -2218,6 +2229,7 @@ enum {
 	CKN_STR3999 = 3999,
 	CKN_STR4096 = 4096,
 	CKN_STR5500 = 5500,
+	CKN_STR8192 = 8192,
 	CKN_STR_MAX = 65535
 };
 

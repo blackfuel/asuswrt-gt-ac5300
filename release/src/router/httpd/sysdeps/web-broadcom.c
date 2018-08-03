@@ -140,7 +140,7 @@ ej_wl_sta_status(int eid, webs_t wp, char *name)
 #include <bcmparams.h>		/* for DEV_NUMIFS */
 
 /* The below macros handle endian mis-matches between wl utility and wl driver. */
-#ifndef RTCONFIG_BCMWL6
+#if defined(RTCONFIG_BCM_7114) || !defined(RTCONFIG_BCMWL6)
 static bool g_swap = FALSE;
 #ifndef htod16
 #define htod16(i) (g_swap?bcmswap16(i):(uint16)(i))
@@ -161,6 +161,8 @@ static bool g_swap = FALSE;
 
 #define SSID_FMT_BUF_LEN 4*32+1	/* Length for SSID format string */
 #define	MAX_STA_COUNT	128
+
+#define CHANIMSTR(a, b, c, d) ((a) ? ((b) ? c : d) : "")
 
 /* 802.11i/WPA RSN IE parsing utilities */
 typedef struct {
@@ -1270,6 +1272,13 @@ wl_status(int eid, webs_t wp, int argc, char_t **argv, int unit)
 	int retval = 0;
 	char tmp[128], prefix[] = "wlXXXXXXXXXX_";
 	char *name;
+	uint32 chanim_enab = 0;
+	uint32 interference = 0;
+	static union {
+		char bufdata[WLC_IOCTL_SMLEN];
+		uint32 alignme;
+	} bufstruct;
+	char *retbuf = (char*) &bufstruct.bufdata;
 
 	snprintf(prefix, sizeof(prefix), "wl%d_", unit);
 	name = nvram_safe_get(strcat_r(prefix, "ifname", tmp));
@@ -1284,7 +1293,17 @@ wl_status(int eid, webs_t wp, int argc, char_t **argv, int unit)
 		if (dtoh32(bi->version) == WL_BSS_INFO_VERSION ||
 		    dtoh32(bi->version) == LEGACY2_WL_BSS_INFO_VERSION ||
 		    dtoh32(bi->version) == LEGACY_WL_BSS_INFO_VERSION)
+		{
 			retval += dump_bss_info(eid, wp, argc, argv, bi);
+
+			if (wl_iovar_getint(name, "chanim_enab", (int*)(void*)&chanim_enab))
+				chanim_enab = 0;
+
+			if (chanim_enab && !wl_iovar_getbuf(name, "chanim_state", &bi->chanspec, sizeof(chanspec_t), retbuf, WLC_IOCTL_SMLEN)) {
+				interference = *(int*)retbuf;
+				ret += websWrite(wp, "Interference Level: %s\n", CHANIMSTR(chanim_enab, interference, "Severe", "Acceptable"));
+			}
+		}
 		else
 			retval += websWrite(wp, "Sorry, your driver has bss_info_version %d "
 				"but this program supports only version %d.\n",
@@ -1385,13 +1404,17 @@ ej_wl_status(int eid, webs_t wp, int argc, char_t **argv, int unit)
 	char *name;
 	char name_vif[] = "wlX.Y_XXXXXXXXXX";
 	struct maclist *auth = NULL;
+	char *macs = NULL, *next = NULL;
+	char mac[100];
+	int len = 0;
+	sta_info_t *sta = NULL;
+	char sta_buf[sizeof(sta_info_t)];
 	int mac_list_size;
 	int i, ii, val = 0, ret = 0;
 	char ea[ETHER_ADDR_STR_LEN];
 	scb_val_t scb_val;
 	char rate_buf[8];
 	int hr, min, sec;
-	sta_info_t *sta;
 #ifdef RTCONFIG_BCMWL6
 	wl_dfs_status_t *dfs_status;
 	char chanspec_str[CHANSPEC_STR_LEN];
@@ -1523,13 +1546,13 @@ ej_wl_status(int eid, webs_t wp, int argc, char_t **argv, int unit)
 
 #ifdef RTCONFIG_BCMWL6
 	if (nvram_match(strcat_r(prefix, "reg_mode", tmp), "off"))
-		goto sta_list;
+		goto wds_list;
 
 	memset(buf, 0, sizeof(buf));
 	strcpy(buf, "dfs_status");
 
 	if (wl_ioctl(name, WLC_GET_VAR, buf, sizeof(buf)) < 0)
-		goto sta_list;
+		goto wds_list;
 
 	dfs_status = (wl_dfs_status_t *) buf;
 	dfs_status->state = dtoh32(dfs_status->state);
@@ -1613,8 +1636,34 @@ ej_wl_status(int eid, webs_t wp, int argc, char_t **argv, int unit)
 		ret += websWrite(wp, "\n");
 	}
 
-sta_list:
+wds_list:
 #endif
+	if ((nvram_match(strcat_r(prefix, "mode", tmp), "ap")
+	  || nvram_match(strcat_r(prefix, "mode", tmp), "wds"))
+		&& !nvram_match(strcat_r(prefix, "wds", tmp), "")) {
+		ret += websWrite(wp, "\n");
+		ret += websWrite(wp, "Bridge List                             \n");
+		ret += websWrite(wp, "----------------------------------------\n");
+		ret += websWrite(wp, "%-4s%-18s%-7s\n", "idx", "MAC", "Status");
+
+		macs = nvram_safe_get(strcat_r(prefix, "wds", tmp));
+		i = 1;
+		foreach(mac, macs, next) {
+			ret += websWrite(wp, "%-3d %17s ", i++, mac);
+
+			len = snprintf(sta_buf, sizeof(sta_buf), "sta_info");
+			ether_atoe(mac, (unsigned char *)&sta_buf[len + 1]);
+			if (atoi(nvram_safe_get(strcat_r(prefix, "wds_timeout", tmp))) &&
+			    !wl_ioctl(name, WLC_GET_VAR, sta_buf, sizeof(sta_buf))) {
+				sta = (sta_info_t *)sta_buf;
+				ret += websWrite(wp, "%-7s", (sta->flags & WL_STA_WDS_LINKUP) ? "up" : "down");
+			}
+			else
+				ret += websWrite(wp, "%-7s", "unknown");
+			ret += websWrite(wp, "\n");
+		}
+	}
+
 	/* buffers and length */
 	mac_list_size = sizeof(auth->count) + MAX_STA_COUNT * sizeof(struct ether_addr);
 	auth = malloc(mac_list_size);
@@ -1858,7 +1907,7 @@ ej_wl_control_channel(int eid, webs_t wp, int argc, char_t **argv)
 
 	foreach (word, nvram_safe_get("wl_ifnames"), next)
 		count_wl_if++;
-	
+
 	ret = websWrite(wp, "[\"%d\", \"%d\"", wl_control_channel(0), wl_control_channel(1));
 	if (count_wl_if >= 3)
 		ret += websWrite(wp, ", \"%d\"", wl_control_channel(2));
@@ -3542,7 +3591,7 @@ ap_list:
 		else if (nvram_invmatch("wl0_ssid", "") && !strcmp(nvram_safe_get("wl0_ssid"), apinfos[i].SSID))
 		{
 			if (!strlen(ure_mac))
-				retval += websWrite(wp, "\"%s\", ", "1");			// in profile, disconnected
+				retval += websWrite(wp, "\"%s\"", "1");				// in profile, disconnected
 			else if (!strcmp(ure_mac, apinfos[i].BSSID))
 			{
 				if (strstr(nvram_safe_get("wl0_akm"), "psk"))
@@ -4484,7 +4533,6 @@ get_scan_escan(char *scan_buf, uint buf_len)
 
 exit:
 	close(fd);
-	d_info->event_fd == -1;
 
 	/* free scan results */
 	result = escan_bss_head;
@@ -4498,13 +4546,14 @@ exit:
 }
 
 static char *
-wl_get_scan_results_escan(char *ifname)
+wl_get_scan_results_escan(char *ifname, chanspec_t chanspec)
 {
 	int ret, retry_times = 0;
 	wl_escan_params_t *params = NULL;
 	int params_size = WL_SCAN_PARAMS_FIXED_SIZE + OFFSETOF(wl_escan_params_t, params) + NUMCHANS * sizeof(uint16);
 	int org_scan_time = 20, scan_time = 40;
 	int wlscan_debug = 0;
+	char chanbuf[CHANSPEC_STR_LEN];
 
 	if (nvram_match("wlscan_debug", "1"))
 		wlscan_debug = 1;
@@ -4558,6 +4607,16 @@ wl_get_scan_results_escan(char *ifname)
 		}
 	}
 
+	if (chanspec != 0) {
+		dbg("restore original chanspec: %s (0x%x)\n", wf_chspec_ntoa(chanspec, chanbuf), chanspec);
+#ifndef RTCONFIG_BCM7
+		wl_iovar_setint(ifname, "dfs_ap_move", chanspec);
+#else
+		wl_iovar_setint(ifname, "chanspec", chanspec);
+		wl_reset_ssid(ifname);
+#endif
+	}
+
 	if (ret < 0)
 		return NULL;
 
@@ -4566,13 +4625,14 @@ wl_get_scan_results_escan(char *ifname)
 #endif
 
 static char *
-wl_get_scan_results(char *ifname)
+wl_get_scan_results(char *ifname, chanspec_t chanspec)
 {
 	int ret, retry_times = 0;
 	wl_scan_params_t *params;
 	wl_scan_results_t *list = (wl_scan_results_t*)scan_result;
 	int params_size = WL_SCAN_PARAMS_FIXED_SIZE + NUMCHANS * sizeof(uint16);
 	int org_scan_time = 20, scan_time = 40;
+	char chanbuf[CHANSPEC_STR_LEN];
 
 	params = (wl_scan_params_t*)malloc(params_size);
 	if (params == NULL) {
@@ -4614,6 +4674,16 @@ wl_get_scan_results(char *ifname)
 			printf("get scan result failed\n");
 	}
 
+	if (chanspec != 0) {
+		dbg("restore original chanspec: %s (0x%x)\n", wf_chspec_ntoa(chanspec, chanbuf), chanspec);
+#ifndef RTCONFIG_BCM7
+		wl_iovar_setint(ifname, "dfs_ap_move", chanspec);
+#else
+		wl_iovar_setint(ifname, "chanspec", chanspec);
+		wl_reset_ssid(ifname);
+#endif
+	}
+
 	if (ret < 0)
 		return NULL;
 
@@ -4630,7 +4700,6 @@ ej_nat_accel_status(int eid, webs_t wp, int argc, char_t **argv)
 	return retval;
 }
 
-//static wlc_ap_list_info_t *
 static int
 wl_scan(int eid, webs_t wp, int argc, char_t **argv, int unit)
 {
@@ -4643,26 +4712,76 @@ wl_scan(int eid, webs_t wp, int argc, char_t **argv, int unit)
 	char ssid_str[128];
 	char macstr[18];
 	int retval = 0, ctl_ch;
+	char chanbuf[CHANSPEC_STR_LEN];
+	chanspec_t chspec_cur = 0, chanspec;
+#if defined(RTCONFIG_DHDAP) && !defined(RTCONFIG_BCM7)
+	chanspec_t chspec_tar = 0;
+	char buf_sm[WLC_IOCTL_SMLEN];
+	wl_dfs_ap_move_status_t *status = (wl_dfs_ap_move_status_t*) buf_sm;
+#endif
 
 	snprintf(prefix, sizeof(prefix), "wl%d_", unit);
 	name = nvram_safe_get(strcat_r(prefix, "ifname", tmp));
 
 	ctl_ch = wl_control_channel(unit);
-	if (!nvram_match(strcat_r(prefix, "reg_mode", tmp), "off")
-		&& ((ctl_ch > 48) && (ctl_ch < 149))) {
-		dbg("scan rejected under DFS mode\n");
-		return 0;
-	}
+	if (!nvram_match(strcat_r(prefix, "reg_mode", tmp), "off")) {
+		if ((ctl_ch > 48) && (ctl_ch < 149)) {
+			if (!with_non_dfs_chspec(name)) {
+				dbg("%s scan rejected under DFS mode\n", name);
+				return 0;
+			} else if (wl_iovar_getint(name, "chanspec", (int *) &chspec_cur) < 0) {
+				dbg("get current chanpsec failed\n");
+				return 0;
+			} else {
+				dbg("current chanspec: %s (0x%x)\n", wf_chspec_ntoa(chspec_cur, chanbuf), chspec_cur);
+
+				chanspec = (unit == 1 ? select_chspec_with_band_bw(name, 1, 0, chspec_cur) : select_chspec_with_band_bw(name, 4, 0, chspec_cur));
+				dbg("switch to chanspec: %s (0x%x)\n", wf_chspec_ntoa(chanspec, chanbuf), chanspec);
+				wl_iovar_setint(name, "chanspec", chanspec);
+				wl_reset_ssid(name);
+			}
+		}
+#if defined(RTCONFIG_DHDAP) && !defined(RTCONFIG_BCM7)
+		else {
+			if (wl_iovar_get(name, "dfs_ap_move", &buf_sm[0], WLC_IOCTL_SMLEN) < 0) {
+				dbg("get dfs_ap_move status failure\n");
+				return 0;
+			}
+
+			if (status->version != WL_DFS_AP_MOVE_VERSION)
+				return 0;
+
+			if (status->move_status != (int8) DFS_SCAN_S_IDLE) {
+				chspec_tar = status->chanspec;
+				if (chspec_tar != 0 && chspec_tar != INVCHANSPEC) {
+					wf_chspec_ntoa(chspec_tar, chanbuf);
+					dbg("AP Target Chanspec %s (0x%x)\n", chanbuf, chspec_tar);
+				}
+
+				if (status->move_status == (int8) DFS_SCAN_S_INPROGESS)
+					wl_iovar_setint(name, "dfs_ap_move", -2);
+			}
+		}
+#endif
+
+#if defined(RTCONFIG_DHDAP) && !defined(RTCONFIG_BCM7)
+		if ((ctl_ch <= 48) || (ctl_ch >= 149))
+			chanspec = chspec_tar;
+		else
+#endif
+			chanspec = chspec_cur;
+	} else
+		chanspec = 0;
 
 #if defined(RTCONFIG_BCM7) || defined(RTCONFIG_BCM_7114) || defined(HND_ROUTER)
 	if (!nvram_match(strcat_r(prefix, "mode", tmp), "wds")) {
-		if (wl_get_scan_results_escan(name) == NULL) {
+		if (wl_get_scan_results_escan(name, chanspec) == NULL) {
 			return 0;
 		}
 	}
 	else
 #endif
-	if (wl_get_scan_results(name) == NULL) {
+	if (wl_get_scan_results(name, chanspec) == NULL) {
 		return 0;
 	}
 
@@ -4815,6 +4934,7 @@ ej_wl_auth_psta(int eid, webs_t wp, int argc, char_t **argv)
 	int retval = 0, psta = 0;
 	struct ether_addr bssid;
 	unsigned char bssid_null[6] = { 0x0, 0x0, 0x0, 0x0, 0x0, 0x0 };
+	wlc_ssid_t ssid = { 0, "" };
 	int psta_debug = 0;
 
 	if (nvram_match("psta_debug", "1"))
@@ -4834,6 +4954,11 @@ ej_wl_auth_psta(int eid, webs_t wp, int argc, char_t **argv)
 		goto PSTA_ERR;
 
 	name = nvram_safe_get(strcat_r(prefix, "ifname", tmp));
+
+	if (wl_ioctl(name, WLC_GET_SSID, &ssid, sizeof(ssid)))
+		goto PSTA_ERR;
+	else if (!nvram_match(strcat_r(prefix, "ssid", tmp), (const char *) ssid.SSID))
+		goto PSTA_ERR;
 
 	if (wl_ioctl(name, WLC_GET_BSSID, &bssid, ETHER_ADDR_LEN) != 0)
 		goto PSTA_ERR;

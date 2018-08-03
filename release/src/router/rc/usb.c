@@ -16,6 +16,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <arpa/inet.h>
+#include <proto/ethernet.h>
 #include <time.h>
 #include <sys/time.h>
 #include <errno.h>
@@ -342,11 +343,19 @@ void add_usb_host_module(void)
 }
 
 #ifdef RTCONFIG_USB_MODEM
-void add_usb_modem_modules(void){
+static int usb_modem_modules_loaded = 0;
+
+void add_usb_modem_modules(void)
+{
+	if (usb_modem_modules_loaded)
+		return;
+	usb_modem_modules_loaded = 1;
+
 #ifdef RTAC68U
 	if (!hw_usb_cap())
 		return;
 #endif
+
 #if LINUX_KERNEL_VERSION >= KERNEL_VERSION(4,1,0)
 	modprobe("mii"); // for usbnet.
 #endif
@@ -412,6 +421,8 @@ void remove_usb_modem_modules(void)
 #endif
 	modprobe_r("sr_mod");
 	modprobe_r("cdrom");
+
+	usb_modem_modules_loaded = 0;
 }
 
 #ifdef RTCONFIG_INTERNAL_GOBI
@@ -738,18 +749,29 @@ void start_usb(int orig)
 			if(nvram_get_int("usb_fs_hfs")){
 #ifdef RTCONFIG_TUXERA_HFS
 #if defined(RTCONFIG_OPENPLUSTUXERA_HFS)
-				if(nvram_match("usb_hfs_mod", "tuxera"))
+				if(nvram_invmatch("usb_hfs_mod", "tuxera")){
+					modprobe("hfs");
+					modprobe("hfsplus");
+				}
+				else
 #endif
 				modprobe("thfsplus");
 #elif defined(RTCONFIG_PARAGON_HFS)
 #if defined(RTCONFIG_OPENPLUSPARAGON_HFS)
-				if(nvram_match("usb_hfs_mod", "paragon"))
+				if(nvram_invmatch("usb_hfs_mod", "paragon")){
+					modprobe("hfs");
+					modprobe("hfsplus");
+				}
+				else
 #endif
 #ifdef RTCONFIG_UFSD_DEBUG
 				modprobe("ufsd_debug");
 #else
 				modprobe("ufsd");
 #endif
+#else
+				modprobe("hfs");
+				modprobe("hfsplus");
 #endif
 			}
 #endif
@@ -2735,8 +2757,8 @@ void PMS_Encryption_PW(char *input, char *output, int size)
 	char salt[32];
 	char s[512];
 
-	if (input == NULL || !strcmp(input, "")) {
-		strncpy(output, "", size);
+	if (input == NULL || *input == '\0') {
+		strlcpy(output, "", size);
 		return;
 	}
 
@@ -2750,10 +2772,7 @@ void PMS_Encryption_PW(char *input, char *output, int size)
 		++p;
 	}
 
-	if (((p = input) == NULL) || (*p == 0))
-		strncpy(output, "", size);
-	else
-		strncpy(output, crypt(p, salt), size);
+	strlcpy(output, crypt(input, salt), size);
 }
 
 void create_custom_passwd(void)
@@ -2764,12 +2783,10 @@ void create_custom_passwd(void)
 	int default_set = 0;
 	int is_first = 1;
 	int acc_num, group_num;
-	FILE *fp = NULL;
+	FILE *fps, *fpp;
 	PMS_ACCOUNT_INFO_T *account_list, *follow_account;
 	PMS_ACCOUNT_GROUP_INFO_T *group_list, *follow_group;
 	char char_user[64];
-
-	memset(output, 0, sizeof(output));
 
 	/* Get account / group list */
 	if (PMS_GetAccountInfo(PMS_ACTION_GET_FULL, &account_list, &group_list, &acc_num, &group_num) < 0) {
@@ -2777,31 +2794,13 @@ void create_custom_passwd(void)
 		return;
 	}
 
-	/* write /etc/passwd.custom */
-	if ((fp = fopen("/etc/passwd.custom", "w+")) != NULL) {
+	/* write /etc/passwd.custom & /etc/shadow.custom */
+	fps = fopen("/etc/shadow.custom", "w+");
+	fpp = fopen("/etc/passwd.custom", "w+");
+	if (fpp && fps) {
 		is_first = 1;
 		for (follow_account = account_list; follow_account != NULL; follow_account = follow_account->next) {
-			if(is_first){
-				is_first = 0;
-				continue;
-			}
-
-			if (follow_account->active) {
-				memset(char_user, 0, sizeof(char_user));
-				ascii_to_char_safe(char_user, follow_account->name, sizeof(char_user));
-
-				fprintf(fp, "%s:x:%d:%s:::\n", char_user, uid, PMS_GRP_DGID);
-				uid++;
-			}
-		}
-		fclose(fp);
-	}
-
-	/* write /etc/shadow.custom */
-	if ((fp = fopen("/etc/shadow.custom", "w+")) != NULL) {
-		is_first = 1;
-		for (follow_account = account_list; follow_account != NULL; follow_account = follow_account->next) {
-			if(is_first){
+			if (is_first) {
 				is_first = 0;
 				continue;
 			}
@@ -2812,55 +2811,63 @@ void create_custom_passwd(void)
 				memset(char_user, 0, sizeof(char_user));
 				ascii_to_char_safe(char_user, follow_account->name, sizeof(char_user));
 
-				fprintf(fp, "%s:%s:0:0:99999:7:0:0\n", char_user, output);
+				fprintf(fps, "%s:%s:0:0:99999:7:0:0\n", char_user, output);
+				fprintf(fpp, "%s:x:%d:%s::/dev/null:/dev/null\n", char_user, uid, PMS_GRP_DGID);
+				uid++;
 			}
 		}
-		fclose(fp);
 	}
+	if (fpp)
+		fclose(fpp);
+	if (fps)
+		fclose(fps);
 
-	/* write /etc/group.custom  */
-	if ((fp = fopen("/etc/group.custom", "w+")) != NULL) {
+	/* write /etc/group.custom & /etc/ghsadow.custom */
+	fps = fopen("/etc/gshadow.custom", "w+");
+	fpp = fopen("/etc/group.custom", "w+");
+	if (fpp && fps) {
 		for (follow_group = group_list; follow_group != NULL; follow_group = follow_group->next) {
 			memset(char_user, 0, sizeof(char_user));
 			ascii_to_char_safe(char_user, follow_group->name, sizeof(char_user));
 
-			is_first = 1;
 			if (!strcmp(char_user, PMS_GRP_DNAME) && default_set == 0) {
-				fprintf(fp, "%s:x:%s:\n", PMS_GRP_DNAME, PMS_GRP_DGID);
+				fprintf(fps, "%s:*:%s:\n", PMS_GRP_DNAME, PMS_GRP_DGID);
+				fprintf(fpp, "%s:x:%s:\n", PMS_GRP_DNAME, PMS_GRP_DGID);
 				default_set = 1;
 			}
 			else if (!strcmp(char_user, nvram_safe_get("http_username"))) {
 				continue;
 			}
 			else {
-				fprintf(fp, "%s:x:%d:", char_user, gid);
 				PMS_OWNED_INFO_T *owned_account = follow_group->owned_account;
+
+				fprintf(fps, "%s:*:%d:", char_user, gid);
+				fprintf(fpp, "%s:x:%d:", char_user, gid);
+
+				is_first = 1;
 				while (owned_account != NULL) {
 					PMS_ACCOUNT_GROUP_INFO_T *Account_owned = (PMS_ACCOUNT_GROUP_INFO_T *) owned_account->member;
 
 					memset(char_user, 0, sizeof(char_user));
 					ascii_to_char_safe(char_user, Account_owned->name, sizeof(char_user));
 
-					if (is_first) {
-						fprintf(fp, "%s", char_user);
-						is_first = 0;
-					}
-					else {
-						fprintf(fp, ",%s", char_user);
-					}
+					fprintf(fps, is_first ? "%s" : ",%s", char_user);
+					fprintf(fpp, is_first ? "%s" : ",%s", char_user);
 
+					is_first = 0;
 					owned_account = owned_account->next;
 				}
-				fprintf(fp, "\n");
+				fprintf(fps, "\n");
+				fprintf(fpp, "\n");
 				gid++;
 			}
 		}
-		fclose(fp);
 	}
+	if (fps)
+		fclose(fps);
+	if (fpp)
+		fclose(fpp);
 
-	/* copy gshadow from group */
-	eval("cp", "/etc/group.custom", "/etc/gshadow.custom", "-f");
-	
 	/* free list */
 	PMS_FreeAccInfo(&account_list, &group_list);
 }
@@ -2893,7 +2900,7 @@ void create_custom_passwd(void)
 			continue;
 		}
 
-		fprintf(fp, "%s:x:%d:%d:::\n", account_list[i], n, n);
+		fprintf(fp, "%s:x:%d:%d::/dev/null:/dev/null\n", account_list[i], n, n);
 	}
 	fclose(fp);
 
@@ -3306,13 +3313,13 @@ void start_dms(void)
 	char dbdir[100];
 	char *argv[] = { MEDIA_SERVER_APP, "-f", "/etc/"MEDIA_SERVER_APP".conf", "-R", NULL, NULL, NULL };
 	static int once = 1;
-	int i, j;
-	char serial[18];
+	unsigned char ea[ETHER_ADDR_LEN];
+	char serial[18], uuid[37];
 	char *nv, *nvp, *b, *c;
 	char *nv2, *nvp2;
 	unsigned char type = 0;
 	char types[5];
-	int index = 4;
+	int j, index = 4;
 
 	if (getpid() != 1) {
 		notify_rc("start_dms");
@@ -3377,10 +3384,12 @@ void start_dms(void)
 
 			nvram_set("dms_dbcwd", dbdir);
 
-			strcpy(serial, nvram_safe_get("lan_hwaddr"));
-			if (strlen(serial))
-				for (i = 0; i < strlen(serial); i++)
-					serial[i] = tolower(serial[i]);
+			if (!ether_atoe(get_lan_hwaddr(), ea))
+				f_read("/dev/urandom", ea, sizeof(ea));
+			snprintf(serial, sizeof(serial), "%02x:%02x:%02x:%02x:%02x:%02x",
+				 ea[0], ea[1], ea[2], ea[3], ea[4], ea[5]);
+			snprintf(uuid, sizeof(uuid), "4d696e69-444c-164e-9d41-%02x%02x%02x%02x%02x%02x",
+				 ea[0], ea[1], ea[2], ea[3], ea[4], ea[5]);
 
 			fprintf(f,
 				"network_interface=%s\n"
@@ -3457,9 +3466,16 @@ void start_dms(void)
 
 			fprintf(f,
 				"serial=%s\n"
+				"uuid=%s\n"
 				"model_number=%s.%s\n",
-				serial,
+				serial, uuid,
 				rt_version, rt_serialno);
+
+			nv = nvram_safe_get("dms_sort");
+			if (!*nv || isdigit(*nv))
+				nv = (!*nv || atoi(nv)) ? "+upnp:class,+upnp:originalTrackNumber,+dc:title" : NULL;
+			if (nv)
+				fprintf(f, "force_sort_criteria=%s\n", nv);
 
 			fclose(f);
 		}
@@ -3681,6 +3697,7 @@ stop_mt_daapd()
 // !!TB - webdav
 
 //#ifdef RTCONFIG_WEBDAV
+#if 0
 void write_webdav_permissions()
 {
 	FILE *fp;
@@ -3745,6 +3762,7 @@ void write_webdav_server_pem()
 		system("cp -f /etc/server.pem /tmp/lighttpd/");
 	}
 }
+#endif
 
 void start_webdav(void)	// added by Vanic
 {
@@ -3792,7 +3810,7 @@ ifdef RTCONFIG_TUNNEL
 	chmod("/tmp/lighttpd/www", 0777);
 
 	/* tmp/lighttpd/permissions */
-	write_webdav_permissions();
+	//write_webdav_permissions();
 
 	/* WebDav SSL support */
 	//write_webdav_server_pem();
