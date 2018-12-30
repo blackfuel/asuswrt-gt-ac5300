@@ -1996,11 +1996,18 @@ wlc_set_country_common(wlc_cm_info_t *wlc_cmi,
 	if (strlen(prev_country_abbrev) > 1 &&
 	    strncmp(wlc_cm->country_abbrev, prev_country_abbrev,
 	            strlen(wlc_cm->country_abbrev)) != 0) {
+		/* need to reset chan_blocked */
+		if (wlc->dfs)
+			wlc_dfs_reset_all(wlc->dfs);
 		/* need to reset afe_override */
 		wlc_channel_spurwar_locale(wlc_cmi, wlc->chanspec);
 
 		wlc_mac_event(wlc, WLC_E_COUNTRY_CODE_CHANGED, NULL,
 		              0, 0, 0, wlc_cm->country_abbrev, strlen(wlc_cm->country_abbrev) + 1);
+	} else {
+		/* clear channel blocked info when setting country code as "ALL" */
+		if ((!strncmp(wlc_cm->country_abbrev, "#a", sizeof("#a") - 1)) && (wlc->dfs))
+			wlc_dfs_reset_all(wlc->dfs);
 	}
 #ifdef WLOLPC
 	if (OLPC_ENAB(wlc_cmi->wlc)) {
@@ -2437,10 +2444,6 @@ wlc_channels_init(wlc_cm_info_t *wlc_cmi, clm_country_t country)
 	uint i, j;
 	wlcband_t * band;
 	chanvec_t sup_chan, temp_chan;
-
-/* Don't reset dfs block channel information */
-//	if (wlc->dfs)
-//		wlc_dfs_reset_all(wlc->dfs);
 
 	bzero(&wlc_cm->restricted_channels, sizeof(chanvec_t));
 	bzero(&wlc_cm->locale_radar_channels, sizeof(chanvec_t));

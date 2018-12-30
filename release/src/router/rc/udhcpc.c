@@ -1084,7 +1084,7 @@ bound_lan(void)
 _dprintf("%s: IFUP.\n", __FUNCTION__);
 
 	ipaddr = getifaddr(lan_ifname, AF_INET, 0);
-	if ((sw_mode() == SW_MODE_AP) && nvram_match("lan_ipaddr", ipaddr) && lanchange == 0 && nvram_get_int("lan_state_t") == LAN_STATE_CONNECTED) {
+	if (ipaddr != NULL && (sw_mode() == SW_MODE_AP) && nvram_match("lan_ipaddr", ipaddr) && lanchange == 0 && nvram_get_int("lan_state_t") == LAN_STATE_CONNECTED) {
 		return 0;
 	}
 

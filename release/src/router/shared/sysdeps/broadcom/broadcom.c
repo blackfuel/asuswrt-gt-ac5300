@@ -164,18 +164,17 @@ static bool g_swap = FALSE;
 #define htod32(i) (g_swap?bcmswap32(i):(uint32)(i))
 #define dtoh32(i) (g_swap?bcmswap32(i):(uint32)(i))
 #define dtoh16(i) (g_swap?bcmswap16(i):(uint16)(i))
-char *get_pap_bssid(int unit)
+char *get_pap_bssid(int unit, char bssid_str[])
 {
 	unsigned char bssid[6];
 	unsigned char bssid_null[6] = { 0x0, 0x0, 0x0, 0x0, 0x0, 0x0 };
 	char tmp[128], prefix[] = "wlXXXXXXXXXX_";
 	char *name;
-	static char bssid_str[sizeof("00:00:00:00:00:00XXX")];
 
 	snprintf(prefix, sizeof(prefix), "wl%d_", unit);
 	name = nvram_safe_get(strcat_r(prefix, "ifname", tmp));
 
-	memset(bssid_str, 0, sizeof(bssid_str));
+	memset(bssid_str, 0, 18);
 	if (!wl_ioctl(name, WLC_GET_BSSID, bssid, sizeof(bssid))
 		&& memcmp(bssid, bssid_null, ETHER_ADDR_LEN))
 		ether_etoa((const unsigned char *) &bssid, bssid_str);

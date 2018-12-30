@@ -14,8 +14,12 @@
 #include <rtstate.h>
 #include <stdarg.h>
 
+#ifdef CONFIG_BCMWL5
 #ifdef RTCONFIG_BCMWL6
 #include "bcmwifi_channels.h"
+#else
+#include "bcmwifi.h"
+#endif
 #endif
 
 #ifdef RTCONFIG_REALTEK
@@ -293,6 +297,27 @@ enum {
 	WAVE_FLAG_APP_NETWORKMAP
 };
 
+enum {
+	WAVE_ACTION_IDLE=0,
+	WAVE_ACTION_INIT=1,
+	WAVE_ACTION_WEB=3,
+	WAVE_ACTION_RE_AP2G_ON=4,
+	WAVE_ACTION_RE_AP2G_OFF=5,
+	WAVE_ACTION_RE_AP5G_ON=6,
+	WAVE_ACTION_RE_AP5G_OFF=7,
+	WAVE_ACTION_SET_CHANNEL_2G=8,
+	WAVE_ACTION_SET_CHANNEL_5G=9,
+	WAVE_ACTION_OPENACL_FOR_OBD=10,
+	WAVE_ACTION_RECOVERACL_FOR_OBD=11,
+	WAVE_ACTION_SETALLOWACL_2G=12,
+	WAVE_ACTION_SETALLOWACL_5G=13,
+	WAVE_ACTION_CLIENT2G_ON=14,
+	WAVE_ACTION_CLIENT2G_OFF=15,
+	WAVE_ACTION_CLIENT5G_ON=16,
+	WAVE_ACTION_CLIENT5G_OFF=17,
+	WAVE_ACTION_SET_WPS2G_CONFIGURED=18,
+	WAVE_ACTION_SET_WPS5G_CONFIGURED=19,
+};
 #endif
 
 #define GIF_LINKLOCAL  0x0001  /* return link-local addr */
@@ -300,6 +325,7 @@ enum {
 #define GIF_PREFIX     0x0004  /* return prefix, not addr */
 
 #define EXTEND_AIHOME_API_LEVEL		16
+
 #define EXTEND_HTTPD_AIHOME_VER		0
 
 #define EXTEND_ASSIA_API_LEVEL		1
@@ -1086,7 +1112,14 @@ enum wl_band_id {
 #if defined(RTCONFIG_RALINK) || defined(RTCONFIG_QCA) || defined(RTCONFIG_LANTIQ)
 static inline int __access_point_mode(int sw_mode)
 {
-	return (sw_mode == SW_MODE_AP);
+	return (sw_mode == SW_MODE_AP
+#if defined(RTCONFIG_AMAS)
+		&& !nvram_get_int("re_mode")
+#endif
+#if defined(RTCONFIG_PROXYSTA) && defined(RTCONFIG_LANTIQ)
+		&& !nvram_get_int("wlc_psta")
+#endif
+		);
 }
 
 static inline int access_point_mode(void)
@@ -1115,7 +1148,11 @@ static inline int repeater_mode(void) { return 0; }
 #if defined(RTCONFIG_WIRELESSREPEATER) && defined(RTCONFIG_PROXYSTA)
 static inline int __mediabridge_mode(int sw_mode)
 {
+#ifdef RTCONFIG_LANTIQ
+	return (sw_mode == SW_MODE_AP && nvram_get_int("wlc_psta") == 1);
+#else
 	return (sw_mode == SW_MODE_REPEATER && nvram_get_int("wlc_psta") == 1);
+#endif
 }
 static inline int mediabridge_mode(void)
 {
@@ -1392,6 +1429,7 @@ extern int get_mt7620_wan_unit_bytecount(int unit, unsigned long *tx, unsigned l
 extern int get_mt7621_wan_unit_bytecount(int unit, unsigned long *tx, unsigned long *rx);
 #endif
 #ifdef RTCONFIG_AMAS
+extern int aimesh_re_mode(void);
 extern void add_beacon_vsie(char *hexdata);
 extern void del_beacon_vsie(char *hexdata);
 extern int get_port_status(int unit);
@@ -1404,7 +1442,7 @@ extern void wl_del_ie_with_oui(int unit, uchar *oui);
 #endif
 #if defined(RTCONFIG_LANTIQ)
 extern int get_wl_sta_list(void);
-extern int get_maxassoc(char *ifname);
+//extern int get_maxassoc(char *ifname);
 extern int get_psta_status(int unit);
 #endif
 #if defined(RTCONFIG_BCMWL6) && defined(RTCONFIG_PROXYSTA)
@@ -1559,9 +1597,11 @@ extern chanspec_t select_chspec_with_band_bw(char *wif, int band, int bw, chansp
 extern void wl_reset_ssid(char *wif);
 #endif
 #ifdef RTCONFIG_AMAS
-//extern char *get_pap_bssid(int unit);
+//extern char *get_pap_bssid(int unit, char bssid_str[]);
+#ifndef RTCONFIG_LANTIQ
 extern int get_wlan_service_status(int bssidx, int vifidx);
 extern void set_wlan_service_status(int bssidx, int vifidx, int enabled);
+#endif
 #endif
 #ifdef RTCONFIG_LACP
 extern uint32_t traffic_trunk(int port_num, uint32_t *rx, uint32_t *tx);
@@ -2164,6 +2204,9 @@ extern int is_ac66u_v2_series();
 extern int is_n66u_v2();
 extern int hw_usb_cap();
 extern int is_ssid_rev3_series();
+#ifdef RTCONFIG_TCODE
+extern unsigned int hardware_flag();
+#endif
 extern int is_dpsta_repeater();
 extern void ac68u_cofs();
 #endif
@@ -2177,6 +2220,8 @@ extern void erase_symbol(char *old, char *sym);
 
 /* pwenc.c */
 #ifdef RTCONFIG_NVRAM_ENCRYPT
+#define NVRAM_ENC_LEN	1024
+#define NVRAM_ENC_MAXLEN	4096
 extern int pw_enc(const char *input, char *output);
 extern int pw_dec(const char *input, char *output);
 extern int pw_enc_blen(const char *input);
@@ -2314,5 +2359,24 @@ static inline int get_sw_mode(void)
 
 	return UI_SW_MODE_NONE;
 }
+
+#if defined(RTCONFIG_SW_HW_AUTH) && defined(RTCONFIG_AMAS)
+/*
+	AMAS define type bitmap
+*/
+#define AMAS_CAP 0x0001
+#define AMAS_RE  0x0002
+
+/*
+	API define and bitmap define in sw-hw-auth 
+	getAmasSupportMode() : global API for amas usage
+	0 : not support AMAS
+	1 : support CAP only
+	2 : support RE only
+	3 : CAP + RE
+ */
+extern int getAmasSupportMode();
+
+#endif  /* defined(RTCONFIG_SW_HW_AUTH) && defined(RTCONFIG_AMAS) */
 
 #endif	/* !__SHARED_H__ */

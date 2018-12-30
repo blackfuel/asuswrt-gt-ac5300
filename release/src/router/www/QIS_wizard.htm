@@ -71,7 +71,10 @@
 
 #apn_proceeding_img{
  	height:21px;
-	background:#C0D1D3 url(/images/proceeding_img.gif);
+	background: #D7E8F4;
+	background: -webkit-linear-gradient(#F2F7EB 0%, #E4E6EE 49%, #C8D3Db 50%, #BACEDA 51%, #D7E8F4 100%);
+	background: -o-linear-gradient(#F2F7EB 0%, #E4E6EE 49%, #C8D3Db 50%, #BACEDA 51%, #D7E8F4 100%);
+	background: linear-gradient(#F2F7EB 0%, #E4E6EE 49%, #C8D3Db 50%, #BACEDA 51%, #D7E8F4 100%);
 }
 
 </style>
@@ -145,6 +148,7 @@ var current_buildno = "";
 var current_extendno = "";
 var liveUpdateFinish = false;
 var new_FW = false;
+var new_FW_type = 0;
 var retry = 0;
 var isStatic = false;
 var staticIP = false;
@@ -166,7 +170,7 @@ else
 	var dual_ewan = false;
 
 var cur_wan_unit = 0;
-
+var hadModem = function(){return hadPlugged("modem")};
 
 var htmlEnDeCode = (function() {
 	var charToEntityRegex,
@@ -255,7 +259,8 @@ function detect_firmware(){
 			}
 			else{
 				if(webs_state_error == 0){
-					if(isNewFW(webs_state_info, current_firmware_path, current_firmware_path) && exist_firmver[0] != 9){
+					new_FW_type = webs_state_flag;
+					if(webs_state_flag==1 || webs_state_flag==2){	// && exist_firmver[0] != 9
 						new_FW = true;
 					}
 				}

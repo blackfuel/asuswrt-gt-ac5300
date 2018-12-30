@@ -1594,6 +1594,17 @@ void init_syspara(void)
 		}
 	}
 #endif
+	{
+		char ipaddr_lan[16];
+		FRead(ipaddr_lan, OFFSET_IPADDR_LAN, sizeof(ipaddr_lan));
+		ipaddr_lan[sizeof(ipaddr_lan)-1] = '\0';
+		if((unsigned char)(ipaddr_lan[0]) != 0xff)
+		{
+			nvram_set("IpAddr_Lan", ipaddr_lan);
+		} else {
+			nvram_unset("IpAddr_Lan");
+		}
+	}
 
 #ifdef RA_SINGLE_SKU
 #if defined(RTAC52U) || defined(RTAC51U) || defined(RTN11P) || defined(RTN300) || defined(RTN54U) || defined(RTAC1200HP) || defined(RTN56UB1) || defined(RTAC54U) || defined(RTN56UB2)

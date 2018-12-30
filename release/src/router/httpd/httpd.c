@@ -752,8 +752,23 @@ void set_referer_host(void)
 			memset(referer_host, 0, sizeof(referer_host));
 			snprintf(referer_host,sizeof(referer_host),"%s:%d",lan_ipaddr, port);
 		}
+#ifdef RTAC68U
+	} else if (is_dpsta_repeater() && nvram_get_int("re_mode") == 0
+		&& !strncmp("repeater.asus.com", host_name, strlen("repeater.asus.com")) && *(host_name + strlen("repeater.asus.com")) == ':' && (port = atoi(host_name + strlen("repeater.asus.com") + 1)) > 0 && port < 65536){//transfer https domain to ip
+		if(port == 80)
+			strlcpy(referer_host, lan_ipaddr, sizeof(referer_host));
+		else{
+			memset(referer_host, 0, sizeof(referer_host));
+			snprintf(referer_host,sizeof(referer_host),"%s:%d",lan_ipaddr, port);
+		}
+#endif
 	}else if(!strcmp(DUT_DOMAIN_NAME, host_name))	//transfer http domain to ip
 		strlcpy(referer_host, lan_ipaddr, sizeof(referer_host));
+#ifdef RTAC68U
+	else if (is_dpsta_repeater() && nvram_get_int("re_mode") == 0
+		&& !strcmp("repeater.asus.com", host_name))   //transfer http domain to ip
+		strlcpy(referer_host, lan_ipaddr, sizeof(referer_host));
+#endif
 	else if(!strncmp(lan_ipaddr, host_name, ip_len) && *(host_name + ip_len) == ':' && (port = atoi(host_name + ip_len + 1)) == 80)	//filter send hostip:80
 		strlcpy(referer_host, lan_ipaddr, sizeof(referer_host));
 	else if(nvram_match("x_Setting", "0"))
@@ -812,7 +827,6 @@ int wave_handle_flag(char *url)
 }
 #endif
 
-int auto_set_lang = 0; //Prevent to check language every request
 static void
 handle_request(void)
 {
@@ -875,7 +889,7 @@ handle_request(void)
 		}
 #ifdef TRANSLATE_ON_FLY
 		else if ( strncasecmp( cur, "Accept-Language:", 16) == 0 ) {
-			if(change_preferred_lang()){
+			if(change_preferred_lang(0)){
 				char *p;
 				struct language_table *pLang;
 				char lang_buf[256];
@@ -926,7 +940,7 @@ handle_request(void)
 					nvram_set("preferred_lang", Accept_Language);
 				}
 
-				auto_set_lang = 1; //Prevent to check language every request
+				change_preferred_lang(1);
 			}
 
 			#ifdef RTCONFIG_DSL_TCLINUX
@@ -1310,7 +1324,11 @@ handle_request(void)
 #if defined(RTCONFIG_IFTTT) || defined(RTCONFIG_ALEXA)
 					&& !strstr(file, "asustitle.png")
 #endif
-					&& !strstr(file,"cert_key.tar")){
+					&& !strstr(file,"cert_key.tar")
+#ifdef RTCONFIG_OPENVPN
+					&& !strstr(file, "server_ovpn.cert")
+#endif
+					){
 				send_error( 404, "Not Found", (char*) 0, "File not found." );
 				return;
 			}
@@ -1486,8 +1504,12 @@ char *config_model_name(char *source, char *find,  char *rep){
    int length=strlen(source)+1;
    int gap=0;
 
+   char *result_t = NULL;
    char *result = (char*)malloc(sizeof(char) * length);
-   strcpy(result, source);
+   if(result == NULL)
+   	return NULL;
+   else
+   	strcpy(result, source);
 
    char *former=source;
    char *location= strstr(former, find);
@@ -1498,7 +1520,12 @@ char *config_model_name(char *source, char *find,  char *rep){
        result[gap]='\0';
 
        length+=(rep_L-find_L);
-       result = (char*)realloc(result, length * sizeof(char));
+       result_t = (char*)realloc(result, length * sizeof(char));
+       if(result_t == NULL){
+       	free(result);
+       	return NULL;
+       }else
+       	result = result_t;
        strcat(result, rep);
        gap+=rep_L;
 
@@ -1539,7 +1566,7 @@ load_dictionary (char *lang, pkw_t pkw)
 #endif  // RELOAD_DICT
 #ifdef RTCONFIG_DYN_DICT_NAME
 	char *dyn_dict_buf;
-	char *dyn_dict_buf_new;
+	char *dyn_dict_buf_new=NULL;
 #endif
 
 //printf ("lang=%s\n", lang);
@@ -1602,12 +1629,15 @@ load_dictionary (char *lang, pkw_t pkw)
 
 	free(dyn_dict_buf);
 
-	dict_size = sizeof(char) * strlen(dyn_dict_buf_new);
-	pkw->buf = (unsigned char *) (q = malloc (dict_size));
-	strcpy(pkw->buf, dyn_dict_buf_new);
-	free(dyn_dict_buf_new);
+	if(dyn_dict_buf_new){
+		dict_size = sizeof(char) * strlen(dyn_dict_buf_new);
+		pkw->buf = (unsigned char *) (q = malloc (dict_size));
+		strcpy(pkw->buf, dyn_dict_buf_new);
+		free(dyn_dict_buf_new);
+	}
+
 #else
-	pkw->buf = (unsigned char *) (q = malloc (dict_size));
+	pkw->buf = (char *) (q = malloc (dict_size));
 
 	fseek (dfp, 0L, SEEK_SET);
 	// skip BOM
@@ -1642,7 +1672,7 @@ load_dictionary (char *lang, pkw_t pkw)
 	// get all string start and put to pkw->idx
 	remain_dict = dict_size;
 	for (dict_item_idx = 0; dict_item_idx < dict_item; dict_item_idx++) {
-		pkw->idx[dict_item_idx] = (unsigned char *) q;
+		pkw->idx[dict_item_idx] = (char *) q;
 		while (remain_dict>0) {
 			if (*q == 0x0a) {
 				*q=0;

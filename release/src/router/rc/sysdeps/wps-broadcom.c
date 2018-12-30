@@ -242,6 +242,8 @@ stop_wps_method(void)
 		eval("wl", "spatial_policy", "1");
 #endif
 
+	nvram_set_int("wps_uptime", 0);
+
 	return 0;
 }
 
@@ -285,6 +287,9 @@ int start_wps_enr(void)
 	nvram_set("wps_env_buf", buf);
 	set_wps_env(buf);
 
+	sprintf(tmp, "%lu", uptime());
+	nvram_set("wps_uptime", tmp);
+
 	return 0;
 }
 #endif
@@ -298,7 +303,6 @@ int is_wps_stopped(void)
 	int status = nvram_get_int("wps_proc_status");
 	time_t now = uptime();
 	time_t wps_uptime = strtoul(nvram_safe_get("wps_uptime"), NULL, 10);
-	char tmp[100];
 
 #ifdef RTCONFIG_AMAS
 	if (is_router_mode() && !nvram_get_int("obd_Setting") && nvram_match("amesh_led", "1"))
@@ -307,8 +311,10 @@ int is_wps_stopped(void)
 
 	nvram_set_int("wps_proc_status_x", status);
 
-	if ((now - wps_uptime) < 2)
+	if (!status && (!wps_uptime || ((now - wps_uptime) < 2))) {
+		dbg("Wait WPS to start...\n");
 		return 0;
+	}
 
 #ifdef RTCONFIG_QTN
 	char wps_state[32], state_str[32];
@@ -369,8 +375,10 @@ int is_wps_stopped(void)
 	switch (status) {
 		case 0: /* Init */
 			dbg("Idle\n");
+#if 0
 			if (nvram_get_int("wps_restart_war") && (now - wps_uptime) < 3)
 			{
+				char tmp[100];
 				dbg("Re-send WPS env!!!\n");
 				set_wps_env(nvram_safe_get("wps_env_buf"));
 				nvram_unset("wps_env_buf");
@@ -379,6 +387,7 @@ int is_wps_stopped(void)
 				nvram_set("wps_uptime", tmp);
 				return 0;
 			}
+#endif
 			break;
 		case 1: /* WPS_ASSOCIATED */
 			dbg("Processing WPS start...\n");
@@ -429,4 +438,10 @@ int is_wps_stopped(void)
 	return ret;
 #endif
 	// TODO: handle enrollee
+}
+
+int is_wps_success(void)
+{
+	int wps_proc_status = nvram_get_int("wps_proc_status_x");
+	return (wps_proc_status == 2 || wps_proc_status == 7);
 }
