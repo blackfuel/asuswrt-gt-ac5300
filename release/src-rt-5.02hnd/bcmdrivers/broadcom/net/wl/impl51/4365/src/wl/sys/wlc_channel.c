@@ -1937,6 +1937,12 @@ wlc_set_country_common(wlc_cm_info_t *wlc_cmi,
 	strncpy(wlc_cm->ccode, ccode, WLC_CNTRY_BUF_SZ-1);
 	wlc_cm->regrev = regrev;
 
+	if ((strncmp(wlc_cm->country_abbrev, "#a", sizeof("#a") - 1)) &&
+		strlen(prev_country_abbrev) > 1 &&
+		(strncmp(wlc_cm->country_abbrev, prev_country_abbrev,
+                    strlen(wlc_cm->country_abbrev)) == 0)) {
+		 return;
+	}
 	result = wlc_get_locale(country, &locale);
 	ASSERT(result == CLM_RESULT_OK);
 

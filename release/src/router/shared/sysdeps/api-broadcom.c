@@ -1267,9 +1267,22 @@ char *get_wan_hwaddr(void)
 
 char *get_wlifname(int unit, int subunit, int subunit_x, char *buf)
 {
-	sprintf(buf, "wl%d.%d", unit, subunit);
+	char wifnv[12];
+
+	if (!subunit)
+	{
+		snprintf(wifnv, sizeof(wifnv), "wl%d_ifname", unit);
+		sprintf(buf, nvram_safe_get(wifnv));
+	}
+	else
+		sprintf(buf, "wl%d.%d", unit, subunit);
 
 	return buf;
+}
+
+char *wl_ifname(int unit, int subunit, char *buf)
+{
+	return get_wlifname(unit, subunit, -1, buf);
 }
 
 /**
